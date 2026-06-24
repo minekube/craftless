@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/minekube/craftwright/internal/engine"
 	"github.com/spf13/cobra"
@@ -36,6 +37,9 @@ func NewRoot(deps Dependencies) *cobra.Command {
 		Version:       deps.Version,
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return opts.Validate()
+		},
 	}
 
 	root.SetOut(deps.Stdout)
@@ -61,18 +65,33 @@ func NewRoot(deps Dependencies) *cobra.Command {
 		newScenarioCommand(deps, &opts),
 		newDaemonCommand(deps, &opts),
 	)
+	for _, cmd := range root.Commands() {
+		if cmd.Run == nil && cmd.RunE == nil && !cmd.HasSubCommands() {
+			cmd.RunE = func(cmd *cobra.Command, args []string) error {
+				return cmd.Help()
+			}
+		}
+	}
 
 	return root
 }
 
 func Execute(root *cobra.Command) int {
 	if err := root.Execute(); err != nil {
+		if isUsageFailure(err) {
+			err = usageError("%v", err)
+		}
 		_, _ = fmt.Fprintf(root.ErrOrStderr(), "error: %v\n", err)
 		return exitCode(err)
 	}
 	return 0
 }
 
-func exitCode(err error) int {
-	return 2
+func isUsageFailure(err error) bool {
+	message := err.Error()
+	return strings.Contains(message, "unknown command") ||
+		strings.Contains(message, "unknown flag") ||
+		strings.Contains(message, "unknown shorthand flag") ||
+		strings.Contains(message, "invalid argument") ||
+		strings.Contains(message, "flag needs an argument")
 }
