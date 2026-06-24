@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -11,6 +12,7 @@ import (
 
 type Dependencies struct {
 	Engine  engine.Engine
+	Stdin   io.Reader
 	Stdout  io.Writer
 	Stderr  io.Writer
 	Version string
@@ -38,6 +40,9 @@ func NewRoot(deps Dependencies) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if isDaemonStdioCommand(cmd) && (opts.JSON || opts.JSONL || opts.Plain) {
+				return daemonStdioUsageError("--json, --jsonl, and --plain cannot be used with daemon --stdio")
+			}
 			return opts.Validate()
 		},
 	}
@@ -78,17 +83,31 @@ func NewRoot(deps Dependencies) *cobra.Command {
 
 func Execute(root *cobra.Command) int {
 	if err := root.Execute(); err != nil {
-		if isUsageFailure(err) {
+		if isUsageFailure(err) && !isAppError(err) {
 			err = usageError("%v", err)
 		}
 		code := exitCode(err)
-		if jsonOutputRequested(root) {
+		if jsonOutputRequested(root) && !suppressesDaemonStdioEnvelope(err) {
 			_ = WriteJSONError(root.OutOrStdout(), err, code)
 		}
 		_, _ = fmt.Fprintf(root.ErrOrStderr(), "error: %v\n", err)
 		return code
 	}
 	return 0
+}
+
+type daemonStdioEnvelopeSuppressor interface {
+	suppressDaemonStdioEnvelope()
+}
+
+func suppressesDaemonStdioEnvelope(err error) bool {
+	var suppressor daemonStdioEnvelopeSuppressor
+	return errors.As(err, &suppressor)
+}
+
+func isAppError(err error) bool {
+	var appErr appError
+	return errors.As(err, &appErr)
 }
 
 func jsonOutputRequested(root *cobra.Command) bool {
