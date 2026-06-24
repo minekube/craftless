@@ -81,10 +81,19 @@ func Execute(root *cobra.Command) int {
 		if isUsageFailure(err) {
 			err = usageError("%v", err)
 		}
+		code := exitCode(err)
+		if jsonOutputRequested(root) {
+			_ = WriteJSONError(root.OutOrStdout(), err, code)
+		}
 		_, _ = fmt.Fprintf(root.ErrOrStderr(), "error: %v\n", err)
-		return exitCode(err)
+		return code
 	}
 	return 0
+}
+
+func jsonOutputRequested(root *cobra.Command) bool {
+	flag := root.PersistentFlags().Lookup("json")
+	return flag != nil && flag.Value.String() == "true"
 }
 
 func isUsageFailure(err error) bool {

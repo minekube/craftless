@@ -52,6 +52,16 @@ func WriteJSON(w io.Writer, v any) error {
 	return enc.Encode(v)
 }
 
+func WriteJSONError(w io.Writer, err error, code int) error {
+	return WriteJSON(w, map[string]any{
+		"ok": false,
+		"error": map[string]any{
+			"code":    code,
+			"message": err.Error(),
+		},
+	})
+}
+
 func exitCode(err error) int {
 	var appErr appError
 	if errors.As(err, &appErr) {
