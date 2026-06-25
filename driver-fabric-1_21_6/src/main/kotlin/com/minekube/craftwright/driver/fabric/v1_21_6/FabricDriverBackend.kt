@@ -2,6 +2,7 @@ package com.minekube.craftwright.driver.fabric.v1_21_6
 
 import com.minekube.craftwright.driver.api.ChatCommand
 import com.minekube.craftwright.driver.api.ConnectionTarget
+import com.minekube.craftwright.driver.api.DriverCapabilityDescriptor
 import com.minekube.craftwright.driver.api.DriverCapabilityInvocation
 import com.minekube.craftwright.driver.api.DriverCapabilityResult
 import com.minekube.craftwright.driver.api.DriverCapabilityStatus
@@ -48,6 +49,9 @@ class FabricDriverBackend private constructor(
                 position = player.position,
             )
         }
+
+    override fun capabilities(clientId: String): List<DriverCapabilityDescriptor> =
+        listOf(DriverCapabilityDescriptor.playerMove())
 
     override fun invoke(clientId: String, invocation: DriverCapabilityInvocation): DriverCapabilityResult {
         require(invocation.capability.isNotBlank()) { "capability is required" }

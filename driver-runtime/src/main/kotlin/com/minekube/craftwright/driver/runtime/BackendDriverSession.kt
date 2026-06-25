@@ -2,6 +2,7 @@ package com.minekube.craftwright.driver.runtime
 
 import com.minekube.craftwright.driver.api.ChatCommand
 import com.minekube.craftwright.driver.api.ConnectionTarget
+import com.minekube.craftwright.driver.api.DriverCapabilityDescriptor
 import com.minekube.craftwright.driver.api.DriverCapabilityInvocation
 import com.minekube.craftwright.driver.api.DriverCapabilityResult
 import com.minekube.craftwright.driver.api.DriverCapabilityStatus
@@ -72,6 +73,9 @@ class BackendDriverSession(
             position = PlayerPosition(0.0, 0.0, 0.0),
         )
 
+    override fun capabilities(): List<DriverCapabilityDescriptor> =
+        backend.capabilities(clientId)
+
     override fun invoke(invocation: DriverCapabilityInvocation): DriverCapabilityResult {
         require(invocation.capability.isNotBlank()) { "capability is required" }
         return backend.invoke(clientId, invocation)
@@ -99,6 +103,8 @@ interface DriverBackend {
     fun sendChat(clientId: String, command: ChatCommand): DriverBackendResult
 
     fun player(clientId: String): DriverBackendPlayer? = null
+
+    fun capabilities(clientId: String): List<DriverCapabilityDescriptor> = emptyList()
 
     fun invoke(clientId: String, invocation: DriverCapabilityInvocation): DriverCapabilityResult =
         DriverCapabilityResult(

@@ -78,6 +78,7 @@ backend/session boundary for real client state:
 
 The public daemon routes remain:
 
+- `GET /clients/{id}/openapi.json`
 - `POST /clients/{id}/connection/connect`
 - `POST /clients/{id}/player/sendChat`
 - `GET /clients/{id}/player`

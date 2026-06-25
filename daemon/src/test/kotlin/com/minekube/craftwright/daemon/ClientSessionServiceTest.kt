@@ -10,9 +10,12 @@ import com.minekube.craftwright.driver.runtime.DriverBackendResult
 import com.minekube.craftwright.protocol.ClientState
 import com.minekube.craftwright.protocol.CreateClientRequest
 import com.minekube.craftwright.protocol.Loader
+import com.minekube.craftwright.protocol.OpenApiDocument
 import com.minekube.craftwright.protocol.Profile
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ClientSessionServiceTest {
@@ -32,9 +35,37 @@ class ClientSessionServiceTest {
         assertEquals(ClientState.RUNNING, client.state)
         assertEquals("Alice", client.profile.name)
         assertEquals("/clients/alice/events", service.routesFor("alice").first { it.path.endsWith("/events") }.path)
+        assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/openapi.json" })
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/player/sendChat" })
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/connection/connect" })
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/player/position" })
+    }
+
+    @Test
+    fun `client specific openapi exposes capability metadata without static action routes`() {
+        val service = ClientSessionService.inMemory()
+        service.createClient(
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            )
+        )
+
+        val document: OpenApiDocument = service.openApiFor("alice")
+
+        assertEquals("alice", document.extensions["x-craftwright-client-id"])
+        assertEquals("1.21.4", document.extensions["x-craftwright-minecraft-version"])
+        assertEquals("FABRIC", document.extensions["x-craftwright-loader"])
+        assertTrue(document.paths.containsKey("/clients/alice/openapi.json"))
+        assertTrue(document.paths.containsKey("/clients/alice/capabilities/{capability}"))
+        assertFalse(document.paths.keys.any { "/actions/" in it })
+        assertFalse(document.paths.keys.any { "/perception/" in it })
+        val capabilityOperation = document.paths["/clients/alice/capabilities/{capability}"]?.post
+        assertNotNull(capabilityOperation)
+        assertEquals("capability", capabilityOperation.extensions["x-craftwright-source"])
+        assertEquals("1", document.capabilities.single { it.id == "player.move" }.schemaVersion)
     }
 
     @Test

@@ -63,6 +63,14 @@ class LocalSessionApiServer private constructor(
             get("/events") {
                 call.respondJson(HttpStatusCode.OK, events)
             }
+            get("/clients/{id}/openapi.json") {
+                val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
+                runCatching {
+                    call.respondJson(HttpStatusCode.OK, service.openApiFor(clientId))
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
+                }
+            }
             post("/clients") {
                 runCatching {
                     val request = json.decodeFromString<CreateClientRequest>(call.receiveText())

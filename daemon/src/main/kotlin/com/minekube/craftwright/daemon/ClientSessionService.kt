@@ -4,11 +4,15 @@ import com.minekube.craftwright.driver.api.ConnectionTarget
 import com.minekube.craftwright.driver.api.DriverSession
 import com.minekube.craftwright.driver.api.FakeDriverSession
 import com.minekube.craftwright.protocol.ApiRoute
+import com.minekube.craftwright.protocol.ApiRouteCatalog
 import com.minekube.craftwright.protocol.Client
 import com.minekube.craftwright.protocol.ClientState
 import com.minekube.craftwright.protocol.CreateClientRequest
 import com.minekube.craftwright.protocol.Instance
 import com.minekube.craftwright.protocol.MinecraftVersion
+import com.minekube.craftwright.protocol.OpenApiCapability
+import com.minekube.craftwright.protocol.OpenApiCapabilityArgument
+import com.minekube.craftwright.protocol.OpenApiDocument
 
 class ClientSessionService private constructor(
     private val driverFactory: DriverSessionFactory,
@@ -57,18 +61,42 @@ class ClientSessionService private constructor(
     fun routesFor(clientId: String): List<ApiRoute> {
         require(clients.containsKey(clientId)) { "client $clientId not found" }
         return listOf(
+            route("GET", "/clients/$clientId/openapi.json", "clientsOpenApi", "clients", "openapi", "route"),
             route("POST", "/clients/$clientId/connection/connect", "clientsConnect", "clients", "connection", "method"),
             route("POST", "/clients/$clientId/stop", "clientsStop", "clients", "stop", "method"),
             route("POST", "/clients/$clientId/player/sendChat", "clientsPlayerSendChat", "clients", "sendChat", "method"),
-            route("POST", "/clients/$clientId/actions/move", "clientsActionsMove", "clients", "move", "method"),
-            route("POST", "/clients/$clientId/actions/jump", "clientsActionsJump", "clients", "jump", "method"),
-            route("POST", "/clients/$clientId/actions/look", "clientsActionsLook", "clients", "look", "method"),
+            route("POST", "/clients/$clientId/capabilities/{capability}", "clientsCapabilityInvoke", "clients", "capability", "capability"),
             route("GET", "/clients/$clientId/player", "clientsPlayer", "clients", "player", "root", "handle"),
             route("GET", "/clients/$clientId/player/position", "clientsPlayerPosition", "clients", "position", "getter"),
-            route("GET", "/clients/$clientId/perception/raycast", "clientsPerceptionRaycast", "clients", "raycast", "method"),
-            route("GET", "/clients/$clientId/world/blocks/nearby", "clientsWorldBlocksNearby", "clients", "nearbyBlocks", "method"),
-            route("GET", "/clients/$clientId/entities/nearby", "clientsEntitiesNearby", "clients", "nearbyEntities", "method"),
             route("GET", "/clients/$clientId/events", "clientsEvents", "clients", "events", "route"),
+        )
+    }
+
+    fun openApiFor(clientId: String): OpenApiDocument {
+        val client = client(clientId)
+        val capabilities = driverFor(clientId).capabilities()
+        return OpenApiDocument.from(
+            catalog = ApiRouteCatalog(routesFor(clientId)),
+            extensions = mapOf(
+                "x-craftwright-client-id" to client.id,
+                "x-craftwright-minecraft-version" to client.instance.version.id,
+                "x-craftwright-loader" to client.instance.loader.name,
+                "x-craftwright-driver" to "craftwright-daemon",
+                "x-craftwright-capability-schema-version" to (capabilities.firstOrNull()?.schemaVersion ?: "none"),
+                "x-craftwright-capability-fingerprint" to capabilities.joinToString(",") { "${it.id}:${it.schemaVersion}" },
+            ),
+            capabilities = capabilities.map { capability ->
+                OpenApiCapability(
+                    id = capability.id,
+                    schemaVersion = capability.schemaVersion,
+                    arguments = capability.arguments.mapValues { (_, argument) ->
+                        OpenApiCapabilityArgument(
+                            type = argument.type,
+                            required = argument.required,
+                        )
+                    },
+                )
+            },
         )
     }
 

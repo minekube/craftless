@@ -126,12 +126,10 @@ The wrapper exposed Craftwright-shaped routes such as:
 - `POST /connect`;
 - `GET /events`;
 - `POST /clients/default/player/sendChat`;
-- `POST /clients/default/actions/jump`;
-- `POST /clients/default/actions/move`;
-- `POST /clients/default/perception/render-text`;
-- `POST /clients/default/ui/dump`;
-- `POST /clients/default/ui/click`;
-- `POST /clients/default/input/keys`.
+- `GET /clients/default/openapi.json`;
+- `POST /clients/default/capabilities/{capability}` for discovered actions
+  such as `player.move`;
+- root/session routes for current player, UI, events, and object handles.
 
 This must be labelled as a bridge PoC. The API surface was Craftwright-shaped,
 but the implementation still drove HMC-Specifics commands over stdin.

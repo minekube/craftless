@@ -5,6 +5,7 @@ import com.minekube.craftwright.bridge.hmc.HmcBridgeBackend
 import com.minekube.craftwright.bridge.hmc.MoveIntent
 import com.minekube.craftwright.driver.api.ChatCommand
 import com.minekube.craftwright.driver.api.ConnectionTarget
+import com.minekube.craftwright.driver.api.DriverCapabilityDescriptor
 import com.minekube.craftwright.driver.api.DriverCapabilityInvocation
 import com.minekube.craftwright.driver.api.DriverCapabilityResult
 import com.minekube.craftwright.driver.api.DriverCapabilityStatus
@@ -29,6 +30,9 @@ class HmcBridgeDriverBackend(
         require(result.action == ClientAction.STOP) { "bridge returned ${result.action} for stop" }
         return DriverBackendResult(DriverBackendAction.STOP, result.publicDescription)
     }
+
+    override fun capabilities(clientId: String): List<DriverCapabilityDescriptor> =
+        listOf(DriverCapabilityDescriptor.playerMove())
 
     override fun invoke(clientId: String, invocation: DriverCapabilityInvocation): DriverCapabilityResult {
         if (invocation.capability != "player.move") {

@@ -27,6 +27,8 @@ Known limitations:
 The Fabric backend now has a client-thread gateway for connection, chat,
 command, stop, player name/connection-state observation, and player position.
 It also accepts `player.move` through the generic capability route and maps it
-to client movement intent. The next durable milestone is proving movement in a
-real-client smoke and adding look direction, raycasts, and perception inside
-the client.
+to client movement intent. The daemon exposes `/clients/{id}/openapi.json` with
+client metadata and the discovered `player.move` capability schema instead of
+adding static `/actions/*` routes. The next durable milestone is proving
+movement in a real-client smoke and adding look direction, raycasts, and
+perception inside the client.

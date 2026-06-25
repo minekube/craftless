@@ -28,6 +28,10 @@ class DriverSessionContractTest {
         assertEquals(ClientState.CONNECTED, player.state)
         assertEquals(PlayerPosition(0.0, 0.0, 0.0), player.position)
 
+        val capabilities = session.capabilities()
+        assertEquals("player.move", capabilities.single().id)
+        assertEquals("1", capabilities.single().schemaVersion)
+
         val capability = session.invoke(
             DriverCapabilityInvocation(
                 capability = "player.move",

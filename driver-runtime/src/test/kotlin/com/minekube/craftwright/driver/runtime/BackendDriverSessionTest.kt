@@ -2,6 +2,7 @@ package com.minekube.craftwright.driver.runtime
 
 import com.minekube.craftwright.driver.api.ChatCommand
 import com.minekube.craftwright.driver.api.ConnectionTarget
+import com.minekube.craftwright.driver.api.DriverCapabilityDescriptor
 import com.minekube.craftwright.driver.api.DriverCapabilityInvocation
 import com.minekube.craftwright.driver.api.DriverCapabilityResult
 import com.minekube.craftwright.driver.api.DriverCapabilityStatus
@@ -36,6 +37,7 @@ class BackendDriverSessionTest {
 
         assertEquals("Alice", session.player().name)
         assertEquals(ClientState.CONNECTED, session.player().state)
+        assertEquals("player.move", session.capabilities().single().id)
 
         val stopped = session.stop()
         assertEquals(ClientState.STOPPED, stopped.state)
@@ -127,6 +129,9 @@ private class RecordingDriverBackend(
         calls += "player $clientId"
         return observedPlayer
     }
+
+    override fun capabilities(clientId: String): List<DriverCapabilityDescriptor> =
+        listOf(DriverCapabilityDescriptor.playerMove())
 
     override fun invoke(clientId: String, invocation: DriverCapabilityInvocation): DriverCapabilityResult {
         calls += "capability $clientId ${invocation.capability} ${invocation.arguments.entries.joinToString(" ") { "${it.key}=${it.value}" }}"

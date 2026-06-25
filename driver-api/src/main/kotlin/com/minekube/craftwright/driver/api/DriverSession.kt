@@ -15,6 +15,8 @@ interface DriverSession {
 
     fun player(): PlayerSnapshot
 
+    fun capabilities(): List<DriverCapabilityDescriptor>
+
     fun invoke(invocation: DriverCapabilityInvocation): DriverCapabilityResult
 
     fun stop(): DriverClientSnapshot
@@ -37,6 +39,42 @@ data class ConnectionTarget(
 @Serializable
 data class ChatCommand(
     val message: String,
+)
+
+@Serializable
+data class DriverCapabilityDescriptor(
+    val id: String,
+    val schemaVersion: String,
+    val arguments: Map<String, DriverCapabilityArgument> = emptyMap(),
+) {
+    init {
+        require(id.isNotBlank()) { "capability id is required" }
+        require(schemaVersion.isNotBlank()) { "capability schema version is required" }
+    }
+
+    companion object {
+        fun playerMove(): DriverCapabilityDescriptor =
+            DriverCapabilityDescriptor(
+                id = "player.move",
+                schemaVersion = "1",
+                arguments = mapOf(
+                    "forward" to DriverCapabilityArgument("boolean"),
+                    "backward" to DriverCapabilityArgument("boolean"),
+                    "left" to DriverCapabilityArgument("boolean"),
+                    "right" to DriverCapabilityArgument("boolean"),
+                    "jump" to DriverCapabilityArgument("boolean"),
+                    "sneak" to DriverCapabilityArgument("boolean"),
+                    "sprint" to DriverCapabilityArgument("boolean"),
+                    "ticks" to DriverCapabilityArgument("integer"),
+                ),
+            )
+    }
+}
+
+@Serializable
+data class DriverCapabilityArgument(
+    val type: String,
+    val required: Boolean = false,
 )
 
 @Serializable
@@ -136,6 +174,9 @@ class FakeDriverSession(
             state = state,
             position = PlayerPosition(0.0, 0.0, 0.0),
         )
+
+    override fun capabilities(): List<DriverCapabilityDescriptor> =
+        listOf(DriverCapabilityDescriptor.playerMove())
 
     override fun invoke(invocation: DriverCapabilityInvocation): DriverCapabilityResult {
         require(invocation.capability.isNotBlank()) { "capability is required" }

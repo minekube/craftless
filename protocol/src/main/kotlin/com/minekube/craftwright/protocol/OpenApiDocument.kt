@@ -8,15 +8,23 @@ data class OpenApiDocument(
     val openapi: String = "3.1.0",
     val info: OpenApiInfo = OpenApiInfo(),
     val paths: Map<String, OpenApiPath>,
+    @SerialName("x-craftwright")
+    val extensions: Map<String, String> = emptyMap(),
+    @SerialName("x-craftwright-capabilities")
+    val capabilities: List<OpenApiCapability> = emptyList(),
 ) {
     companion object {
-        fun from(catalog: ApiRouteCatalog): OpenApiDocument =
+        fun from(
+            catalog: ApiRouteCatalog,
+            extensions: Map<String, String> = emptyMap(),
+            capabilities: List<OpenApiCapability> = emptyList(),
+        ): OpenApiDocument =
             OpenApiDocument(paths = catalog.routes.groupBy { it.path }.mapValues { (_, routes) ->
                 OpenApiPath(
                     get = routes.firstOrNull { it.method == "GET" }?.toOperation(),
                     post = routes.firstOrNull { it.method == "POST" }?.toOperation(),
                 )
-            })
+            }, extensions = extensions, capabilities = capabilities)
     }
 }
 
@@ -44,6 +52,19 @@ data class OpenApiOperation(
 @Serializable
 data class OpenApiResponse(
     val description: String = "OK",
+)
+
+@Serializable
+data class OpenApiCapability(
+    val id: String,
+    val schemaVersion: String,
+    val arguments: Map<String, OpenApiCapabilityArgument> = emptyMap(),
+)
+
+@Serializable
+data class OpenApiCapabilityArgument(
+    val type: String,
+    val required: Boolean = false,
 )
 
 private fun ApiRoute.toOperation(): OpenApiOperation {

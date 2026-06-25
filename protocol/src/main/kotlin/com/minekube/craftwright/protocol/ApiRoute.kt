@@ -15,7 +15,7 @@ data class ApiRoute(
     val returnKind: String = "value",
 )
 
-class ApiRouteCatalog private constructor(
+class ApiRouteCatalog(
     val routes: List<ApiRoute>,
 ) {
     private val byPath: Map<String, ApiRoute> = routes.associateBy { it.path }
@@ -37,6 +37,7 @@ class ApiRouteCatalog private constructor(
                 route("POST", "/player/sendChat", "playerSendChat", "player", "com.minekube.craftwright.player", "sendChat", "method"),
                 route("GET", "/connection", "getConnection", "connection", "com.minekube.craftwright.connection", "connection", "root", "handle"),
                 route("POST", "/clients", "createClient", "clients", "com.minekube.craftwright.daemon.clients", "create", "route"),
+                route("GET", "/clients/{id}/openapi.json", "getClientOpenapiJson", "clients", "com.minekube.craftwright.daemon.clients", "openapi", "route"),
                 route("POST", "/clients/{id}/connection/connect", "clientConnect", "clients", "com.minekube.craftwright.daemon.clients", "connect", "method"),
                 route("POST", "/clients/{id}/player/sendChat", "clientPlayerSendChat", "clients", "com.minekube.craftwright.daemon.clients", "sendChat", "method"),
                 route("GET", "/clients/{id}/player", "getClientPlayer", "clients", "com.minekube.craftwright.daemon.clients", "player", "root", "value"),

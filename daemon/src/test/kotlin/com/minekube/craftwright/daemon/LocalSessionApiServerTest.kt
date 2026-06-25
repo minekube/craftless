@@ -65,6 +65,15 @@ class LocalSessionApiServerTest {
                 assertEquals(HttpStatusCode.OK, clientEvents.status)
                 assertTrue(clientEvents.bodyAsText().contains("client.created"))
             }
+
+            http.get(server.url("/clients/alice/openapi.json")).let { clientOpenapi ->
+                val body = clientOpenapi.bodyAsText()
+                assertEquals(HttpStatusCode.OK, clientOpenapi.status)
+                assertTrue(body.contains("\"x-craftwright-client-id\":\"alice\""))
+                assertTrue(body.contains("/clients/alice/capabilities/{capability}"))
+                assertTrue(body.contains("\"id\":\"player.move\""))
+                assertTrue(!body.contains("/actions/move"))
+            }
         }
     }
 
