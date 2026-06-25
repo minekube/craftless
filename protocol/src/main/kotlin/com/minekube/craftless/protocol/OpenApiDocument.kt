@@ -19,6 +19,13 @@ data class OpenApiDocument(
             extensions: Map<String, String> = emptyMap(),
             actions: List<OpenApiAction> = emptyList(),
         ): OpenApiDocument {
+            val duplicateAction = actions
+                .groupBy { it.id }
+                .entries
+                .firstOrNull { (_, matches) -> matches.size > 1 }
+            if (duplicateAction != null) {
+                throw IllegalArgumentException("duplicate action id ${duplicateAction.key}")
+            }
             val actionsById = actions.associateBy { it.id }
             return OpenApiDocument(
                 paths = catalog.routes.groupBy { it.path }.mapValues { (_, routes) ->

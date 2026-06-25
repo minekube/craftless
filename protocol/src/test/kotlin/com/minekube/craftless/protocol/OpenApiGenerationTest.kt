@@ -2,6 +2,7 @@ package com.minekube.craftless.protocol
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -36,6 +37,23 @@ class OpenApiGenerationTest {
         assertEquals("string", responseSchema.properties["action"]?.type)
         assertEquals("string", responseSchema.properties["status"]?.type)
         assertEquals("string", responseSchema.properties["message"]?.type)
+    }
+
+    @Test
+    fun `openapi document rejects duplicate action ids`() {
+        val action = OpenApiAction(
+            id = "player.chat",
+            schemaVersion = "1",
+        )
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            OpenApiDocument.from(
+                catalog = ApiRouteCatalog.sessionDefaults(),
+                actions = listOf(action, action.copy(schemaVersion = "2")),
+            )
+        }
+
+        assertEquals("duplicate action id player.chat", error.message)
     }
 
     @Test
