@@ -130,6 +130,43 @@ class OpenApiGenerationTest {
     }
 
     @Test
+    fun `openapi action metadata carries discovery source and availability`() {
+        val action =
+            OpenApiAction(
+                id = "player.raycast",
+                schemaVersion = "1",
+                source = OpenApiActionSource.RUNTIME_PROBE,
+                availability = OpenApiActionAvailability.UNAVAILABLE,
+                availabilityReason = "client-not-connected",
+            )
+
+        assertEquals(OpenApiActionSource.RUNTIME_PROBE, action.source)
+        assertEquals(OpenApiActionAvailability.UNAVAILABLE, action.availability)
+        assertEquals("client-not-connected", action.availabilityReason)
+    }
+
+    @Test
+    fun `unavailable openapi actions require machine readable availability reason`() {
+        assertFailsWith<IllegalArgumentException> {
+            OpenApiAction(
+                id = "player.raycast",
+                schemaVersion = "1",
+                source = OpenApiActionSource.RUNTIME_PROBE,
+                availability = OpenApiActionAvailability.UNAVAILABLE,
+            )
+        }
+        assertFailsWith<IllegalArgumentException> {
+            OpenApiAction(
+                id = "player.raycast",
+                schemaVersion = "1",
+                source = OpenApiActionSource.RUNTIME_PROBE,
+                availability = OpenApiActionAvailability.UNAVAILABLE,
+                availabilityReason = "client is not connected",
+            )
+        }
+    }
+
+    @Test
     fun `openapi action metadata rejects invalid argument metadata`() {
         listOf(
             "",
@@ -254,9 +291,13 @@ class OpenApiGenerationTest {
         assertEquals("array", actionsSchema.type)
         val actionSchema = requireNotNull(actionsSchema.items)
         assertEquals("object", actionSchema.type)
-        assertEquals(listOf("id", "schemaVersion"), actionSchema.required)
+        assertEquals(listOf("id", "schemaVersion", "source", "availability"), actionSchema.required)
         assertEquals("string", actionSchema.properties["id"]?.type)
         assertEquals("string", actionSchema.properties["schemaVersion"]?.type)
+        assertEquals("string", actionSchema.properties["source"]?.type)
+        assertEquals("string", actionSchema.properties["availability"]?.type)
+        assertEquals("string", actionSchema.properties["availabilityReason"]?.type)
+        assertEquals(true, actionSchema.properties["availabilityReason"]?.nullable)
         assertEquals("object", actionSchema.properties["args"]?.type)
         assertEquals(true, actionSchema.properties["args"]?.additionalProperties)
         val resultSchema = actionSchema.properties["result"]

@@ -14,6 +14,7 @@ class FabricDriverBackend private constructor(
     private val mode: Mode,
     private val gateway: FabricClientGateway?,
     actionBindings: List<FabricActionBinding> = defaultFabricActionBindings(),
+    private val actionDiscovery: FabricActionDiscovery = defaultFabricActionDiscovery(),
 ) : DriverBackend {
     private val events = mutableListOf<String>()
     private val actionBindingsById = actionBindings.associateBy { it.descriptor.id }
@@ -31,7 +32,7 @@ class FabricDriverBackend private constructor(
         return DriverBackendResult(DriverBackendAction.CONNECT, "fabric ${mode.id} connect requested")
     }
 
-    override fun actions(clientId: String): List<DriverActionDescriptor> = actionBindingsById.values.map { it.descriptor }
+    override fun actions(clientId: String): List<DriverActionDescriptor> = discoveredActions(clientId).map { it.descriptor }
 
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
         DriverRuntimeMetadata(
@@ -50,12 +51,20 @@ class FabricDriverBackend private constructor(
         invocation: DriverActionInvocation,
     ): DriverActionResult {
         require(invocation.action.isNotBlank()) { "action is required" }
-        val binding = actionBindingsById[invocation.action]
-        if (binding == null) {
+        val discoveredAction = discoveredActions(clientId).firstOrNull { it.descriptor.id == invocation.action }
+        if (discoveredAction == null) {
             return DriverActionResult(
                 action = invocation.action,
                 status = DriverActionStatus.UNSUPPORTED,
                 message = "unsupported Fabric action ${invocation.action}",
+            )
+        }
+        val binding = discoveredAction.binding
+        if (binding == null) {
+            return DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.UNSUPPORTED,
+                message = discoveredAction.descriptor.availabilityReason ?: "unavailable Fabric action ${invocation.action}",
             )
         }
         return binding.invoke(
@@ -80,6 +89,16 @@ class FabricDriverBackend private constructor(
 
     fun events(): List<String> = events.toList()
 
+    private fun discoveredActions(clientId: String): List<FabricDiscoveredAction> =
+        actionDiscovery.discover(
+            FabricActionDiscoveryContext(
+                clientId = clientId,
+                modeId = mode.id,
+                gateway = gateway,
+                bindings = actionBindingsById,
+            ),
+        )
+
     private fun record(event: String) {
         events += event
     }
@@ -95,10 +114,27 @@ class FabricDriverBackend private constructor(
         @Volatile
         private var installed: FabricDriverBackend? = null
 
-        fun metadataOnly(): FabricDriverBackend = FabricDriverBackend(Mode.METADATA_ONLY, gateway = null)
+        fun metadataOnly(): FabricDriverBackend = metadataOnly(defaultFabricActionDiscovery())
+
+        internal fun metadataOnly(actionDiscovery: FabricActionDiscovery): FabricDriverBackend =
+            FabricDriverBackend(
+                mode = Mode.METADATA_ONLY,
+                gateway = null,
+                actionDiscovery = actionDiscovery,
+            )
 
         fun real(gateway: FabricClientGateway = MinecraftFabricClientGateway()): FabricDriverBackend =
-            FabricDriverBackend(Mode.REAL_CLIENT, gateway)
+            real(gateway, defaultFabricActionDiscovery())
+
+        internal fun real(
+            gateway: FabricClientGateway,
+            actionDiscovery: FabricActionDiscovery,
+        ): FabricDriverBackend =
+            FabricDriverBackend(
+                mode = Mode.REAL_CLIENT,
+                gateway = gateway,
+                actionDiscovery = actionDiscovery,
+            )
 
         fun install(backend: FabricDriverBackend) {
             installed = backend

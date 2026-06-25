@@ -1,7 +1,9 @@
 package com.minekube.craftless.daemon
 
 import com.minekube.craftless.driver.api.ConnectionTarget
+import com.minekube.craftless.driver.api.DriverActionAvailability
 import com.minekube.craftless.driver.api.DriverActionDescriptor
+import com.minekube.craftless.driver.api.DriverActionSource
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.ApiRoute
@@ -13,8 +15,10 @@ import com.minekube.craftless.protocol.Instance
 import com.minekube.craftless.protocol.MinecraftVersion
 import com.minekube.craftless.protocol.OpenApiAction
 import com.minekube.craftless.protocol.OpenApiActionArgument
+import com.minekube.craftless.protocol.OpenApiActionAvailability
 import com.minekube.craftless.protocol.OpenApiActionResult
 import com.minekube.craftless.protocol.OpenApiActionSchema
+import com.minekube.craftless.protocol.OpenApiActionSource
 import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.isCraftlessClientId
 
@@ -115,6 +119,9 @@ class ClientSessionService private constructor(
                                     },
                                 required = action.result.required,
                             ),
+                        source = action.source.toOpenApiActionSource(),
+                        availability = action.availability.toOpenApiActionAvailability(),
+                        availabilityReason = action.availabilityReason,
                     )
                 },
         )
@@ -232,8 +239,37 @@ private fun DriverActionDescriptor.fingerprintPart(): String {
                 val required = if (name in result.required) "!" else ""
                 "$name:${property.type}$required"
             }
-    return "$id:$schemaVersion($argumentFingerprint)->($resultFingerprint)"
+    val availabilityFingerprint =
+        when (availability) {
+            DriverActionAvailability.AVAILABLE -> availability.fingerprintValue()
+            DriverActionAvailability.UNAVAILABLE -> "${availability.fingerprintValue()}:${availabilityReason.orEmpty()}"
+        }
+    return "$id:$schemaVersion:${source.fingerprintValue()}:$availabilityFingerprint($argumentFingerprint)->($resultFingerprint)"
 }
+
+private fun DriverActionSource.fingerprintValue(): String =
+    when (this) {
+        DriverActionSource.BINDING -> "binding"
+        DriverActionSource.RUNTIME_PROBE -> "runtime-probe"
+    }
+
+private fun DriverActionAvailability.fingerprintValue(): String =
+    when (this) {
+        DriverActionAvailability.AVAILABLE -> "available"
+        DriverActionAvailability.UNAVAILABLE -> "unavailable"
+    }
+
+private fun DriverActionSource.toOpenApiActionSource(): OpenApiActionSource =
+    when (this) {
+        DriverActionSource.BINDING -> OpenApiActionSource.BINDING
+        DriverActionSource.RUNTIME_PROBE -> OpenApiActionSource.RUNTIME_PROBE
+    }
+
+private fun DriverActionAvailability.toOpenApiActionAvailability(): OpenApiActionAvailability =
+    when (this) {
+        DriverActionAvailability.AVAILABLE -> OpenApiActionAvailability.AVAILABLE
+        DriverActionAvailability.UNAVAILABLE -> OpenApiActionAvailability.UNAVAILABLE
+    }
 
 private fun route(
     method: String,

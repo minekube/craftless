@@ -86,11 +86,16 @@ Verification:
 ## 3. Runtime Discovery Architecture
 
 - [x] Remove static placeholder action descriptors from product code and tests.
-- [ ] Design the Fabric runtime discovery/projection layer.
+- [x] Action descriptors and per-client OpenAPI carry action source,
+  availability, and machine-readable availability reasons.
+- [~] Design the Fabric runtime discovery/projection layer. A minimal internal
+  discovery abstraction exists for binding-backed actions and probe-backed
+  unavailable actions; real client/world/inventory/screen probes are still
+  roadmap.
 - [ ] Define how internal Fabric/Minecraft/mod/registry/server data becomes
   Craftless-owned actions, resources, handles, schemas, availability, and
   events.
-- [ ] Define the rule for unavailable-but-detected operations: they may appear
+- [x] Define the rule for unavailable-but-detected operations: they may appear
   in OpenAPI only when a runtime probe discovered them and produced a
   machine-readable availability reason.
 - [ ] Ensure generated aliases are derived only from the running client's
@@ -110,9 +115,11 @@ Verification:
 
 - [x] `player.chat` has a real Fabric binding.
 - [x] `player.move` has a real Fabric binding and driver-side event evidence.
+- [x] Fabric action listing goes through an internal discovery snapshot instead
+  of directly returning the binding map.
 - [ ] Real look/perception/block/inventory/screen capabilities are discovered
   from the running client before they are advertised.
-- [ ] Each advertised gameplay action has either a real Fabric execution
+- [~] Each advertised gameplay action has either a real Fabric execution
   binding or probe-backed unavailable metadata.
 - [ ] No future gameplay action is added as a hand-written placeholder
   descriptor.

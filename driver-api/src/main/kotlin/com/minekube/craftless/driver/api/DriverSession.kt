@@ -4,6 +4,7 @@ import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.isCraftlessActionArgumentName
 import com.minekube.craftless.protocol.isCraftlessActionArgumentType
 import com.minekube.craftless.protocol.isCraftlessActionId
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.booleanOrNull
@@ -47,15 +48,44 @@ data class DriverActionDescriptor(
     val schemaVersion: String,
     val arguments: Map<String, DriverActionArgument> = emptyMap(),
     val result: DriverActionResultDescriptor = DriverActionResultDescriptor(),
+    val source: DriverActionSource = DriverActionSource.BINDING,
+    val availability: DriverActionAvailability = DriverActionAvailability.AVAILABLE,
+    val availabilityReason: String? = null,
 ) {
     init {
         require(id.isNotBlank()) { "action id is required" }
         require(id.isCraftlessActionId()) { "invalid action id $id" }
         require(schemaVersion.isNotBlank()) { "action schema version is required" }
+        require(availabilityReason == null || availabilityReason.isCraftlessActionArgumentName()) {
+            "availability reason must be a machine-readable Craftless code"
+        }
+        if (availability == DriverActionAvailability.UNAVAILABLE) {
+            require(!availabilityReason.isNullOrBlank()) { "unavailable action $id requires availability reason" }
+        } else {
+            require(availabilityReason == null) { "available action $id must not declare availability reason" }
+        }
         arguments.keys.forEach { name ->
             require(name.isCraftlessActionArgumentName()) { "invalid action argument name $name" }
         }
     }
+}
+
+@Serializable
+enum class DriverActionSource {
+    @SerialName("binding")
+    BINDING,
+
+    @SerialName("runtime-probe")
+    RUNTIME_PROBE,
+}
+
+@Serializable
+enum class DriverActionAvailability {
+    @SerialName("available")
+    AVAILABLE,
+
+    @SerialName("unavailable")
+    UNAVAILABLE,
 }
 
 @Serializable

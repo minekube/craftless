@@ -2,6 +2,7 @@ package com.minekube.craftless.driver.api
 
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class DriverSessionContractTest {
@@ -55,6 +56,43 @@ class DriverSessionContractTest {
                     schemaVersion = "1",
                 )
             }
+        }
+    }
+
+    @Test
+    fun `driver action descriptors carry discovery source and availability`() {
+        val descriptor =
+            DriverActionDescriptor(
+                id = "player.raycast",
+                schemaVersion = "1",
+                source = DriverActionSource.RUNTIME_PROBE,
+                availability = DriverActionAvailability.UNAVAILABLE,
+                availabilityReason = "client-not-connected",
+            )
+
+        assertEquals(DriverActionSource.RUNTIME_PROBE, descriptor.source)
+        assertEquals(DriverActionAvailability.UNAVAILABLE, descriptor.availability)
+        assertEquals("client-not-connected", descriptor.availabilityReason)
+    }
+
+    @Test
+    fun `unavailable driver action descriptors require machine readable availability reason`() {
+        assertFailsWith<IllegalArgumentException> {
+            DriverActionDescriptor(
+                id = "player.raycast",
+                schemaVersion = "1",
+                source = DriverActionSource.RUNTIME_PROBE,
+                availability = DriverActionAvailability.UNAVAILABLE,
+            )
+        }
+        assertFailsWith<IllegalArgumentException> {
+            DriverActionDescriptor(
+                id = "player.raycast",
+                schemaVersion = "1",
+                source = DriverActionSource.RUNTIME_PROBE,
+                availability = DriverActionAvailability.UNAVAILABLE,
+                availabilityReason = "client is not connected",
+            )
         }
     }
 

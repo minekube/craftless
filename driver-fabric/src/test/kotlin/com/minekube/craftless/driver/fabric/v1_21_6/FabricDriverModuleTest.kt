@@ -1,7 +1,10 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
 import com.minekube.craftless.driver.api.ConnectionTarget
+import com.minekube.craftless.driver.api.DriverActionAvailability
+import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
+import com.minekube.craftless.driver.api.DriverActionSource
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import kotlinx.serialization.json.Json
@@ -200,6 +203,40 @@ class FabricDriverModuleTest {
         val actionIds = backend.actions("alice").map { it.id }.toSet()
 
         assertEquals(setOf("player.chat", "player.move"), actionIds)
+    }
+
+    @Test
+    fun `fabric backend can expose unavailable actions only from runtime discovery probes`() {
+        val backend =
+            FabricDriverBackend.metadataOnly(
+                actionDiscovery =
+                    FabricActionDiscovery { context ->
+                        assertEquals("metadata-only", context.modeId)
+                        assertEquals(null, context.gateway)
+                        listOf(
+                            FabricDiscoveredAction(
+                                descriptor =
+                                    DriverActionDescriptor(
+                                        id = "player.raycast",
+                                        schemaVersion = "1",
+                                        source = DriverActionSource.RUNTIME_PROBE,
+                                        availability = DriverActionAvailability.UNAVAILABLE,
+                                        availabilityReason = "client-not-connected",
+                                    ),
+                            ),
+                        )
+                    },
+            )
+
+        val action = backend.actions("alice").single()
+        val result = backend.invoke("alice", DriverActionInvocation("player.raycast"))
+
+        assertEquals("player.raycast", action.id)
+        assertEquals(DriverActionSource.RUNTIME_PROBE, action.source)
+        assertEquals(DriverActionAvailability.UNAVAILABLE, action.availability)
+        assertEquals("client-not-connected", action.availabilityReason)
+        assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
+        assertEquals("client-not-connected", result.message)
     }
 
     @Test

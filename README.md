@@ -109,7 +109,7 @@ Implemented now:
   aliases and help loaded from action metadata.
 - Ktor local supervisor API with stable kernel OpenAPI at `/openapi.json`.
 - Per-client OpenAPI at `/clients/{id}/openapi.json` with Craftless metadata,
-  action schemas, and runtime/cache fingerprints.
+  action schemas, source/availability metadata, and runtime/cache fingerprints.
 - Stable lifecycle routes for creating, listing, fetching, connecting, and
   stopping daemon-managed clients.
 - Client responses include a Craftless-owned instance file layout for the
@@ -117,9 +117,10 @@ Implemented now:
   packs.
 - Fabric/Loom driver module with internal version-aware bindings and
   gateway-backed runtime hooks for current action evidence.
-- Fabric-generated action descriptors for current chat/move bindings. Broader
-  gameplay actions are not advertised until they come from real bindings or
-  runtime discovery probes.
+- Fabric-generated action descriptors for current chat/move bindings, routed
+  through an internal discovery projection. Broader gameplay actions are not
+  advertised until they come from real bindings or runtime discovery probes
+  with machine-readable availability reasons.
 - Testkit helpers and an opt-in `:testkit:localMinecraftServerSmoke` task for
   provisioning a Minecraft server jar, accepting the EULA, starting the server,
   keeping it running around a caller-supplied smoke action, and collecting

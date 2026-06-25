@@ -89,6 +89,7 @@ data class OpenApiSchema(
     val required: List<String> = emptyList(),
     val additionalProperties: Boolean? = null,
     val items: OpenApiSchema? = null,
+    val nullable: Boolean? = null,
 )
 
 @Serializable
@@ -98,14 +99,43 @@ data class OpenApiAction(
     @SerialName("args")
     val arguments: Map<String, OpenApiActionArgument> = emptyMap(),
     val result: OpenApiActionResult = OpenApiActionResult(),
+    val source: OpenApiActionSource = OpenApiActionSource.BINDING,
+    val availability: OpenApiActionAvailability = OpenApiActionAvailability.AVAILABLE,
+    val availabilityReason: String? = null,
 ) {
     init {
         require(id.isCraftlessActionId()) { "invalid action id $id" }
         require(schemaVersion.isNotBlank()) { "action schema version is required" }
+        require(availabilityReason == null || availabilityReason.isCraftlessActionArgumentName()) {
+            "availability reason must be a machine-readable Craftless code"
+        }
+        if (availability == OpenApiActionAvailability.UNAVAILABLE) {
+            require(!availabilityReason.isNullOrBlank()) { "unavailable action $id requires availability reason" }
+        } else {
+            require(availabilityReason == null) { "available action $id must not declare availability reason" }
+        }
         arguments.keys.forEach { name ->
             require(name.isCraftlessActionArgumentName()) { "invalid action argument name $name" }
         }
     }
+}
+
+@Serializable
+enum class OpenApiActionSource {
+    @SerialName("binding")
+    BINDING,
+
+    @SerialName("runtime-probe")
+    RUNTIME_PROBE,
+}
+
+@Serializable
+enum class OpenApiActionAvailability {
+    @SerialName("available")
+    AVAILABLE,
+
+    @SerialName("unavailable")
+    UNAVAILABLE,
 }
 
 @Serializable
@@ -371,10 +401,13 @@ private fun actionDescriptorSchema(): OpenApiSchema =
             mapOf(
                 "id" to OpenApiSchema(type = "string"),
                 "schemaVersion" to OpenApiSchema(type = "string"),
+                "source" to OpenApiSchema(type = "string"),
+                "availability" to OpenApiSchema(type = "string"),
+                "availabilityReason" to OpenApiSchema(type = "string", nullable = true),
                 "args" to OpenApiSchema(type = "object", additionalProperties = true),
                 "result" to OpenApiSchema(type = "object", additionalProperties = true),
             ),
-        required = listOf("id", "schemaVersion"),
+        required = listOf("id", "schemaVersion", "source", "availability"),
     )
 
 private fun genericActionRequestBody(): OpenApiRequestBody =

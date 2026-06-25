@@ -19,10 +19,16 @@ Craftless currently has:
 - an adaptive JVM `craftless` CLI using Ktor Client;
 - a stable `DriverSession` contract with lifecycle primitives plus generic
   action discovery and invocation;
+- driver and OpenAPI action descriptors now include provenance and availability
+  metadata, including machine-readable reasons for unavailable probe-discovered
+  operations;
 - Fabric/Loom driver scaffolding with current action evidence;
 - Fabric-generated action descriptors for current chat/move bindings. Broader
   gameplay actions must come from real bindings or runtime discovery probes,
   not static placeholders;
+- a minimal internal Fabric discovery projection that lists binding-backed
+  actions and can represent runtime-probe unavailable actions without an
+  execution binding;
 - bridge code treated as evidence infrastructure only;
 - a testkit local server layout that can launch a supplied Minecraft server jar
   with accepted EULA, collect short-lived process output, and import recognized
@@ -99,13 +105,13 @@ or static placeholder descriptors.
 - Project discovered runtime affordances into Craftless-owned actions,
   resources, handles, schemas, availability metadata, and events.
 - Add real execution bindings before treating an action as supported.
-- Expose unavailable operations only when a runtime probe discovered them and
-  recorded why they cannot execute in the current client state.
+- Continue enforcing unavailable operations as probe-discovered metadata with
+  machine-readable reasons; add concrete probes beyond the current scaffold.
 - Add typed argument schemas and result schemas where the current OpenAPI model
   needs more than primitive request arguments.
 - Add runtime fingerprints that include Minecraft version, loader, mappings,
-  installed mods, registries, server features, permissions, and action schema
-  versions.
+  installed mods, registries, server features, permissions, action schema
+  versions, action provenance, and action availability.
 - Add daemon validation that rejects unavailable actions and mismatched
   argument/result schemas before dispatch.
 - Keep generated aliases derived from OpenAPI metadata only.
