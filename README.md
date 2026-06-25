@@ -78,8 +78,8 @@ curl -sS "$CRAFTLESS/clients/alice:run" \
 Craftless is a Kotlin/JVM-first project with one implementation direction:
 
 - a short scriptable CLI, currently `mcw` unless renamed separately, with a
-  small static core plus adaptive per-client action aliases loaded from
-  OpenAPI and action descriptors at runtime;
+  small static core plus adaptive per-client action aliases and help loaded
+  from OpenAPI and action descriptors at runtime;
 - a local supervisor/API for client sessions;
 - a stable JVM `driver-api` contract with a fake implementation for daemon and
   route integration and runtime action metadata;
@@ -138,8 +138,8 @@ Phase 1:
 - implement the CLI and local API surface;
 - keep CLI action commands adaptive: `mcw` may expose generic
   `clients <id> run <action>` plus aliases such as `clients <id> player move`,
-  but those aliases come from the target client's OpenAPI/action metadata
-  instead of static Kotlin commands, with generated alias help still roadmap;
+  but those aliases and their basic help come from the target client's
+  OpenAPI/action metadata instead of static Kotlin commands;
 - route daemon-created clients through an injectable driver runtime boundary;
 - keep the current Fabric module compiling under Loom while consolidating
   version-specific code behind internal driver bindings instead of one public

@@ -497,6 +497,68 @@ class McwCliTest {
     }
 
     @Test
+    fun `generated client action alias help is loaded from runtime action metadata`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = McwCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "player",
+                    "move",
+                    "--help",
+                    "--api",
+                    server.url,
+                ),
+                stdout = { output.appendLine(it) },
+                stderr = { errors.appendLine(it) },
+            )
+
+            assertEquals(0, exit)
+        }
+
+        assertEquals("", errors.toString())
+        val help = output.toString()
+        assertTrue(help.contains("Action: player.move"))
+        assertTrue(help.contains("Usage: mcw clients alice player move"))
+        assertTrue(help.contains("--forward boolean"))
+        assertTrue(help.contains("--ticks integer"))
+    }
+
+    @Test
+    fun `generated client action alias help rejects unavailable runtime action`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = McwCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "player",
+                    "fly",
+                    "--help",
+                    "--api",
+                    server.url,
+                ),
+                stdout = { output.appendLine(it) },
+                stderr = { errors.appendLine(it) },
+            )
+
+            assertEquals(1, exit)
+        }
+
+        assertEquals("", output.toString())
+        assertTrue(errors.toString().contains("action player.fly is not available for client alice"))
+    }
+
+    @Test
     fun `generated client action alias rejects unavailable runtime action`() {
         val output = StringBuilder()
         val errors = StringBuilder()

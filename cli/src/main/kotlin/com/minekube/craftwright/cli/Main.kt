@@ -324,6 +324,10 @@ object McwCli {
                         stderr("error: action $actionId is not available for client $clientId")
                         return@runBlocking 1
                     }
+                    if (args.contains("--help")) {
+                        stdout(action.generatedAliasHelp(clientId, namespace, actionName))
+                        return@runBlocking 0
+                    }
                     val response = http.post("${api.trimEnd('/')}/clients/$clientId/$namespace:$actionName") {
                         contentType(ContentType.Application.Json)
                         setBody(json.encodeToString(args.actionAliasArguments(action)))
@@ -482,6 +486,24 @@ object McwCli {
 
         return values
     }
+
+    private fun OpenApiAction.generatedAliasHelp(
+        clientId: String,
+        namespace: String,
+        actionName: String,
+    ): String = buildString {
+        appendLine("Action: $id")
+        appendLine("Usage: mcw clients $clientId $namespace $actionName [--api <url>] [args]")
+        appendLine("Arguments:")
+        if (arguments.isEmpty()) {
+            appendLine("  none")
+        } else {
+            arguments.forEach { (name, argument) ->
+                val required = if (argument.required) " required" else ""
+                appendLine("  --$name ${argument.type}$required")
+            }
+        }
+    }.trimEnd()
 
     private fun String.toJsonArgument(): JsonElement =
         when {

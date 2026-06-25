@@ -116,8 +116,7 @@ Use Clikt for the JVM `mcw` CLI and Mordant for terminal output. The CLI should
 be adaptive at runtime, not generated Kotlin source. Keep a small handwritten
 core for daemon startup, configuration, authentication, output modes, and
 generic dispatch; load kernel and per-client OpenAPI plus action descriptors to
-dispatch action aliases at runtime. Generated alias help should be built from
-the same metadata as follow-up work.
+dispatch action aliases and generated alias help at runtime.
 
 Current Maven metadata during research showed:
 
@@ -135,13 +134,14 @@ mcw clients alice actions
 mcw clients alice run player.move --arg forward=true --arg ticks=20
 mcw clients alice player move --forward --ticks 20
 mcw clients alice player chat "hello"
-mcw clients alice player move --help  # roadmap
+mcw clients alice player move --help
 ```
 
 The generic `run` command is the stable fallback. Pretty aliases are resolved
-from `/clients/{id}/actions` at runtime; their future `--help` output should
-come from `/clients/{id}/openapi.json` and `/clients/{id}/actions`, with cached
-metadata keyed by the client's action
+from `/clients/{id}/actions` at runtime; their `--help` output is generated
+from the same descriptors, with richer future help able to use
+`/clients/{id}/openapi.json` as well. Cached metadata should be keyed by the
+client's action
 fingerprint and a refresh path for changed clients.
 
 ### Testing
