@@ -42,7 +42,7 @@ class ClientSessionServiceTest {
     }
 
     @Test
-    fun `client specific openapi exposes capability metadata without static action routes`() {
+    fun `client specific openapi exposes action metadata without static action routes`() {
         val service = ClientSessionService.inMemory()
         service.createClient(
             CreateClientRequest(
@@ -59,12 +59,13 @@ class ClientSessionServiceTest {
         assertEquals("1.21.4", document.extensions["x-craftwright-minecraft-version"])
         assertEquals("FABRIC", document.extensions["x-craftwright-loader"])
         assertTrue(document.paths.containsKey("/clients/alice/openapi.json"))
-        assertTrue(document.paths.containsKey("/clients/alice/capabilities/{capability}"))
-        assertFalse(document.paths.keys.any { "/actions/" in it })
+        assertTrue(document.paths.containsKey("/clients/alice/actions"))
+        assertTrue(document.paths.containsKey("/clients/alice:run"))
+        assertFalse(document.paths.keys.any { it.endsWith("/actions/move") })
         assertFalse(document.paths.keys.any { "/perception/" in it })
-        val capabilityOperation = document.paths["/clients/alice/capabilities/{capability}"]?.post
-        assertNotNull(capabilityOperation)
-        assertEquals("capability", capabilityOperation.extensions["x-craftwright-source"])
+        val actionOperation = document.paths["/clients/alice:run"]?.post
+        assertNotNull(actionOperation)
+        assertEquals("action", actionOperation.extensions["x-craftwright-source"])
         assertEquals("1", document.capabilities.single { it.id == "player.move" }.schemaVersion)
     }
 

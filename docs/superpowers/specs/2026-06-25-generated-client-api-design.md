@@ -288,9 +288,9 @@ The product driver should implement these actions directly inside a Fabric mod
 and expose them through the generated per-client OpenAPI surface:
 
 - stable roots such as `/player`, `/world`, `/screen`, and `/events`;
-- discovered capability routes and schemas for movement, jump, look, raycast,
+- discovered action routes and schemas for movement, jump, look, raycast,
   inventory, world/entity queries, and screen interaction;
-- Craftwright-owned metadata for capability versioning, runtime fingerprints,
+- Craftwright-owned metadata for action/capability versioning, runtime fingerprints,
   mappings, registries, mods, permissions, and server feature inputs.
 
 The bridge PoC found that simulated keys are fragile because first-run screens,
@@ -437,15 +437,17 @@ The daemon-level client management routes must also appear in the route catalog
 while the fake local API exists:
 
 - `POST /clients`
-- `POST /clients/{id}/connection/connect`
-- `POST /clients/{id}/player/sendChat`
+- `GET /clients/{id}/openapi.json`
+- `GET /clients/{id}/actions`
+- `POST /clients/{id}:run`
 - `GET /clients/{id}/player`
 - `POST /clients/{id}/stop`
 - `GET /clients/{id}/events`
 
-These are session-management routes, not HMC-Specifics command strings. The
-Fabric driver should implement the same public contract when fake state is
-replaced by real client control.
+These are session-management and discovery routes, not HMC-Specifics command
+strings or raw Fabric/Yarn class paths. The Fabric driver should generate
+per-client AIP-style aliases such as `POST /clients/{id}/player:move` when it
+can map the runtime API to clean Craftwright-owned names.
 
 ## Version Endpoint
 

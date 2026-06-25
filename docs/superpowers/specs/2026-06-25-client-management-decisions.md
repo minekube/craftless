@@ -125,10 +125,11 @@ The wrapper exposed Craftwright-shaped routes such as:
 - `POST /launch`;
 - `POST /connect`;
 - `GET /events`;
-- `POST /clients/default/player/sendChat`;
 - `GET /clients/default/openapi.json`;
-- `POST /clients/default/capabilities/{capability}` for discovered actions
-  such as `player.move`;
+- `GET /clients/default/actions`;
+- `POST /clients/default:run` for discovered actions such as `player.move`;
+- generated aliases such as `POST /clients/default/player:move` when the
+  runtime can expose a clean Craftwright resource and method name;
 - root/session routes for current player, UI, events, and object handles.
 
 This must be labelled as a bridge PoC. The API surface was Craftwright-shaped,

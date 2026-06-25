@@ -10,6 +10,7 @@ import com.minekube.craftwright.driver.api.DriverEventType
 import com.minekube.craftwright.driver.api.PlayerPosition
 import com.minekube.craftwright.bridge.hmc.HmcBridgeBackend
 import com.minekube.craftwright.protocol.ClientState
+import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -80,7 +81,7 @@ class BackendDriverSessionTest {
         val result = session.invoke(
             DriverCapabilityInvocation(
                 capability = "player.move",
-                arguments = mapOf("forward" to "true", "ticks" to "20"),
+                arguments = mapOf("forward" to JsonPrimitive(true), "ticks" to JsonPrimitive(20)),
             )
         )
 
@@ -100,6 +101,16 @@ class BackendDriverSessionTest {
         assertEquals(
             DriverBackendAction.CHAT,
             backend.sendChat("alice", ChatCommand("hello bridge")).action,
+        )
+        assertEquals(
+            DriverCapabilityStatus.ACCEPTED,
+            backend.invoke(
+                "alice",
+                DriverCapabilityInvocation(
+                    capability = "player.move",
+                    arguments = mapOf("right" to JsonPrimitive(true), "ticks" to JsonPrimitive(5)),
+                ),
+            ).status,
         )
         assertEquals(DriverBackendAction.STOP, backend.stop("alice").action)
     }

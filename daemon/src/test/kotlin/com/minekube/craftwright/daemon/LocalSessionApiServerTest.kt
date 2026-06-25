@@ -70,8 +70,11 @@ class LocalSessionApiServerTest {
                 val body = clientOpenapi.bodyAsText()
                 assertEquals(HttpStatusCode.OK, clientOpenapi.status)
                 assertTrue(body.contains("\"x-craftwright-client-id\":\"alice\""))
-                assertTrue(body.contains("/clients/alice/capabilities/{capability}"))
+                assertTrue(body.contains("\"x-craftwright-actions\""))
+                assertTrue(body.contains("/clients/alice/actions"))
+                assertTrue(body.contains("/clients/alice:run"))
                 assertTrue(body.contains("\"id\":\"player.move\""))
+                assertTrue(body.contains("\"args\""))
                 assertTrue(!body.contains("/actions/move"))
             }
         }
@@ -136,13 +139,20 @@ class LocalSessionApiServerTest {
                 assertTrue(body.contains("\"z\":0.0"))
             }
 
-            http.post(server.url("/clients/alice/capabilities/player.move")) {
+            http.get(server.url("/clients/alice/actions")).let { response ->
+                val body = response.bodyAsText()
+                assertEquals(HttpStatusCode.OK, response.status)
+                assertTrue(body.contains("\"id\":\"player.move\""))
+                assertTrue(body.contains("\"args\""))
+            }
+
+            http.post(server.url("/clients/alice:run")) {
                 contentType(ContentType.Application.Json)
-                setBody("""{"arguments":{"forward":"true","ticks":"20"}}""")
+                setBody("""{"action":"player.move","args":{"forward":true,"ticks":20}}""")
             }.let { response ->
                 val body = response.bodyAsText()
                 assertEquals(HttpStatusCode.OK, response.status)
-                assertTrue(body.contains("\"capability\":\"player.move\""))
+                assertTrue(body.contains("\"action\":\"player.move\""))
                 assertTrue(body.contains("\"status\":\"ACCEPTED\""))
             }
 

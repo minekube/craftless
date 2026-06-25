@@ -6,6 +6,8 @@ import com.minekube.craftwright.driver.api.DriverCapabilityDescriptor
 import com.minekube.craftwright.driver.api.DriverCapabilityInvocation
 import com.minekube.craftwright.driver.api.DriverCapabilityResult
 import com.minekube.craftwright.driver.api.DriverCapabilityStatus
+import com.minekube.craftwright.driver.api.booleanArgument
+import com.minekube.craftwright.driver.api.intArgument
 import com.minekube.craftwright.driver.runtime.DriverBackend
 import com.minekube.craftwright.driver.runtime.DriverBackendAction
 import com.minekube.craftwright.driver.runtime.DriverBackendPlayer
@@ -63,14 +65,14 @@ class FabricDriverBackend private constructor(
             )
         }
         val intent = FabricMovementIntent(
-            forward = invocation.arguments["forward"]?.toBooleanStrictOrNull() == true,
-            backward = invocation.arguments["backward"]?.toBooleanStrictOrNull() == true,
-            left = invocation.arguments["left"]?.toBooleanStrictOrNull() == true,
-            right = invocation.arguments["right"]?.toBooleanStrictOrNull() == true,
-            jump = invocation.arguments["jump"]?.toBooleanStrictOrNull() == true,
-            sneak = invocation.arguments["sneak"]?.toBooleanStrictOrNull() == true,
-            sprint = invocation.arguments["sprint"]?.toBooleanStrictOrNull() == true,
-            ticks = invocation.arguments["ticks"]?.toIntOrNull() ?: 1,
+            forward = invocation.arguments.booleanArgument("forward"),
+            backward = invocation.arguments.booleanArgument("backward"),
+            left = invocation.arguments.booleanArgument("left"),
+            right = invocation.arguments.booleanArgument("right"),
+            jump = invocation.arguments.booleanArgument("jump"),
+            sneak = invocation.arguments.booleanArgument("sneak"),
+            sprint = invocation.arguments.booleanArgument("sprint"),
+            ticks = invocation.arguments.intArgument("ticks") ?: 1,
         )
         gateway?.execute {
             gateway.move(intent)

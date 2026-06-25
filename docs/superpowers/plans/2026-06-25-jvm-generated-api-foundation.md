@@ -51,17 +51,13 @@ class ApiRouteCatalogTest {
         assertEquals("GET", catalog.route("/openapi.json").method)
         assertEquals("GET", catalog.route("/version").method)
         assertEquals("GET", catalog.route("/events").method)
-        assertEquals("GET", catalog.route("/client").method)
-        assertEquals("GET", catalog.route("/client/state").method)
-        assertEquals("GET", catalog.route("/player").method)
-        assertEquals("GET", catalog.route("/player/name").method)
-        assertEquals("POST", catalog.route("/player/sendChat").method)
-        assertEquals("POST", catalog.route("/clients/{id}/connection/connect").method)
-        assertEquals("POST", catalog.route("/clients/{id}/player/sendChat").method)
+        assertEquals("POST", catalog.route("/clients").method)
+        assertEquals("GET", catalog.route("/clients/{id}/openapi.json").method)
+        assertEquals("GET", catalog.route("/clients/{id}/actions").method)
+        assertEquals("POST", catalog.route("/clients/{id}:run").method)
         assertEquals("GET", catalog.route("/clients/{id}/player").method)
         assertEquals("POST", catalog.route("/clients/{id}/stop").method)
-        assertTrue(catalog.routes.any { it.path == "/o/{handle}" })
-        assertTrue(catalog.routes.any { it.path == "/c/{className}" })
+        assertEquals("GET", catalog.route("/clients/{id}/events").method)
     }
 }
 ```
@@ -268,7 +264,7 @@ Expected: PASS without `CRAFTWRIGHT_REAL_CLIENT_SMOKE`.
 
 - [ ] **Step 1: Write failing API shape test**
 
-Test that the driver API exposes ready, connect, disconnect, send chat, player position, move, jump, look, raycast, nearby blocks, nearby entities, screen, click, events, and stop capabilities.
+Test that the driver API exposes ready, connect, disconnect, send chat, player position, move, jump, look, raycast, nearby blocks, nearby entities, screen, click, events, and stop as discovered actions/capabilities rather than static public action routes.
 
 - [ ] **Step 2: Run test to verify it fails**
 

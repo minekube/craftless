@@ -22,6 +22,7 @@ import io.ktor.server.routing.routing
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import java.net.ServerSocket
 import java.time.Instant
 
@@ -156,18 +157,32 @@ class LocalSessionApiServer private constructor(
                     call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
                 }
             }
-            post("/clients/{id}/capabilities/{capability}") {
+            get("/clients/{id}/actions") {
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
-                val capability = requireNotNull(call.parameters["capability"]) { "capability is required" }
                 runCatching {
-                    val request = json.decodeFromString<CapabilityInvocationRequest>(call.receiveText())
+                    call.respondJson(HttpStatusCode.OK, service.openApiFor(clientId).capabilities)
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
+                }
+            }
+            post("/clients/{id}:run") {
+                val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
+                runCatching {
+                    val request = json.decodeFromString<ActionInvocationRequest>(call.receiveText())
                     val result = service.driverFor(clientId).invoke(
                         DriverCapabilityInvocation(
-                            capability = capability,
-                            arguments = request.arguments,
+                            capability = request.action,
+                            arguments = request.args,
                         )
                     )
-                    call.respondJson(HttpStatusCode.OK, result)
+                    call.respondJson(
+                        HttpStatusCode.OK,
+                        ActionInvocationResponse(
+                            action = result.capability,
+                            status = result.status.name,
+                            message = result.message,
+                        )
+                    )
                 }.getOrElse { error ->
                     call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
                 }
@@ -264,8 +279,16 @@ data class SendChatRequest(
 )
 
 @Serializable
-data class CapabilityInvocationRequest(
-    val arguments: Map<String, String> = emptyMap(),
+data class ActionInvocationRequest(
+    val action: String,
+    val args: Map<String, JsonElement> = emptyMap(),
+)
+
+@Serializable
+data class ActionInvocationResponse(
+    val action: String,
+    val status: String,
+    val message: String? = null,
 )
 
 @Serializable

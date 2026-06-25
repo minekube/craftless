@@ -12,6 +12,9 @@ The POC direction is reflection/capability discovery in the running client, with
 OpenAPI as the source of truth for available actions, objects, handles, and
 schemas.
 
+The public domain is `minekube.com`. JVM packages, Gradle coordinates, OpenAPI
+metadata, Fabric entrypoints, and docs should use `com.minekube.craftwright`.
+
 There are two different OpenAPI surfaces:
 
 - `GET /openapi.json` is the stable supervisor/daemon kernel API. It describes
@@ -19,12 +22,17 @@ There are two different OpenAPI surfaces:
 - `GET /clients/{id}/openapi.json` is the live generated API for that specific
   Minecraft client instance. It must reflect the running Minecraft version,
   loader, driver module, mappings, installed mods, registries, server/game
-  features, permissions, and discovered capabilities.
+  features, permissions, and discovered actions/capabilities.
 
 Do not assume all clients share one static action API. Generated clients and
 agents should fetch the instance spec for the target client and may cache it
 only by a capability fingerprint that includes runtime/version/mod/registry
 inputs.
+
+The generated per-client API should map what the Fabric/Minecraft runtime can
+actually do, but it must not expose raw Fabric, Yarn, intermediary, Minecraft
+implementation, or mod package names as the public contract. Use
+Craftwright-owned resource and action names derived from the runtime surface.
 
 Use small stable handwritten code only for the kernel:
 
@@ -36,7 +44,7 @@ Use small stable handwritten code only for the kernel:
 - minimal transport, serialization, and launch plumbing.
 
 Player actions such as movement, look, raycast, interaction, inventory, and
-world/entity queries should be exposed through discovered/generated capabilities
+world/entity queries should be exposed through discovered/generated actions
 instead of one-off static Kotlin methods or custom route enums.
 
 ## Architecture Rules
@@ -48,7 +56,8 @@ instead of one-off static Kotlin methods or custom route enums.
 - Fabric version-specific code belongs in versioned driver modules such as
   `driver-fabric-1_21_6`.
 - Public API names must be Craftwright-owned and must not expose HeadlessMC,
-  HMC-Specifics, Minecraft console commands, or launcher implementation details.
+  HMC-Specifics, Fabric/Yarn package names, Minecraft console commands, or
+  launcher implementation details.
 - The bridge backend is evidence infrastructure only. Do not present it as the
   final automation driver.
 
@@ -60,8 +69,16 @@ instead of one-off static Kotlin methods or custom route enums.
   hand-rolled HTTP clients for product code.
 - Do not add custom HTTP method enums. Use framework-native types at framework
   boundaries or protocol strings such as `"GET"` and `"POST"` in metadata.
+- Prefer resource-oriented API design in the style of AIP guidance: stable
+  resources use standard methods, and non-CRUD operations use custom methods
+  with colon syntax such as `POST /clients/{id}:run` or generated aliases such
+  as `POST /clients/{id}/player:move`.
+- Avoid long public route words such as `/capabilities/...` when a shorter
+  resource/action vocabulary is clearer. Prefer `actions` for user-facing
+  discovery, while internal code may still use capability terminology when it
+  describes runtime support precisely.
 - Keep OpenAPI authoritative for generated clients, agent tools, route
-  discovery, and capability metadata.
+  discovery, and action/capability metadata.
 - The daemon kernel spec should expose discovery endpoints, not pretend that
   every Minecraft instance has the same player/world/mod API.
 - Instance specs should include Craftwright metadata such as client id,

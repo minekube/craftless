@@ -185,8 +185,8 @@ Responsibilities:
 - Connect and disconnect through real Minecraft APIs.
 - Send chat and slash commands through real `LocalPlayer`/connection APIs.
 - Expose GUI and input actions through stable Craftwright abstractions.
-- Set player movement intent through generated/discovered capabilities. The
-  current `player.move` capability reaches the Fabric gateway and writes
+- Set player movement intent through generated/discovered actions. The current
+  `player.move` action reaches the Fabric gateway and writes
   movement intent to `ClientPlayerEntity.input`.
 - Set look direction directly through yaw and pitch.
 - Expose player position, velocity, health, game mode, selected hotbar slot, and
@@ -387,7 +387,7 @@ public abstraction.
 Fill out `driver-fabric-1_21_6` beyond the current Loom scaffold by extending
 the client-thread gateway with Java Mixins and a small Kotlin/Java driver API.
 
-Minimum capabilities:
+Minimum actions/capabilities:
 
 - driver starts and connects to supervisor;
 - emits `client.ready`;
@@ -417,7 +417,7 @@ Add versions one row at a time. Each version requires:
 
 - dedicated driver module or source set;
 - real smoke test;
-- documented supported capabilities;
+- documented supported actions/capabilities;
 - update path for mappings and modloader versions.
 
 ## Testing Strategy

@@ -2,6 +2,10 @@ package com.minekube.craftwright.driver.api
 
 import com.minekube.craftwright.protocol.ClientState
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import java.time.Instant
 
 interface DriverSession {
@@ -80,8 +84,18 @@ data class DriverCapabilityArgument(
 @Serializable
 data class DriverCapabilityInvocation(
     val capability: String,
-    val arguments: Map<String, String> = emptyMap(),
+    val arguments: Map<String, JsonElement> = emptyMap(),
 )
+
+fun Map<String, JsonElement>.booleanArgument(name: String): Boolean =
+    this[name]?.jsonPrimitive?.let { primitive ->
+        primitive.booleanOrNull ?: primitive.content.toBooleanStrictOrNull()
+    } == true
+
+fun Map<String, JsonElement>.intArgument(name: String): Int? =
+    this[name]?.jsonPrimitive?.let { primitive ->
+        primitive.intOrNull ?: primitive.content.toIntOrNull()
+    }
 
 @Serializable
 data class DriverCapabilityResult(

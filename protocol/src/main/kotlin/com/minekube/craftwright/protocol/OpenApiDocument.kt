@@ -10,7 +10,7 @@ data class OpenApiDocument(
     val paths: Map<String, OpenApiPath>,
     @SerialName("x-craftwright")
     val extensions: Map<String, String> = emptyMap(),
-    @SerialName("x-craftwright-capabilities")
+    @SerialName("x-craftwright-actions")
     val capabilities: List<OpenApiCapability> = emptyList(),
 ) {
     companion object {
@@ -58,6 +58,7 @@ data class OpenApiResponse(
 data class OpenApiCapability(
     val id: String,
     val schemaVersion: String,
+    @SerialName("args")
     val arguments: Map<String, OpenApiCapabilityArgument> = emptyMap(),
 )
 

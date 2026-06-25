@@ -9,6 +9,8 @@ import com.minekube.craftwright.driver.api.DriverCapabilityDescriptor
 import com.minekube.craftwright.driver.api.DriverCapabilityInvocation
 import com.minekube.craftwright.driver.api.DriverCapabilityResult
 import com.minekube.craftwright.driver.api.DriverCapabilityStatus
+import com.minekube.craftwright.driver.api.booleanArgument
+import com.minekube.craftwright.driver.api.intArgument
 
 class HmcBridgeDriverBackend(
     private val bridge: HmcBridgeBackend,
@@ -43,12 +45,12 @@ class HmcBridgeDriverBackend(
             )
         }
         val intent = when {
-            invocation.arguments["backward"]?.toBooleanStrictOrNull() == true -> MoveIntent.BACKWARD
-            invocation.arguments["left"]?.toBooleanStrictOrNull() == true -> MoveIntent.LEFT
-            invocation.arguments["right"]?.toBooleanStrictOrNull() == true -> MoveIntent.RIGHT
+            invocation.arguments.booleanArgument("backward") -> MoveIntent.BACKWARD
+            invocation.arguments.booleanArgument("left") -> MoveIntent.LEFT
+            invocation.arguments.booleanArgument("right") -> MoveIntent.RIGHT
             else -> MoveIntent.FORWARD
         }
-        val ticks = invocation.arguments["ticks"]?.toIntOrNull() ?: 20
+        val ticks = invocation.arguments.intArgument("ticks") ?: 20
         val result = bridge.move(clientId, intent, ticks)
         require(result.action == ClientAction.MOVE) { "bridge returned ${result.action} for move" }
         return DriverCapabilityResult(

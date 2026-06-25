@@ -17,18 +17,18 @@ Craftwright is a Kotlin/JVM-first project with one implementation direction:
 - a short scriptable CLI, currently `mcw` unless renamed separately;
 - a local supervisor/API for client sessions;
 - a stable JVM `driver-api` contract with a fake implementation for daemon and
-  route integration and capability metadata;
+  route integration and runtime action metadata;
 - a `driver-runtime` adapter layer that can run `DriverSession` over bridge or
   Fabric-style backends without changing daemon routes;
 - a compiled `driver-fabric-1_21_6` Fabric/Loom module with client entrypoint,
   mod metadata, mixin config, and a gateway-backed runtime backend for
   client-thread connect, chat, command, stop, player state, and player position
-  observation plus generic `player.move` capability invocation;
+  observation plus generic `player.move` action invocation;
 - a temporary HeadlessMC/HMC-Specifics bridge backend for Phase 1 evidence;
 - a real Fabric driver implementation as the durable automation engine;
 - stable kernel OpenAPI at `/openapi.json` plus per-client OpenAPI at
   `/clients/{id}/openapi.json` with Craftwright metadata and discovered
-  capability schemas;
+  action schemas;
 - Playwright helper tests.
 
 ## Evidence
@@ -70,10 +70,14 @@ Phase 1:
 - route daemon-created clients through an injectable driver runtime boundary;
 - keep the first Fabric 1.21.6 module compiling under Loom;
 - route Fabric connect, chat, command, stop, player state, player position
-  observation, and generic `player.move` capability invocation through a real
+  observation, and generic `player.move` action invocation through a real
   Minecraft client gateway;
 - expose `/clients/{id}/openapi.json` with runtime metadata and `player.move`
-  capability schema while avoiding static `/actions/*` route expansion;
+  action schema while avoiding static hand-written action route expansion;
+- prefer AIP-style action invocation such as `POST /clients/{id}:run` and
+  generated aliases such as `POST /clients/{id}/player:move`;
+- accept action invocation arguments as typed JSON values such as
+  `{"action":"player.move","args":{"forward":true,"ticks":20}}`;
 - add a temporary HeadlessMC/HMC-Specifics bridge backend;
 - add a real integration smoke test that launches a real client, joins a
   server, sends chat, moves forward, and verifies server-side position changed;
@@ -81,12 +85,12 @@ Phase 1:
 
 Phase 2:
 
-- expand generic capabilities for look/perception beyond the current
+- expand generated actions for look/perception beyond the current
   `player.move` movement intent;
 - move more runtime/version/mod/registry inputs into per-client OpenAPI
   fingerprints;
 - expose stable roots such as `/player`, `/world`, `/screen`, and `/events`,
-  with generated per-client capability schemas for movement, look, raycast,
+  with generated per-client action schemas for movement, look, raycast,
   inventory, world/entity queries, and screen interaction.
 
 Later:

@@ -8,6 +8,7 @@ import com.minekube.craftwright.driver.api.PlayerPosition
 import com.minekube.craftwright.driver.runtime.DriverBackendAction
 import com.minekube.craftwright.protocol.ClientState
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -105,9 +106,9 @@ class FabricDriverModuleTest {
             DriverCapabilityInvocation(
                 capability = "player.move",
                 arguments = mapOf(
-                    "forward" to "true",
-                    "jump" to "true",
-                    "ticks" to "20",
+                    "forward" to JsonPrimitive(true),
+                    "jump" to JsonPrimitive(true),
+                    "ticks" to JsonPrimitive(20),
                 ),
             )
         )

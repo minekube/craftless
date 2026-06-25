@@ -57,7 +57,7 @@ state and events in Craftwright-owned types while delegating automation actions
 to a `DriverBackend`. The current HMC bridge adapter is temporary. The Fabric
 module now routes connect, chat, command, stop, and player name/connection-state
 observation plus player position through a client-thread gateway. It also
-accepts generic capability invocation for `player.move`. It must still add
+accepts generic action invocation for `player.move`. It must still add
 real-client movement smoke proof, perception, and structured event observation.
 
 ## Fabric Handoff
@@ -70,8 +70,10 @@ backend/session boundary for real client state:
   behavior;
 - keep Minecraft calls scheduled on the client thread;
 - make `player()` return real player state and position from the Fabric gateway;
-- route generated/discovered capabilities such as `player.move` through generic
-  capability invocation instead of adding one method per player action;
+- route generated/discovered actions such as `player.move` through generic
+  action invocation instead of adding one method per player action;
+- preserve action invocation arguments as JSON values so schemas can use
+  booleans, numbers, strings, arrays, and objects without string-only coercion;
 - emit `DriverEvent` values for ready, connect, chat, movement, stop, and
   error lifecycle events;
 - keep low-level Mixins/accessors in Java when bytecode shape matters.
@@ -79,13 +81,19 @@ backend/session boundary for real client state:
 The public daemon routes remain:
 
 - `GET /clients/{id}/openapi.json`
-- `POST /clients/{id}/connection/connect`
-- `POST /clients/{id}/player/sendChat`
+- `GET /clients/{id}/actions`
+- `POST /clients/{id}:run`
+- generated aliases such as `POST /clients/{id}/player:move` when described by
+  that client's OpenAPI document
 - `GET /clients/{id}/player`
-- `GET /clients/{id}/player/position`
-- `POST /clients/{id}/capabilities/{capability}`
 - `POST /clients/{id}/stop`
 - `GET /clients/{id}/events`
+
+Generic action invocation request bodies use typed JSON argument values:
+
+```json
+{"action":"player.move","args":{"forward":true,"ticks":20}}
+```
 
 The Fabric module should change the driver implementation behind those routes,
 not the route contract.

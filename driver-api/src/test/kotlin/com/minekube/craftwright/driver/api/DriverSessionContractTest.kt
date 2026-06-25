@@ -1,6 +1,7 @@
 package com.minekube.craftwright.driver.api
 
 import com.minekube.craftwright.protocol.ClientState
+import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -35,7 +36,7 @@ class DriverSessionContractTest {
         val capability = session.invoke(
             DriverCapabilityInvocation(
                 capability = "player.move",
-                arguments = mapOf("forward" to "true", "ticks" to "20"),
+                arguments = mapOf("forward" to JsonPrimitive(true), "ticks" to JsonPrimitive(20)),
             )
         )
         assertEquals("player.move", capability.capability)
