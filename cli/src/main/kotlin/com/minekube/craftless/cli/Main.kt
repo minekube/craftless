@@ -45,7 +45,6 @@ object CraftlessCli {
         GroupCommand("clients").subcommands(
             LeafCommand("create"),
             LeafCommand("list"),
-            LeafCommand("api"),
         ),
         GroupCommand("server").subcommands(
             LeafCommand("start"),
@@ -58,7 +57,6 @@ object CraftlessCli {
         "clients <id> get",
         "clients <id> connect",
         "clients <id> stop",
-        "clients api",
         "clients <id> openapi",
         "clients <id> actions",
         "clients <id> run <action>",
@@ -73,9 +71,6 @@ object CraftlessCli {
         afterStart: (ApiServerMetadata) -> Unit = {},
         env: Map<String, String> = System.getenv(),
     ): Int {
-        if (args.take(2) == listOf("clients", "api")) {
-            return runClientsApi(args.drop(2), stdout, stderr, afterStart)
-        }
         if (args.take(2) == listOf("server", "start")) {
             return runClientsApi(args.drop(2), stdout, stderr, afterStart)
         }

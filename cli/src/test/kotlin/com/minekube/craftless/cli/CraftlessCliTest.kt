@@ -33,12 +33,12 @@ class CraftlessCliTest {
         assertTrue(commands.contains("clients <id> get"))
         assertTrue(commands.contains("clients <id> connect"))
         assertTrue(commands.contains("clients <id> stop"))
-        assertTrue(commands.contains("clients api"))
         assertTrue(commands.contains("clients <id> openapi"))
         assertTrue(commands.contains("clients <id> actions"))
         assertTrue(commands.contains("clients <id> run <action>"))
         assertTrue(commands.contains("clients <id> <namespace> <action>"))
         assertTrue(commands.contains("server start"))
+        assertTrue("clients api" !in commands)
         assertTrue("versions" !in commands)
         assertTrue("profiles" !in commands)
         assertTrue("test run" !in commands)
@@ -61,30 +61,19 @@ class CraftlessCliTest {
     }
 
     @Test
-    fun `clients api once prints server metadata and keeps server reachable during callback`() {
+    fun `legacy clients api command returns explicit usage error`() {
         val output = StringBuilder()
-        var versionStatus = 0
+        val errors = StringBuilder()
 
         val exit = CraftlessCli.run(
             listOf("clients", "api", "--once"),
             stdout = { output.appendLine(it) },
-            afterStart = { metadata ->
-                kotlinx.coroutines.runBlocking {
-                    HttpClient(CIO).use { http ->
-                        versionStatus = http.get("${metadata.url}/version").status.value
-                    }
-                }
-            },
+            stderr = { errors.appendLine(it) },
         )
 
-        assertEquals(0, exit)
-        assertEquals(200, versionStatus)
-
-        val json = Json.parseToJsonElement(output.toString().trim()).jsonObject
-        assertEquals(true.toString(), json["ok"]?.jsonPrimitive?.content)
-        assertTrue(json["url"]?.jsonPrimitive?.content?.startsWith("http://127.0.0.1:") == true)
-        assertEquals("/openapi.json", json["openapi"]?.jsonPrimitive?.content)
-        assertEquals("/events", json["events"]?.jsonPrimitive?.content)
+        assertEquals(2, exit)
+        assertEquals("", output.toString())
+        assertTrue(errors.toString().contains("unknown command clients api"))
     }
 
     @Test
