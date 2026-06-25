@@ -251,6 +251,10 @@ class FabricDriverModuleTest {
         assertEquals(DriverActionSource.RUNTIME_PROBE, raycast.source)
         assertEquals(DriverActionAvailability.UNAVAILABLE, raycast.availability)
         assertEquals("client-not-connected", raycast.availabilityReason)
+        assertEquals("number", raycast.arguments["max-distance"]?.type)
+        assertEquals("boolean", raycast.arguments["include-fluids"]?.type)
+        assertEquals("boolean", raycast.result.properties["hit"]?.type)
+        assertEquals("object", raycast.result.properties["target"]?.type)
         assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
         assertEquals("client-not-connected", result.message)
 

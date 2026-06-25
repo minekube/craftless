@@ -27,9 +27,9 @@ Legend:
 - [x] Fabric smoke has proven real client launch, server join, generated chat,
   generated movement invocation, disconnect, and artifact capture.
 - [~] Current Fabric driver has real chat and movement bindings plus a
-  gateway-backed unavailable `player.raycast` probe when the client is not
-  connected. Broader gameplay discovery is not implemented yet and must not be
-  represented as a static placeholder catalog.
+  gateway-backed unavailable `player.raycast` probe with typed argument/result
+  metadata when the client is not connected. Broader gameplay discovery is not
+  implemented yet and must not be represented as a static placeholder catalog.
 - [ ] Craftless is complete.
 
 Baseline evidence:
@@ -96,7 +96,7 @@ Verification:
   availability, and machine-readable availability reasons.
 - [~] Design the Fabric runtime discovery/projection layer. A minimal internal
   discovery abstraction exists for binding-backed actions and a concrete
-  client-state `player.raycast` unavailable probe; real
+  client-state `player.raycast` unavailable probe with schema metadata; real
   client/world/inventory/screen probes are still roadmap.
 - [ ] Define how internal Fabric/Minecraft/mod/registry/server data becomes
   Craftless-owned actions, resources, handles, schemas, availability, and
