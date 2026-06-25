@@ -199,14 +199,25 @@ Evidence:
 - [x] CLI can fetch `/clients/{id}/actions`.
 - [x] CLI can invoke generic actions.
 - [x] CLI includes adaptive per-client action aliases and help from metadata.
-- [ ] Static CLI core is limited to daemon startup, config, auth, output,
+- [x] Static CLI core is limited to daemon startup, config, auth, output,
   lifecycle, discovery, and generic dispatch.
-- [ ] CLI does not contain a hand-maintained command for every Minecraft action.
+- [x] CLI does not contain a hand-maintained command for every Minecraft action.
 
 Evidence:
 
 - Tests to rerun before final completion:
   - `mise exec -- gradle :cli:test`
+- Current static/adaptive command evidence:
+  - `CraftlessCli.registeredCommandPaths()` contains only `server start`,
+    client lifecycle, discovery, OpenAPI/actions fetch, generic
+    `clients <id> run <action>`, and adaptive
+    `clients <id> <namespace> <action>`.
+  - `CraftlessCliTest` rejects registered static gameplay commands such as
+    `sendChat`, `player chat`, `player move`, inventory, world/entity, and
+    raycast paths.
+  - Generated alias tests prove dispatch and help are loaded from
+    `/clients/{id}/actions` and `/clients/{id}/openapi.json`.
+  - `mise exec -- gradle :cli:test --tests com.minekube.craftless.cli.CraftlessCliTest`
 
 ## 7. Fabric Driver Real-Client Proof
 

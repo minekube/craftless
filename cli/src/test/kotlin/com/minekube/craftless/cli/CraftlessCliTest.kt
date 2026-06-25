@@ -51,6 +51,15 @@ class CraftlessCliTest {
         assertTrue("versions" !in commands)
         assertTrue("profiles" !in commands)
         assertTrue("test run" !in commands)
+        assertFalse(commands.any { path ->
+            path.contains("sendChat") ||
+                path.contains("player chat") ||
+                path.contains("player move") ||
+                path.contains("inventory") ||
+                path.contains("world") ||
+                path.contains("entity") ||
+                path.contains("raycast")
+        })
     }
 
     @Test
