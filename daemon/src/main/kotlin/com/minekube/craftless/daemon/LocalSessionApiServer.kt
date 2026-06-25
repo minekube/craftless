@@ -1,6 +1,7 @@
 package com.minekube.craftless.daemon
 
 import com.minekube.craftless.driver.api.ConnectionTarget
+import com.minekube.craftless.driver.api.DriverActionArgument
 import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
@@ -26,7 +27,14 @@ import io.ktor.server.routing.routing
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import java.net.ServerSocket
 import java.time.Instant
 
@@ -277,7 +285,34 @@ private fun DriverActionDescriptor.requireArguments(arguments: Map<String, JsonE
         .keys
         .firstOrNull { it !in arguments }
     require(missingRequired == null) { "action $id requires argument $missingRequired" }
+    arguments.forEach { (name, value) ->
+        this.arguments.getValue(name).requireValueType(id, name, value)
+    }
 }
+
+private fun DriverActionArgument.requireValueType(
+    actionId: String,
+    name: String,
+    value: JsonElement,
+) {
+    require(value.matchesActionArgumentType(type)) {
+        "action $actionId argument $name must be $type"
+    }
+}
+
+private fun JsonElement.matchesActionArgumentType(type: String): Boolean =
+    when (type) {
+        "boolean" -> this is JsonPrimitive && !jsonPrimitive.isJsonString() && booleanOrNull != null
+        "integer" -> this is JsonPrimitive && !jsonPrimitive.isJsonString() && intOrNull != null
+        "number" -> this is JsonPrimitive && !jsonPrimitive.isJsonString() && doubleOrNull != null
+        "string" -> this is JsonPrimitive && jsonPrimitive.isJsonString()
+        "object" -> this is JsonObject
+        "array" -> this is JsonArray
+        else -> false
+    }
+
+private fun JsonPrimitive.isJsonString(): Boolean =
+    toString().startsWith("\"")
 
 private fun String.toActionId(): String {
     val parts = split(":", limit = 2)

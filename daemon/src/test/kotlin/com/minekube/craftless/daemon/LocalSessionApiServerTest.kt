@@ -302,6 +302,16 @@ class LocalSessionApiServerTest {
                 assertTrue(body.contains("\"status\":\"ACCEPTED\""))
             }
 
+            http.post(server.url("/clients/alice:run")) {
+                contentType(ContentType.Application.Json)
+                setBody("""{"action":"player.move","args":{"forward":true,"ticks":"20"}}""")
+            }.let { response ->
+                val body = response.bodyAsText()
+                assertEquals(HttpStatusCode.BadRequest, response.status)
+                assertTrue(body.contains("\"code\":\"BAD_REQUEST\""))
+                assertTrue(body.contains("action player.move argument ticks must be integer"))
+            }
+
             http.post(server.url("/clients/alice/player:move")) {
                 contentType(ContentType.Application.Json)
                 setBody("""{"forward":true,"ticks":20}""")
@@ -310,6 +320,16 @@ class LocalSessionApiServerTest {
                 assertEquals(HttpStatusCode.OK, response.status)
                 assertTrue(body.contains("\"action\":\"player.move\""))
                 assertTrue(body.contains("\"status\":\"ACCEPTED\""))
+            }
+
+            http.post(server.url("/clients/alice/player:move")) {
+                contentType(ContentType.Application.Json)
+                setBody("""{"forward":"true","ticks":20}""")
+            }.let { response ->
+                val body = response.bodyAsText()
+                assertEquals(HttpStatusCode.BadRequest, response.status)
+                assertTrue(body.contains("\"code\":\"BAD_REQUEST\""))
+                assertTrue(body.contains("action player.move argument forward must be boolean"))
             }
 
             http.post(server.url("/clients/alice:run")) {

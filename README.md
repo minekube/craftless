@@ -129,6 +129,7 @@ Still roadmap:
 - `docs/product-positioning.md`
 - `docs/bridge-limitations.md`
 - `docs/agent-skills.md`
+- `docs/roadmap.md`
 
 Historical planning and evidence notes live under `docs/superpowers/`. They are
 kept for traceability; the README status and current docs above describe the
