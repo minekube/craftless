@@ -105,7 +105,7 @@ fun `openapi document includes craftless metadata for fake player routes`() {
     assertEquals("runClientAction", operation?.operationId)
     assertEquals("clients", operation?.extensions?.get("x-craftless-owner"))
     assertEquals("run", operation?.extensions?.get("x-craftless-member"))
-    assertEquals("client", operation?.extensions?.get("x-craftless-thread"))
+    assertEquals("client", operation?.extensions?.get("x-craftless-target"))
 }
 ```
 

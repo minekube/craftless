@@ -106,7 +106,7 @@ private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenA
         extensions = buildMap {
             put("x-craftless-owner", route.owner)
             route.member?.let { put("x-craftless-member", it) }
-            put("x-craftless-thread", thread)
+            put("x-craftless-target", target)
             put("x-craftless-return", returnKind)
             put("x-craftless-source", source)
             actionId?.let { put("x-craftless-action", it) }

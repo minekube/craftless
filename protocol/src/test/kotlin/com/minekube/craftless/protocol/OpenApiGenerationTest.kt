@@ -15,8 +15,9 @@ class OpenApiGenerationTest {
         assertEquals("runClientAction", operation.operationId)
         assertEquals("clients", operation.tags.single())
         assertTrue(operation.extensions.keys.none { it.startsWith("x-craftless-java-") })
+        assertTrue(operation.extensions.keys.none { it == "x-craftless-thread" })
         assertEquals("clients", operation.extensions["x-craftless-owner"])
-        assertEquals("client", operation.extensions["x-craftless-thread"])
+        assertEquals("client", operation.extensions["x-craftless-target"])
         assertEquals("action", operation.extensions["x-craftless-source"])
         assertEquals("run", operation.extensions["x-craftless-member"])
         val schema = operation.requestBody?.content?.get("application/json")?.schema
@@ -40,6 +41,9 @@ class OpenApiGenerationTest {
     @Test
     fun `stable lifecycle routes describe create and connect request bodies`() {
         val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
+        val versionOperation = document.paths["/version"]?.get
+        assertNotNull(versionOperation)
+        assertEquals("supervisor", versionOperation.extensions["x-craftless-target"])
 
         val createSchema = document.paths["/clients"]?.post
             ?.requestBody

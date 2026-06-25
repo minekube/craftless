@@ -442,7 +442,7 @@ Example vendor extensions:
 ```json
 {
   "x-craftless-action": "player.chat",
-  "x-craftless-thread": "client",
+  "x-craftless-target": "client",
   "x-craftless-return": "value",
   "x-craftless-source": "action"
 }

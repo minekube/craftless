@@ -10,7 +10,7 @@ data class ApiRoute(
     val tag: String,
     val owner: String,
     val member: String? = null,
-    val thread: String = "client",
+    val target: String = "supervisor",
     val source: String,
     val returnKind: String = "value",
     val actionId: String? = null,
@@ -63,6 +63,7 @@ class ApiRouteCatalog(
             tag = tag,
             owner = owner,
             member = member,
+            target = if (source == "action") "client" else "supervisor",
             source = source,
             returnKind = returnKind,
         )
