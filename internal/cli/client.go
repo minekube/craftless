@@ -2,10 +2,14 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/minekube/craftwright/internal/config"
 	"github.com/minekube/craftwright/internal/engine"
 	"github.com/spf13/cobra"
 )
@@ -45,8 +49,30 @@ func newClientLaunchCommand(deps Dependencies, opts *GlobalOptions) *cobra.Comma
 		Short: "Launch a Minecraft client",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg, err := loadCLIConfig(opts)
+			if err != nil {
+				return err
+			}
+			if !flagChanged(cmd, "mc") {
+				mc = cfg.Defaults.Minecraft
+			}
+			if !flagChanged(cmd, "loader") {
+				loader = cfg.Defaults.Loader
+			}
+			if !flagChanged(cmd, "offline") {
+				offline = cfg.Defaults.Offline
+			}
+			if !flagChanged(cmd, "timeout") {
+				timeout = cfg.Defaults.Timeout
+			}
+			if !flagChanged(cmd, "artifacts") {
+				artifacts = cfg.Paths.Artifacts
+			}
 			if mc == "" {
 				return usageError("--mc is required")
+			}
+			if loader == "" {
+				return usageError("--loader is required")
 			}
 			client, err := deps.Engine.Launch(context.Background(), engine.LaunchRequest{
 				Name:             args[0],
@@ -88,6 +114,30 @@ func newClientLaunchCommand(deps Dependencies, opts *GlobalOptions) *cobra.Comma
 	cmd.Flags().DurationVar(&timeout, "timeout", 2*time.Minute, "launch timeout")
 	cmd.Flags().StringVar(&artifacts, "artifacts", "", "artifacts directory")
 	return cmd
+}
+
+func loadCLIConfig(opts *GlobalOptions) (config.Config, error) {
+	if opts.Config != "" {
+		return config.Load(opts.Config)
+	}
+
+	root := opts.WorkDir
+	if root == "" {
+		root = "."
+	}
+	cfg, err := config.Load(filepath.Join(root, "craftwright.yaml"))
+	if err == nil {
+		return cfg, nil
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		return config.Default(), nil
+	}
+	return config.Config{}, err
+}
+
+func flagChanged(cmd *cobra.Command, name string) bool {
+	flag := cmd.Flags().Lookup(name)
+	return flag != nil && flag.Changed
 }
 
 func newClientListCommand(deps Dependencies, opts *GlobalOptions) *cobra.Command {
