@@ -118,6 +118,21 @@ class DriverSessionContractTest {
     }
 
     @Test
+    fun `driver runtime metadata rejects non craftless public driver names`() {
+        listOf(
+            "",
+            "recording-backend",
+            "headlessmc",
+            "hmc-specifics",
+            "minecraft-launcher",
+        ).forEach { driverName ->
+            assertFailsWith<IllegalArgumentException> {
+                DriverRuntimeMetadata(driver = driverName)
+            }
+        }
+    }
+
+    @Test
     fun `fake driver session exposes the minimum automation contract`() {
         val session = FakeDriverSession(
             clientId = "alice",

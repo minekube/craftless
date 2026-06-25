@@ -71,6 +71,7 @@ data class DriverRuntimeMetadata(
     init {
         require(loaderVersion.isNotBlank()) { "loader version is required" }
         require(driver.isNotBlank()) { "driver is required" }
+        require(driver.startsWith("craftless-")) { "driver must be a Craftless-owned public name" }
         require(driverVersion.isNotBlank()) { "driver version is required" }
         require(mappings.isNotBlank()) { "mappings fingerprint is required" }
         require(installedModsFingerprint.isNotBlank()) { "installed mods fingerprint is required" }

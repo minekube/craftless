@@ -34,7 +34,7 @@ class BackendDriverSessionTest {
 
         assertTrue(session.actions().any { it.id == "player.move" })
         assertTrue(session.actions().any { it.id == "player.chat" })
-        assertEquals("recording-backend", session.runtimeMetadata().driver)
+        assertEquals("craftless-recording-backend", session.runtimeMetadata().driver)
         assertEquals("test-mappings", session.runtimeMetadata().mappings)
 
         val stopped = session.stop()
@@ -210,7 +210,7 @@ private class RecordingDriverBackend(
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
         DriverRuntimeMetadata(
             loaderVersion = "test-loader",
-            driver = "recording-backend",
+            driver = "craftless-recording-backend",
             driverVersion = "test-driver",
             mappings = "test-mappings",
             installedModsFingerprint = "mods-test",
