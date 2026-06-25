@@ -46,14 +46,14 @@ class ApiRouteCatalogTest {
     fun `catalog exposes required stable session routes`() {
         val catalog = ApiRouteCatalog.sessionDefaults()
 
-        assertEquals(HttpMethod.GET, catalog.route("/openapi.json").method)
-        assertEquals(HttpMethod.GET, catalog.route("/version").method)
-        assertEquals(HttpMethod.GET, catalog.route("/events").method)
-        assertEquals(HttpMethod.GET, catalog.route("/client").method)
-        assertEquals(HttpMethod.GET, catalog.route("/client/state").method)
-        assertEquals(HttpMethod.GET, catalog.route("/player").method)
-        assertEquals(HttpMethod.GET, catalog.route("/player/name").method)
-        assertEquals(HttpMethod.POST, catalog.route("/player/sendChat").method)
+        assertEquals("GET", catalog.route("/openapi.json").method)
+        assertEquals("GET", catalog.route("/version").method)
+        assertEquals("GET", catalog.route("/events").method)
+        assertEquals("GET", catalog.route("/client").method)
+        assertEquals("GET", catalog.route("/client/state").method)
+        assertEquals("GET", catalog.route("/player").method)
+        assertEquals("GET", catalog.route("/player/name").method)
+        assertEquals("POST", catalog.route("/player/sendChat").method)
         assertTrue(catalog.routes.any { it.path == "/o/{handle}" })
         assertTrue(catalog.routes.any { it.path == "/c/{className}" })
     }
@@ -64,11 +64,11 @@ class ApiRouteCatalogTest {
 
 Run: `mise exec -- gradle :protocol:test --tests dev.minekube.craftwright.protocol.ApiRouteCatalogTest`
 
-Expected: FAIL because `ApiRouteCatalog`, `HttpMethod`, and Gradle module files are not implemented yet.
+Expected: FAIL because `ApiRouteCatalog` and Gradle module files are not implemented yet.
 
 - [ ] **Step 3: Write minimal implementation**
 
-Implement `HttpMethod`, `ApiRoute`, `ApiRouteCatalog.sessionDefaults()`, route lookup, and a small serializable OpenAPI document model that can list operations for the default routes.
+Implement `ApiRoute`, `ApiRouteCatalog.sessionDefaults()`, route lookup, and a small serializable OpenAPI document model that can list operations for the default routes. Keep HTTP verbs as protocol data strings such as `"GET"` and `"POST"` rather than introducing a Craftwright-owned HTTP method enum.
 
 - [ ] **Step 4: Run test to verify it passes**
 

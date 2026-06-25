@@ -1,8 +1,19 @@
 # Agent Skills
 
-Craftwright should keep repo-local agent skills narrow and relevant to the
-current Kotlin/JVM work. Broad Android, KMP, JPA, or one-off migration skills
+Craftwright keeps repo-local agent skills narrow and relevant to the current
+Kotlin/JVM work. Broad Android, KMP, JPA, database, or one-off migration skills
 should not be installed unless the repository starts using those technologies.
+
+## Installed Repo-Local Skills
+
+- `.agent/skills/craftwright-kotlin-jvm` is the active repository skill for
+  Kotlin/JVM, Gradle, Ktor, CLI, daemon, protocol, bridge, Fabric-driver, and
+  TypeScript integration work in this repo.
+
+This skill exists because the public Kotlin marketplace skills found so far are
+either task-specific or mismatch Craftwright's stack. Repo-local guidance is
+safer than importing external rules that would push Android, Exposed ORM,
+Either managers, Retrofit, or blanket Java-to-Kotlin conversion into this codebase.
 
 ## Researched Sources
 
@@ -10,6 +21,10 @@ should not be installed unless the repository starts using those technologies.
   collection following the Agent Skills standard.
 - Kotlin's documentation describes these skills as reusable instructions for
   Kotlin-specific agent workflows and lists Codex compatibility.
+- Google documents Android skills as project-local instructions under
+  `.skills/` or `.agent/skills/`, but those workflows target Android apps.
+- Marketplace search for "modern kotlin best practices" surfaced broad
+  community skills, but none should be installed into Craftwright as-is.
 
 Current upstream skill folders:
 
@@ -19,11 +34,24 @@ Current upstream skill folders:
 - `kotlin-tooling-agp9-migration`
 - `kotlin-tooling-cocoapods-spm-migration`
 
+Community candidates checked:
+
+- `mindrally/skills@kotlin-development`: about 479 installs at search time and
+  151 GitHub stars. It is a generic Cursor-rules conversion and includes weak
+  or non-Kotlin-specific advice such as always declaring every variable type,
+  underscore-case directories, and arrow-function terminology.
+- `spartan-stratos/spartan-ai-toolkit@kotlin-best-practices`: about 32 installs
+  at search time and 81 GitHub stars after the GitHub redirect to
+  `c0x12c/ai-toolkit`. It assumes Exposed ORM, Either-based managers, and
+  project-specific controller conventions that Craftwright does not use.
+- `aj-geddes/useful-ai-prompts@android-kotlin-development`: about 1.1k installs
+  and 278 GitHub stars, but it is Android/MVVM/Compose/Retrofit/Room focused.
+
 ## Recommendation For This Repository
 
 Do not install the whole `Kotlin/kotlin-agent-skills` set into Craftwright right
-now. Four of the five upstream skills are not relevant to this repo's current
-Kotlin/JVM server, CLI, Fabric-driver, and TypeScript SDK work:
+now. Most upstream skills are not relevant to this repo's current Kotlin/JVM
+server, CLI, Fabric-driver, and TypeScript SDK work:
 
 - no Android Gradle Plugin migration;
 - no CocoaPods or SwiftPM migration;
@@ -34,6 +62,10 @@ Install `kotlin-tooling-java-to-kotlin` only when there is a concrete conversion
 task. Craftwright intentionally keeps Java for Fabric Mixins and bytecode-facing
 Minecraft glue, so a Java-to-Kotlin skill should not be globally active by
 default.
+
+Do not install the broad community candidates listed above. If Craftwright needs
+more Kotlin guidance, evolve `.agent/skills/craftwright-kotlin-jvm` with
+project-specific rules instead.
 
 ## Useful Install Commands
 
