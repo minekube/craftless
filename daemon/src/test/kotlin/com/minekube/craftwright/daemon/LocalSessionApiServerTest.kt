@@ -87,6 +87,10 @@ class LocalSessionApiServerTest {
                 assertTrue(body.contains("\"id\":\"player.move\""))
                 assertTrue(body.contains("\"id\":\"player.chat\""))
                 assertTrue(body.contains("\"args\""))
+                assertTrue(body.contains("\"requestBody\""))
+                assertTrue(body.contains("\"required\":[\"message\"]"))
+                assertTrue(body.contains("\"message\":{\"type\":\"string\""))
+                assertTrue(body.contains("\"ticks\":{\"type\":\"integer\""))
                 assertTrue(!body.contains("/player/sendChat"))
                 assertTrue(!body.contains("/actions/move"))
             }

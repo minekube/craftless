@@ -80,6 +80,21 @@ class ClientSessionServiceTest {
         assertTrue(document.paths.containsKey("/clients/alice/player:chat"))
         assertTrue(document.paths.containsKey("/clients/alice/player:move"))
         assertEquals("runPlayerChat", document.paths["/clients/alice/player:chat"]?.post?.operationId)
+        val chatSchema = document.paths["/clients/alice/player:chat"]?.post?.requestBody
+            ?.content
+            ?.get("application/json")
+            ?.schema
+        assertNotNull(chatSchema)
+        assertEquals("object", chatSchema.type)
+        assertEquals(listOf("message"), chatSchema.required)
+        assertEquals("string", chatSchema.properties["message"]?.type)
+        val moveSchema = document.paths["/clients/alice/player:move"]?.post?.requestBody
+            ?.content
+            ?.get("application/json")
+            ?.schema
+        assertNotNull(moveSchema)
+        assertEquals("boolean", moveSchema.properties["forward"]?.type)
+        assertEquals("integer", moveSchema.properties["ticks"]?.type)
         assertFalse(document.paths.keys.any { it.endsWith("/actions/move") })
         assertFalse(document.paths.keys.any { "/perception/" in it })
         val actionOperation = document.paths["/clients/alice:run"]?.post

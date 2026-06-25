@@ -18,13 +18,19 @@ data class OpenApiDocument(
             catalog: ApiRouteCatalog,
             extensions: Map<String, String> = emptyMap(),
             capabilities: List<OpenApiCapability> = emptyList(),
-        ): OpenApiDocument =
-            OpenApiDocument(paths = catalog.routes.groupBy { it.path }.mapValues { (_, routes) ->
-                OpenApiPath(
-                    get = routes.firstOrNull { it.method == "GET" }?.toOperation(),
-                    post = routes.firstOrNull { it.method == "POST" }?.toOperation(),
-                )
-            }, extensions = extensions, capabilities = capabilities)
+        ): OpenApiDocument {
+            val capabilitiesById = capabilities.associateBy { it.id }
+            return OpenApiDocument(
+                paths = catalog.routes.groupBy { it.path }.mapValues { (_, routes) ->
+                    OpenApiPath(
+                        get = routes.firstOrNull { it.method == "GET" }?.toOperation(capabilitiesById),
+                        post = routes.firstOrNull { it.method == "POST" }?.toOperation(capabilitiesById),
+                    )
+                },
+                extensions = extensions,
+                capabilities = capabilities,
+            )
+        }
     }
 }
 
@@ -45,6 +51,7 @@ data class OpenApiOperation(
     val operationId: String,
     val tags: List<String>,
     val responses: Map<String, OpenApiResponse> = mapOf("200" to OpenApiResponse()),
+    val requestBody: OpenApiRequestBody? = null,
     @SerialName("x-craftwright")
     val extensions: Map<String, String>,
 )
@@ -52,6 +59,25 @@ data class OpenApiOperation(
 @Serializable
 data class OpenApiResponse(
     val description: String = "OK",
+)
+
+@Serializable
+data class OpenApiRequestBody(
+    val required: Boolean = true,
+    val content: Map<String, OpenApiMediaType>,
+)
+
+@Serializable
+data class OpenApiMediaType(
+    val schema: OpenApiSchema,
+)
+
+@Serializable
+data class OpenApiSchema(
+    val type: String,
+    val properties: Map<String, OpenApiSchema> = emptyMap(),
+    val required: List<String> = emptyList(),
+    val additionalProperties: Boolean? = null,
 )
 
 @Serializable
@@ -68,11 +94,12 @@ data class OpenApiCapabilityArgument(
     val required: Boolean = false,
 )
 
-private fun ApiRoute.toOperation(): OpenApiOperation {
+private fun ApiRoute.toOperation(capabilitiesById: Map<String, OpenApiCapability>): OpenApiOperation {
     val route = this
     return OpenApiOperation(
         operationId = operationId,
         tags = listOf(tag),
+        requestBody = route.requestBody(capabilitiesById),
         extensions = buildMap {
             put("x-craftwright-java-class", route.javaClass)
             javaMember?.let { put("x-craftwright-java-method", it) }
@@ -83,3 +110,40 @@ private fun ApiRoute.toOperation(): OpenApiOperation {
         },
     )
 }
+
+private fun ApiRoute.requestBody(capabilitiesById: Map<String, OpenApiCapability>): OpenApiRequestBody? =
+    when {
+        method != "POST" -> null
+        actionId != null -> capabilitiesById[actionId]?.arguments?.toRequestBody()
+        path.endsWith(":run") -> genericActionRequestBody()
+        else -> null
+    }
+
+private fun Map<String, OpenApiCapabilityArgument>.toRequestBody(): OpenApiRequestBody =
+    OpenApiRequestBody(
+        content = mapOf(
+            "application/json" to OpenApiMediaType(
+                schema = OpenApiSchema(
+                    type = "object",
+                    properties = mapValues { (_, argument) -> OpenApiSchema(type = argument.type) },
+                    required = filterValues { it.required }.keys.toList(),
+                )
+            )
+        )
+    )
+
+private fun genericActionRequestBody(): OpenApiRequestBody =
+    OpenApiRequestBody(
+        content = mapOf(
+            "application/json" to OpenApiMediaType(
+                schema = OpenApiSchema(
+                    type = "object",
+                    properties = mapOf(
+                        "action" to OpenApiSchema(type = "string"),
+                        "args" to OpenApiSchema(type = "object", additionalProperties = true),
+                    ),
+                    required = listOf("action"),
+                )
+            )
+        )
+    )

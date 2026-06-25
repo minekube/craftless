@@ -17,5 +17,11 @@ class OpenApiGenerationTest {
         assertEquals("run", operation.extensions["x-craftwright-java-method"])
         assertEquals("client", operation.extensions["x-craftwright-thread"])
         assertEquals("action", operation.extensions["x-craftwright-source"])
+        val schema = operation.requestBody?.content?.get("application/json")?.schema
+        assertNotNull(schema)
+        assertEquals("object", schema.type)
+        assertEquals(listOf("action"), schema.required)
+        assertEquals("string", schema.properties["action"]?.type)
+        assertEquals("object", schema.properties["args"]?.type)
     }
 }

@@ -2,7 +2,7 @@
 
 `driver-fabric-1_21_6/` is the current transitional Fabric/Loom driver module.
 The target architecture is one consolidated `driver-fabric` module with
-internal version-aware bindings where practical.
+internal version-aware bindings where practical. Delete this dir when made obsolete.
 
 ## Scope
 
