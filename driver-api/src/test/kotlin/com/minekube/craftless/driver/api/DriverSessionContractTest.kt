@@ -30,6 +30,26 @@ class DriverSessionContractTest {
     }
 
     @Test
+    fun `driver action descriptors reject invalid action ids`() {
+        listOf(
+            "player",
+            "Player.move",
+            "player/move",
+            "player:move",
+            "minecraft.player.move",
+            ".move",
+            "player.",
+        ).forEach { actionId ->
+            assertFailsWith<IllegalArgumentException> {
+                DriverActionDescriptor(
+                    id = actionId,
+                    schemaVersion = "1",
+                )
+            }
+        }
+    }
+
+    @Test
     fun `fake driver session exposes the minimum automation contract`() {
         val session = FakeDriverSession(
             clientId = "alice",

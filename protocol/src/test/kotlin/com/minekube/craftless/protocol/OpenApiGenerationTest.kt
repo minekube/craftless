@@ -57,6 +57,26 @@ class OpenApiGenerationTest {
     }
 
     @Test
+    fun `openapi action metadata rejects invalid action ids`() {
+        listOf(
+            "player",
+            "Player.move",
+            "player/move",
+            "player:move",
+            "minecraft.player.move",
+            ".move",
+            "player.",
+        ).forEach { actionId ->
+            assertFailsWith<IllegalArgumentException> {
+                OpenApiAction(
+                    id = actionId,
+                    schemaVersion = "1",
+                )
+            }
+        }
+    }
+
+    @Test
     fun `stable lifecycle routes describe create and connect request bodies`() {
         val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
         val versionOperation = document.paths["/version"]?.get

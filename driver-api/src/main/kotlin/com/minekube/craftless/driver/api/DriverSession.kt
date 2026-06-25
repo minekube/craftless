@@ -46,10 +46,15 @@ data class DriverActionDescriptor(
 ) {
     init {
         require(id.isNotBlank()) { "action id is required" }
+        require(id.isCraftlessActionId()) { "invalid action id $id" }
         require(schemaVersion.isNotBlank()) { "action schema version is required" }
         require(arguments.keys.none { it.isBlank() }) { "action argument name is required" }
     }
 }
+
+private fun String.isCraftlessActionId(): Boolean =
+    matches(Regex("[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+")) &&
+        !startsWith("minecraft.")
 
 @Serializable
 data class DriverRuntimeMetadata(

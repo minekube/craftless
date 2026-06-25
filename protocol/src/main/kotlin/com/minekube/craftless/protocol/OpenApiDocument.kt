@@ -95,7 +95,16 @@ data class OpenApiAction(
     val schemaVersion: String,
     @SerialName("args")
     val arguments: Map<String, OpenApiActionArgument> = emptyMap(),
-)
+) {
+    init {
+        require(id.isCraftlessActionId()) { "invalid action id $id" }
+        require(schemaVersion.isNotBlank()) { "action schema version is required" }
+    }
+}
+
+private fun String.isCraftlessActionId(): Boolean =
+    matches(Regex("[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+")) &&
+        !startsWith("minecraft.")
 
 @Serializable
 data class OpenApiActionArgument(
