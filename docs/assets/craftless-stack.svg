@@ -147,5 +147,5 @@
   <text class="side-note" x="1000" y="390">logs</text>
 
   <rect class="callout" x="206" y="636" width="708" height="42" rx="21"/>
-  <text class="callout-text" x="238" y="662">No static Minecraft action SDK: clients and agents discover the live API for each running client.</text>
+  <text class="callout-text" x="310" y="662">Live per-client OpenAPI and actions are the source of truth.</text>
 </svg>
