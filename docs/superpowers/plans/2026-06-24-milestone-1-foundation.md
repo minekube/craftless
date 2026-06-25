@@ -1,5 +1,11 @@
 # Craftwright Milestone 1 Foundation Implementation Plan
 
+> **Status:** Legacy Go foundation plan. This plan is retained for historical
+> context and for reusable CLI/protocol lessons. It is superseded by the
+> JVM-first rewrite direction in
+> `docs/superpowers/specs/2026-06-25-jvm-first-rewrite-design.md`.
+> Do not continue this plan as the main product implementation path.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build the first executable Craftwright foundation: a Go `mcw` CLI, stable output/error contracts, project config loading, an in-memory engine, client lifecycle commands, scenario parsing, and a JSON-RPC stdio daemon that can be tested before the real Minecraft engine is integrated.

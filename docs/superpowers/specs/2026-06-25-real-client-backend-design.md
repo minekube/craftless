@@ -2,6 +2,16 @@
 
 Date: 2026-06-25
 
+## Status
+
+Legacy spike design. This document describes a Go process-backed backend that
+wraps HeadlessMC/HMC-Specifics through stdin/stdout. That approach may still be
+used for research, but it is no longer the target architecture.
+
+The current architecture direction is the JVM-first rewrite in
+`docs/superpowers/specs/2026-06-25-jvm-first-rewrite-design.md`. Treat this file
+as prior research and a possible temporary spike plan only.
+
 ## Purpose
 
 This spec defines the first real Minecraft Java client backend for Craftwright.

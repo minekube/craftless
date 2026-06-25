@@ -1,5 +1,11 @@
 # Milestone 1 Hardening Implementation Plan
 
+> **Status:** Legacy Go hardening plan. This plan may be mined for tests and
+> contract expectations, but it is superseded by the JVM-first rewrite direction
+> in `docs/superpowers/specs/2026-06-25-jvm-first-rewrite-design.md`.
+> Do not continue it as the main implementation path unless explicitly working
+> on a temporary Go compatibility layer.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Tighten the Milestone 1 foundation so config, output modes, scenarios, and daemon protocol behavior are safe to build the real Minecraft backend on top of.

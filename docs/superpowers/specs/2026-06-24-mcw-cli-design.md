@@ -2,6 +2,16 @@
 
 Date: 2026-06-24
 
+## Status
+
+Legacy UX reference. The command shape, output contracts, and CLI discipline in
+this document remain useful, but implementation ownership has moved to the
+JVM-first rewrite described in
+`docs/superpowers/specs/2026-06-25-jvm-first-rewrite-design.md`.
+
+When this file conflicts with the JVM-first rewrite spec, the JVM-first rewrite
+spec wins. Do not use this file to justify expanding the Go implementation.
+
 ## Name
 
 - Command: `mcw`

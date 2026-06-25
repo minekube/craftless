@@ -2,6 +2,15 @@
 
 Date: 2026-06-24
 
+## Status
+
+Legacy reference. This document preserves the original product goal and CLI-first
+intent, but its Go-first implementation direction is superseded by
+`docs/superpowers/specs/2026-06-25-jvm-first-rewrite-design.md`.
+
+Use the JVM-first rewrite spec for current architecture decisions. Use this file
+only for historical context and durable product intent.
+
 ## Purpose
 
 Craftwright is a standalone open-source project for automating a real Minecraft
