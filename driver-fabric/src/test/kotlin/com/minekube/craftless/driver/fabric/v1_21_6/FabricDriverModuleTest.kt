@@ -60,6 +60,24 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric client smoke plan is opt in and bridge independent`() {
+        val plan = FabricClientSmokePlan.default()
+
+        assertEquals("CRAFTLESS_FABRIC_CLIENT_SMOKE", plan.environmentGate)
+        assertEquals("1.21.6", plan.minecraftVersion)
+        assertTrue(plan.gradleTasks.contains(":testkit:localMinecraftServerSmoke"))
+        assertTrue(plan.gradleTasks.contains(":driver-fabric:runClient"))
+        assertTrue(plan.steps.any { it.kind == FabricSmokeStepKind.START_LOCAL_SERVER })
+        assertTrue(plan.steps.any { it.kind == FabricSmokeStepKind.LAUNCH_FABRIC_CLIENT })
+        assertTrue(plan.steps.any { it.kind == FabricSmokeStepKind.INVOKE_GENERATED_CHAT_ACTION })
+        assertTrue(plan.steps.any { it.kind == FabricSmokeStepKind.ASSERT_SERVER_EVIDENCE })
+        assertTrue(plan.artifacts.contains("server-evidence.jsonl"))
+        assertTrue(plan.artifacts.contains("client-openapi.json"))
+        assertTrue(plan.steps.none { it.description.contains("hmc", ignoreCase = true) })
+        assertTrue(plan.steps.none { it.description.contains("headlessmc", ignoreCase = true) })
+    }
+
+    @Test
     fun `fabric backend schedules real client actions through a gateway`() {
         val gateway = RecordingFabricClientGateway()
         val backend = FabricDriverBackend.real(gateway)

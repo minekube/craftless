@@ -31,6 +31,9 @@ Craftless currently has:
 - an opt-in `:testkit:localMinecraftServerSmoke` task that provisions and starts
   a local Minecraft server, waits for startup, sends `stop`, and records server
   log/evidence artifacts without running during default tests;
+- an opt-in `:driver-fabric:fabricClientSmoke` task that composes the local
+  server smoke with Fabric Loom's `runClient` path behind
+  `CRAFTLESS_FABRIC_CLIENT_SMOKE`;
 - repo-local Kotlin/JVM agent skills scoped to this codebase.
 
 ## Completion Definition
@@ -59,8 +62,8 @@ the durable Fabric direction.
 - Extend the opt-in local server smoke into the Fabric proof path by launching
   a real client against the provisioned Minecraft `1.21.6` server and asserting
   join, chat, movement, and disconnect evidence.
-- Add a Fabric smoke command or Gradle task that launches the current
-  `driver-fabric` module against Minecraft `1.21.6`.
+- Wire the Fabric smoke task to collect daemon/client artifacts automatically
+  after the Fabric client joins the provisioned Minecraft `1.21.6` server.
 - Invoke generated `player.chat` through the daemon action API and assert that
   the local server sees the chat event.
 - Invoke generated `player.move` and assert movement evidence from server-side

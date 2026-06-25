@@ -120,6 +120,8 @@ Implemented now:
 - Testkit helpers and an opt-in `:testkit:localMinecraftServerSmoke` task for
   provisioning a Minecraft server jar, accepting the EULA, starting the server,
   and collecting server log evidence.
+- An opt-in `:driver-fabric:fabricClientSmoke` wrapper around the local server
+  smoke and Fabric Loom `runClient` path.
 
 Still roadmap:
 
@@ -163,4 +165,10 @@ real server process are acceptable:
 
 ```sh
 CRAFTLESS_LOCAL_SERVER_SMOKE=1 mise exec -- gradle :testkit:localMinecraftServerSmoke
+```
+
+The Fabric client smoke is also opt-in:
+
+```sh
+CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke
 ```

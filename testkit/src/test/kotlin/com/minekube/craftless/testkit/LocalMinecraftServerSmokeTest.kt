@@ -42,6 +42,15 @@ class LocalMinecraftServerSmokeTest {
     }
 
     @Test
+    fun `local server smoke is enabled by fabric client smoke gate`() {
+        val config = LocalMinecraftServerSmokeConfig.fromEnvironment(
+            mapOf("CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1")
+        )
+
+        assertTrue(config.enabled)
+    }
+
+    @Test
     fun `local server smoke skips without opt in`() {
         val result = LocalMinecraftServerSmoke.run(
             config = LocalMinecraftServerSmokeConfig.fromEnvironment(emptyMap()),

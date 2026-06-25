@@ -87,6 +87,7 @@ data class LocalMinecraftServerSmokeConfig(
 
     companion object {
         private const val ENABLED = "CRAFTLESS_LOCAL_SERVER_SMOKE"
+        private const val FABRIC_ENABLED = "CRAFTLESS_FABRIC_CLIENT_SMOKE"
         private const val ROOT = "CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT"
         private const val VERSION = "CRAFTLESS_SMOKE_MINECRAFT_VERSION"
         private const val PORT = "CRAFTLESS_SMOKE_SERVER_PORT"
@@ -97,7 +98,7 @@ data class LocalMinecraftServerSmokeConfig(
 
         fun fromEnvironment(env: Map<String, String> = System.getenv()): LocalMinecraftServerSmokeConfig =
             LocalMinecraftServerSmokeConfig(
-                enabled = env[ENABLED] == "1" || env[ENABLED].equals("true", ignoreCase = true),
+                enabled = env.isEnabled(ENABLED) || env.isEnabled(FABRIC_ENABLED),
                 root = env[ROOT]?.takeIf { it.isNotBlank() }
                     ?.let(Path::of)
                     ?: Path.of("build", "craftless-local-server-smoke"),
@@ -114,5 +115,8 @@ data class LocalMinecraftServerSmokeConfig(
 
         private fun String.toLongStrict(name: String): Long =
             toLongOrNull() ?: error("$name must be a long integer")
+
+        private fun Map<String, String>.isEnabled(name: String): Boolean =
+            this[name] == "1" || this[name].equals("true", ignoreCase = true)
     }
 }

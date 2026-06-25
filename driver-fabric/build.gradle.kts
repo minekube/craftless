@@ -18,3 +18,23 @@ tasks.processResources {
         expand("version" to project.version)
     }
 }
+
+tasks.register("fabricClientSmoke") {
+    group = "verification"
+    description = "Opt-in Fabric real-client smoke. Set CRAFTLESS_FABRIC_CLIENT_SMOKE=1 to run the local server smoke and Loom runClient."
+
+    val enabled = System.getenv("CRAFTLESS_FABRIC_CLIENT_SMOKE") == "1" ||
+        System.getenv("CRAFTLESS_FABRIC_CLIENT_SMOKE").equals("true", ignoreCase = true)
+
+    if (enabled) {
+        dependsOn(":testkit:localMinecraftServerSmoke", "runClient")
+    }
+
+    doLast {
+        if (enabled) {
+            println("Fabric client smoke requested through CRAFTLESS_FABRIC_CLIENT_SMOKE")
+        } else {
+            println("set CRAFTLESS_FABRIC_CLIENT_SMOKE=1 to run the Fabric client smoke")
+        }
+    }
+}
