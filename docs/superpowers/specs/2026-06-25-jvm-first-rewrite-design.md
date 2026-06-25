@@ -132,7 +132,8 @@ craftwright/
     bridge adapter so daemon routes are no longer hard-wired to fake state.
 
   driver-fabric-1_21_6/
-    Fabric Loom module with Java Mixins and version adapters.
+    Fabric Loom module for Minecraft 1.21.6. The repository now includes the
+    client entrypoint, metadata, mixin config, and placeholder runtime backend.
 
   driver-fabric-<version>/
     Additional versioned adapters added only when tested.
@@ -378,7 +379,8 @@ public abstraction.
 
 ### Phase 3: First In-Client Driver
 
-Build `driver-fabric-1_21_6` with Java Mixins and a small Kotlin/Java driver API.
+Fill out `driver-fabric-1_21_6` beyond the current Loom scaffold by replacing
+the placeholder backend with Java Mixins and a small Kotlin/Java driver API.
 
 Minimum capabilities:
 

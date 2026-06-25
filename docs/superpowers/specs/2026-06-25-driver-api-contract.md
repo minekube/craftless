@@ -30,6 +30,13 @@ The module currently exposes:
 - `DriverBackendAction`
 - `HmcBridgeDriverBackend`
 
+`driver-fabric-1_21_6/` now adds the first versioned Fabric/Loom module:
+
+- `CraftwrightFabricClientEntrypoint`
+- `FabricDriverBackend`
+- `fabric.mod.json`
+- `craftwright-driver-fabric-1_21_6.mixins.json`
+
 Minimum supported actions:
 
 - snapshot current client state;
@@ -45,14 +52,14 @@ the same public contract before the Fabric module lands.
 
 `BackendDriverSession` is the first runtime adapter. It keeps `DriverSession`
 state and events in Craftwright-owned types while delegating automation actions
-to a `DriverBackend`. The current HMC bridge adapter is temporary; the Fabric
-driver should satisfy the same backend/session boundary with real in-client
-actions.
+to a `DriverBackend`. The current HMC bridge adapter is temporary. The first
+Fabric module compiles and exposes a placeholder backend; it must still replace
+placeholder behavior with real in-client actions.
 
 ## Fabric Handoff
 
-The first Fabric driver should implement the runtime backend/session boundary
-for real client state:
+The first Fabric driver module should continue implementing the runtime
+backend/session boundary for real client state:
 
 - map `connect(ConnectionTarget)` to in-client server connection behavior;
 - map `sendChat(ChatCommand)` to real client chat send behavior;

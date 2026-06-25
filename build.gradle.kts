@@ -3,6 +3,7 @@ import org.gradle.api.plugins.JavaPluginExtension
 plugins {
     kotlin("jvm") version "2.4.0" apply false
     kotlin("plugin.serialization") version "2.4.0" apply false
+    id("net.fabricmc.fabric-loom-remap") version "1.17.12" apply false
 }
 
 group = "dev.minekube.craftwright"

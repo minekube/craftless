@@ -1,0 +1,10 @@
+{
+  "required": true,
+  "package": "dev.minekube.craftwright.driver.fabric.v1_21_6.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "environment": "client",
+  "mixins": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

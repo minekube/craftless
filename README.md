@@ -20,8 +20,10 @@ Craftwright is a Kotlin/JVM-first project with one implementation direction:
   route integration;
 - a `driver-runtime` adapter layer that can run `DriverSession` over bridge or
   Fabric-style backends without changing daemon routes;
+- a compiled `driver-fabric-1_21_6` Fabric/Loom module with client entrypoint,
+  mod metadata, mixin config, and placeholder runtime backend;
 - a temporary HeadlessMC/HMC-Specifics bridge backend for Phase 1 evidence;
-- a real Fabric driver as the durable automation engine;
+- a real Fabric driver implementation as the durable automation engine;
 - generated OpenAPI for the running client/session;
 - Playwright/Vitest-style testing integrations.
 
@@ -62,6 +64,7 @@ Phase 1:
 - extend the Kotlin/JVM Gradle project skeleton;
 - implement the CLI and local API surface;
 - route daemon-created clients through an injectable driver runtime boundary;
+- keep the first Fabric 1.21.6 module compiling under Loom;
 - add a temporary HeadlessMC/HMC-Specifics bridge backend;
 - add a real integration smoke test that launches a real client, joins a
   server, sends chat, moves forward, and verifies server-side position changed;
@@ -69,7 +72,6 @@ Phase 1:
 
 Phase 2:
 
-- build the first `driver-fabric-*` module;
 - move movement/look/perception from simulated keypresses to direct client
   APIs;
 - expose `/openapi.json` from the running client/session;
