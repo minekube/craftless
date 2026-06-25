@@ -55,6 +55,7 @@ object McwCli {
         "clients list",
         "clients connect",
         "clients api",
+        "clients <id> openapi",
         "clients <id> actions",
         "clients <id> run <action>",
         "server start",
@@ -69,6 +70,9 @@ object McwCli {
     ): Int {
         if (args.take(2) == listOf("clients", "api")) {
             return runClientsApi(args.drop(2), stdout, stderr, afterStart)
+        }
+        if (args.size >= 3 && args[0] == "clients" && args[2] == "openapi") {
+            return getClientOpenApi(args.drop(1), stdout, stderr)
         }
         if (args.size >= 3 && args[0] == "clients" && args[2] == "actions") {
             return getClientActions(args.drop(1), stdout, stderr)
@@ -136,6 +140,29 @@ object McwCli {
             }
         }.getOrElse { error ->
             stderr("error: ${error.message ?: "failed to fetch actions"}")
+            2
+        }
+    }
+
+    private fun getClientOpenApi(
+        args: List<String>,
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+    ): Int {
+        val clientId = args.getOrNull(0).orEmpty()
+        if (clientId.isBlank()) {
+            stderr("error: usage is clients <id> openapi [--api <url>]")
+            return 2
+        }
+        val api = args.optionValue("--api") ?: System.getenv("CRAFTWRIGHT") ?: "http://127.0.0.1:8080"
+        return runCatching {
+            kotlinx.coroutines.runBlocking {
+                HttpClient(CIO).use { http ->
+                    http.get("${api.trimEnd('/')}/clients/$clientId/openapi.json").forwardBody(stdout, stderr)
+                }
+            }
+        }.getOrElse { error ->
+            stderr("error: ${error.message ?: "failed to fetch openapi"}")
             2
         }
     }

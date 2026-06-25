@@ -26,6 +26,7 @@ class McwCliTest {
         assertTrue(commands.contains("clients list"))
         assertTrue(commands.contains("clients connect"))
         assertTrue(commands.contains("clients api"))
+        assertTrue(commands.contains("clients <id> openapi"))
         assertTrue(commands.contains("clients <id> actions"))
         assertTrue(commands.contains("clients <id> run <action>"))
         assertTrue(commands.contains("server start"))
@@ -113,6 +114,36 @@ class McwCliTest {
         val actions = Json.parseToJsonElement(output.toString().trim()).jsonArray
         assertTrue(actions.any { it.jsonObject["id"]?.jsonPrimitive?.content == "player.chat" })
         assertTrue(actions.any { it.jsonObject["id"]?.jsonPrimitive?.content == "player.move" })
+    }
+
+    @Test
+    fun `clients openapi fetches live per client spec from daemon`() {
+        val output = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = McwCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "openapi",
+                    "--api",
+                    server.url,
+                ),
+                stdout = { output.appendLine(it) },
+            )
+
+            assertEquals(0, exit)
+        }
+
+        val document = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        val extensions = document["x-craftwright"]?.jsonObject
+        assertEquals("alice", extensions?.get("x-craftwright-client-id")?.jsonPrimitive?.content)
+        assertTrue(document["paths"]?.jsonObject?.containsKey("/clients/alice:run") == true)
+        assertTrue(document["x-craftwright-actions"]?.jsonArray?.any {
+            it.jsonObject["id"]?.jsonPrimitive?.content == "player.chat"
+        } == true)
     }
 
     @Test
