@@ -89,6 +89,40 @@ internal fun fabricInventoryQueryDescriptor(): DriverActionDescriptor =
         result = fabricObjectDataResultDescriptor(),
     )
 
+internal object FabricInventoryEquipActionBinding : FabricActionBinding {
+    override val descriptor: DriverActionDescriptor = fabricInventoryEquipDescriptor()
+
+    override fun invoke(
+        clientId: String,
+        invocation: DriverActionInvocation,
+        context: FabricActionContext,
+    ): DriverActionResult {
+        val slot = requireNotNull(invocation.arguments.intArgument("slot")) { "slot is required" }
+        require(slot in HOTBAR_SLOT_RANGE) { "inventory equip slot must be between 0 and 8" }
+        context.executeOnClient {
+            val player = requireNotNull(player) { "client is not connected to a server" }
+            player.inventory.selectedSlot = slot
+        }
+        return DriverActionResult(
+            action = invocation.action,
+            status = DriverActionStatus.ACCEPTED,
+            message = "fabric ${context.modeId} action ${invocation.action} accepted for slot $slot",
+        )
+    }
+
+    private val HOTBAR_SLOT_RANGE = 0..8
+}
+
+internal fun fabricInventoryEquipDescriptor(): DriverActionDescriptor =
+    DriverActionDescriptor(
+        id = "inventory.equip",
+        schemaVersion = "1",
+        arguments =
+            mapOf(
+                "slot" to DriverActionArgument("integer", required = true),
+            ),
+    )
+
 internal object FabricPlayerRaycastActionBinding : FabricActionBinding {
     override val descriptor: DriverActionDescriptor = fabricRaycastDescriptor()
 

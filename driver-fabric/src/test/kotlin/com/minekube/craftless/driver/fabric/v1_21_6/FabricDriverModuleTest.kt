@@ -331,6 +331,51 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric runtime discovery exposes inventory equip only from client state`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = false
+        val backend = FabricDriverBackend.real(gateway)
+
+        val unavailableEquip = backend.actions("alice").single { it.id == "inventory.equip" }
+        val unavailableResult =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "inventory.equip",
+                    arguments = mapOf("slot" to JsonPrimitive(2)),
+                ),
+            )
+
+        assertEquals(DriverActionSource.RUNTIME_PROBE, unavailableEquip.source)
+        assertEquals(DriverActionAvailability.UNAVAILABLE, unavailableEquip.availability)
+        assertEquals("client-not-connected", unavailableEquip.availabilityReason)
+        assertEquals("integer", unavailableEquip.arguments["slot"]?.type)
+        assertEquals(true, unavailableEquip.arguments["slot"]?.required)
+        assertEquals(DriverActionStatus.UNSUPPORTED, unavailableResult.status)
+        assertEquals("client-not-connected", unavailableResult.message)
+        assertEquals(emptyList(), gateway.actions)
+        assertEquals(0, gateway.scheduled)
+
+        gateway.connected = true
+        val equip = backend.actions("alice").single { it.id == "inventory.equip" }
+        val result =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "inventory.equip",
+                    arguments = mapOf("slot" to JsonPrimitive(2)),
+                ),
+            )
+
+        assertEquals(DriverActionSource.BINDING, equip.source)
+        assertEquals(DriverActionAvailability.AVAILABLE, equip.availability)
+        assertEquals(null, equip.availabilityReason)
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        assertEquals(listOf("client-action"), gateway.actions)
+        assertEquals(1, gateway.scheduled)
+    }
+
+    @Test
     fun `fabric discovery rejects available actions without execution binding`() {
         val error =
             assertFailsWith<IllegalArgumentException> {

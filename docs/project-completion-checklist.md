@@ -27,10 +27,11 @@ Legend:
 - [x] Fabric smoke has proven real client launch, server join, generated chat,
   generated movement invocation, disconnect, and artifact capture.
 - [~] Current Fabric driver has real chat, movement, connected-client
-  `player.raycast`, and connected-client `inventory.query` bindings. When the
-  client is disconnected, raycast and inventory query are exposed only through
-  gateway-backed unavailable probe metadata. Broader gameplay discovery is not
-  implemented yet and must not be represented as a static placeholder catalog.
+  `player.raycast`, connected-client `inventory.query`, and connected-client
+  `inventory.equip` bindings. When the client is disconnected, raycast,
+  inventory query, and inventory equip are exposed only through gateway-backed
+  unavailable probe metadata. Broader gameplay discovery is not implemented yet
+  and must not be represented as a static placeholder catalog.
 - [ ] Craftless is complete.
 
 Baseline evidence:
@@ -97,9 +98,9 @@ Verification:
   availability, and machine-readable availability reasons.
 - [~] Design the Fabric runtime discovery/projection layer. A minimal internal
   discovery abstraction exists for binding-backed actions, connected-client
-  `player.raycast`, connected-client `inventory.query`, and disconnected-client
-  unavailable probe metadata; broader client/world/inventory/screen probes are
-  still roadmap.
+  `player.raycast`, connected-client `inventory.query`, connected-client
+  `inventory.equip`, and disconnected-client unavailable probe metadata;
+  broader client/world/inventory/screen probes are still roadmap.
 - [ ] Define how internal Fabric/Minecraft/mod/registry/server data becomes
   Craftless-owned actions, resources, handles, schemas, availability, and
   events.
@@ -128,10 +129,10 @@ Verification:
 - [x] Fabric action listing goes through an internal discovery snapshot instead
   of directly returning the binding map.
 - [~] Real look/perception/block/inventory/screen capabilities are discovered
-  from the running client before they are advertised. `player.raycast` and
-  `inventory.query` now change from unavailable probe metadata to available
-  bindings based on connected-client state; broader block/inventory/screen
-  discovery is still missing.
+  from the running client before they are advertised. `player.raycast`,
+  `inventory.query`, and `inventory.equip` now change from unavailable probe
+  metadata to available bindings based on connected-client state; broader
+  block/inventory/screen discovery is still missing.
 - [x] Each advertised gameplay action has either a real Fabric execution
   binding or probe-backed unavailable metadata.
 - [x] No future gameplay action is added as a hand-written placeholder
