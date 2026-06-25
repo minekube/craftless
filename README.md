@@ -48,7 +48,7 @@ curl -sS "$CRAFTLESS/clients" \
   -H 'content-type: application/json' \
   -d '{
     "id": "alice",
-    "version": "1.21.4",
+    "version": "1.21.6",
     "loader": "FABRIC",
     "profile": { "kind": "OFFLINE", "name": "Alice" }
   }'
