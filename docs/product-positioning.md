@@ -14,10 +14,8 @@ Automation infrastructure for real Minecraft Java clients, headless or visible,
 with generated local APIs.
 ```
 
-The current repository, package names, OpenAPI metadata, and JVM coordinates
-still use `craftless` / `com.minekube.craftless` until a deliberate rename
-is implemented. Documentation should make that distinction explicit when it
-matters.
+The repository, package names, OpenAPI metadata, JVM coordinates, and Fabric
+metadata use `craftless` / `com.minekube.craftless`.
 
 ## Why This Product Exists
 
@@ -60,14 +58,9 @@ not only like a high-level client library.
 
 ## Name Comparison
 
-`Craftless` works well as a Playwright-like framework name. It has a polished
-developer-tool feel, but `wright` is not immediately understood by everyone and
-it over-emphasizes the framework/client-library layer.
-
-`Craftless` works better for the broader platform. It is shorter, closer to the
+`Craftless` works for the broader platform. It is short, close to the
 Browserless-style infrastructure category, and can mean less manual Minecraft
-client management or less manual crafting because agents/tools automate the
-client for you.
+client management because agents/tools automate the client for you.
 
 Known downside: `Craftless` can be read as "without crafting" or "not crafty."
 The tagline should carry the exact meaning:
@@ -89,7 +82,7 @@ This was a quick GitHub availability check, not a trademark or domain search.
 
 ## Naming Architecture
 
-Preferred naming after the rename:
+Current naming architecture:
 
 - Product/repository: `Craftless`
 - Protocol: `Craftless Client Protocol`
@@ -99,5 +92,4 @@ Preferred naming after the rename:
   than hand-written as the source of truth
 - Durable client driver: Craftless Fabric driver
 
-Implementation package names may remain `com.minekube.craftless` until a
-separate package-level migration is explicitly planned.
+Implementation package names use `com.minekube.craftless`.

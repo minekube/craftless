@@ -77,23 +77,51 @@ curl -sS "$CRAFTLESS/clients/alice:run" \
 
 ## Capability Comparison
 
-| Capability | Craftless | Mineflayer | Baritone | HeadlessMC / HMC-Specifics |
+Legend: 🟢 yes, 🟡 partial or limited, 🔵 planned, 🔴 no.
+
+### API and Agent Surface
+
+| Capability | Craftless | [Mineflayer](https://github.com/PrismarineJS/mineflayer) | [Baritone](https://github.com/cabaletta/baritone) | [HeadlessMC / HMC-Specifics](https://github.com/headlesshq/headlessmc) |
 | --- | --- | --- | --- | --- |
-| Generates a live per-client OpenAPI document | [x] | [ ] | [ ] | [ ] |
-| Discovers available actions from the running client | [x] | [ ] | [ ] | [-] Partial |
-| Keeps APIs stable while Minecraft, Fabric, Velocity, and mods change | [x] | [-] Limited | [-] Limited | [-] Partial |
-| Reflects installed mods, registries, server features, and permissions | [x] | [-] Limited | [-] Partial | [-] Partial |
-| Avoids hand-maintained wrappers for every new Minecraft action | [x] | [ ] | [ ] | [ ] |
-| Lets agents adapt to client version, mods, and permissions | [x] | [-] Limited | [-] Limited | [-] Partial |
-| Provides stable supervisor APIs for many clients | [x] | [ ] | [ ] | [-] Partial |
-| Runs the real Minecraft Java client | [x] | [ ] | [x] | [x] |
-| Works headless and visible | [x] | [ ] | [-] Visible client | [x] |
-| Sees client UI, screens, mods, registries, and mappings | [x] | [-] Limited | [x] | [-] Partial |
-| Chat, command, and interaction automation | [x] | [x] | [-] Partial | [-] Partial |
-| Movement and pathfinding automation | [-] Planned actions | [x] | [x] | [-] Basic |
-| Inventory, screen, perception, and world queries | [-] Planned actions | [x] | [-] Limited | [-] Limited |
-| Protocol-only bot scripting | [ ] | [x] | [ ] | [ ] |
+| Live per-client OpenAPI and action schema | 🟢 | 🔴 | 🔴 | 🔴 |
+| Runtime discovery from client version, mods, server features, and permissions | 🟢 | 🟡 protocol data | 🟡 in-client state | 🟡 fixed commands |
+| Stable automation surface for generated clients, agents, and tools | 🟢 | 🟡 library API | 🟡 Java API | 🟡 CLI commands |
+
+### Runtime Fidelity
+
+| Capability | Craftless | [Mineflayer](https://github.com/PrismarineJS/mineflayer) | [Baritone](https://github.com/cabaletta/baritone) | [HeadlessMC / HMC-Specifics](https://github.com/headlesshq/headlessmc) |
+| --- | --- | --- | --- | --- |
+| Runs the real Minecraft Java client | 🟢 | 🔴 | 🟢 | 🟢 |
+| Works headless and visible | 🟢 | 🔴 | 🟡 visible only | 🟢 |
+| Sees client UI, screens, mods, registries, and mappings | 🟢 | 🟡 protocol-visible | 🟢 | 🟡 |
+| Keeps one API shape while Minecraft, Fabric, Velocity, and mods change | 🔵 design goal | 🟡 protocol updates | 🟡 versioned builds | 🟡 versioned mods |
+
+### Automation Depth
+
+| Capability | Craftless | [Mineflayer](https://github.com/PrismarineJS/mineflayer) | [Baritone](https://github.com/cabaletta/baritone) | [HeadlessMC / HMC-Specifics](https://github.com/headlesshq/headlessmc) |
+| --- | --- | --- | --- | --- |
+| Chat, command, and basic interaction automation | 🟢 | 🟢 | 🟡 | 🟡 |
+| Movement and pathfinding automation | 🔵 | 🟢 | 🟢 | 🟡 basic |
+| Inventory, screen, perception, and world queries | 🔵 | 🟢 | 🟡 pathing-focused | 🟡 GUI-focused |
+
+### Operations and CI
+
+| Capability | Craftless | [Mineflayer](https://github.com/PrismarineJS/mineflayer) | [Baritone](https://github.com/cabaletta/baritone) | [HeadlessMC / HMC-Specifics](https://github.com/headlesshq/headlessmc) |
+| --- | --- | --- | --- | --- |
+| Supervises many client sessions through one local service | 🟢 | 🔴 | 🔴 | 🟡 |
+| Launches and manages client runtimes | 🟡 local supervisor in progress | 🔴 | 🔴 | 🟢 |
+| Supports CI/runtime smoke tests for real clients | 🟡 bridge evidence, Fabric smoke planned | 🔴 protocol bot only | 🔴 | 🟢 |
+| Manages server launch fixtures | 🔵 | 🔴 | 🔴 | 🟢 |
 | Best fit | Real-client automation infrastructure | Fast bot scripts | In-game pathfinding | Client launch and CI runtime |
+
+The comparison is based on upstream project docs:
+[Mineflayer](https://github.com/PrismarineJS/mineflayer/blob/master/docs/README.md)
+is strongest for protocol-visible bot APIs,
+[Baritone](https://github.com/cabaletta/baritone/blob/master/README.md) is
+strongest for in-client pathfinding, and
+[HeadlessMC/HMC-Specifics](https://github.com/headlesshq/hmc-specifics) is
+strongest for launching versioned clients and driving a fixed command surface
+in CI.
 
 ## Status
 
@@ -102,18 +130,18 @@ Craftless is a Kotlin/JVM-first project with one implementation direction:
 - a short scriptable CLI, `craftless`, with a
   small static core plus adaptive per-client action aliases and help loaded
   from OpenAPI and action descriptors at runtime;
-- a local supervisor/API for client sessions;
+- a local supervisor/API for in-memory client sessions;
 - a stable JVM `driver-api` contract with a fake implementation for daemon and
   route integration and runtime action metadata;
 - a `driver-runtime` adapter layer that can run `DriverSession` over bridge or
   Fabric-style backends without changing daemon routes;
 - a compiled Fabric/Loom `driver-fabric` module with internal version-aware
-  bindings, mod metadata,
-  mixin config, and a gateway-backed runtime backend for client-thread connect,
-  chat, command, stop, and generated `player.move`/`player.chat` action
-  invocation;
+  bindings, mod metadata, mixin config, and a gateway-backed runtime backend
+  for client-thread connect, chat, command, stop, and generated
+  `player.move`/`player.chat` action invocation;
 - a temporary HeadlessMC/HMC-Specifics bridge backend for Phase 1 evidence;
-- a real Fabric driver implementation as the durable automation engine;
+- a Fabric driver implementation as the durable automation engine, with the
+  real-client smoke still on the roadmap;
 - stable kernel OpenAPI at `/openapi.json` plus per-client OpenAPI at
   `/clients/{id}/openapi.json` with Craftless metadata and discovered
   action schemas plus runtime/cache fingerprints;

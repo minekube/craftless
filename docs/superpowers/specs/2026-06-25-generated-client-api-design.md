@@ -477,12 +477,12 @@ generated from discovered action descriptors with Craftless-owned
 
 ```json
 {
-  "minecraft": "26.2",
+  "minecraft": "1.21.6",
   "loader": "fabric",
   "loaderVersion": "0.19.3",
   "driver": "craftless-driver-fabric",
   "driverVersion": "0.0.1",
-  "java": "25",
+  "java": "21",
   "mappings": "mojang",
   "openapiGeneratedAt": "..."
 }
