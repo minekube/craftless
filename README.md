@@ -43,6 +43,15 @@ curl -sS "$CRAFTWRIGHT/clients" \
     "profile": { "kind": "OFFLINE", "name": "Alice" }
   }'
 
+# List or fetch stable lifecycle state from the kernel API.
+curl -sS "$CRAFTWRIGHT/clients"
+curl -sS "$CRAFTWRIGHT/clients/alice"
+
+# Connect the client through the lifecycle API.
+curl -sS "$CRAFTWRIGHT/clients/alice/connection/connect" \
+  -H 'content-type: application/json' \
+  -d '{"host":"localhost","port":25565}'
+
 # Discover the generated API for that exact client.
 curl -sS "$CRAFTWRIGHT/clients/alice/openapi.json"
 
@@ -79,6 +88,8 @@ Craftwright is a Kotlin/JVM-first project with one implementation direction:
 - stable kernel OpenAPI at `/openapi.json` plus per-client OpenAPI at
   `/clients/{id}/openapi.json` with Craftwright metadata and discovered
   action schemas plus runtime/cache fingerprints;
+- stable kernel lifecycle routes for creating, listing, fetching, connecting,
+  and stopping daemon-managed clients;
 - Playwright helper tests.
 
 ## Evidence

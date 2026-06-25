@@ -89,6 +89,14 @@ class LocalSessionApiServer private constructor(
             get("/clients") {
                 call.respondJson(HttpStatusCode.OK, service.listClients())
             }
+            get("/clients/{id}") {
+                val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
+                runCatching {
+                    call.respondJson(HttpStatusCode.OK, service.client(clientId))
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
+                }
+            }
             get("/clients/{id}/events") {
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {

@@ -41,6 +41,7 @@ class ClientSessionServiceTest {
         assertEquals(ClientState.RUNNING, client.state)
         assertEquals("Alice", client.profile.name)
         assertEquals("/clients/alice/events", service.routesFor("alice").first { it.path.endsWith("/events") }.path)
+        assertTrue(service.routesFor("alice").any { it.path == "/clients/alice" })
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/openapi.json" })
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/player:chat" })
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/player:move" })
@@ -103,6 +104,7 @@ class ClientSessionServiceTest {
             document.extensions["x-craftwright-runtime-fingerprint"],
         )
         assertTrue(document.paths.containsKey("/clients/alice/openapi.json"))
+        assertTrue(document.paths.containsKey("/clients/alice"))
         assertTrue(document.paths.containsKey("/clients/alice/actions"))
         assertTrue(document.paths.containsKey("/clients/alice:run"))
         assertTrue(document.paths.containsKey("/clients/alice/player:chat"))

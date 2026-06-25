@@ -69,6 +69,18 @@ class LocalSessionApiServerTest {
                 assertTrue(body.contains("\"state\":\"RUNNING\""))
             }
 
+            http.get(server.url("/clients/alice")).let { clientResponse ->
+                assertEquals(HttpStatusCode.OK, clientResponse.status)
+                val client = json.decodeFromString<Client>(clientResponse.bodyAsText())
+                assertEquals("alice", client.id)
+                assertEquals(ClientState.RUNNING, client.state)
+            }
+
+            http.get(server.url("/clients/missing")).let { missingClient ->
+                assertEquals(HttpStatusCode.NotFound, missingClient.status)
+                assertTrue(missingClient.bodyAsText().contains("client missing not found"))
+            }
+
             http.get(server.url("/clients/alice/events")).let { clientEvents ->
                 assertEquals(HttpStatusCode.OK, clientEvents.status)
                 assertTrue(clientEvents.bodyAsText().contains("client.created"))

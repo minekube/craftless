@@ -120,6 +120,8 @@ private fun ApiRoute.requestBody(actionsById: Map<String, OpenApiAction>): OpenA
     when {
         method != "POST" -> null
         actionId != null -> actionsById[actionId]?.arguments?.toRequestBody()
+        path == "/clients" -> createClientRequestBody()
+        path.endsWith("/connection/connect") -> connectRequestBody()
         path.endsWith(":run") -> genericActionRequestBody()
         else -> null
     }
@@ -160,6 +162,43 @@ private fun genericActionRequestBody(): OpenApiRequestBody =
                     "args" to OpenApiSchema(type = "object", additionalProperties = true),
                 ),
                 required = listOf("action"),
+            )
+        )
+    )
+
+private fun createClientRequestBody(): OpenApiRequestBody =
+    OpenApiRequestBody(
+        content = jsonContent(
+            OpenApiSchema(
+                type = "object",
+                properties = mapOf(
+                    "id" to OpenApiSchema(type = "string"),
+                    "version" to OpenApiSchema(type = "string"),
+                    "loader" to OpenApiSchema(type = "string"),
+                    "profile" to OpenApiSchema(
+                        type = "object",
+                        properties = mapOf(
+                            "kind" to OpenApiSchema(type = "string"),
+                            "name" to OpenApiSchema(type = "string"),
+                        ),
+                        required = listOf("kind", "name"),
+                    ),
+                ),
+                required = listOf("id", "version", "loader", "profile"),
+            )
+        )
+    )
+
+private fun connectRequestBody(): OpenApiRequestBody =
+    OpenApiRequestBody(
+        content = jsonContent(
+            OpenApiSchema(
+                type = "object",
+                properties = mapOf(
+                    "host" to OpenApiSchema(type = "string"),
+                    "port" to OpenApiSchema(type = "integer"),
+                ),
+                required = listOf("host", "port"),
             )
         )
     )

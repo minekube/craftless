@@ -67,6 +67,7 @@ class ClientSessionService private constructor(
         require(clients.containsKey(clientId)) { "client $clientId not found" }
         val actionAliases = driverFor(clientId).actions().mapNotNull { it.toActionAliasRoute(clientId) }
         return listOf(
+            route("GET", "/clients/$clientId", "clientsGet", "clients", "get", "route"),
             route("GET", "/clients/$clientId/openapi.json", "clientsOpenApi", "clients", "openapi", "route"),
             route("POST", "/clients/$clientId/connection/connect", "clientsConnect", "clients", "connection", "method"),
             route("POST", "/clients/$clientId/stop", "clientsStop", "clients", "stop", "method"),
