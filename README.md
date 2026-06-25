@@ -11,3 +11,18 @@ The `mcw` CLI contract is tracked in
 
 The first executable implementation plan is tracked in
 `docs/superpowers/plans/2026-06-24-milestone-1-foundation.md`.
+
+## Status
+
+Craftwright is in early Milestone 1 development.
+
+The first executable slice provides the `mcw` CLI, machine-readable output
+contracts, project config, an in-memory engine, scenario parsing, and a stdio
+daemon protocol. The real Minecraft client backend is the next milestone and
+will attach behind the same engine interface.
+
+## Development
+
+```sh
+go test ./... -count=1
+```
