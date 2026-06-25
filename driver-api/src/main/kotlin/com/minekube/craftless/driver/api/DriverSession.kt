@@ -99,7 +99,12 @@ data class DriverActionArgument(
 data class DriverActionInvocation(
     val action: String,
     val arguments: Map<String, JsonElement> = emptyMap(),
-)
+) {
+    init {
+        require(action.isCraftlessActionId()) { "invalid action id $action" }
+        require(arguments.keys.none { it.isBlank() }) { "action argument name is required" }
+    }
+}
 
 fun Map<String, JsonElement>.booleanArgument(name: String): Boolean =
     this[name]?.jsonPrimitive?.let { primitive ->
@@ -126,7 +131,11 @@ data class DriverActionResult(
     val status: DriverActionStatus,
     val message: String? = null,
     val eventType: DriverEventType? = null,
-)
+) {
+    init {
+        require(action.isCraftlessActionId()) { "invalid action id $action" }
+    }
+}
 
 @Serializable
 enum class DriverActionStatus {

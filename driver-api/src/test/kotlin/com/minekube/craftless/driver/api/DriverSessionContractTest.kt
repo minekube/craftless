@@ -50,6 +50,50 @@ class DriverSessionContractTest {
     }
 
     @Test
+    fun `driver action invocations reject invalid action metadata`() {
+        listOf(
+            "",
+            "player",
+            "Player.move",
+            "player/move",
+            "minecraft.player.move",
+            ".move",
+            "player.",
+        ).forEach { actionId ->
+            assertFailsWith<IllegalArgumentException> {
+                DriverActionInvocation(action = actionId)
+            }
+        }
+
+        assertFailsWith<IllegalArgumentException> {
+            DriverActionInvocation(
+                action = "player.move",
+                arguments = mapOf("" to JsonPrimitive(true)),
+            )
+        }
+    }
+
+    @Test
+    fun `driver action results reject invalid action ids`() {
+        listOf(
+            "",
+            "player",
+            "Player.move",
+            "player/move",
+            "minecraft.player.move",
+            ".move",
+            "player.",
+        ).forEach { actionId ->
+            assertFailsWith<IllegalArgumentException> {
+                DriverActionResult(
+                    action = actionId,
+                    status = DriverActionStatus.ACCEPTED,
+                )
+            }
+        }
+    }
+
+    @Test
     fun `fake driver session exposes the minimum automation contract`() {
         val session = FakeDriverSession(
             clientId = "alice",
