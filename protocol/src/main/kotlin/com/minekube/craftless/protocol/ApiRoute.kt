@@ -8,8 +8,8 @@ data class ApiRoute(
     val path: String,
     val operationId: String,
     val tag: String,
-    val javaClass: String,
-    val javaMember: String? = null,
+    val owner: String,
+    val member: String? = null,
     val thread: String = "client",
     val source: String,
     val returnKind: String = "value",
@@ -32,18 +32,18 @@ class ApiRouteCatalog(
     companion object {
         fun sessionDefaults(): ApiRouteCatalog = ApiRouteCatalog(
             listOf(
-                route("GET", "/openapi.json", "getOpenapiJson", "openapi", "com.minekube.craftless.openapi", "openapi", "route"),
-                route("GET", "/version", "getVersion", "version", "com.minekube.craftless.version", "version", "route"),
-                route("GET", "/events", "getEvents", "events", "com.minekube.craftless.events", "events", "route"),
-                route("GET", "/clients", "listClients", "clients", "com.minekube.craftless.daemon.clients", "list", "route"),
-                route("POST", "/clients", "createClient", "clients", "com.minekube.craftless.daemon.clients", "create", "route"),
-                route("GET", "/clients/{id}", "getClient", "clients", "com.minekube.craftless.daemon.clients", "get", "route"),
-                route("GET", "/clients/{id}/openapi.json", "getClientOpenapiJson", "clients", "com.minekube.craftless.daemon.clients", "openapi", "route"),
-                route("POST", "/clients/{id}:connect", "clientConnect", "clients", "com.minekube.craftless.daemon.clients", "connect", "method"),
-                route("GET", "/clients/{id}/actions", "listClientActions", "clients", "com.minekube.craftless.daemon.clients", "actions", "action"),
-                route("POST", "/clients/{id}:run", "runClientAction", "clients", "com.minekube.craftless.daemon.clients", "run", "action"),
-                route("POST", "/clients/{id}:stop", "stopClient", "clients", "com.minekube.craftless.daemon.clients", "stop", "method"),
-                route("GET", "/clients/{id}/events", "getClientEvents", "clients", "com.minekube.craftless.daemon.clients", "events", "route"),
+                route("GET", "/openapi.json", "getOpenapiJson", "openapi", "supervisor", "openapi", "route"),
+                route("GET", "/version", "getVersion", "version", "supervisor", "version", "route"),
+                route("GET", "/events", "getEvents", "events", "supervisor", "events", "route"),
+                route("GET", "/clients", "listClients", "clients", "clients", "list", "route"),
+                route("POST", "/clients", "createClient", "clients", "clients", "create", "route"),
+                route("GET", "/clients/{id}", "getClient", "clients", "clients", "get", "route"),
+                route("GET", "/clients/{id}/openapi.json", "getClientOpenapiJson", "clients", "clients", "openapi", "route"),
+                route("POST", "/clients/{id}:connect", "clientConnect", "clients", "clients", "connect", "method"),
+                route("GET", "/clients/{id}/actions", "listClientActions", "clients", "clients", "actions", "action"),
+                route("POST", "/clients/{id}:run", "runClientAction", "clients", "clients", "run", "action"),
+                route("POST", "/clients/{id}:stop", "stopClient", "clients", "clients", "stop", "method"),
+                route("GET", "/clients/{id}/events", "getClientEvents", "clients", "clients", "events", "route"),
             )
         )
 
@@ -52,8 +52,8 @@ class ApiRouteCatalog(
             path: String,
             operationId: String,
             tag: String,
-            javaClass: String,
-            javaMember: String,
+            owner: String,
+            member: String,
             source: String,
             returnKind: String = "value",
         ): ApiRoute = ApiRoute(
@@ -61,8 +61,8 @@ class ApiRouteCatalog(
             path = path,
             operationId = operationId,
             tag = tag,
-            javaClass = javaClass,
-            javaMember = javaMember,
+            owner = owner,
+            member = member,
             source = source,
             returnKind = returnKind,
         )

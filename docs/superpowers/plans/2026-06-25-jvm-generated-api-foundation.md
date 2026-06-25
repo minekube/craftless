@@ -103,7 +103,8 @@ fun `openapi document includes craftless metadata for fake player routes`() {
 
     val operation = document.paths["/clients/{id}:run"]?.post
     assertEquals("runClientAction", operation?.operationId)
-    assertEquals("com.minekube.craftless.daemon.clients", operation?.extensions?.get("x-craftless-java-class"))
+    assertEquals("clients", operation?.extensions?.get("x-craftless-owner"))
+    assertEquals("run", operation?.extensions?.get("x-craftless-member"))
     assertEquals("client", operation?.extensions?.get("x-craftless-thread"))
 }
 ```

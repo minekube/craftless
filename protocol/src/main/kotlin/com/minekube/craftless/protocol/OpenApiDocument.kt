@@ -104,8 +104,8 @@ private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenA
         responses = route.responses(),
         requestBody = route.requestBody(actionsById),
         extensions = buildMap {
-            put("x-craftless-java-class", route.javaClass)
-            javaMember?.let { put("x-craftless-java-method", it) }
+            put("x-craftless-owner", route.owner)
+            route.member?.let { put("x-craftless-member", it) }
             put("x-craftless-thread", thread)
             put("x-craftless-return", returnKind)
             put("x-craftless-source", source)

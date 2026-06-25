@@ -3,6 +3,7 @@ package com.minekube.craftless.protocol
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class OpenApiGenerationTest {
     @Test
@@ -13,10 +14,11 @@ class OpenApiGenerationTest {
         assertNotNull(operation)
         assertEquals("runClientAction", operation.operationId)
         assertEquals("clients", operation.tags.single())
-        assertEquals("com.minekube.craftless.daemon.clients", operation.extensions["x-craftless-java-class"])
-        assertEquals("run", operation.extensions["x-craftless-java-method"])
+        assertTrue(operation.extensions.keys.none { it.startsWith("x-craftless-java-") })
+        assertEquals("clients", operation.extensions["x-craftless-owner"])
         assertEquals("client", operation.extensions["x-craftless-thread"])
         assertEquals("action", operation.extensions["x-craftless-source"])
+        assertEquals("run", operation.extensions["x-craftless-member"])
         val schema = operation.requestBody?.content?.get("application/json")?.schema
         assertNotNull(schema)
         assertEquals("object", schema.type)
