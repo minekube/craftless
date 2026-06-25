@@ -72,7 +72,7 @@ object CraftlessCli {
         env: Map<String, String> = System.getenv(),
     ): Int {
         if (args.take(2) == listOf("server", "start")) {
-            return runClientsApi(args.drop(2), stdout, stderr, afterStart)
+            return runServerStart(args.drop(2), stdout, stderr, afterStart)
         }
         if (args.take(2) == listOf("clients", "create")) {
             return createClient(args.drop(2), stdout, stderr, env)
@@ -411,7 +411,7 @@ object CraftlessCli {
         }
     }
 
-    private fun runClientsApi(
+    private fun runServerStart(
         args: List<String>,
         stdout: (String) -> Unit,
         stderr: (String) -> Unit,
