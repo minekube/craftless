@@ -18,7 +18,7 @@
 - Create `testkit/`: fake Minecraft client/session objects for route and API tests.
 - Create `daemon/`: local session API route table and in-memory session service.
 - Create `bridge-hmc/`: temporary HeadlessMC/HMC-Specifics bridge interface, limitation docs, and command mapping kept internal.
-- Create `cli/`: JVM `mcw` entrypoint and first command tree tests.
+- Create `cli/`: JVM `craftless` entrypoint and first command tree tests.
 - Create `docs/bridge-limitations.md`: public warning that bridge movement is simulated and not the final Fabric driver.
 - `driver-api/`, `driver-runtime/`, `driver-fabric-1_21_6/`, and
   `playwright/` now exist. The Fabric module currently compiles as a
@@ -289,23 +289,23 @@ Expected: PASS.
 
 **Files:**
 - Create: `cli/build.gradle.kts`
-- Create: `cli/src/test/kotlin/com/minekube/craftless/cli/McwCliTest.kt`
+- Create: `cli/src/test/kotlin/com/minekube/craftless/cli/CraftlessCliTest.kt`
 - Create: `cli/src/main/kotlin/com/minekube/craftless/cli/Main.kt`
 
 - [ ] **Step 1: Write failing CLI help and dynamic dispatch tests**
 
-Test `mcw --help`, `mcw daemon start`, `mcw clients create`, `mcw clients list`,
-`mcw clients NAME get`, `mcw clients NAME connect`, `mcw clients NAME stop`,
-`mcw clients NAME openapi`, `mcw clients NAME actions`, and the stable generic
-runner `mcw clients NAME run player.move --arg forward=true --arg ticks=20`.
+Test `craftless --help`, `craftless daemon start`, `craftless clients create`, `craftless clients list`,
+`craftless clients NAME get`, `craftless clients NAME connect`, `craftless clients NAME stop`,
+`craftless clients NAME openapi`, `craftless clients NAME actions`, and the stable generic
+runner `craftless clients NAME run player.move --arg forward=true --arg ticks=20`.
 Add a fake per-client OpenAPI/actions fixture and test that
-`mcw clients NAME player move --forward --ticks 20` and
-`mcw clients NAME player move --help` are resolved from that runtime metadata
+`craftless clients NAME player move --forward --ticks 20` and
+`craftless clients NAME player move --help` are resolved from that runtime metadata
 rather than from static action commands.
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `mise exec -- gradle :cli:test --tests com.minekube.craftless.cli.McwCliTest`
+Run: `mise exec -- gradle :cli:test --tests com.minekube.craftless.cli.CraftlessCliTest`
 
 Expected: FAIL because CLI module is missing.
 

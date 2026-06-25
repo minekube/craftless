@@ -20,6 +20,15 @@ Browserless turns real browsers into programmable automation infrastructure;
 Craftless does that for real Minecraft Java clients, with live API discovery
 instead of a static list of hard-coded actions.
 
+## Comparison
+
+| Project | Primary model | Best fit | Craftless difference |
+| --- | --- | --- | --- |
+| Craftless | Real Minecraft Java clients, visible or headless, exposed through local generated OpenAPI contracts. | CI, agents, and test infrastructure that must exercise the actual client runtime. | Keeps launcher, loader, mapping, mod, and driver details behind Craftless-owned APIs and per-client action discovery. |
+| [Mineflayer](https://github.com/PrismarineJS/mineflayer) | Protocol-level bots with a high-level JavaScript API. | Fast bot scripts that do not need the real Minecraft client process. | Craftless controls real client processes instead of replacing the client with a protocol implementation. |
+| [Baritone](https://github.com/cabaletta/baritone) | In-client pathfinding and automation behavior. | Pathfinding, mining, and movement automation inside a modded client. | Craftless is the supervisor/API layer around clients; pathfinding can become one discovered action family rather than the whole product surface. |
+| [HeadlessMC](https://github.com/headlesshq/headlessmc) and HMC-Specifics | Command-line client launch and optional version-specific command control. | Launching Minecraft in headless environments and proving runtime behavior in CI. | Craftless treats the bridge as evidence infrastructure while the durable direction is a Fabric driver plus generated per-client APIs. |
+
 ## How It Fits Together
 
 Minecraft already provides the client runtime. Craftless adds a thin driver,
@@ -29,7 +38,7 @@ runtime, and protocol layer around that real client.
 
 ## Example
 
-Start with the current `mcw` CLI, then use the generated local API it exposes.
+Start with the current `craftless` CLI, then use the generated local API it exposes.
 The target product and CLI name is Craftless. Each
 client has its own live OpenAPI document because available actions can depend
 on the running Minecraft version, loader, mods, registries, server features,
@@ -37,7 +46,7 @@ permissions, and driver runtime.
 
 ```sh
 # Start the local Craftless supervisor API.
-mcw clients api --port 8080
+craftless clients api --port 8080
 ```
 
 ```sh
@@ -79,7 +88,7 @@ curl -sS "$CRAFTLESS/clients/alice:run" \
 
 Craftless is a Kotlin/JVM-first project with one implementation direction:
 
-- a short scriptable CLI, currently `mcw` unless renamed separately, with a
+- a short scriptable CLI, `craftless`, with a
   small static core plus adaptive per-client action aliases and help loaded
   from OpenAPI and action descriptors at runtime;
 - a local supervisor/API for client sessions;
@@ -138,7 +147,7 @@ Phase 1:
 
 - extend the Kotlin/JVM Gradle project skeleton;
 - implement the CLI and local API surface;
-- keep CLI action commands adaptive: `mcw` may expose generic
+- keep CLI action commands adaptive: `craftless` may expose generic
   `clients <id> run <action>` plus aliases such as `clients <id> player move`,
   but those aliases and their basic help come from the target client's
   OpenAPI/action metadata instead of static Kotlin commands;

@@ -1,6 +1,6 @@
 # CLI Module Instructions
 
-`cli/` owns the JVM `mcw` command-line interface.
+`cli/` owns the JVM `craftless` command-line interface.
 
 ## Scope
 
@@ -16,8 +16,8 @@
   commands for every Minecraft action.
 - Static commands should cover setup, daemon lifecycle, client creation/listing,
   OpenAPI/action discovery, and generic action invocation:
-  `mcw clients <id> run <action> ...`.
-- Dynamic aliases such as `mcw clients <id> player move --forward` and their
+  `craftless clients <id> run <action> ...`.
+- Dynamic aliases such as `craftless clients <id> player move --forward` and their
   `--help` output must come from `/clients/{id}/openapi.json` and
   `/clients/{id}/actions`.
 - Preserve stdout for primary data, stderr for diagnostics/progress, stable

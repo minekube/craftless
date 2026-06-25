@@ -12,5 +12,6 @@ dependencies {
 }
 
 application {
+    applicationName = "craftless"
     mainClass.set("com.minekube.craftless.cli.MainKt")
 }

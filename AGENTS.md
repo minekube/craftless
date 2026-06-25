@@ -38,7 +38,7 @@ There are two OpenAPI surfaces:
   permissions, and discovered actions/capabilities.
 
 Do not assume all clients share one static action API. Generated clients,
-agents, and `mcw` should fetch the instance spec for the target client and may
+agents, and `craftless` should fetch the instance spec for the target client and may
 cache it only by a capability fingerprint that includes runtime/version/mod/
 registry inputs.
 
@@ -65,7 +65,7 @@ each Minecraft action.
   Consolidate toward one `driver-fabric` module with internal version-aware
   bindings where practical.
 - `bridge-hmc/`: evidence-only HeadlessMC/HMC-Specifics bridge code.
-- `cli/`: adaptive `mcw` CLI core and runtime OpenAPI/action dispatch.
+- `cli/`: adaptive `craftless` CLI core and runtime OpenAPI/action dispatch.
 - `testkit/`: fake clients, fixtures, and test helpers.
 - `playwright/`: Bun-powered helper tests and external integration fixtures.
 - `docs/`: architecture, roadmap, and evidence docs.
@@ -104,9 +104,8 @@ final automation driver.
 
 ## CLI Direction
 
-The current CLI binary is `mcw`; a separate CLI binary rename to `craftless`
-may happen later. The CLI should be adaptive rather than a hand-maintained
-mirror of every route/action. Keep a small handwritten core for daemon startup,
+The current CLI binary is `craftless`. The CLI should be adaptive rather than
+a hand-maintained mirror of every route/action. Keep a small handwritten core for daemon startup,
 configuration, auth, output modes, and generic dispatch. Build per-client
 commands and help at runtime from `/openapi.json`,
 `/clients/{id}/openapi.json`, and `/clients/{id}/actions`. Do not generate

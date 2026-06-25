@@ -54,11 +54,11 @@ Kotlin/JVM.
 After the real-client API path works, add an optional Prism adapter:
 
 ```text
-mcw prism instances
-mcw prism inspect INSTANCE
-mcw prism install-driver INSTANCE
-mcw prism launch INSTANCE --offline Bot1 --server localhost:25566
-mcw prism import INSTANCE
+craftless prism instances
+craftless prism inspect INSTANCE
+craftless prism install-driver INSTANCE
+craftless prism launch INSTANCE --offline Bot1 --server localhost:25566
+craftless prism import INSTANCE
 ```
 
 The adapter may read Prism instance files such as `instance.cfg`,
@@ -132,9 +132,9 @@ The wrapper exposed Craftless-shaped routes such as:
   runtime can expose a clean Craftless resource and method name;
 - root/session routes for current player, UI, events, and object handles.
 
-The CLI should consume this same API shape adaptively. Static `mcw` code should
+The CLI should consume this same API shape adaptively. Static `craftless` code should
 own daemon/config/output behavior and a generic action runner, while per-client
-aliases such as `mcw clients default player move --forward` and their help text
+aliases such as `craftless clients default player move --forward` and their help text
 come from `/clients/default/openapi.json` and `/clients/default/actions`.
 
 This must be labelled as a bridge PoC. The API surface was Craftless-shaped,

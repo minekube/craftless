@@ -28,13 +28,13 @@ import kotlinx.serialization.json.jsonArray
 import java.util.concurrent.CountDownLatch
 
 fun main(args: Array<String>) {
-    val exit = McwCli.run(args.toList(), stdout = ::println, stderr = System.err::println)
+    val exit = CraftlessCli.run(args.toList(), stdout = ::println, stderr = System.err::println)
     if (exit != 0) {
         kotlin.system.exitProcess(exit)
     }
 }
 
-object McwCli {
+object CraftlessCli {
     private val json = Json { encodeDefaults = true }
 
     fun root(): CoreCliktCommand = RootCommand().subcommands(
@@ -492,7 +492,7 @@ object McwCli {
         actionName: String,
     ): String = buildString {
         appendLine("Action: $id")
-        appendLine("Usage: mcw clients $clientId $namespace $actionName [--api <url>] [args]")
+        appendLine("Usage: craftless clients $clientId $namespace $actionName [--api <url>] [args]")
         appendLine("Arguments:")
         if (arguments.isEmpty()) {
             appendLine("  none")
@@ -579,7 +579,7 @@ data class ConnectClientRequest(
 )
 
 private class RootCommand : CoreCliktCommand(
-    name = "mcw",
+    name = "craftless",
 ) {
     override fun help(context: Context): String =
         "Automate real Minecraft Java clients for tests, agents, and CI."

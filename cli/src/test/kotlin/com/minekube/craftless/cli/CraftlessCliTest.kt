@@ -15,10 +15,10 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class McwCliTest {
+class CraftlessCliTest {
     @Test
     fun `cli registers first jvm command tree`() {
-        val commands = McwCli.registeredCommandPaths()
+        val commands = CraftlessCli.registeredCommandPaths()
 
         assertTrue(commands.contains("versions"))
         assertTrue(commands.contains("profiles"))
@@ -41,7 +41,7 @@ class McwCliTest {
         val output = StringBuilder()
         var versionStatus = 0
 
-        val exit = McwCli.run(
+        val exit = CraftlessCli.run(
             listOf("clients", "api", "--once"),
             stdout = { output.appendLine(it) },
             afterStart = { metadata ->
@@ -68,7 +68,7 @@ class McwCliTest {
         val output = StringBuilder()
 
         LocalTestApiServer().use { server ->
-            val exit = McwCli.run(
+            val exit = CraftlessCli.run(
                 listOf(
                     "clients",
                     "create",
@@ -100,7 +100,7 @@ class McwCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = McwCli.run(
+            val exit = CraftlessCli.run(
                 listOf(
                     "clients",
                     "list",
@@ -125,7 +125,7 @@ class McwCliTest {
             server.createAlice()
             server.createOfflineClient("bob", "Bob")
 
-            val exit = McwCli.run(
+            val exit = CraftlessCli.run(
                 listOf(
                     "clients",
                     "list",
@@ -152,7 +152,7 @@ class McwCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = McwCli.run(
+            val exit = CraftlessCli.run(
                 listOf(
                     "clients",
                     "alice",
@@ -178,7 +178,7 @@ class McwCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = McwCli.run(
+            val exit = CraftlessCli.run(
                 listOf("clients", "list"),
                 stdout = { output.appendLine(it) },
                 env = mapOf("CRAFTLESS" to server.url),
@@ -198,7 +198,7 @@ class McwCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = McwCli.run(
+            val exit = CraftlessCli.run(
                 listOf("clients", "list", "--api", server.url),
                 stdout = { output.appendLine(it) },
                 env = mapOf(
@@ -220,7 +220,7 @@ class McwCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = McwCli.run(
+            val exit = CraftlessCli.run(
                 listOf(
                     "clients",
                     "alice",
@@ -250,7 +250,7 @@ class McwCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = McwCli.run(
+            val exit = CraftlessCli.run(
                 listOf(
                     "clients",
                     "alice",
@@ -276,7 +276,7 @@ class McwCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = McwCli.run(
+            val exit = CraftlessCli.run(
                 listOf(
                     "clients",
                     "alice",
@@ -306,7 +306,7 @@ class McwCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = McwCli.run(
+            val exit = CraftlessCli.run(
                 listOf(
                     "clients",
                     "alice",
@@ -332,7 +332,7 @@ class McwCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = McwCli.run(
+            val exit = CraftlessCli.run(
                 listOf(
                     "clients",
                     "alice",
@@ -362,7 +362,7 @@ class McwCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = McwCli.run(
+            val exit = CraftlessCli.run(
                 listOf(
                     "clients",
                     "alice",
@@ -393,7 +393,7 @@ class McwCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = McwCli.run(
+            val exit = CraftlessCli.run(
                 listOf(
                     "clients",
                     "alice",
@@ -423,7 +423,7 @@ class McwCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = McwCli.run(
+            val exit = CraftlessCli.run(
                 listOf(
                     "clients",
                     "alice",
@@ -452,7 +452,7 @@ class McwCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = McwCli.run(
+            val exit = CraftlessCli.run(
                 listOf(
                     "clients",
                     "alice",
@@ -483,7 +483,7 @@ class McwCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = McwCli.run(
+            val exit = CraftlessCli.run(
                 listOf(
                     "clients",
                     "alice",
@@ -503,7 +503,7 @@ class McwCliTest {
         assertEquals("", errors.toString())
         val help = output.toString()
         assertTrue(help.contains("Action: player.move"))
-        assertTrue(help.contains("Usage: mcw clients alice player move"))
+        assertTrue(help.contains("Usage: craftless clients alice player move"))
         assertTrue(help.contains("--forward boolean"))
         assertTrue(help.contains("--ticks integer"))
     }
@@ -516,7 +516,7 @@ class McwCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = McwCli.run(
+            val exit = CraftlessCli.run(
                 listOf(
                     "clients",
                     "alice",
@@ -545,7 +545,7 @@ class McwCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = McwCli.run(
+            val exit = CraftlessCli.run(
                 listOf(
                     "clients",
                     "alice",
@@ -571,7 +571,7 @@ class McwCliTest {
         val errors = StringBuilder()
 
         LocalTestApiServer().use { server ->
-            val exit = McwCli.run(
+            val exit = CraftlessCli.run(
                 listOf(
                     "clients",
                     "missing",

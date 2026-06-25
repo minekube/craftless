@@ -109,7 +109,7 @@ craftless/
   build.gradle.kts
 
   cli/
-    Kotlin CLI entrypoint for mcw.
+    Kotlin CLI entrypoint for craftless.
 
   launcher/
     Kotlin launcher, cache, Java runtime, version, asset, and process logic.
@@ -230,8 +230,8 @@ the running Minecraft client, generated action/resource routes below
 
 The same protocol powers:
 
-- `mcw` CLI.
-- `mcw daemon`.
+- `craftless` CLI.
+- `craftless daemon`.
 - Playwright fixtures.
 - future MCP/agent tools.
 
@@ -299,8 +299,8 @@ can be compared against working HeadlessMC behavior.
 
 ## Public CLI Direction
 
-Keep `mcw` as the primary command name unless renamed separately. The CLI should
-continue following the existing `mcw` UX contract:
+Keep `craftless` as the primary command name. The CLI should continue
+following the existing `craftless` UX contract:
 
 - stdout for primary data.
 - stderr for diagnostics and progress.
@@ -317,19 +317,19 @@ invocation, and output modes. Per-client action aliases and generated alias
 `--help` should be loaded from OpenAPI/action descriptors on demand.
 
 ```text
-mcw init
-mcw cache prepare --mc VERSION --loader fabric
-mcw daemon start
-mcw clients create --mc VERSION --offline --name NAME
-mcw clients list
-mcw clients NAME openapi
-mcw clients NAME actions
-mcw clients NAME run player.move --arg forward=true --arg ticks=20
-mcw clients NAME player move --forward --ticks 20
-mcw clients NAME player chat "hello"
-mcw clients NAME player move --help
-mcw clients NAME stop
-mcw scenario run FILE
+craftless init
+craftless cache prepare --mc VERSION --loader fabric
+craftless daemon start
+craftless clients create --mc VERSION --offline --name NAME
+craftless clients list
+craftless clients NAME openapi
+craftless clients NAME actions
+craftless clients NAME run player.move --arg forward=true --arg ticks=20
+craftless clients NAME player move --forward --ticks 20
+craftless clients NAME player chat "hello"
+craftless clients NAME player move --help
+craftless clients NAME stop
+craftless scenario run FILE
 ```
 
 Standalone multi-invocation client commands require a persistent daemon or
@@ -368,7 +368,7 @@ runtime owner for client lifecycle semantics: the JVM codebase.
 
 Create the Gradle/Kotlin project with:
 
-- `mcw --help`.
+- `craftless --help`.
 - config loading.
 - protocol data classes.
 - fake in-memory client engine.
@@ -420,7 +420,7 @@ Minimum discovered actions and driver lifecycle support:
 
 Add:
 
-- `mcw scenario run` using the JVM supervisor and driver;
+- `craftless scenario run` using the JVM supervisor and driver;
 - Playwright fixture smoke test;
 - artifact collection.
 
@@ -490,7 +490,7 @@ The JVM-first rewrite is ready to enter implementation planning when:
 
 Craftless is complete enough for its original goal when:
 
-- `mcw` can launch and supervise real Minecraft Java clients in offline mode;
+- `craftless` can launch and supervise real Minecraft Java clients in offline mode;
 - tests can connect clients to Gate, Connect, and ordinary Minecraft servers;
 - clients can invoke chat and command actions, wait for chat/disconnect/screen
   state, and stop reliably;
