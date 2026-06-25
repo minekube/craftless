@@ -8,6 +8,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
@@ -25,6 +26,7 @@ class McwCliTest {
         assertTrue(commands.contains("clients list"))
         assertTrue(commands.contains("clients connect"))
         assertTrue(commands.contains("clients api"))
+        assertTrue(commands.contains("clients <id> actions"))
         assertTrue(commands.contains("clients <id> run <action>"))
         assertTrue(commands.contains("server start"))
         assertTrue(commands.contains("test run"))
@@ -85,6 +87,32 @@ class McwCliTest {
         assertEquals("player.chat", response["action"]?.jsonPrimitive?.content)
         assertEquals("ACCEPTED", response["status"]?.jsonPrimitive?.content)
         assertEquals("hello from cli", response["message"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `clients actions fetches discovered actions from daemon`() {
+        val output = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = McwCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "actions",
+                    "--api",
+                    server.url,
+                ),
+                stdout = { output.appendLine(it) },
+            )
+
+            assertEquals(0, exit)
+        }
+
+        val actions = Json.parseToJsonElement(output.toString().trim()).jsonArray
+        assertTrue(actions.any { it.jsonObject["id"]?.jsonPrimitive?.content == "player.chat" })
+        assertTrue(actions.any { it.jsonObject["id"]?.jsonPrimitive?.content == "player.move" })
     }
 
     @Test

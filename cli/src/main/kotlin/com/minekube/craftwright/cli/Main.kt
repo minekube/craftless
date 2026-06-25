@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.core.subcommands
 import com.minekube.craftwright.daemon.LocalSessionApiServer
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
@@ -54,6 +55,7 @@ object McwCli {
         "clients list",
         "clients connect",
         "clients api",
+        "clients <id> actions",
         "clients <id> run <action>",
         "server start",
         "test run",
@@ -67,6 +69,9 @@ object McwCli {
     ): Int {
         if (args.take(2) == listOf("clients", "api")) {
             return runClientsApi(args.drop(2), stdout, stderr, afterStart)
+        }
+        if (args.size >= 3 && args[0] == "clients" && args[2] == "actions") {
+            return getClientActions(args.drop(1), stdout, stderr)
         }
         if (args.size >= 4 && args[0] == "clients" && args[2] == "run") {
             return runClientAction(args.drop(1), stdout, stderr)
@@ -103,18 +108,34 @@ object McwCli {
                         contentType(ContentType.Application.Json)
                         setBody(json.encodeToString(payload))
                     }
-                    val body = response.bodyAsText()
-                    if (response.status.isSuccess()) {
-                        stdout(body)
-                        0
-                    } else {
-                        stderr(body)
-                        1
-                    }
+                    response.forwardBody(stdout, stderr)
                 }
             }
         }.getOrElse { error ->
             stderr("error: ${error.message ?: "failed to run action"}")
+            2
+        }
+    }
+
+    private fun getClientActions(
+        args: List<String>,
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+    ): Int {
+        val clientId = args.getOrNull(0).orEmpty()
+        if (clientId.isBlank()) {
+            stderr("error: usage is clients <id> actions [--api <url>]")
+            return 2
+        }
+        val api = args.optionValue("--api") ?: System.getenv("CRAFTWRIGHT") ?: "http://127.0.0.1:8080"
+        return runCatching {
+            kotlinx.coroutines.runBlocking {
+                HttpClient(CIO).use { http ->
+                    http.get("${api.trimEnd('/')}/clients/$clientId/actions").forwardBody(stdout, stderr)
+                }
+            }
+        }.getOrElse { error ->
+            stderr("error: ${error.message ?: "failed to fetch actions"}")
             2
         }
     }
@@ -166,6 +187,20 @@ object McwCli {
             toIntOrNull() != null -> JsonPrimitive(toInt())
             else -> JsonPrimitive(this)
         }
+
+    private suspend fun io.ktor.client.statement.HttpResponse.forwardBody(
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+    ): Int {
+        val body = bodyAsText()
+        return if (status.isSuccess()) {
+            stdout(body)
+            0
+        } else {
+            stderr(body)
+            1
+        }
+    }
 }
 
 @Serializable
