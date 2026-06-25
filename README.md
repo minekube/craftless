@@ -12,13 +12,7 @@ is automation of the real Minecraft client process.
 
 ## Status
 
-Craftwright is in a design-pivot phase.
-
-The current checked-in Go implementation is prototype and legacy material. It
-is still useful as reference for CLI shape, JSON output contracts, scenario
-ergonomics, and daemon ideas, but it is no longer the target architecture.
-
-The intended implementation direction is a Kotlin/JVM project with:
+Craftwright is a Kotlin/JVM-first project with one implementation direction:
 
 - a short scriptable CLI, currently `mcw` unless renamed separately;
 - a local supervisor/API for client sessions;
@@ -61,8 +55,7 @@ client.
 
 Phase 1:
 
-- create the Kotlin/JVM Gradle project skeleton;
-- keep or replace the legacy Go prototype intentionally;
+- extend the Kotlin/JVM Gradle project skeleton;
 - implement the CLI and local API surface;
 - add a temporary HeadlessMC/HMC-Specifics bridge backend;
 - add a real integration smoke test that launches a real client, joins a
@@ -83,7 +76,7 @@ Later:
 
 - TypeScript SDK;
 - Playwright and Vitest fixtures;
-- compatibility rows for older Minecraft versions;
+- compatibility rows for additional Minecraft versions;
 - optional PrismLauncher import/adapter work.
 
 ## Design Docs
@@ -93,20 +86,20 @@ Current docs:
 - `docs/superpowers/specs/2026-06-25-jvm-first-rewrite-design.md`
 - `docs/superpowers/specs/2026-06-25-client-management-decisions.md`
 - `docs/superpowers/specs/2026-06-25-generated-client-api-design.md`
-- `docs/superpowers/prompts/2026-06-25-jvm-generated-api-agent-prompt.md`
-
-Legacy reference:
-
-- `docs/superpowers/specs/2026-06-24-craftwright-design.md`
-- `docs/superpowers/specs/2026-06-24-mcw-cli-design.md`
+- `docs/superpowers/plans/2026-06-25-jvm-generated-api-foundation.md`
+- `docs/bridge-limitations.md`
 
 ## Development
 
-Current legacy Go prototype:
+Install and run pinned tools through `mise`:
 
 ```sh
-go test ./... -count=1
+mise install
+mise exec -- gradle test
 ```
 
-The next implementation should add JVM/Kotlin verification commands alongside
-or instead of this legacy command.
+Use Bun for TypeScript package work when SDK modules are added:
+
+```sh
+mise exec -- bun test
+```

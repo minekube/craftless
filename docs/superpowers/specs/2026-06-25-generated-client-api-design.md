@@ -488,11 +488,11 @@ Latest Minecraft support should start Fabric-first:
 - Minecraft 26.x reducing obfuscation makes generated API discovery more
   realistic than in older eras.
 
-Legacy compatibility should be a separate track:
+Version compatibility should be a separate track:
 
 - Forge remains important for old community versions and compatibility testing.
-- Legacy Fabric may help for some older client targets, but it should not be the
-  first legacy bet.
+- Additional Fabric compatibility rows may help for some older client targets,
+  but they should not be the first compatibility bet.
 - NeoForge should be added for modern Forge-like environments after Fabric proves
   the generated API model.
 - HeadlessMC/HMC-Specifics remain valuable references for headless CI, launcher
@@ -532,8 +532,6 @@ This design is ready for implementation planning when:
   `docs/superpowers/specs/2026-06-25-jvm-first-rewrite-design.md`
 - Client management decisions:
   `docs/superpowers/specs/2026-06-25-client-management-decisions.md`
-- Existing CLI UX reference:
-  `docs/superpowers/specs/2026-06-24-mcw-cli-design.md`
 - Kotlin releases:
   https://kotlinlang.org/docs/releases.html
 - Ktor OpenAPI generation:

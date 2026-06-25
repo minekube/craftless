@@ -4,8 +4,7 @@ Date: 2026-06-25
 
 ## Purpose
 
-This spec redirects Craftwright from a Go-first supervisor around a future real
-client backend to a JVM-first Minecraft automation platform.
+This spec defines Craftwright as a JVM-first Minecraft automation platform.
 
 Craftwright still has the same product goal: automate real Minecraft Java
 clients for tests, agents, and CI through a short CLI, typed SDKs, and stable
@@ -13,9 +12,7 @@ machine protocols. The architectural change is where the real automation core
 lives. The core must run on the JVM, close to Minecraft classes, modloaders,
 Mixins, mappings, ticks, GUI state, player state, and network state.
 
-The current Go implementation remains useful as a CLI/protocol spike and as a
-reference for command contracts. It should not become the long-term Minecraft
-automation core.
+Kotlin/JVM is the only checked-in implementation path.
 
 ## Decision
 
@@ -26,18 +23,15 @@ for low-level Minecraft integration.
 - Java is the default language for Mixins, accessors, and bytecode-sensitive
   Minecraft-version glue.
 - TypeScript remains the first external SDK and Playwright integration surface.
-- Go may remain only as a temporary compatibility wrapper or be removed after
-  the JVM CLI reaches parity.
 - HeadlessMC, HMC-Specifics, and MC-Runtime-Test are primary prior art and
   implementation references, but Craftwright should not expose their text
   console as its public automation contract.
 
-## Why This Changes The Previous Direction
+## Why The Core Must Be JVM-First
 
-The existing design in `2026-06-25-real-client-backend-design.md` recommends
-launching HeadlessMC as an external process, driving HMC-Specifics through stdin,
-and parsing text output into Craftwright events. That remains a valid short
-spike, but it is not a strong final architecture.
+External process control through HeadlessMC and HMC-Specifics is useful bridge
+evidence, but it is not a strong final architecture. The durable control path
+needs code running in the Minecraft JVM.
 
 Source inspection of HeadlessMC and related projects showed:
 
@@ -103,21 +97,6 @@ TypeScript should instead provide:
 - Vitest unit helpers for the SDK and protocol.
 - Agent-friendly API wrappers.
 - Optional generated types from the JVM protocol schema.
-
-### Go Compatibility
-
-The current Go code should be treated as a prototype of CLI shape, output modes,
-scenario validation, daemon semantics, and tests. It should not own real client
-automation long-term.
-
-Possible Go outcomes:
-
-- Delete it after the JVM CLI reaches parity.
-- Keep a tiny `mcw` shim that execs the JVM distribution during transition.
-- Keep it only as historical reference.
-
-The project should avoid split-brain ownership where Go and JVM both implement
-client lifecycle semantics.
 
 ## Target Repository Shape
 
@@ -366,22 +345,10 @@ test("player can join through Gate", async ({ mc }) => {
 The Playwright adapter should use the TypeScript SDK, which speaks to the JVM
 daemon. It should not shell out and parse human CLI output.
 
-## Migration Strategy
+## Implementation Strategy
 
-The rewrite should be incremental but honest.
-
-### Phase 0: Freeze Current Go Scope
-
-Stop expanding Go toward real client semantics. Keep it as:
-
-- CLI contract reference.
-- output contract tests.
-- scenario syntax reference.
-- daemon protocol sketch.
-- possible compatibility shim.
-
-Do not add large real-client behavior to Go unless it is an explicitly temporary
-research spike.
+Implementation should be incremental but honest. The repository should keep one
+runtime owner for client lifecycle semantics: the JVM codebase.
 
 ### Phase 1: JVM Skeleton
 
@@ -394,7 +361,7 @@ Create the Gradle/Kotlin project with:
 - basic daemon transport.
 - unit tests.
 
-The first milestone is parity with the useful Go foundation, not Minecraft
+The first milestone is a working fake-client API and CLI loop, not Minecraft
 launch.
 
 ### Phase 2: HeadlessMC Evidence Spike
@@ -494,8 +461,6 @@ The first real smoke should use:
 The JVM-first rewrite is ready to enter implementation planning when:
 
 - this spec is accepted as the project direction;
-- the previous Go real-client backend plan is reclassified as a temporary
-  research spike, not the final architecture;
 - the first implementation plan targets a Kotlin/JVM skeleton with Java Mixin
   support prepared but not overbuilt;
 - the first real-client milestone is limited to one offline Fabric version;
@@ -518,12 +483,6 @@ Craftwright is complete enough for its original goal when:
 
 ## References
 
-- Existing Craftwright design:
-  `docs/superpowers/specs/2026-06-24-craftwright-design.md`
-- Existing CLI design:
-  `docs/superpowers/specs/2026-06-24-mcw-cli-design.md`
-- Previous real-client backend design:
-  `docs/superpowers/specs/2026-06-25-real-client-backend-design.md`
 - Generated local client API design:
   `docs/superpowers/specs/2026-06-25-generated-client-api-design.md`
 - Client management decisions:
