@@ -23,6 +23,9 @@ Craftless currently has:
   with accepted EULA, collect short-lived process output, and import recognized
   server log lines into JSONL evidence artifacts for join, chat, movement, and
   disconnect assertions;
+- a Ktor Client based testkit provisioner that resolves the Mojang launcher
+  version manifest and downloads a requested Minecraft server jar into the
+  fixture artifacts directory;
 - repo-local Kotlin/JVM agent skills scoped to this codebase.
 
 ## Completion Definition
@@ -48,9 +51,9 @@ Craftless is not complete until the repository can prove all of the following:
 Goal: prove that Craftless can automate a real Minecraft Java client through
 the durable Fabric direction.
 
-- Provision a Minecraft `1.21.6` server jar for the process-backed testkit
-  evidence importer so player join, chat, movement, and disconnect events are
-  collected from real server output during smoke tests.
+- Add an opt-in smoke task that provisions the Minecraft `1.21.6` server jar,
+  starts it through the process-backed testkit fixture, and collects real
+  server output for player join, chat, movement, and disconnect evidence.
 - Add a Fabric smoke command or Gradle task that launches the current
   `driver-fabric` module against Minecraft `1.21.6`.
 - Invoke generated `player.chat` through the daemon action API and assert that
