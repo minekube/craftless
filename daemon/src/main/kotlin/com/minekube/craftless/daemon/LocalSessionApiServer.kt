@@ -2,6 +2,8 @@ package com.minekube.craftless.daemon
 
 import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.api.DriverActionInvocation
+import com.minekube.craftless.driver.api.DriverActionResult
+import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.protocol.ApiRouteCatalog
 import com.minekube.craftless.protocol.Client
 import com.minekube.craftless.protocol.CreateClientRequest
@@ -147,13 +149,7 @@ class LocalSessionApiServer private constructor(
                             arguments = request.args,
                         )
                     )
-                    if (request.action == "player.chat" && result.message != null) {
-                        events += SessionEvent(
-                            type = "chat",
-                            client = clientId,
-                            message = result.message,
-                        )
-                    }
+                    result.toSessionEvent(clientId)?.let { events += it }
                     call.respondJson(
                         HttpStatusCode.OK,
                         ActionInvocationResponse(
@@ -201,13 +197,7 @@ class LocalSessionApiServer private constructor(
                             arguments = call.receiveActionArguments(),
                         )
                     )
-                    if (actionId == "player.chat" && result.message != null) {
-                        events += SessionEvent(
-                            type = "chat",
-                            client = clientId,
-                            message = result.message,
-                        )
-                    }
+                    result.toSessionEvent(clientId)?.let { events += it }
                     call.respondJson(
                         HttpStatusCode.OK,
                         ActionInvocationResponse(
@@ -261,6 +251,24 @@ private fun String.toActionId(): String {
         throw GeneratedActionRouteNotFound("action alias must use resource:action syntax")
     }
     return "${parts[0]}.${parts[1]}"
+}
+
+private fun DriverActionResult.toSessionEvent(clientId: String): SessionEvent? {
+    if (status != DriverActionStatus.ACCEPTED || message == null) {
+        return null
+    }
+
+    val eventType = when (action) {
+        "player.chat" -> "chat"
+        "player.move" -> "movement"
+        else -> return null
+    }
+
+    return SessionEvent(
+        type = eventType,
+        client = clientId,
+        message = message,
+    )
 }
 
 private class GeneratedActionRouteNotFound(message: String) : RuntimeException(message)

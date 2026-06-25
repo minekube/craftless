@@ -281,6 +281,8 @@ class LocalSessionApiServerTest {
                 assertEquals(HttpStatusCode.OK, response.status)
                 assertTrue(body.contains("client.connected"))
                 assertTrue(body.contains("chat"))
+                assertTrue(body.contains("movement"))
+                assertTrue(body.contains("accepted player.move for alice"))
                 assertTrue(body.contains("client.stopped"))
             }
         }
