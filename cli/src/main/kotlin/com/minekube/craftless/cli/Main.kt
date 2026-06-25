@@ -354,7 +354,7 @@ object CraftlessCli {
                     }
                     val aliasPath = "/clients/$clientId/$namespace:$actionName"
                     val openApi = json.decodeFromString<OpenApiDocument>(openApiBody)
-                    if (openApi.paths[aliasPath]?.post == null) {
+                    if (openApi.paths[aliasPath]?.post == null || openApi.actions.none { it.id == actionId }) {
                         stderr("error: action $actionId is not described by live OpenAPI for client $clientId")
                         return@runBlocking 1
                     }
