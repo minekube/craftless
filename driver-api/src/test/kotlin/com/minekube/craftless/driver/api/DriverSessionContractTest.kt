@@ -10,12 +10,24 @@ import kotlin.test.assertTrue
 class DriverSessionContractTest {
     @Test
     fun `driver action descriptors reject invalid argument metadata`() {
-        assertFailsWith<IllegalArgumentException> {
-            DriverActionDescriptor(
-                id = "player.move",
-                schemaVersion = "1",
-                arguments = mapOf("" to DriverActionArgument("boolean")),
-            )
+        listOf(
+            "",
+            "Player",
+            "player.input",
+            "player/input",
+            "player:input",
+            "minecraft-command",
+            "--message",
+            "_message",
+            "message_",
+        ).forEach { argumentName ->
+            assertFailsWith<IllegalArgumentException> {
+                DriverActionDescriptor(
+                    id = "player.move",
+                    schemaVersion = "1",
+                    arguments = mapOf(argumentName to DriverActionArgument("boolean")),
+                )
+            }
         }
         assertFailsWith<IllegalArgumentException> {
             DriverActionDescriptor(
@@ -65,11 +77,23 @@ class DriverSessionContractTest {
             }
         }
 
-        assertFailsWith<IllegalArgumentException> {
-            DriverActionInvocation(
-                action = "player.move",
-                arguments = mapOf("" to JsonPrimitive(true)),
-            )
+        listOf(
+            "",
+            "Player",
+            "player.input",
+            "player/input",
+            "player:input",
+            "minecraft-command",
+            "--message",
+            "_message",
+            "message_",
+        ).forEach { argumentName ->
+            assertFailsWith<IllegalArgumentException> {
+                DriverActionInvocation(
+                    action = "player.move",
+                    arguments = mapOf(argumentName to JsonPrimitive(true)),
+                )
+            }
         }
     }
 

@@ -1,6 +1,7 @@
 package com.minekube.craftless.driver.api
 
 import com.minekube.craftless.protocol.ClientState
+import com.minekube.craftless.protocol.isCraftlessActionArgumentName
 import com.minekube.craftless.protocol.isCraftlessActionArgumentType
 import com.minekube.craftless.protocol.isCraftlessActionId
 import kotlinx.serialization.Serializable
@@ -50,7 +51,9 @@ data class DriverActionDescriptor(
         require(id.isNotBlank()) { "action id is required" }
         require(id.isCraftlessActionId()) { "invalid action id $id" }
         require(schemaVersion.isNotBlank()) { "action schema version is required" }
-        require(arguments.keys.none { it.isBlank() }) { "action argument name is required" }
+        arguments.keys.forEach { name ->
+            require(name.isCraftlessActionArgumentName()) { "invalid action argument name $name" }
+        }
     }
 }
 
@@ -102,7 +105,9 @@ data class DriverActionInvocation(
 ) {
     init {
         require(action.isCraftlessActionId()) { "invalid action id $action" }
-        require(arguments.keys.none { it.isBlank() }) { "action argument name is required" }
+        arguments.keys.forEach { name ->
+            require(name.isCraftlessActionArgumentName()) { "invalid action argument name $name" }
+        }
     }
 }
 

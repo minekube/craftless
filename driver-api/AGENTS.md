@@ -12,7 +12,7 @@ in-client automation implementation.
 ## Rules
 
 - Keep the public driver contract small and descriptor-driven: runtime metadata,
-  action discovery, generic action invocation, events, player/session state, and
+  action discovery, generic action invocation, events, session state, and
   lifecycle.
 - Do not grow one stable Kotlin method per Minecraft action as the public API.
   Internal convenience methods are acceptable only when they do not leak into

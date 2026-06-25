@@ -99,13 +99,19 @@ data class OpenApiAction(
     init {
         require(id.isCraftlessActionId()) { "invalid action id $id" }
         require(schemaVersion.isNotBlank()) { "action schema version is required" }
-        require(arguments.keys.none { it.isBlank() }) { "action argument name is required" }
+        arguments.keys.forEach { name ->
+            require(name.isCraftlessActionArgumentName()) { "invalid action argument name $name" }
+        }
     }
 }
 
 fun String.isCraftlessActionId(): Boolean =
     matches(Regex("[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+")) &&
         !startsWith("minecraft.")
+
+fun String.isCraftlessActionArgumentName(): Boolean =
+    matches(Regex("[a-z][a-z0-9-]*")) &&
+        !startsWith("minecraft-")
 
 @Serializable
 data class OpenApiActionArgument(

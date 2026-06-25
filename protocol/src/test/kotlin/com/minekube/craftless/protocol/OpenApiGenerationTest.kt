@@ -78,12 +78,24 @@ class OpenApiGenerationTest {
 
     @Test
     fun `openapi action metadata rejects invalid argument metadata`() {
-        assertFailsWith<IllegalArgumentException> {
-            OpenApiAction(
-                id = "player.move",
-                schemaVersion = "1",
-                arguments = mapOf("" to OpenApiActionArgument("boolean")),
-            )
+        listOf(
+            "",
+            "Player",
+            "player.input",
+            "player/input",
+            "player:input",
+            "minecraft-command",
+            "--message",
+            "_message",
+            "message_",
+        ).forEach { argumentName ->
+            assertFailsWith<IllegalArgumentException> {
+                OpenApiAction(
+                    id = "player.move",
+                    schemaVersion = "1",
+                    arguments = mapOf(argumentName to OpenApiActionArgument("boolean")),
+                )
+            }
         }
         assertFailsWith<IllegalArgumentException> {
             OpenApiAction(
