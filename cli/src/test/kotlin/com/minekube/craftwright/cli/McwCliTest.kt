@@ -611,7 +611,7 @@ class McwCliTest {
         }
 
         assertEquals("", output.toString())
-        assertTrue(errors.toString().contains("BAD_REQUEST"))
+        assertTrue(errors.toString().contains("NOT_FOUND"))
     }
 
     private class LocalTestApiServer : AutoCloseable {

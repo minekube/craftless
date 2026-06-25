@@ -182,6 +182,16 @@ class LocalSessionApiServerTest {
                 assertTrue(response.bodyAsText().contains("\"message\":\"hello from route\""))
             }
 
+            http.post(server.url("/clients/missing:run")) {
+                contentType(ContentType.Application.Json)
+                setBody("""{"action":"player.chat","args":{"message":"hello missing"}}""")
+            }.let { response ->
+                val body = response.bodyAsText()
+                assertEquals(HttpStatusCode.NotFound, response.status)
+                assertTrue(body.contains("\"code\":\"NOT_FOUND\""))
+                assertTrue(body.contains("client missing not found"))
+            }
+
             http.post(server.url("/clients/alice/player:chat")) {
                 contentType(ContentType.Application.Json)
                 setBody("""{"message":"hello from alias"}""")

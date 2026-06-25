@@ -138,7 +138,10 @@ class LocalSessionApiServer private constructor(
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {
                     val request = json.decodeFromString<ActionInvocationRequest>(call.receiveText())
-                    val result = service.driverFor(clientId).invoke(
+                    val driver = runCatching { service.driverFor(clientId) }.getOrElse { error ->
+                        throw ClientRouteNotFound(error.message ?: "client not found")
+                    }
+                    val result = driver.invoke(
                         DriverActionInvocation(
                             action = request.action,
                             arguments = request.args,
@@ -160,7 +163,11 @@ class LocalSessionApiServer private constructor(
                         )
                     )
                 }.getOrElse { error ->
-                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                    if (error is ClientRouteNotFound) {
+                        call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
+                    } else {
+                        call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                    }
                 }
             }
             post("/clients/{id}:stop") {
@@ -257,6 +264,8 @@ private fun String.toActionId(): String {
 }
 
 private class GeneratedActionRouteNotFound(message: String) : RuntimeException(message)
+
+private class ClientRouteNotFound(message: String) : RuntimeException(message)
 
 @Serializable
 data class RuntimeVersion(
