@@ -1,5 +1,7 @@
 # Craftless
 
+![Craftless hero: generated local APIs controlling real Minecraft Java clients](docs/assets/craftless-hero.png)
+
 Craftless is automation infrastructure for real Minecraft Java clients,
 headless or visible.
 
