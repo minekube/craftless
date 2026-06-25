@@ -79,157 +79,62 @@ curl -sS "$CRAFTLESS/clients/alice:run" \
 
 Legend: 🟢 yes, 🟡 partial or limited, 🔵 planned, 🔴 no.
 
-### API and Agent Surface
-
 | Capability | Craftless | [Mineflayer](https://github.com/PrismarineJS/mineflayer) | [Baritone](https://github.com/cabaletta/baritone) | [HeadlessMC / HMC-Specifics](https://github.com/headlesshq/headlessmc) |
 | --- | --- | --- | --- | --- |
-| Live per-client OpenAPI and action schema | 🟢 | 🔴 | 🔴 | 🔴 |
-| Runtime discovery from client version, mods, server features, and permissions | 🟢 | 🟡 protocol data | 🟡 in-client state | 🟡 fixed commands |
-| Stable automation surface for generated clients, agents, and tools | 🟢 | 🟡 library API | 🟡 Java API | 🟡 CLI commands |
-
-### Runtime Fidelity
-
-| Capability | Craftless | [Mineflayer](https://github.com/PrismarineJS/mineflayer) | [Baritone](https://github.com/cabaletta/baritone) | [HeadlessMC / HMC-Specifics](https://github.com/headlesshq/headlessmc) |
-| --- | --- | --- | --- | --- |
-| Runs the real Minecraft Java client | 🟢 | 🔴 | 🟢 | 🟢 |
-| Works headless and visible | 🟢 | 🔴 | 🟡 visible only | 🟢 |
-| Sees client UI, screens, mods, registries, and mappings | 🟢 | 🟡 protocol-visible | 🟢 | 🟡 |
-| Keeps one API shape while Minecraft, Fabric, Velocity, and mods change | 🔵 design goal | 🟡 protocol updates | 🟡 versioned builds | 🟡 versioned mods |
-| Minecraft version support model | 🔵 consolidated driver bindings | 🟡 protocol version matrix | 🟡 versioned builds | 🟡 versioned mods |
-
-### Automation Depth
-
-| Capability | Craftless | [Mineflayer](https://github.com/PrismarineJS/mineflayer) | [Baritone](https://github.com/cabaletta/baritone) | [HeadlessMC / HMC-Specifics](https://github.com/headlesshq/headlessmc) |
-| --- | --- | --- | --- | --- |
-| Chat, command, and basic interaction automation | 🟢 | 🟢 | 🟡 | 🟡 |
-| Movement and pathfinding automation | 🔵 | 🟢 | 🟢 | 🟡 basic |
-| Inventory, screen, perception, and world queries | 🔵 | 🟢 | 🟡 pathing-focused | 🟡 GUI-focused |
-
-### Operations and CI
-
-| Capability | Craftless | [Mineflayer](https://github.com/PrismarineJS/mineflayer) | [Baritone](https://github.com/cabaletta/baritone) | [HeadlessMC / HMC-Specifics](https://github.com/headlesshq/headlessmc) |
-| --- | --- | --- | --- | --- |
-| Supervises many client sessions through one local service | 🟢 | 🔴 | 🔴 | 🟡 |
-| Launches and manages client runtimes | 🟡 local supervisor in progress | 🔴 | 🔴 | 🟢 |
-| Supports CI/runtime smoke tests for real clients | 🟡 bridge evidence, Fabric smoke planned | 🔴 protocol bot only | 🔴 | 🟢 |
-| Manages server launch fixtures | 🔵 | 🔴 | 🔴 | 🟢 |
+| Real Minecraft Java client | 🟢 | 🔴 protocol bot | 🟢 | 🟢 |
+| Headless and visible operation | 🟢 | 🔴 | 🟡 visible client | 🟢 |
+| Live per-client OpenAPI/action schema | 🟢 | 🔴 | 🔴 | 🔴 |
+| Runtime discovery from version, mods, server features, and permissions | 🟢 | 🟡 protocol data | 🟡 in-client state | 🟡 fixed commands |
+| Stable automation surface for agents and generated clients | 🟢 | 🟡 library API | 🟡 Java API | 🟡 CLI commands |
+| Movement/pathfinding depth | 🔵 planned actions | 🟢 | 🟢 | 🟡 basic |
+| Inventory, screen, perception, and world queries | 🔵 planned actions | 🟢 | 🟡 pathing-focused | 🟡 GUI-focused |
+| Multi-client local supervisor | 🟢 | 🔴 | 🔴 | 🟡 |
+| Minecraft version support model | 🔵 stable API; Fabric driver/mappings paced | 🟡 protocol matrix | 🟡 versioned builds | 🟡 versioned mods |
 | Best fit | Real-client automation infrastructure | Fast bot scripts | In-game pathfinding | Client launch and CI runtime |
 
-The comparison is based on upstream project docs:
-[Mineflayer](https://github.com/PrismarineJS/mineflayer/blob/master/docs/README.md)
-is strongest for protocol-visible bot APIs,
-[Baritone](https://github.com/cabaletta/baritone/blob/master/README.md) is
-strongest for in-client pathfinding, and
-[HeadlessMC/HMC-Specifics](https://github.com/headlesshq/hmc-specifics) is
-strongest for launching versioned clients and driving a fixed command surface
-in CI.
+The comparison is based on upstream project docs. Mineflayer is strongest for
+protocol-visible bot APIs, Baritone is strongest for in-client pathfinding, and
+HeadlessMC/HMC-Specifics is strongest for launching versioned clients and
+driving a fixed command surface in CI. Recent-version checks used Mojang's
+version manifest, Fabric metadata, and upstream git history: Fabric Loader
+already lists Minecraft `26.2`, but Craftless support is paced by Fabric driver
+bindings, mappings/accessors, and real-client smoke validation.
 
 ## Status
 
-Craftless is a Kotlin/JVM-first project with one implementation direction:
+Implemented now:
 
-- a short scriptable CLI, `craftless`, with a
-  small static core plus adaptive per-client action aliases and help loaded
-  from OpenAPI and action descriptors at runtime;
-- a local supervisor/API for in-memory client sessions;
-- a stable JVM `driver-api` contract with a fake implementation for daemon and
-  route integration and runtime action metadata;
-- a `driver-runtime` adapter layer that can run `DriverSession` over bridge or
-  Fabric-style backends without changing daemon routes;
-- a compiled Fabric/Loom `driver-fabric` module with internal version-aware
-  bindings, mod metadata, mixin config, and a gateway-backed runtime backend
-  for client-thread connect, chat, command, stop, and generated
-  `player.move`/`player.chat` action invocation;
-- a temporary HeadlessMC/HMC-Specifics bridge backend for Phase 1 evidence;
-- a Fabric driver implementation as the durable automation engine, with the
-  real-client smoke still on the roadmap;
-- stable kernel OpenAPI at `/openapi.json` plus per-client OpenAPI at
-  `/clients/{id}/openapi.json` with Craftless metadata and discovered
-  action schemas plus runtime/cache fingerprints;
-- stable kernel lifecycle routes for creating, listing, fetching, connecting,
-  and stopping daemon-managed clients;
-- Playwright helper tests.
+- Kotlin/JVM Gradle project with `protocol`, `daemon`, `driver-api`,
+  `driver-runtime`, `driver-fabric`, `bridge-hmc`, `cli`, `testkit`, and
+  Playwright helper modules.
+- `craftless` CLI with a small static core plus adaptive per-client action
+  aliases and help loaded from action metadata.
+- Ktor local supervisor API with stable kernel OpenAPI at `/openapi.json`.
+- Per-client OpenAPI at `/clients/{id}/openapi.json` with Craftless metadata,
+  action schemas, and runtime/cache fingerprints.
+- Stable lifecycle routes for creating, listing, fetching, connecting, and
+  stopping daemon-managed clients.
+- Fabric/Loom driver module with internal version-aware bindings and
+  gateway-backed runtime hooks for current action evidence.
+- Temporary HeadlessMC/HMC-Specifics bridge backend as evidence
+  infrastructure, not the durable product contract.
+
+Still roadmap:
+
+- real-client Fabric smoke test that launches a client, joins a server, invokes
+  actions, and verifies server-side effects;
+- broader generated action families for look, raycast, inventory, world/entity
+  queries, screen interaction, and events;
+- consolidated Fabric driver support across more Minecraft versions;
+- optional PrismLauncher import/adapter work.
 
 ## Evidence
 
-A throwaway real-client PoC was built under `/tmp/craftless-real-client-poc`.
-It proved the core loop:
-
-1. start a local offline Paper 1.21.4 server;
-2. launch a real Minecraft Java client through HeadlessMC;
-3. load Fabric 1.21.4 and HMC-Specifics 2.4.0;
-4. expose a local HTTP API wrapper;
-5. connect the real client to the server;
-6. invoke `player.chat` and `player.move` actions through API calls;
-7. verify join, chat, and position change from the server.
-
-Observed server evidence:
-
-```text
-CraftlessApiBot joined the game
-<CraftlessApiBot> api action after reconnect
-CraftlessApiBot has the following entity data: [-5.5d, -60.0d, 10.914621337840606d]
-```
-
-This was a bridge PoC. It used HMC-Specifics commands behind a
-Craftless-shaped API. That is good enough to prove the launch/control loop,
-but not good enough as the final product driver.
-
-The final driver should be a Fabric mod that directly implements movement,
-look direction, raycasts, nearby block/entity perception, inventory, screen
-state, interactions, chat, and lifecycle events from inside the Minecraft
-client.
-
-## Roadmap
-
-Phase 1:
-
-- extend the Kotlin/JVM Gradle project skeleton;
-- implement the CLI and local API surface;
-- keep CLI action commands adaptive: `craftless` may expose generic
-  `clients <id> run <action>` plus aliases such as `clients <id> player move`,
-  but those aliases and their basic help come from the target client's
-  OpenAPI/action metadata instead of static Kotlin commands;
-- route daemon-created clients through an injectable driver runtime boundary;
-- keep the current Fabric module compiling under Loom while consolidating
-  version-specific code behind internal driver bindings instead of one public
-  subproject per Minecraft version;
-- route Fabric connect, chat, command, stop, and generated
-  `player.move`/`player.chat` action invocation through a real Minecraft
-  client gateway;
-- expose `/clients/{id}/openapi.json` with runtime fingerprint metadata and
-  discovered action schemas while avoiding static hand-written action route
-  expansion;
-- expose AIP-style action invocation through `POST /clients/{id}:run` plus
-  generated aliases such as `POST /clients/{id}/player:move` and
-  `POST /clients/{id}/player:chat`;
-- accept action invocation arguments as typed JSON values such as
-  `{"action":"player.move","args":{"forward":true,"ticks":20}}` and
-  `{"action":"player.chat","args":{"message":"hello"}}`, with alias routes
-  accepting the direct args body such as `{"message":"hello"}`;
-- add a temporary HeadlessMC/HMC-Specifics bridge backend;
-- add a real integration smoke test that launches a real client, joins a
-  server, invokes `player.chat` and `player.move`, and verifies server-side
-  position changed;
-- keep public API names independent from HMC-Specifics command strings.
-
-Phase 2:
-
-- expand generated actions for look/perception beyond the current
-  `player.move` movement intent;
-- move more runtime/version/mod/registry inputs into per-client OpenAPI
-  fingerprints and binding support checks;
-- expose generated/discovered roots such as player, world, screen, and events
-  when described by the per-client OpenAPI document, with action schemas for
-  movement, look, raycast, inventory, world/entity queries, and screen
-  interaction.
-
-Later:
-
-- expand Playwright and Vitest fixtures;
-- compatibility rows for additional Minecraft versions through the consolidated
-  Fabric driver where possible;
-- optional PrismLauncher import/adapter work.
+A throwaway real-client PoC under `/tmp/craftless-real-client-poc` proved the
+launch/control loop with a Paper 1.21.4 server, HeadlessMC, Fabric, and
+HMC-Specifics. It launched a real client, connected it to a server, invoked
+`player.chat` and `player.move`, and verified join/chat/position evidence from
+the server.
 
 ## Design Docs
 
