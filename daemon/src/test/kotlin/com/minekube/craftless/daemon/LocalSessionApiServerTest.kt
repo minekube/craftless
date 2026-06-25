@@ -244,6 +244,16 @@ class LocalSessionApiServerTest {
 
             http.post(server.url("/clients/alice:run")) {
                 contentType(ContentType.Application.Json)
+                setBody("""{"action":"minecraft.player.move","args":{}}""")
+            }.let { response ->
+                val body = response.bodyAsText()
+                assertEquals(HttpStatusCode.BadRequest, response.status)
+                assertTrue(body.contains("\"code\":\"BAD_REQUEST\""))
+                assertTrue(body.contains("invalid action id minecraft.player.move"))
+            }
+
+            http.post(server.url("/clients/alice:run")) {
+                contentType(ContentType.Application.Json)
                 setBody("""{"action":"player.chat","args":{"message":"hello","surprise":"value"}}""")
             }.let { response ->
                 val body = response.bodyAsText()

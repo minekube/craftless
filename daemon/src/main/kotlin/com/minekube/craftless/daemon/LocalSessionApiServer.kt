@@ -12,6 +12,7 @@ import com.minekube.craftless.protocol.ApiRouteCatalog
 import com.minekube.craftless.protocol.Client
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.OpenApiDocument
+import com.minekube.craftless.protocol.isCraftlessActionId
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
@@ -158,6 +159,7 @@ class LocalSessionApiServer private constructor(
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {
                     val request = json.decodeFromString<ActionInvocationRequest>(call.receiveText())
+                    require(request.action.isCraftlessActionId()) { "invalid action id ${request.action}" }
                     val driver = runCatching { service.driverFor(clientId) }.getOrElse { error ->
                         throw ClientRouteNotFound(error.message ?: "client not found")
                     }
