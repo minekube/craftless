@@ -266,9 +266,19 @@ class OpenApiGenerationTest {
         val instanceSchema = schema.properties["instance"]
         assertNotNull(instanceSchema)
         assertEquals("object", instanceSchema.type)
-        assertEquals(listOf("id", "version", "loader"), instanceSchema.required)
+        assertEquals(listOf("id", "version", "loader", "files"), instanceSchema.required)
         assertEquals("string", instanceSchema.properties["id"]?.type)
         assertEquals("string", instanceSchema.properties["loader"]?.type)
+        val filesSchema = instanceSchema.properties["files"]
+        assertNotNull(filesSchema)
+        assertEquals("object", filesSchema.type)
+        assertEquals(
+            listOf("root", "gameRoot", "mods", "config", "saves", "resourcePacks", "shaderPacks"),
+            filesSchema.required,
+        )
+        assertTrue(filesSchema.properties.keys.none { it.contains("mmc", ignoreCase = true) })
+        assertTrue(filesSchema.properties.keys.none { it.contains("prism", ignoreCase = true) })
+        assertTrue(filesSchema.properties.keys.none { it.contains("cfg", ignoreCase = true) })
         val versionSchema = instanceSchema.properties["version"]
         assertNotNull(versionSchema)
         assertEquals("object", versionSchema.type)

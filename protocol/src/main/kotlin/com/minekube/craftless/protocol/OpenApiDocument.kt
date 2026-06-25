@@ -383,8 +383,9 @@ private fun clientSchema(): OpenApiSchema =
                         required = listOf("id"),
                     ),
                     "loader" to OpenApiSchema(type = "string"),
+                    "files" to instanceFilesSchema(),
                 ),
-                required = listOf("id", "version", "loader"),
+                required = listOf("id", "version", "loader", "files"),
             ),
             "profile" to profileSchema(),
             "state" to OpenApiSchema(type = "string"),
@@ -430,6 +431,21 @@ private fun profileSchema(): OpenApiSchema =
             "name" to OpenApiSchema(type = "string"),
         ),
         required = listOf("kind", "name"),
+    )
+
+private fun instanceFilesSchema(): OpenApiSchema =
+    OpenApiSchema(
+        type = "object",
+        properties = mapOf(
+            "root" to OpenApiSchema(type = "string"),
+            "gameRoot" to OpenApiSchema(type = "string"),
+            "mods" to OpenApiSchema(type = "string"),
+            "config" to OpenApiSchema(type = "string"),
+            "saves" to OpenApiSchema(type = "string"),
+            "resourcePacks" to OpenApiSchema(type = "string"),
+            "shaderPacks" to OpenApiSchema(type = "string"),
+        ),
+        required = listOf("root", "gameRoot", "mods", "config", "saves", "resourcePacks", "shaderPacks"),
     )
 
 private fun jsonContent(schema: OpenApiSchema): Map<String, OpenApiMediaType> =

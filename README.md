@@ -112,6 +112,9 @@ Implemented now:
   action schemas, and runtime/cache fingerprints.
 - Stable lifecycle routes for creating, listing, fetching, connecting, and
   stopping daemon-managed clients.
+- Client responses include a Craftless-owned instance file layout for the
+  instance root, game root, mods, config, saves, resource packs, and shader
+  packs.
 - Fabric/Loom driver module with internal version-aware bindings and
   gateway-backed runtime hooks for current action evidence.
 - Testkit helpers and an opt-in `:testkit:localMinecraftServerSmoke` task for
@@ -125,8 +128,8 @@ Still roadmap:
 - broader generated action families for look, raycast, inventory, world/entity
   queries, screen interaction, and events;
 - consolidated Fabric driver support across more Minecraft versions;
-- client file and instance management informed by Prism Launcher source, with
-  any Prism import/adapter remaining optional rather than a core dependency.
+- fuller client file management informed by Prism Launcher source, with any
+  Prism import/adapter remaining optional rather than a core dependency.
 
 ## Design Docs
 

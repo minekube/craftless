@@ -14,6 +14,8 @@ Craftless currently has:
 - generated per-client OpenAPI at `/clients/{id}/openapi.json`;
 - descriptor-driven actions exposed through `/clients/{id}/actions`,
   `POST /clients/{id}:run`, and generated aliases;
+- a Craftless-owned instance file layout in client responses, covering instance
+  root, game root, mods, config, saves, resource packs, and shader packs;
 - an adaptive JVM `craftless` CLI using Ktor Client;
 - a stable `DriverSession` contract with lifecycle primitives plus generic
   action discovery and invocation;
@@ -145,13 +147,10 @@ Goal: make Craftless usable as local and CI infrastructure.
   consistent Craftless metadata.
 - Add Docker or CI runtime documentation only after the real-client smoke is
   automated.
-- Add configuration for profiles, client files, logs, auth mode, and runtime
+- Expand configuration for profiles, client files, logs, auth mode, and runtime
   directories.
-- Model client files and instance layout after Prism Launcher source findings:
-  per-instance settings like `instance.cfg`, component metadata like
-  `mmc-pack.json` plus `patches/*.json`, and separate game-root folders such as
-  `mods`, `config`, `saves`, `resourcepacks`, and `shaderpacks`, without making
-  Prism a required runtime dependency.
+- Continue modelling client files and instance layout after Prism Launcher
+  source findings without making Prism a required runtime dependency.
 - Add observability for daemon requests, client lifecycle, driver action
   latency, and failure categories.
 - Publish examples that create a client, fetch its OpenAPI, invoke generated
