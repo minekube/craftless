@@ -3,6 +3,10 @@ package com.minekube.craftwright.cli
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -21,6 +25,7 @@ class McwCliTest {
         assertTrue(commands.contains("clients list"))
         assertTrue(commands.contains("clients connect"))
         assertTrue(commands.contains("clients api"))
+        assertTrue(commands.contains("clients <id> run <action>"))
         assertTrue(commands.contains("server start"))
         assertTrue(commands.contains("test run"))
     }
@@ -50,5 +55,128 @@ class McwCliTest {
         assertTrue(json["url"]?.jsonPrimitive?.content?.startsWith("http://127.0.0.1:") == true)
         assertEquals("/openapi.json", json["openapi"]?.jsonPrimitive?.content)
         assertEquals("/events", json["events"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `clients run posts typed action args to daemon`() {
+        val output = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = McwCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "run",
+                    "player.chat",
+                    "--api",
+                    server.url,
+                    "--arg",
+                    "message=hello from cli",
+                ),
+                stdout = { output.appendLine(it) },
+            )
+
+            assertEquals(0, exit)
+        }
+
+        val response = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        assertEquals("player.chat", response["action"]?.jsonPrimitive?.content)
+        assertEquals("ACCEPTED", response["status"]?.jsonPrimitive?.content)
+        assertEquals("hello from cli", response["message"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `clients run preserves boolean and integer action args`() {
+        val output = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = McwCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "run",
+                    "player.move",
+                    "--api",
+                    server.url,
+                    "--arg",
+                    "forward=true",
+                    "--arg",
+                    "ticks=20",
+                ),
+                stdout = { output.appendLine(it) },
+            )
+
+            assertEquals(0, exit)
+        }
+
+        val response = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        assertEquals("player.move", response["action"]?.jsonPrimitive?.content)
+        assertEquals("ACCEPTED", response["status"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `clients run returns nonzero for daemon errors`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            val exit = McwCli.run(
+                listOf(
+                    "clients",
+                    "missing",
+                    "run",
+                    "player.chat",
+                    "--api",
+                    server.url,
+                    "--arg",
+                    "message=hello",
+                ),
+                stdout = { output.appendLine(it) },
+                stderr = { errors.appendLine(it) },
+            )
+
+            assertEquals(1, exit)
+        }
+
+        assertEquals("", output.toString())
+        assertTrue(errors.toString().contains("BAD_REQUEST"))
+    }
+
+    private class LocalTestApiServer : AutoCloseable {
+        private val server = com.minekube.craftwright.daemon.LocalSessionApiServer.inMemory()
+        val url: String
+
+        init {
+            server.start()
+            url = server.url("")
+        }
+
+        fun createAlice() {
+            kotlinx.coroutines.runBlocking {
+                HttpClient(CIO).use { http ->
+                    http.post("$url/clients") {
+                        contentType(ContentType.Application.Json)
+                        setBody(
+                            """
+                            {
+                              "id": "alice",
+                              "version": "1.21.4",
+                              "loader": "FABRIC",
+                              "profile": { "kind": "OFFLINE", "name": "Alice" }
+                            }
+                            """.trimIndent()
+                        )
+                    }
+                }
+            }
+        }
+
+        override fun close() {
+            server.close()
+        }
     }
 }

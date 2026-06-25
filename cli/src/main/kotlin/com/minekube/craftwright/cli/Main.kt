@@ -5,8 +5,18 @@ import com.github.ajalt.clikt.core.CoreCliktCommand
 import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.core.subcommands
 import com.minekube.craftwright.daemon.LocalSessionApiServer
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.isSuccess
+import io.ktor.http.contentType
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.Json
 import java.util.concurrent.CountDownLatch
 
@@ -44,6 +54,7 @@ object McwCli {
         "clients list",
         "clients connect",
         "clients api",
+        "clients <id> run <action>",
         "server start",
         "test run",
     )
@@ -57,8 +68,55 @@ object McwCli {
         if (args.take(2) == listOf("clients", "api")) {
             return runClientsApi(args.drop(2), stdout, stderr, afterStart)
         }
+        if (args.size >= 4 && args[0] == "clients" && args[2] == "run") {
+            return runClientAction(args.drop(1), stdout, stderr)
+        }
         root().main(args)
         return 0
+    }
+
+    private fun runClientAction(
+        args: List<String>,
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+    ): Int {
+        val clientId = args.getOrNull(0).orEmpty()
+        val action = args.getOrNull(2).orEmpty()
+        if (clientId.isBlank() || action.isBlank()) {
+            stderr("error: usage is clients <id> run <action> [--api <url>] [--arg key=value]")
+            return 2
+        }
+        val api = args.optionValue("--api") ?: System.getenv("CRAFTWRIGHT") ?: "http://127.0.0.1:8080"
+        val payload = ActionRunRequest(
+            action = action,
+            args = args.optionValues("--arg").associate { argument ->
+                val parts = argument.split("=", limit = 2)
+                require(parts.size == 2 && parts[0].isNotBlank()) { "--arg must use key=value syntax" }
+                parts[0] to parts[1].toJsonArgument()
+            },
+        )
+
+        return runCatching {
+            kotlinx.coroutines.runBlocking {
+                HttpClient(CIO).use { http ->
+                    val response = http.post("${api.trimEnd('/')}/clients/$clientId:run") {
+                        contentType(ContentType.Application.Json)
+                        setBody(json.encodeToString(payload))
+                    }
+                    val body = response.bodyAsText()
+                    if (response.status.isSuccess()) {
+                        stdout(body)
+                        0
+                    } else {
+                        stderr(body)
+                        1
+                    }
+                }
+            }
+        }.getOrElse { error ->
+            stderr("error: ${error.message ?: "failed to run action"}")
+            2
+        }
     }
 
     private fun runClientsApi(
@@ -95,6 +153,19 @@ object McwCli {
         val index = indexOf(name)
         return if (index >= 0 && index + 1 < size) this[index + 1] else null
     }
+
+    private fun List<String>.optionValues(name: String): List<String> =
+        mapIndexedNotNull { index, value ->
+            if (value == name && index + 1 < size) this[index + 1] else null
+        }
+
+    private fun String.toJsonArgument(): JsonElement =
+        when {
+            equals("true", ignoreCase = true) -> JsonPrimitive(true)
+            equals("false", ignoreCase = true) -> JsonPrimitive(false)
+            toIntOrNull() != null -> JsonPrimitive(toInt())
+            else -> JsonPrimitive(this)
+        }
 }
 
 @Serializable
@@ -103,6 +174,12 @@ data class ApiServerMetadata(
     val url: String,
     val openapi: String,
     val events: String,
+)
+
+@Serializable
+data class ActionRunRequest(
+    val action: String,
+    val args: Map<String, JsonElement> = emptyMap(),
 )
 
 private class RootCommand : CoreCliktCommand(

@@ -1,21 +1,22 @@
 # Craftwright
 
-Craftwright is an automation framework for real Minecraft Java clients,
+Craftwright is automation infrastructure for real Minecraft Java clients,
 headless or visible.
 
-It launches or attaches to real clients and exposes generated local APIs so
-agents, tools, tests, and CI can inspect and control Minecraft through the same
+It launches or attaches to real clients and gives agents, tools, tests, and CI
+a generated local API for inspecting and controlling Minecraft through the same
 client runtime players use. Run clients headlessly for unattended automation,
-or keep the game window visible so humans can watch and debug what the
-automation is doing.
+or keep the game window visible so humans can watch and debug what is
+happening.
 
 Craftwright is not Mineflayer and is not a protocol-only bot. It controls the
 real Minecraft client process while hiding loader, version, mapping, mod, and
 driver internals behind stable Craftwright-owned contracts.
 
-If you know browser automation, Craftwright fills a similar role for Minecraft:
-external programs get a machine-readable control surface for a running client,
-with live API discovery instead of a static list of hard-coded actions.
+If you know Browserless, Craftwright fills a similar role for Minecraft:
+Browserless turns real browsers into programmable automation infrastructure;
+Craftwright does that for real Minecraft Java clients, with live API discovery
+instead of a static list of hard-coded actions.
 
 ## Example
 
