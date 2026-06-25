@@ -63,4 +63,39 @@ class LocalServerFixtureTest {
         )
         assertEquals(4, Files.readAllLines(layout.evidenceLog).size)
     }
+
+    @Test
+    fun `fixture imports recognized server log evidence`() {
+        val root = Files.createTempDirectory("craftless-server-log-evidence")
+        val layout = LocalServerFixture(root = root, port = 25567).prepare()
+
+        assertTrue(layout.recordEvidenceFromLogLine("[12:00:00] [Server thread/INFO]: Alice joined the game"))
+        assertTrue(layout.recordEvidenceFromLogLine("[12:00:01] [Server thread/INFO]: <Alice> hello from server log"))
+        assertTrue(
+            layout.recordEvidenceFromLogLine(
+                "[12:00:02] [Server thread/INFO]: [Craftless] Alice moved from 0.0 64.0 0.0 to 0.0 64.0 1.25"
+            )
+        )
+        assertTrue(layout.recordEvidenceFromLogLine("[12:00:03] [Server thread/INFO]: Alice left the game"))
+        assertFalse(layout.recordEvidenceFromLogLine("[12:00:04] [Server thread/INFO]: Preparing spawn area: 100%"))
+
+        assertEquals(
+            listOf(
+                LocalServerEvidence(type = LocalServerEvidenceType.PLAYER_JOINED, player = "Alice"),
+                LocalServerEvidence(
+                    type = LocalServerEvidenceType.CHAT,
+                    player = "Alice",
+                    message = "hello from server log",
+                ),
+                LocalServerEvidence(
+                    type = LocalServerEvidenceType.MOVEMENT,
+                    player = "Alice",
+                    from = LocalServerPosition(x = 0.0, y = 64.0, z = 0.0),
+                    to = LocalServerPosition(x = 0.0, y = 64.0, z = 1.25),
+                ),
+                LocalServerEvidence(type = LocalServerEvidenceType.PLAYER_DISCONNECTED, player = "Alice"),
+            ),
+            layout.readEvidence(),
+        )
+    }
 }

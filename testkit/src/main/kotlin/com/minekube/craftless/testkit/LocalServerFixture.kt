@@ -58,6 +58,12 @@ data class LocalServerLayout(
         )
     }
 
+    fun recordEvidenceFromLogLine(line: String): Boolean {
+        val evidence = line.toLocalServerEvidence() ?: return false
+        recordEvidence(evidence)
+        return true
+    }
+
     fun readEvidence(): List<LocalServerEvidence> {
         if (!Files.exists(evidenceLog)) {
             return emptyList()
@@ -129,3 +135,43 @@ private val localServerEvidenceJson = Json {
     encodeDefaults = false
     ignoreUnknownKeys = true
 }
+
+private fun String.toLocalServerEvidence(): LocalServerEvidence? {
+    val message = substringAfter("]: ", missingDelimiterValue = this)
+    joinedGameRegex.matchEntire(message)?.let { match ->
+        return LocalServerEvidence.playerJoined(match.groupValues[1])
+    }
+    leftGameRegex.matchEntire(message)?.let { match ->
+        return LocalServerEvidence.playerDisconnected(match.groupValues[1])
+    }
+    chatRegex.matchEntire(message)?.let { match ->
+        return LocalServerEvidence.chat(match.groupValues[1], match.groupValues[2])
+    }
+    movementRegex.matchEntire(message)?.let { match ->
+        return LocalServerEvidence.movement(
+            player = match.groupValues[1],
+            from = LocalServerPosition(
+                x = match.groupValues[2].toDouble(),
+                y = match.groupValues[3].toDouble(),
+                z = match.groupValues[4].toDouble(),
+            ),
+            to = LocalServerPosition(
+                x = match.groupValues[5].toDouble(),
+                y = match.groupValues[6].toDouble(),
+                z = match.groupValues[7].toDouble(),
+            ),
+        )
+    }
+    return null
+}
+
+private val playerNamePattern = "([A-Za-z0-9_]{1,16})"
+private val coordinatePattern = "(-?\\d+(?:\\.\\d+)?)"
+private val joinedGameRegex = Regex("$playerNamePattern joined the game")
+private val leftGameRegex = Regex("$playerNamePattern left the game")
+private val chatRegex = Regex("<$playerNamePattern> (.+)")
+private val movementRegex = Regex(
+    "\\[Craftless] $playerNamePattern moved from " +
+        "$coordinatePattern $coordinatePattern $coordinatePattern to " +
+        "$coordinatePattern $coordinatePattern $coordinatePattern"
+)
