@@ -11,8 +11,6 @@ import (
 func TestOutputModeRejectsConflictingMachineModes(t *testing.T) {
 	cases := [][]string{
 		{"--json", "--plain", "client"},
-		{"--json", "--jsonl", "client"},
-		{"--jsonl", "--plain", "client"},
 	}
 
 	for _, args := range cases {
@@ -42,6 +40,16 @@ func TestFlagParseErrorsReturnUsageCode(t *testing.T) {
 		if stderr == "" {
 			t.Fatalf("args %v: stderr is empty", args)
 		}
+	}
+}
+
+func TestJSONLIsReservedUntilStreamingCommandsImplementIt(t *testing.T) {
+	_, stderr, code := execute("--jsonl", "client", "list")
+	if code != 2 {
+		t.Fatalf("code = %d stderr = %s", code, stderr)
+	}
+	if !strings.Contains(stderr, "--jsonl is reserved") {
+		t.Fatalf("stderr = %q", stderr)
 	}
 }
 

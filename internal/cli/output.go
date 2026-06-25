@@ -30,6 +30,9 @@ func usageError(format string, args ...any) error {
 }
 
 func (opts GlobalOptions) Validate() error {
+	if opts.JSONL {
+		return usageError("--jsonl is reserved until streaming JSON Lines output is implemented")
+	}
 	modes := 0
 	if opts.JSON {
 		modes++
