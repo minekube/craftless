@@ -17,6 +17,8 @@ import com.minekube.craftless.protocol.Client
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.Loader
+import com.minekube.craftless.protocol.OpenApiAction
+import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.Profile
 import com.minekube.craftless.testkit.FakeDriverSession
 import com.minekube.craftless.testkit.fakeDriverRuntimeMetadata
@@ -320,6 +322,29 @@ class LocalSessionApiServerTest {
 
                     assertEquals(0, driver.invokeCount)
                 }
+        }
+
+    @Test
+    fun `client actions endpoint is a projection of live per client openapi actions`() =
+        withHttpClient { http ->
+            fakeLocalSessionApiServer().use { server ->
+                server.start()
+                createAlice(http, server)
+
+                val openApiActions =
+                    http.get(server.url("/clients/alice/openapi.json")).let { response ->
+                        assertEquals(HttpStatusCode.OK, response.status)
+                        json.decodeFromString<OpenApiDocument>(response.bodyAsText()).actions
+                    }
+                val projectedActions =
+                    http.get(server.url("/clients/alice/actions")).let { response ->
+                        assertEquals(HttpStatusCode.OK, response.status)
+                        json.decodeFromString<List<OpenApiAction>>(response.bodyAsText())
+                    }
+
+                assertEquals(openApiActions, projectedActions)
+                assertEquals(listOf("player.chat", "player.move"), projectedActions.map { it.id })
+            }
         }
 
     @Test

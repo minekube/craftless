@@ -72,7 +72,7 @@ Verification:
   gameplay does not move into the stable kernel route catalog.
 - [ ] Live per-client OpenAPI owns gameplay actions/resources, generated
   aliases, schemas, handles, availability, and runtime fingerprints.
-- [ ] `/clients/{id}/actions` remains a projection of per-client OpenAPI, not
+- [x] `/clients/{id}/actions` remains a projection of per-client OpenAPI, not
   a separate source of truth.
 - [x] Adaptive CLI generic and generated-alias action paths use the live
   per-client OpenAPI descriptor as the argument/help schema authority.
