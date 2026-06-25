@@ -138,6 +138,36 @@ class NamespacePolicyTest {
         )
     }
 
+    @Test
+    fun `public kotlin sources do not expose launcher internals`() {
+        val forbiddenNames = listOf(
+            "Pr" + "ism",
+            "Pr" + "ismLauncher",
+            "Multi" + "MC",
+            "M" + "MC",
+            "instance" + ".cfg",
+            "mmc" + "-pack",
+            "patches" + "/",
+            "Managed" + "Pack",
+        )
+        val root = repositoryRoot()
+        val violations = repositoryContentViolations(
+            include = { path ->
+                val relative = root.relativize(path).pathString
+                path.name.endsWith(".kt") &&
+                    !relative.startsWith("docs/") &&
+                    !relative.contains("/src/test/")
+            },
+        ) { contents ->
+            forbiddenNames.any(contents::contains)
+        }
+
+        assertTrue(
+            violations.isEmpty(),
+            "Public Kotlin sources must not expose launcher internals:\n${violations.joinToString("\n")}",
+        )
+    }
+
     private fun repositoryContentViolations(
         include: (Path) -> Boolean = { true },
         predicate: (String) -> Boolean,

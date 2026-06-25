@@ -282,16 +282,25 @@ Evidence:
 - [x] Craftless-owned instance file layout is modeled.
 - [x] Client responses expose instance root, game root, mods, config, saves,
   resource packs, and shader packs.
-- [ ] Prism Launcher source findings are captured as design input.
-- [ ] Prism import/adapter remains optional and not a core runtime dependency.
-- [ ] Public API does not expose Prism internals.
+- [x] Prism Launcher source findings are captured as design input.
+- [x] Prism import/adapter remains optional and not a core runtime dependency.
+- [x] Public API does not expose Prism internals.
 
 Evidence:
 
 - Tests to rerun before final completion:
   - `mise exec -- gradle :protocol:test :daemon:test`
-- Next action: capture Prism-informed client file management decisions in docs
-  or tests without making Prism a runtime dependency.
+- Current Prism-informed file-management evidence:
+  - `docs/client-file-management.md` records findings from
+    `/tmp/prismlauncher` at commit
+    `9c2c6415310a0f36f9a9c48f3ee4901ba20bb139`.
+  - `InstanceFiles` keeps a Craftless-owned layout with `root`, `gameRoot`,
+    `mods`, `config`, `saves`, `resourcePacks`, and `shaderPacks`.
+  - `NamespacePolicyTest` verifies public Kotlin sources do not expose Prism,
+    MultiMC, or launcher-internal file names.
+  - `rg -n "Prism|PrismLauncher|MultiMC|MMC|instance\\.cfg|mmc-pack|patches/|ManagedPack" protocol/src/main daemon/src/main cli/src/main driver-api/src/main driver-runtime/src/main driver-fabric/src/main bridge-hmc/src/main testkit/src/main --glob '!**/build/**' --glob '!driver-fabric/run/**'`
+  - `mise exec -- gradle :protocol:test --tests com.minekube.craftless.protocol.ClientModelsTest --tests com.minekube.craftless.protocol.NamespacePolicyTest`
+  - `mise run ci`
 
 ## 10. Documentation
 
