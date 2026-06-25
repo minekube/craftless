@@ -22,15 +22,17 @@ data class ApiRoute(
         require(tag.isNotBlank()) { "route tag is required" }
         require(owner.isNotBlank()) { "route owner is required" }
         require(member == null || member.isNotBlank()) { "route member is required" }
-        require(target.isNotBlank()) { "route target is required" }
+        require(target in SUPPORTED_ROUTE_TARGETS) { "unsupported route target $target" }
         require(source in SUPPORTED_ROUTE_SOURCES) { "unsupported route source $source" }
-        require(returnKind.isNotBlank()) { "route return kind is required" }
+        require(returnKind in SUPPORTED_ROUTE_RETURN_KINDS) { "unsupported route return kind $returnKind" }
         actionId?.let { require(it.isCraftlessActionId()) { "invalid action id $it" } }
     }
 }
 
 private val SUPPORTED_ROUTE_METHODS = setOf("GET", "POST")
+private val SUPPORTED_ROUTE_TARGETS = setOf("supervisor", "client")
 private val SUPPORTED_ROUTE_SOURCES = setOf("route", "method", "action")
+private val SUPPORTED_ROUTE_RETURN_KINDS = setOf("value")
 
 class ApiRouteCatalog(
     val routes: List<ApiRoute>,

@@ -85,7 +85,9 @@ class ApiRouteCatalogTest {
         assertFailsWith<IllegalArgumentException> { route.copy(method = "get") }
         assertFailsWith<IllegalArgumentException> { route.copy(path = "clients/{id}:run") }
         assertFailsWith<IllegalArgumentException> { route.copy(operationId = "") }
+        assertFailsWith<IllegalArgumentException> { route.copy(target = "bridge") }
         assertFailsWith<IllegalArgumentException> { route.copy(source = "bridge") }
+        assertFailsWith<IllegalArgumentException> { route.copy(returnKind = "thread") }
         assertFailsWith<IllegalArgumentException> { route.copy(actionId = "player:move") }
     }
 }
