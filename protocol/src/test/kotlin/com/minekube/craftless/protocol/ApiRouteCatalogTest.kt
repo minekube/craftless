@@ -66,4 +66,26 @@ class ApiRouteCatalogTest {
 
         assertTrue(error.message!!.contains("duplicate route GET /clients"))
     }
+
+    @Test
+    fun `route metadata rejects invalid protocol fields`() {
+        val route = ApiRoute(
+            method = "GET",
+            path = "/clients/{id}:run",
+            operationId = "runClientAction",
+            tag = "clients",
+            owner = "clients",
+            member = "run",
+            target = "client",
+            source = "action",
+            actionId = "player.move",
+        )
+
+        assertFailsWith<IllegalArgumentException> { route.copy(method = "PUT") }
+        assertFailsWith<IllegalArgumentException> { route.copy(method = "get") }
+        assertFailsWith<IllegalArgumentException> { route.copy(path = "clients/{id}:run") }
+        assertFailsWith<IllegalArgumentException> { route.copy(operationId = "") }
+        assertFailsWith<IllegalArgumentException> { route.copy(source = "bridge") }
+        assertFailsWith<IllegalArgumentException> { route.copy(actionId = "player:move") }
+    }
 }

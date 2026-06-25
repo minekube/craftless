@@ -14,7 +14,23 @@ data class ApiRoute(
     val source: String,
     val returnKind: String = "value",
     val actionId: String? = null,
-)
+) {
+    init {
+        require(method in SUPPORTED_ROUTE_METHODS) { "unsupported route method $method" }
+        require(path.startsWith("/")) { "route path must start with /" }
+        require(operationId.isNotBlank()) { "route operation id is required" }
+        require(tag.isNotBlank()) { "route tag is required" }
+        require(owner.isNotBlank()) { "route owner is required" }
+        require(member == null || member.isNotBlank()) { "route member is required" }
+        require(target.isNotBlank()) { "route target is required" }
+        require(source in SUPPORTED_ROUTE_SOURCES) { "unsupported route source $source" }
+        require(returnKind.isNotBlank()) { "route return kind is required" }
+        actionId?.let { require(it.isCraftlessActionId()) { "invalid action id $it" } }
+    }
+}
+
+private val SUPPORTED_ROUTE_METHODS = setOf("GET", "POST")
+private val SUPPORTED_ROUTE_SOURCES = setOf("route", "method", "action")
 
 class ApiRouteCatalog(
     val routes: List<ApiRoute>,
