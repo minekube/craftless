@@ -67,21 +67,24 @@ Evidence:
 - [x] Per-client OpenAPI route exists at `GET /clients/{id}/openapi.json`.
 - [x] Per-client actions route exists at `GET /clients/{id}/actions`.
 - [x] Generic action invocation route exists at `POST /clients/{id}:run`.
-- [ ] Product HTTP server code uses Ktor Server only.
-- [ ] Kotlin/JVM HTTP client code and tests use Ktor Client only.
-- [ ] No OkHttp dependency exists.
-- [ ] No Java `HttpClient` product path exists.
-- [ ] No `com.sun.net.httpserver` product path exists.
-- [ ] No custom HTTP method enum exists.
-- [ ] Resource-oriented lifecycle routes use AIP-style standard and custom
+- [x] Product HTTP server code uses Ktor Server only.
+- [x] Kotlin/JVM HTTP client code and tests use Ktor Client only.
+- [x] No OkHttp dependency exists.
+- [x] No Java `HttpClient` product path exists.
+- [x] No `com.sun.net.httpserver` product path exists.
+- [x] No custom HTTP method enum exists.
+- [x] Resource-oriented lifecycle routes use AIP-style standard and custom
   methods.
 
 Evidence:
 
 - Commands:
   - `sed -n '1,240p' protocol/src/main/kotlin/com/minekube/craftless/protocol/ApiRoute.kt`
-- Next action: verify with protocol policy tests and targeted dependency/source
-  searches.
+  - `mise exec -- gradle :protocol:test --tests com.minekube.craftless.protocol.ApiRouteCatalogTest --tests com.minekube.craftless.protocol.NamespacePolicyTest`
+  - `rg -n "java\\.net\\.http|com\\.sun\\.net\\.httpserver|okhttp|OkHttp|enum class HttpMethod|enum class HTTPMethod|sealed class HttpMethod|object HttpMethod|HttpMethod" . --glob '!build/**' --glob '!**/build/**' --glob '!**/.gradle/**' --glob '!driver-fabric/run/**' --glob '!.git/**'`
+  - `rg -n "io\\.ktor|ktor-|ktor\\(" build.gradle.kts settings.gradle.kts */build.gradle.kts */src/main */src/test --glob '!**/build/**'`
+  - `rg -n "HttpClient|embeddedServer|Application|routing|CIO|Netty|ktor" cli daemon testkit protocol driver-api driver-runtime driver-fabric bridge-hmc --glob '!**/build/**' --glob '!driver-fabric/run/**'`
+  - `mise run ci`
 
 ## 3. Driver Contract
 
