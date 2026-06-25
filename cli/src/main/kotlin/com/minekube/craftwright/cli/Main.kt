@@ -22,6 +22,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
 import java.util.concurrent.CountDownLatch
 
 fun main(args: Array<String>) {
@@ -143,7 +144,12 @@ object McwCli {
         return runCatching {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
-                    http.get("${api.trimEnd('/')}/clients").forwardBody(stdout, stderr)
+                    val response = http.get("${api.trimEnd('/')}/clients")
+                    if (args.contains("--jsonl")) {
+                        response.forwardJsonLines(stdout, stderr)
+                    } else {
+                        response.forwardBody(stdout, stderr)
+                    }
                 }
             }
         }.getOrElse { error ->
@@ -324,6 +330,22 @@ object McwCli {
         val body = bodyAsText()
         return if (status.isSuccess()) {
             stdout(body)
+            0
+        } else {
+            stderr(body)
+            1
+        }
+    }
+
+    private suspend fun io.ktor.client.statement.HttpResponse.forwardJsonLines(
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+    ): Int {
+        val body = bodyAsText()
+        return if (status.isSuccess()) {
+            Json.parseToJsonElement(body).jsonArray.forEach { element ->
+                stdout(json.encodeToString(element))
+            }
             0
         } else {
             stderr(body)

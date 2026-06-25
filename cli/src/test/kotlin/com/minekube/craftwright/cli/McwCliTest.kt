@@ -115,6 +115,34 @@ class McwCliTest {
     }
 
     @Test
+    fun `clients list jsonl prints one client per line`() {
+        val output = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+            server.createOfflineClient("bob", "Bob")
+
+            val exit = McwCli.run(
+                listOf(
+                    "clients",
+                    "list",
+                    "--api",
+                    server.url,
+                    "--jsonl",
+                ),
+                stdout = { output.appendLine(it) },
+            )
+
+            assertEquals(0, exit)
+        }
+
+        val lines = output.lineSequence().filter { it.isNotBlank() }.toList()
+        assertEquals(2, lines.size)
+        assertEquals("alice", Json.parseToJsonElement(lines[0]).jsonObject["id"]?.jsonPrimitive?.content)
+        assertEquals("bob", Json.parseToJsonElement(lines[1]).jsonObject["id"]?.jsonPrimitive?.content)
+    }
+
+    @Test
     fun `clients connect posts connection target to daemon`() {
         val output = StringBuilder()
 
@@ -299,6 +327,10 @@ class McwCliTest {
         }
 
         fun createAlice() {
+            createOfflineClient("alice", "Alice")
+        }
+
+        fun createOfflineClient(id: String, name: String) {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
                     http.post("$url/clients") {
@@ -306,10 +338,10 @@ class McwCliTest {
                         setBody(
                             """
                             {
-                              "id": "alice",
+                              "id": "$id",
                               "version": "1.21.4",
                               "loader": "FABRIC",
-                              "profile": { "kind": "OFFLINE", "name": "Alice" }
+                              "profile": { "kind": "OFFLINE", "name": "$name" }
                             }
                             """.trimIndent()
                         )
