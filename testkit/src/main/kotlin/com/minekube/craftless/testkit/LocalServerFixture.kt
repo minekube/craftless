@@ -7,6 +7,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption.APPEND
 import java.nio.file.StandardOpenOption.CREATE
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 import kotlin.io.path.readLines
 import kotlin.io.path.writeText
 
@@ -36,6 +38,7 @@ data class LocalServerFixture(
             serverProperties = serverProperties,
             logsDir = logsDir,
             artifactsDir = artifactsDir,
+            serverLog = logsDir.resolve("server.log"),
             evidenceLog = artifactsDir.resolve("server-evidence.jsonl"),
         )
     }
@@ -46,6 +49,7 @@ data class LocalServerLayout(
     val serverProperties: Path,
     val logsDir: Path,
     val artifactsDir: Path,
+    val serverLog: Path,
     val evidenceLog: Path,
 ) {
     fun recordEvidence(evidence: LocalServerEvidence) {
@@ -64,6 +68,45 @@ data class LocalServerLayout(
         return true
     }
 
+    fun collectEvidenceFromProcess(
+        command: List<String>,
+        timeoutMillis: Long = 10_000,
+    ): LocalServerProcessResult {
+        require(command.isNotEmpty()) { "server process command is required" }
+        require(timeoutMillis > 0) { "server process timeout must be positive" }
+        Files.createDirectories(serverLog.parent)
+        val process = ProcessBuilder(command)
+            .directory(root.toFile())
+            .redirectErrorStream(true)
+            .start()
+        val output = mutableListOf<String>()
+        val outputReader = thread(name = "craftless-local-server-output") {
+            process.inputStream.bufferedReader().useLines { lines ->
+                lines.forEach { line -> output += line }
+            }
+        }
+
+        val exited = process.waitFor(timeoutMillis, TimeUnit.MILLISECONDS)
+        if (!exited) {
+            process.destroyForcibly()
+            outputReader.join(1_000)
+            error("server process timed out after ${timeoutMillis}ms")
+        }
+        outputReader.join()
+
+        Files.writeString(serverLog, output.joinToString("\n", postfix = "\n"), CREATE, APPEND)
+        var imported = 0
+        output.forEach { line ->
+            if (recordEvidenceFromLogLine(line)) {
+                imported += 1
+            }
+        }
+        return LocalServerProcessResult(
+            exitCode = process.exitValue(),
+            evidenceCount = imported,
+        )
+    }
+
     fun readEvidence(): List<LocalServerEvidence> {
         if (!Files.exists(evidenceLog)) {
             return emptyList()
@@ -73,6 +116,11 @@ data class LocalServerLayout(
             .map { line -> localServerEvidenceJson.decodeFromString<LocalServerEvidence>(line) }
     }
 }
+
+data class LocalServerProcessResult(
+    val exitCode: Int,
+    val evidenceCount: Int,
+)
 
 @Serializable
 data class LocalServerEvidence(

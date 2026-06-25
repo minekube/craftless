@@ -1,6 +1,7 @@
 package com.minekube.craftless.testkit
 
 import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -97,5 +98,42 @@ class LocalServerFixtureTest {
             ),
             layout.readEvidence(),
         )
+    }
+
+    @Test
+    fun `fixture collects evidence from a server process output`() {
+        val root = Files.createTempDirectory("craftless-server-process-evidence")
+        val layout = LocalServerFixture(root = root, port = 25567).prepare()
+        val java = Path.of(System.getProperty("java.home")).resolve("bin").resolve("java").toString()
+
+        val result = layout.collectEvidenceFromProcess(
+            listOf(
+                java,
+                "-cp",
+                System.getProperty("java.class.path"),
+                LocalServerLogEmitter::class.java.name,
+            )
+        )
+
+        assertEquals(0, result.exitCode)
+        assertEquals(3, result.evidenceCount)
+        assertTrue(Files.readString(layout.serverLog).contains("Alice joined the game"))
+        assertEquals(
+            listOf(
+                LocalServerEvidence(type = LocalServerEvidenceType.PLAYER_JOINED, player = "Alice"),
+                LocalServerEvidence(type = LocalServerEvidenceType.CHAT, player = "Alice", message = "hello from process"),
+                LocalServerEvidence(type = LocalServerEvidenceType.PLAYER_DISCONNECTED, player = "Alice"),
+            ),
+            layout.readEvidence(),
+        )
+    }
+}
+
+private object LocalServerLogEmitter {
+    @JvmStatic
+    fun main(args: Array<String>) {
+        println("[12:00:00] [Server thread/INFO]: Alice joined the game")
+        println("[12:00:01] [Server thread/INFO]: <Alice> hello from process")
+        println("[12:00:02] [Server thread/INFO]: Alice left the game")
     }
 }
