@@ -162,9 +162,10 @@ class NamespacePolicyTest {
     }
 
     private fun Path.isScannable(): Boolean {
-        val path = pathString
         if (isDirectory()) return false
-        if ("/build/" in path || "/.gradle/" in path || "/.git/" in path) return false
+        val ignoredDirectories = setOf("build", ".gradle", ".git", ".kotlin", ".vscode")
+        if (iterator().asSequence().any { it.name in ignoredDirectories }) return false
+        if (pathString.contains("driver-fabric/run/")) return false
         if (name.endsWith(".class") || name.endsWith(".jar") || name.endsWith(".png")) return false
         return true
     }

@@ -18,18 +18,23 @@ Status legend:
 - [x] JVM work is documented as `mise exec -- gradle ...`.
 - [x] JavaScript helper work is documented as `mise exec -- bun ...`.
 - [x] CI entrypoint is documented as `mise run ci`.
-- [ ] No npm, npx, yarn, pnpm, or global node workflow remains.
-- [ ] No unrelated dirty files are reverted or cleaned.
+- [x] No npm, npx, yarn, pnpm, or global node workflow remains.
+- [x] No unrelated dirty files are reverted or cleaned.
 
 Evidence:
 
-- Last verified working-tree note: root checklist created while `testkit/` and
-  `.vscode/` already had unrelated dirty entries.
+- Last verified working-tree note: `.vscode/` remains an untracked unrelated
+  local entry and was preserved; generated Fabric/Loom `driver-fabric/run/` is
+  ignored.
 - Commands:
   - `git status --short --branch`
   - `sed -n '1,220p' .mise.toml`
-- Next action: run full policy searches before marking the remaining workflow
-  discipline items complete.
+  - `find . -path './.git' -prune -o -path './build' -prune -o -path '*/build' -prune -o -path './driver-fabric/run' -prune -o \( -name 'package.json' -o -name 'package-lock.json' -o -name 'npm-shrinkwrap.json' -o -name 'yarn.lock' -o -name 'pnpm-lock.yaml' -o -name '.npmrc' -o -name '.yarnrc' -o -name '.yarnrc.yml' \) -print`
+  - `sed -n '1,220p' playwright/package.json`
+  - `mise run ci`
+  - `git diff --check`
+  - Commit evidence: `.gitignore` ignores generated Fabric/Loom `run/`
+    artifacts.
 
 ## 1. Naming And Public Surface
 
@@ -37,7 +42,7 @@ Evidence:
 - [x] Root Gradle group is `com.minekube.craftless`.
 - [x] README presents Craftless as the active product.
 - [x] Public domain references use `minekube.com`.
-- [ ] No `craftwright` references remain.
+- [x] No previous product-name references remain.
 - [ ] No removed TypeScript SDK is documented as active.
 - [ ] README describes only current active architecture plus clearly marked
   roadmap.
@@ -50,6 +55,9 @@ Evidence:
   - `sed -n '1,240p' README.md`
   - `sed -n '1,240p' build.gradle.kts`
   - `sed -n '1,220p' settings.gradle.kts`
+  - `mise exec -- gradle :protocol:test --tests com.minekube.craftless.protocol.NamespacePolicyTest`
+  - manual previous-name search using split literals to avoid embedding stale
+    names in docs
 - Next action: run the namespace/policy tests and repository searches before
   marking the remaining public-surface items complete.
 
