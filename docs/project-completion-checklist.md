@@ -163,7 +163,7 @@ Verification:
 - [x] Prism findings are captured as design input, not a core dependency.
 - [ ] Client runtime/file management is strong enough for repeated local and CI
   runs.
-- [ ] Public APIs expose Craftless-owned file handles only.
+- [x] Public APIs expose Craftless-owned file handles only.
 
 Verification:
 
