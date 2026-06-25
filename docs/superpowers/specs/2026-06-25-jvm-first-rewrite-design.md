@@ -92,12 +92,15 @@ are already Java-centric.
 TypeScript should not be the core. It cannot naturally provide Mixins, direct
 Minecraft class access, Fabric lifecycle integration, or tick-thread execution.
 
-TypeScript should instead provide:
+TypeScript should remain limited to repository helper and fixture code until
+the JVM protocol and generated API are steadier. Do not check in a hand-written
+TypeScript SDK as an active product surface.
 
-- Playwright Test fixtures.
-- Vitest unit helpers for the protocol.
-- Agent-friendly API wrappers.
-- Optional generated types from the JVM protocol schema.
+The currently allowed JavaScript-side surface is:
+
+- Playwright helper fixtures and matchers.
+- Optional generated clients or type definitions only after the live OpenAPI
+  contract is stable enough to make generation worthwhile.
 
 ## Target Repository Shape
 
@@ -170,18 +173,19 @@ The supervisor and daemon should talk to this layer through `driver-api/` and
 the `driver-runtime/` backend adapter. Current default daemon state still uses
 `FakeDriverSession`, but `ClientSessionService` can now be constructed with an
 injected runtime driver factory. The Fabric module now has a real
-client-thread gateway for connect, chat, command, stop, and generated action
-invocation such as `player.move` and `player.chat`. Player state, connection
-state, and position should come back through generated actions/resources rather
-than static driver methods or daemon routes.
+client-thread gateway for connect, chat, stop, and generated action invocation
+such as `player.move` and `player.chat`. Player state, connection state, and
+position should come back through generated actions/resources rather than
+static driver methods or daemon routes.
 
 Responsibilities:
 
 - Observe title screen, connection state, player state, chat, disconnect
   reasons, current screen, inventory screens, and rendered text where possible.
-- Execute commands on the Minecraft client thread.
+- Execute generated actions on the Minecraft client thread.
 - Connect and disconnect through real Minecraft APIs.
-- Invoke chat and command actions through real `LocalPlayer`/connection APIs.
+- Invoke chat and other generated actions through real `LocalPlayer`/connection
+  APIs without exposing Minecraft command strings as action input.
 - Expose GUI and input actions through stable Craftless abstractions.
 - Set player movement intent through generated/discovered actions. The current
   `player.move` action reaches the Fabric gateway and writes
