@@ -269,18 +269,30 @@ object CraftlessCli {
             return 2
         }
         val api = args.apiBaseUrl(env)
-        val payload = ActionRunRequest(
-            action = action,
-            args = args.optionValues("--arg").associate { argument ->
-                val parts = argument.split("=", limit = 2)
-                require(parts.size == 2 && parts[0].isNotBlank()) { "--arg must use key=value syntax" }
-                parts[0] to parts[1].toJsonArgument()
-            },
-        )
 
         return runCatching {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
+                    val actionsResponse = http.get("${api.trimEnd('/')}/clients/$clientId/actions")
+                    val actionsBody = actionsResponse.bodyAsText()
+                    if (!actionsResponse.status.isSuccess()) {
+                        stderr(actionsBody)
+                        return@runBlocking 1
+                    }
+                    val descriptor = json.decodeFromString<List<OpenApiAction>>(actionsBody)
+                        .firstOrNull { it.id == action }
+                    if (descriptor == null) {
+                        stderr("error: action $action is not available for client $clientId")
+                        return@runBlocking 1
+                    }
+                    val payload = ActionRunRequest(
+                        action = action,
+                        args = args.optionValues("--arg").associate { argument ->
+                            val parts = argument.split("=", limit = 2)
+                            require(parts.size == 2 && parts[0].isNotBlank()) { "--arg must use key=value syntax" }
+                            parts[0] to parts[1].toJsonArgument(descriptor.arguments[parts[0]]?.type)
+                        },
+                    )
                     val response = http.post("${api.trimEnd('/')}/clients/$clientId:run") {
                         contentType(ContentType.Application.Json)
                         setBody(json.encodeToString(payload))

@@ -300,6 +300,34 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `clients run rejects actions missing from runtime action metadata`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = CraftlessCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "run",
+                    "player.fly",
+                    "--api",
+                    server.url,
+                ),
+                stdout = { output.appendLine(it) },
+                stderr = { errors.appendLine(it) },
+            )
+
+            assertEquals(1, exit)
+        }
+
+        assertEquals("", output.toString())
+        assertTrue(errors.toString().contains("action player.fly is not available for client alice"))
+    }
+
+    @Test
     fun `clients actions fetches discovered actions from daemon`() {
         val output = StringBuilder()
 
