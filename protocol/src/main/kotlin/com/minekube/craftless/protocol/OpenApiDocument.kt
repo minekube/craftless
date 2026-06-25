@@ -203,6 +203,7 @@ private fun Map<String, OpenApiActionArgument>.toRequestBody(): OpenApiRequestBo
                 type = "object",
                 properties = mapValues { (_, argument) -> OpenApiSchema(type = argument.type) },
                 required = filterValues { it.required }.keys.toList(),
+                additionalProperties = false,
             )
         )
     )

@@ -170,6 +170,7 @@ class ClientSessionServiceTest {
             ?.schema
         assertNotNull(chatSchema)
         assertEquals("object", chatSchema.type)
+        assertEquals(false, chatSchema.additionalProperties)
         assertEquals(listOf("message"), chatSchema.required)
         assertEquals("string", chatSchema.properties["message"]?.type)
         val moveSchema = document.paths["/clients/alice/player:move"]?.post?.requestBody
@@ -177,6 +178,7 @@ class ClientSessionServiceTest {
             ?.get("application/json")
             ?.schema
         assertNotNull(moveSchema)
+        assertEquals(false, moveSchema.additionalProperties)
         assertEquals("boolean", moveSchema.properties["forward"]?.type)
         assertEquals("integer", moveSchema.properties["ticks"]?.type)
         assertFalse(document.paths.keys.any { it.endsWith("/actions/move") })
