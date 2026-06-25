@@ -138,7 +138,7 @@ private fun ApiRoute.responses(): Map<String, OpenApiResponse> {
 private fun ApiRoute.errorStatuses(): List<String> =
     when {
         path == "/clients" && method == "POST" -> listOf("400")
-        path.endsWith(":connect") && method == "POST" -> listOf("400")
+        path.endsWith(":connect") && method == "POST" -> listOf("400", "404")
         path.endsWith(":run") && method == "POST" -> listOf("400", "404")
         path.endsWith(":stop") && method == "POST" -> listOf("404")
         path == "/clients/{id}" && method == "GET" -> listOf("404")

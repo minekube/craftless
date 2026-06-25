@@ -156,6 +156,23 @@ class LocalSessionApiServerTest {
     }
 
     @Test
+    fun `server reports missing client connect as not found`() = withHttpClient { http ->
+        LocalSessionApiServer.inMemory().use { server ->
+            server.start()
+
+            http.post(server.url("/clients/missing:connect")) {
+                contentType(ContentType.Application.Json)
+                setBody("""{"host":"localhost","port":25565}""")
+            }.let { response ->
+                val body = response.bodyAsText()
+                assertEquals(HttpStatusCode.NotFound, response.status)
+                assertTrue(body.contains("\"code\":\"NOT_FOUND\""))
+                assertTrue(body.contains("client missing not found"))
+            }
+        }
+    }
+
+    @Test
     fun `server handles session routes for fake client actions`() = withHttpClient { http ->
         LocalSessionApiServer.inMemory().use { server ->
             server.start()

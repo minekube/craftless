@@ -110,6 +110,9 @@ class LocalSessionApiServer private constructor(
             post("/clients/{id}:connect") {
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {
+                    if (!service.hasClient(clientId)) {
+                        throw ClientRouteNotFound("client $clientId not found")
+                    }
                     val request = json.decodeFromString<ConnectRequest>(call.receiveText())
                     val client = service.connectClient(
                         clientId,
@@ -125,7 +128,11 @@ class LocalSessionApiServer private constructor(
                     )
                     call.respondJson(HttpStatusCode.OK, client)
                 }.getOrElse { error ->
-                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                    if (error is ClientRouteNotFound) {
+                        call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
+                    } else {
+                        call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                    }
                 }
             }
             get("/clients/{id}/actions") {
