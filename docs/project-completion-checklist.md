@@ -58,6 +58,7 @@ Baseline evidence:
   `gameplay-results.jsonl`.
 - Key commands:
   - `mise run lint`
+  - `mise run architecture-check`
   - `mise run ci`
   - `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
 - Current known local-only files: none in `git status`.
@@ -225,11 +226,12 @@ Verification:
 - [x] `mise run ci` exists.
 - [x] Kotlin lint includes ktlint, detekt, and compiler warnings as errors.
 - [x] Bun helper tests run through `mise`.
-- [ ] CI and local checks cover the real discovery/action architecture once it
-  replaces placeholder descriptors.
+- [x] `mise run architecture-check` covers the live OpenAPI/action architecture
+  across protocol, daemon, CLI, Fabric driver, and Bun helper tests.
 
 Verification:
 
+- `mise run architecture-check`
 - `mise run lint`
 - `mise run ci`
 - `git diff --check`

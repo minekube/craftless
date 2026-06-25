@@ -29,9 +29,10 @@ Craftless currently has:
 - generated action aliases are emitted from the same live action snapshot as
   the per-client OpenAPI action metadata, and OpenAPI generation rejects alias
   routes without matching action descriptors;
-- adaptive CLI generic and generated-alias action dispatch validates
-  availability through `/clients/{id}/actions` but takes argument schemas and
-  generated help from the live `/clients/{id}/openapi.json` action descriptor;
+- adaptive CLI generic and generated-alias action dispatch uses the live
+  `/clients/{id}/openapi.json` action descriptors for action existence,
+  argument schemas, and generated help, while `/clients/{id}/actions` remains
+  a descriptor projection;
 - protocol policy tests reject public action descriptors and route metadata
   that leak Fabric, Yarn, intermediary, raw Minecraft, bridge, or launcher
   namespace tokens;
@@ -89,6 +90,8 @@ Craftless is not complete until the repository can prove all of the following:
   presenting removed TypeScript SDK or bridge details as product surfaces.
 - CI covers protocol policy, driver contract, daemon HTTP behavior, CLI
   dispatch, Fabric module compilation, and Bun-powered helper tests.
+- `mise run architecture-check` covers the live OpenAPI/action architecture
+  across protocol, daemon, CLI, Fabric driver, and Bun helper tests.
 
 ## Phase 1: Real-Client Proof
 
@@ -145,6 +148,7 @@ or static placeholder descriptors.
 Verification gate:
 
 ```sh
+mise run architecture-check
 mise exec -- gradle :protocol:test :driver-api:test :daemon:test :cli:test
 mise run ci
 ```

@@ -183,12 +183,15 @@ Install and run pinned tools through `mise`:
 mise install
 mise run ci
 mise run lint
+mise run architecture-check
 mise run lint-fix
 mise exec -- gradle test
 ```
 
 `mise run lint` runs ktlint, detekt, and Kotlin compilation with warnings
 treated as errors.
+`mise run architecture-check` runs the focused protocol, daemon, CLI, Fabric,
+and Bun helper checks that guard the live OpenAPI/action architecture.
 
 Use Bun for Playwright helper tests:
 

@@ -130,6 +130,25 @@ class NamespacePolicyTest {
     }
 
     @Test
+    fun `mise exposes an architecture check for live openapi action contracts`() {
+        val mise = Files.readString(repositoryRoot().resolve(".mise.toml"))
+
+        assertTrue(mise.contains("[tasks.architecture-check]"), "mise must expose architecture-check")
+        listOf(
+            ":protocol:test",
+            ":daemon:test",
+            ":cli:test",
+            ":driver-fabric:test",
+            "bun test playwright",
+        ).forEach { requiredCommand ->
+            assertTrue(
+                mise.contains(requiredCommand),
+                "architecture-check must include $requiredCommand",
+            )
+        }
+    }
+
+    @Test
     fun `driver runtime public errors do not expose bridge internals`() {
         val forbiddenMessage = "bridge" + " returned"
         val root = repositoryRoot()
