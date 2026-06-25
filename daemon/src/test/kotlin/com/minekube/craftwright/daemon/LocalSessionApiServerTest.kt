@@ -33,9 +33,15 @@ class LocalSessionApiServerTest {
             }
 
             http.get(server.url("/openapi.json")).let { openapi ->
+                val body = openapi.bodyAsText()
                 assertEquals(HttpStatusCode.OK, openapi.status)
-                assertTrue(openapi.bodyAsText().contains("/clients/{id}:run"))
-                assertTrue(!openapi.bodyAsText().contains("/player/sendChat"))
+                assertTrue(body.contains("/clients/{id}:run"))
+                assertTrue(!body.contains("\"/client\""))
+                assertTrue(!body.contains("\"/client/state\""))
+                assertTrue(!body.contains("\"/connection\""))
+                assertTrue(!body.contains("/o/{handle}"))
+                assertTrue(!body.contains("/c/{className}"))
+                assertTrue(!body.contains("/player/sendChat"))
             }
 
             http.get(server.url("/events")).let { events ->

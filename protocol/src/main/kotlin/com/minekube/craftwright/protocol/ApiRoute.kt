@@ -35,9 +35,6 @@ class ApiRouteCatalog(
                 route("GET", "/openapi.json", "getOpenapiJson", "openapi", "com.minekube.craftwright.openapi", "openapi", "route"),
                 route("GET", "/version", "getVersion", "version", "com.minekube.craftwright.version", "version", "route"),
                 route("GET", "/events", "getEvents", "events", "com.minekube.craftwright.events", "events", "route"),
-                route("GET", "/client", "getClient", "client", "com.minekube.craftwright.client", "client", "root", "handle"),
-                route("GET", "/client/state", "getClientState", "client", "com.minekube.craftwright.client", "state", "getter"),
-                route("GET", "/connection", "getConnection", "connection", "com.minekube.craftwright.connection", "connection", "root", "handle"),
                 route("GET", "/clients", "listClients", "clients", "com.minekube.craftwright.daemon.clients", "list", "route"),
                 route("POST", "/clients", "createClient", "clients", "com.minekube.craftwright.daemon.clients", "create", "route"),
                 route("GET", "/clients/{id}", "getClient", "clients", "com.minekube.craftwright.daemon.clients", "get", "route"),
@@ -47,15 +44,6 @@ class ApiRouteCatalog(
                 route("POST", "/clients/{id}:run", "runClientAction", "clients", "com.minekube.craftwright.daemon.clients", "run", "action"),
                 route("POST", "/clients/{id}/stop", "stopClient", "clients", "com.minekube.craftwright.daemon.clients", "stop", "method"),
                 route("GET", "/clients/{id}/events", "getClientEvents", "clients", "com.minekube.craftwright.daemon.clients", "events", "route"),
-                route("GET", "/o/{handle}", "getObjectHandle", "objects", "java.lang.Object", "handle", "handle", "handle"),
-                route("GET", "/o/{handle}/fields", "getObjectFields", "objects", "java.lang.Object", "fields", "handle"),
-                route("GET", "/o/{handle}/field/{field}", "getObjectField", "objects", "java.lang.Object", "field", "handle"),
-                route("POST", "/o/{handle}/field/{field}", "setObjectField", "objects", "java.lang.Object", "field", "handle"),
-                route("GET", "/o/{handle}/methods", "getObjectMethods", "objects", "java.lang.Object", "methods", "handle"),
-                route("POST", "/o/{handle}/method/{method}", "callObjectMethod", "objects", "java.lang.Object", "method", "handle"),
-                route("GET", "/c/{className}", "getClassMetadata", "classes", "java.lang.Class", "className", "class"),
-                route("GET", "/c/{className}/fields", "getClassFields", "classes", "java.lang.Class", "fields", "class"),
-                route("GET", "/c/{className}/methods", "getClassMethods", "classes", "java.lang.Class", "methods", "class"),
             )
         )
 
