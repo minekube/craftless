@@ -175,9 +175,9 @@ private fun ApiRoute.responses(): Map<String, OpenApiResponse> {
 private fun ApiRoute.errorStatuses(): List<String> =
     when {
         path == "/clients" && method == "POST" -> listOf("400")
-        path.endsWith(":connect") && method == "POST" -> listOf("400", "404")
-        source == "action" && method == "POST" -> listOf("400", "404")
-        path.endsWith(":run") && method == "POST" -> listOf("400", "404")
+        path.endsWith(":connect") && method == "POST" -> listOf("400", "404", "409")
+        source == "action" && method == "POST" -> listOf("400", "404", "409")
+        path.endsWith(":run") && method == "POST" -> listOf("400", "404", "409")
         path.endsWith(":stop") && method == "POST" -> listOf("404")
         path == "/clients/{id}" && method == "GET" -> listOf("404")
         path == "/clients/{id}/openapi.json" && method == "GET" -> listOf("404")
@@ -228,6 +228,7 @@ private fun errorResponse(status: String): OpenApiResponse =
         description = when (status) {
             "400" -> "Bad Request"
             "404" -> "Not Found"
+            "409" -> "Conflict"
             else -> "Error"
         },
         content = jsonContent(errorSchema()),

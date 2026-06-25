@@ -875,7 +875,7 @@ class CraftlessCliTest {
         }
 
         assertEquals("", output.toString())
-        assertTrue(errors.toString().contains("NOT_FOUND"))
+        assertTrue(errors.toString().contains("MISSING_CLIENT"))
     }
 
     @Test

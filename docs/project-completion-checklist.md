@@ -120,8 +120,8 @@ Evidence:
   mappings, mods, registries, server features, permissions, and schema versions.
 - [ ] Action descriptors include all needed argument schemas.
 - [ ] Action result schemas are represented where needed.
-- [ ] Daemon rejects unavailable actions.
-- [ ] Daemon rejects invalid or mismatched arguments.
+- [x] Daemon rejects unavailable actions.
+- [x] Daemon rejects invalid or mismatched arguments.
 - [ ] Generated aliases are derived from OpenAPI/action metadata only.
 - [ ] No static route family is added for gameplay actions such as
   `/player/sendChat`.
@@ -133,6 +133,16 @@ Evidence:
   - `rg -n "interface .*Gateway|class .*Gateway|dispatchChatMessage|fun (chat|move|jump|look)\\(|when \\(invocation\\.action\\)|if \\(invocation\\.action|DriverActionDescriptor\\(|actions\\(clientId|ClientAction|player\\.chat|player\\.move" driver-api driver-runtime driver-fabric bridge-hmc daemon cli protocol --glob '!build/**' --glob '!**/.gradle/**'`
 - Tests to rerun before final completion:
   - `mise exec -- gradle :protocol:test :daemon:test :cli:test`
+Current daemon rejection evidence:
+
+- Working-tree evidence: `LocalSessionApiServer` returns structured
+  `UNSUPPORTED_ACTION` errors for unavailable generated actions and
+  `INVALID_ACTION_INPUT` errors for invalid IDs, undeclared arguments, missing
+  required arguments, type mismatches, and driver-side action validation
+  failures.
+- Verification:
+  - `mise exec -- gradle :protocol:test :daemon:test`
+  - `mise run ci`
 Current action-boundary audit:
 
 - Working-tree evidence: `driver-fabric/.../FabricActionBindings.kt` owns the
@@ -161,15 +171,24 @@ Current action-boundary audit:
 - [x] Daemon serves live `/clients/{id}/openapi.json`.
 - [x] Daemon serves `/clients/{id}/actions`.
 - [x] Daemon dispatches `POST /clients/{id}:run` through the driver runtime.
-- [ ] Daemon errors are structured for unsupported action, invalid input,
+- [x] Daemon errors are structured for unsupported action, invalid input,
   missing client, and stopped client states.
-- [ ] Daemon tests cover lifecycle, OpenAPI, action listing, action invocation,
+- [x] Daemon tests cover lifecycle, OpenAPI, action listing, action invocation,
   and error behavior.
 
 Evidence:
 
 - Tests to rerun before final completion:
   - `mise exec -- gradle :daemon:test`
+- Current structured error evidence:
+  - `LocalSessionApiServerTest` asserts `MISSING_CLIENT`,
+    `UNSUPPORTED_ACTION`, `INVALID_ACTION_INPUT`, and `STOPPED_CLIENT` JSON
+    error codes at the Ktor route boundary.
+  - `OpenApiDocument` advertises machine-readable error schemas for stable
+    400, 404, and stopped-client 409 responses where applicable.
+  - `mise exec -- gradle :protocol:test :daemon:test`
+  - `mise exec -- gradle :cli:test`
+  - `mise run ci`
 
 ## 6. CLI
 

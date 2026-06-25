@@ -10,6 +10,7 @@ import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.ApiRouteCatalog
 import com.minekube.craftless.protocol.Client
+import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.isCraftlessActionId
@@ -82,7 +83,7 @@ class LocalSessionApiServer private constructor(
                 runCatching {
                     call.respondJson(HttpStatusCode.OK, service.openApiFor(clientId))
                 }.getOrElse { error ->
-                    call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
+                    call.respondMissingClient(error)
                 }
             }
             post("/clients") {
@@ -107,7 +108,7 @@ class LocalSessionApiServer private constructor(
                 runCatching {
                     call.respondJson(HttpStatusCode.OK, service.client(clientId))
                 }.getOrElse { error ->
-                    call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
+                    call.respondMissingClient(error)
                 }
             }
             get("/clients/{id}/events") {
@@ -116,15 +117,13 @@ class LocalSessionApiServer private constructor(
                     service.routesFor(clientId)
                     call.respondJson(HttpStatusCode.OK, events.filter { it.client == clientId })
                 }.getOrElse { error ->
-                    call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
+                    call.respondMissingClient(error)
                 }
             }
             post("/clients/{id}:connect") {
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {
-                    if (!service.hasClient(clientId)) {
-                        throw ClientRouteNotFound("client $clientId not found")
-                    }
+                    service.requireActiveClient(clientId)
                     val request = json.decodeFromString<ConnectRequest>(call.receiveText())
                     val client = service.connectClient(
                         clientId,
@@ -140,10 +139,12 @@ class LocalSessionApiServer private constructor(
                     )
                     call.respondJson(HttpStatusCode.OK, client)
                 }.getOrElse { error ->
-                    if (error is ClientRouteNotFound) {
-                        call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
-                    } else {
-                        call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                    when (error) {
+                        is RouteFailure -> call.respondRouteFailure(error)
+                        else -> call.respondJson(
+                            HttpStatusCode.BadRequest,
+                            ErrorResponse("BAD_REQUEST", error.message ?: "bad request"),
+                        )
                     }
                 }
             }
@@ -152,19 +153,19 @@ class LocalSessionApiServer private constructor(
                 runCatching {
                     call.respondJson(HttpStatusCode.OK, service.openApiFor(clientId).actions)
                 }.getOrElse { error ->
-                    call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
+                    call.respondMissingClient(error)
                 }
             }
             post("/clients/{id}:run") {
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {
                     val request = json.decodeFromString<ActionInvocationRequest>(call.receiveText())
-                    require(request.action.isCraftlessActionId()) { "invalid action id ${request.action}" }
-                    val driver = runCatching { service.driverFor(clientId) }.getOrElse { error ->
-                        throw ClientRouteNotFound(error.message ?: "client not found")
+                    if (!request.action.isCraftlessActionId()) {
+                        throw InvalidActionInput("invalid action id ${request.action}")
                     }
+                    val driver = service.requireActiveDriver(clientId)
                     val action = driver.actionDescriptor(request.action)
-                        ?: throw GeneratedActionRouteNotFound("action ${request.action} is not available for client $clientId")
+                        ?: throw UnsupportedAction("action ${request.action} is not available for client $clientId")
                     action.requireArguments(request.args)
                     val result = driver.invoke(
                         DriverActionInvocation(
@@ -172,6 +173,9 @@ class LocalSessionApiServer private constructor(
                             arguments = request.args,
                         )
                     )
+                    if (result.status == DriverActionStatus.UNSUPPORTED) {
+                        throw UnsupportedAction(result.message ?: "action ${request.action} is not available for client $clientId")
+                    }
                     result.toSessionEvent(clientId)?.let { events += it }
                     call.respondJson(
                         HttpStatusCode.OK,
@@ -182,10 +186,12 @@ class LocalSessionApiServer private constructor(
                         )
                     )
                 }.getOrElse { error ->
-                    if (error is ClientRouteNotFound || error is GeneratedActionRouteNotFound) {
-                        call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
-                    } else {
-                        call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                    when (error) {
+                        is RouteFailure -> call.respondRouteFailure(error)
+                        else -> call.respondJson(
+                            HttpStatusCode.BadRequest,
+                            ErrorResponse("INVALID_ACTION_INPUT", error.message ?: "invalid action input"),
+                        )
                     }
                 }
             }
@@ -200,7 +206,7 @@ class LocalSessionApiServer private constructor(
                     )
                     call.respondJson(HttpStatusCode.OK, client)
                 }.getOrElse { error ->
-                    call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
+                    call.respondMissingClient(error)
                 }
             }
             post("/clients/{id}/{actionAlias}") {
@@ -208,12 +214,10 @@ class LocalSessionApiServer private constructor(
                 val actionAlias = requireNotNull(call.parameters["actionAlias"]) { "action alias is required" }
                 runCatching {
                     val actionId = actionAlias.toActionId()
-                    val driver = runCatching { service.driverFor(clientId) }.getOrElse { error ->
-                        throw GeneratedActionRouteNotFound(error.message ?: "client not found")
-                    }
+                    val driver = service.requireActiveDriver(clientId)
                     val action = driver.actionDescriptor(actionId)
                     if (action == null) {
-                        throw GeneratedActionRouteNotFound("action $actionId is not available for client $clientId")
+                        throw UnsupportedAction("action $actionId is not available for client $clientId")
                     }
                     val arguments = call.receiveActionArguments()
                     action.requireArguments(arguments)
@@ -223,6 +227,9 @@ class LocalSessionApiServer private constructor(
                             arguments = arguments,
                         )
                     )
+                    if (result.status == DriverActionStatus.UNSUPPORTED) {
+                        throw UnsupportedAction(result.message ?: "action $actionId is not available for client $clientId")
+                    }
                     result.toSessionEvent(clientId)?.let { events += it }
                     call.respondJson(
                         HttpStatusCode.OK,
@@ -233,10 +240,12 @@ class LocalSessionApiServer private constructor(
                         )
                     )
                 }.getOrElse { error ->
-                    if (error is GeneratedActionRouteNotFound) {
-                        call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "action not found"))
-                    } else {
-                        call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                    when (error) {
+                        is RouteFailure -> call.respondRouteFailure(error)
+                        else -> call.respondJson(
+                            HttpStatusCode.BadRequest,
+                            ErrorResponse("INVALID_ACTION_INPUT", error.message ?: "invalid action input"),
+                        )
                     }
                 }
             }
@@ -263,6 +272,15 @@ class LocalSessionApiServer private constructor(
     ) {
         respondText(json.encodeToString(value), ContentType.Application.Json, status)
     }
+
+    private suspend fun ApplicationCall.respondRouteFailure(error: RouteFailure) {
+        respondJson(error.status, ErrorResponse(error.code, error.message ?: error.code))
+    }
+
+    private suspend fun ApplicationCall.respondMissingClient(error: Throwable) {
+        val message = error.message ?: "client not found"
+        respondJson(HttpStatusCode.NotFound, ErrorResponse("MISSING_CLIENT", message))
+    }
 }
 
 private fun allocateLoopbackPort(): Int =
@@ -278,6 +296,23 @@ private suspend fun ApplicationCall.receiveActionArguments(): Map<String, JsonEl
 
 private fun DriverSession.actionDescriptor(actionId: String): DriverActionDescriptor? =
     actions().firstOrNull { it.id == actionId }
+
+private fun ClientSessionService.requireActiveClient(clientId: String): Client {
+    val client = runCatching { client(clientId) }.getOrElse { error ->
+        throw MissingClient(error.message ?: "client $clientId not found")
+    }
+    if (client.state == ClientState.STOPPED) {
+        throw StoppedClient("client $clientId is stopped")
+    }
+    return client
+}
+
+private fun ClientSessionService.requireActiveDriver(clientId: String): DriverSession {
+    requireActiveClient(clientId)
+    return runCatching { driverFor(clientId) }.getOrElse { error ->
+        throw MissingClient(error.message ?: "client $clientId not found")
+    }
+}
 
 private fun DriverActionDescriptor.requireArguments(arguments: Map<String, JsonElement>) {
     val undeclared = arguments.keys.firstOrNull { it !in this.arguments }
@@ -319,7 +354,7 @@ private fun JsonPrimitive.isJsonString(): Boolean =
 private fun String.toActionId(): String {
     val parts = split(":", limit = 2)
     if (parts.size != 2 || parts.any { it.isBlank() }) {
-        throw GeneratedActionRouteNotFound("action alias must use resource:action syntax")
+        throw UnsupportedAction("action alias must use resource:action syntax")
     }
     return "${parts[0]}.${parts[1]}"
 }
@@ -346,9 +381,19 @@ private fun DriverActionResult.toSessionEvent(clientId: String): SessionEvent? {
 private fun DriverEventType.sessionEventType(): String =
     name.lowercase().replace("_", ".")
 
-private class GeneratedActionRouteNotFound(message: String) : RuntimeException(message)
+private sealed class RouteFailure(
+    val status: HttpStatusCode,
+    val code: String,
+    message: String,
+) : RuntimeException(message)
 
-private class ClientRouteNotFound(message: String) : RuntimeException(message)
+private class MissingClient(message: String) : RouteFailure(HttpStatusCode.NotFound, "MISSING_CLIENT", message)
+
+private class UnsupportedAction(message: String) : RouteFailure(HttpStatusCode.NotFound, "UNSUPPORTED_ACTION", message)
+
+private class InvalidActionInput(message: String) : RouteFailure(HttpStatusCode.BadRequest, "INVALID_ACTION_INPUT", message)
+
+private class StoppedClient(message: String) : RouteFailure(HttpStatusCode.Conflict, "STOPPED_CLIENT", message)
 
 @Serializable
 data class RuntimeVersion(

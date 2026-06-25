@@ -48,9 +48,6 @@ class ClientSessionService private constructor(
     fun listClients(): List<Client> =
         clients.values.toList()
 
-    fun hasClient(clientId: String): Boolean =
-        clients.containsKey(clientId)
-
     fun client(clientId: String): Client =
         clients[clientId] ?: error("client $clientId not found")
 

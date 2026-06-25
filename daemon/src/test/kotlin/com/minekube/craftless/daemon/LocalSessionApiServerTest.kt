@@ -99,7 +99,7 @@ class LocalSessionApiServerTest {
 
             http.get(server.url("/clients/missing")).let { missingClient ->
                 assertEquals(HttpStatusCode.NotFound, missingClient.status)
-                assertTrue(missingClient.bodyAsText().contains("client missing not found"))
+                assertError(missingClient.bodyAsText(), "MISSING_CLIENT", "client missing not found")
             }
 
             http.get(server.url("/clients/alice/events")).let { clientEvents ->
@@ -178,8 +178,54 @@ class LocalSessionApiServerTest {
             }.let { response ->
                 val body = response.bodyAsText()
                 assertEquals(HttpStatusCode.NotFound, response.status)
-                assertTrue(body.contains("\"code\":\"NOT_FOUND\""))
-                assertTrue(body.contains("client missing not found"))
+                assertError(body, "MISSING_CLIENT", "client missing not found")
+            }
+        }
+    }
+
+    @Test
+    fun `server returns structured action error codes`() = withHttpClient { http ->
+        LocalSessionApiServer.inMemory().use { server ->
+            server.start()
+            createAlice(http, server)
+
+            http.post(server.url("/clients/missing:run")) {
+                contentType(ContentType.Application.Json)
+                setBody("""{"action":"player.chat","args":{"message":"hello missing"}}""")
+            }.let { response ->
+                assertEquals(HttpStatusCode.NotFound, response.status)
+                assertError(response.bodyAsText(), "MISSING_CLIENT", "client missing not found")
+            }
+
+            http.post(server.url("/clients/alice:run")) {
+                contentType(ContentType.Application.Json)
+                setBody("""{"action":"player.fly","args":{}}""")
+            }.let { response ->
+                assertEquals(HttpStatusCode.NotFound, response.status)
+                assertError(response.bodyAsText(), "UNSUPPORTED_ACTION", "action player.fly is not available for client alice")
+            }
+
+            http.post(server.url("/clients/alice:run")) {
+                contentType(ContentType.Application.Json)
+                setBody("""{"action":"player.move","args":{"forward":true,"ticks":"20"}}""")
+            }.let { response ->
+                assertEquals(HttpStatusCode.BadRequest, response.status)
+                assertError(response.bodyAsText(), "INVALID_ACTION_INPUT", "action player.move argument ticks must be integer")
+            }
+
+            http.post(server.url("/clients/alice:stop")) {
+                contentType(ContentType.Application.Json)
+                setBody("{}")
+            }.let { response ->
+                assertEquals(HttpStatusCode.OK, response.status)
+            }
+
+            http.post(server.url("/clients/alice:run")) {
+                contentType(ContentType.Application.Json)
+                setBody("""{"action":"player.chat","args":{"message":"after stop"}}""")
+            }.let { response ->
+                assertEquals(HttpStatusCode.Conflict, response.status)
+                assertError(response.bodyAsText(), "STOPPED_CLIENT", "client alice is stopped")
             }
         }
     }
@@ -248,8 +294,7 @@ class LocalSessionApiServerTest {
             }.let { response ->
                 val body = response.bodyAsText()
                 assertEquals(HttpStatusCode.BadRequest, response.status)
-                assertTrue(body.contains("\"code\":\"BAD_REQUEST\""))
-                assertTrue(body.contains("invalid action id minecraft.player.move"))
+                assertError(body, "INVALID_ACTION_INPUT", "invalid action id minecraft.player.move")
             }
 
             http.post(server.url("/clients/alice:run")) {
@@ -258,8 +303,7 @@ class LocalSessionApiServerTest {
             }.let { response ->
                 val body = response.bodyAsText()
                 assertEquals(HttpStatusCode.BadRequest, response.status)
-                assertTrue(body.contains("\"code\":\"BAD_REQUEST\""))
-                assertTrue(body.contains("action player.chat does not declare argument surprise"))
+                assertError(body, "INVALID_ACTION_INPUT", "action player.chat does not declare argument surprise")
             }
 
             http.post(server.url("/clients/missing:run")) {
@@ -268,8 +312,7 @@ class LocalSessionApiServerTest {
             }.let { response ->
                 val body = response.bodyAsText()
                 assertEquals(HttpStatusCode.NotFound, response.status)
-                assertTrue(body.contains("\"code\":\"NOT_FOUND\""))
-                assertTrue(body.contains("client missing not found"))
+                assertError(body, "MISSING_CLIENT", "client missing not found")
             }
 
             http.post(server.url("/clients/alice/player:chat")) {
@@ -287,8 +330,7 @@ class LocalSessionApiServerTest {
             }.let { response ->
                 val body = response.bodyAsText()
                 assertEquals(HttpStatusCode.BadRequest, response.status)
-                assertTrue(body.contains("\"code\":\"BAD_REQUEST\""))
-                assertTrue(body.contains("action player.chat requires argument message"))
+                assertError(body, "INVALID_ACTION_INPUT", "action player.chat requires argument message")
             }
 
             assertEquals(HttpStatusCode.NotFound, http.get(server.url("/clients/alice/player")).status)
@@ -318,8 +360,7 @@ class LocalSessionApiServerTest {
             }.let { response ->
                 val body = response.bodyAsText()
                 assertEquals(HttpStatusCode.BadRequest, response.status)
-                assertTrue(body.contains("\"code\":\"BAD_REQUEST\""))
-                assertTrue(body.contains("action player.move argument ticks must be integer"))
+                assertError(body, "INVALID_ACTION_INPUT", "action player.move argument ticks must be integer")
             }
 
             http.post(server.url("/clients/alice/player:move")) {
@@ -338,8 +379,7 @@ class LocalSessionApiServerTest {
             }.let { response ->
                 val body = response.bodyAsText()
                 assertEquals(HttpStatusCode.BadRequest, response.status)
-                assertTrue(body.contains("\"code\":\"BAD_REQUEST\""))
-                assertTrue(body.contains("action player.move argument forward must be boolean"))
+                assertError(body, "INVALID_ACTION_INPUT", "action player.move argument forward must be boolean")
             }
 
             http.post(server.url("/clients/alice:run")) {
@@ -348,8 +388,7 @@ class LocalSessionApiServerTest {
             }.let { response ->
                 val body = response.bodyAsText()
                 assertEquals(HttpStatusCode.BadRequest, response.status)
-                assertTrue(body.contains("\"code\":\"BAD_REQUEST\""))
-                assertTrue(body.contains("movement ticks must be positive"))
+                assertError(body, "INVALID_ACTION_INPUT", "movement ticks must be positive")
             }
 
             http.post(server.url("/clients/alice/player:move")) {
@@ -358,8 +397,7 @@ class LocalSessionApiServerTest {
             }.let { response ->
                 val body = response.bodyAsText()
                 assertEquals(HttpStatusCode.BadRequest, response.status)
-                assertTrue(body.contains("\"code\":\"BAD_REQUEST\""))
-                assertTrue(body.contains("movement ticks must be positive"))
+                assertError(body, "INVALID_ACTION_INPUT", "movement ticks must be positive")
             }
 
             http.post(server.url("/clients/alice:run")) {
@@ -368,8 +406,7 @@ class LocalSessionApiServerTest {
             }.let { response ->
                 val body = response.bodyAsText()
                 assertEquals(HttpStatusCode.NotFound, response.status)
-                assertTrue(body.contains("\"code\":\"NOT_FOUND\""))
-                assertTrue(body.contains("action player.fly is not available for client alice"))
+                assertError(body, "UNSUPPORTED_ACTION", "action player.fly is not available for client alice")
             }
 
             http.post(server.url("/clients/alice/player:fly")) {
@@ -378,7 +415,7 @@ class LocalSessionApiServerTest {
             }.let { response ->
                 val body = response.bodyAsText()
                 assertEquals(HttpStatusCode.NotFound, response.status)
-                assertTrue(body.contains("action player.fly is not available for client alice"))
+                assertError(body, "UNSUPPORTED_ACTION", "action player.fly is not available for client alice")
             }
 
             http.post(server.url("/clients/missing/player:chat")) {
@@ -387,7 +424,7 @@ class LocalSessionApiServerTest {
             }.let { response ->
                 val body = response.bodyAsText()
                 assertEquals(HttpStatusCode.NotFound, response.status)
-                assertTrue(body.contains("client missing not found"))
+                assertError(body, "MISSING_CLIENT", "client missing not found")
             }
 
             http.post(server.url("/clients/alice:stop")) {
@@ -441,6 +478,12 @@ class LocalSessionApiServerTest {
         }.let { created ->
             assertEquals(HttpStatusCode.Created, created.status)
         }
+    }
+
+    private fun assertError(body: String, code: String, message: String) {
+        val error = json.decodeFromString<ErrorResponse>(body)
+        assertEquals(code, error.code)
+        assertTrue(error.message.contains(message), error.message)
     }
 }
 

@@ -205,6 +205,7 @@ class ClientSessionServiceTest {
         assertEquals("string", chatResponseSchema.properties["message"]?.type)
         assertErrorSchema(requireNotNull(document.paths["/clients/alice/player:chat"]?.post?.responses?.get("400")))
         assertErrorSchema(requireNotNull(document.paths["/clients/alice/player:chat"]?.post?.responses?.get("404")))
+        assertErrorSchema(requireNotNull(document.paths["/clients/alice/player:chat"]?.post?.responses?.get("409")))
         assertEquals("1", document.actions.single { it.id == "player.move" }.schemaVersion)
         assertEquals("1", document.actions.single { it.id == "player.chat" }.schemaVersion)
     }
