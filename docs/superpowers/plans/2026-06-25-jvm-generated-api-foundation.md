@@ -20,11 +20,10 @@
 - Create `bridge-hmc/`: temporary HeadlessMC/HMC-Specifics bridge interface, limitation docs, and command mapping kept internal.
 - Create `cli/`: JVM `craftless` entrypoint and first command tree tests.
 - Create `docs/bridge-limitations.md`: public warning that bridge movement is simulated and not the final Fabric driver.
-- `driver-api/`, `driver-runtime/`, `driver-fabric-1_21_6/`, and
-  `playwright/` now exist. The Fabric module currently compiles as a
-  Fabric/Loom scaffold and is transitional; the target is one consolidated
-  `driver-fabric` module with internal version-aware bindings unless separate
-  artifacts become technically necessary.
+- `driver-api/`, `driver-runtime/`, `driver-fabric/`, and `playwright/` now
+  exist. The Fabric module currently compiles as a Fabric/Loom scaffold with
+  internal version-aware bindings unless separate artifacts become technically
+  necessary.
 
 ## Task 1: Gradle/Kotlin Foundation
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "craftless-driver-fabric-1-21-6",
+  "id": "craftless-driver-fabric",
   "version": "${version}",
   "name": "Craftless Driver Fabric 1.21.6",
   "description": "Craftless in-client driver scaffold for Minecraft 1.21.6.",
@@ -15,7 +15,7 @@
     ]
   },
   "mixins": [
-    "craftless-driver-fabric-1_21_6.mixins.json"
+    "craftless-driver-fabric.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.19.3",

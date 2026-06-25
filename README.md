@@ -20,15 +20,6 @@ Browserless turns real browsers into programmable automation infrastructure;
 Craftless does that for real Minecraft Java clients, with live API discovery
 instead of a static list of hard-coded actions.
 
-## Comparison
-
-| Project | Primary model | Best fit | Craftless difference |
-| --- | --- | --- | --- |
-| Craftless | Real Minecraft Java clients, visible or headless, exposed through local generated OpenAPI contracts. | CI, agents, and test infrastructure that must exercise the actual client runtime. | Keeps launcher, loader, mapping, mod, and driver details behind Craftless-owned APIs and per-client action discovery. |
-| [Mineflayer](https://github.com/PrismarineJS/mineflayer) | Protocol-level bots with a high-level JavaScript API. | Fast bot scripts that do not need the real Minecraft client process. | Craftless controls real client processes instead of replacing the client with a protocol implementation. |
-| [Baritone](https://github.com/cabaletta/baritone) | In-client pathfinding and automation behavior. | Pathfinding, mining, and movement automation inside a modded client. | Craftless is the supervisor/API layer around clients; pathfinding can become one discovered action family rather than the whole product surface. |
-| [HeadlessMC](https://github.com/headlesshq/headlessmc) and HMC-Specifics | Command-line client launch and optional version-specific command control. | Launching Minecraft in headless environments and proving runtime behavior in CI. | Craftless treats the bridge as evidence infrastructure while the durable direction is a Fabric driver plus generated per-client APIs. |
-
 ## How It Fits Together
 
 Minecraft already provides the client runtime. Craftless adds a thin driver,
@@ -84,6 +75,26 @@ curl -sS "$CRAFTLESS/clients/alice:run" \
   -d '{"action":"player.move","args":{"forward":true,"ticks":20}}'
 ```
 
+## Capability Comparison
+
+| Capability | Craftless | Mineflayer | Baritone | HeadlessMC / HMC-Specifics |
+| --- | --- | --- | --- | --- |
+| Generates a live per-client OpenAPI document | [x] | [ ] | [ ] | [ ] |
+| Discovers available actions from the running client | [x] | [ ] | [ ] | [-] Partial |
+| Keeps APIs stable while Minecraft, Fabric, Velocity, and mods change | [x] | [-] Limited | [-] Limited | [-] Partial |
+| Reflects installed mods, registries, server features, and permissions | [x] | [-] Limited | [-] Partial | [-] Partial |
+| Avoids hand-maintained wrappers for every new Minecraft action | [x] | [ ] | [ ] | [ ] |
+| Lets agents adapt to client version, mods, and permissions | [x] | [-] Limited | [-] Limited | [-] Partial |
+| Provides stable supervisor APIs for many clients | [x] | [ ] | [ ] | [-] Partial |
+| Runs the real Minecraft Java client | [x] | [ ] | [x] | [x] |
+| Works headless and visible | [x] | [ ] | [-] Visible client | [x] |
+| Sees client UI, screens, mods, registries, and mappings | [x] | [-] Limited | [x] | [-] Partial |
+| Chat, command, and interaction automation | [x] | [x] | [-] Partial | [-] Partial |
+| Movement and pathfinding automation | [-] Planned actions | [x] | [x] | [-] Basic |
+| Inventory, screen, perception, and world queries | [-] Planned actions | [x] | [-] Limited | [-] Limited |
+| Protocol-only bot scripting | [ ] | [x] | [ ] | [ ] |
+| Best fit | Real-client automation infrastructure | Fast bot scripts | In-game pathfinding | Client launch and CI runtime |
+
 ## Status
 
 Craftless is a Kotlin/JVM-first project with one implementation direction:
@@ -96,9 +107,8 @@ Craftless is a Kotlin/JVM-first project with one implementation direction:
   route integration and runtime action metadata;
 - a `driver-runtime` adapter layer that can run `DriverSession` over bridge or
   Fabric-style backends without changing daemon routes;
-- a compiled Fabric/Loom driver module, currently still named
-  `driver-fabric-1_21_6` while the codebase consolidates toward one
-  `driver-fabric` module with internal version-aware bindings, mod metadata,
+- a compiled Fabric/Loom `driver-fabric` module with internal version-aware
+  bindings, mod metadata,
   mixin config, and a gateway-backed runtime backend for client-thread connect,
   chat, command, stop, and generated `player.move`/`player.chat` action
   invocation;

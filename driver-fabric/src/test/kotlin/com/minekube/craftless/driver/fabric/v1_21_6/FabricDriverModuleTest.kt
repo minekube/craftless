@@ -20,7 +20,7 @@ class FabricDriverModuleTest {
     fun `fabric metadata declares client entrypoint and mixin config`() {
         val metadata = resourceJson("fabric.mod.json")
 
-        assertEquals("craftless-driver-fabric-1-21-6", metadata["id"]?.jsonPrimitive?.content)
+        assertEquals("craftless-driver-fabric", metadata["id"]?.jsonPrimitive?.content)
         assertEquals("0.1.0-SNAPSHOT", metadata["version"]?.jsonPrimitive?.content)
         assertEquals("com.minekube.craftless.driver.fabric.v1_21_6.CraftlessFabricClientEntrypoint", metadata["entrypoints"]
             ?.jsonObject
@@ -29,9 +29,9 @@ class FabricDriverModuleTest {
             ?.single()
             ?.jsonPrimitive
             ?.content)
-        assertEquals("craftless-driver-fabric-1_21_6.mixins.json", metadata["mixins"]?.jsonArray?.single()?.jsonPrimitive?.content)
+        assertEquals("craftless-driver-fabric.mixins.json", metadata["mixins"]?.jsonArray?.single()?.jsonPrimitive?.content)
 
-        val mixins = resourceJson("craftless-driver-fabric-1_21_6.mixins.json")
+        val mixins = resourceJson("craftless-driver-fabric.mixins.json")
         assertEquals("com.minekube.craftless.driver.fabric.v1_21_6.mixin", mixins["package"]?.jsonPrimitive?.content)
         assertEquals("client", mixins["environment"]?.jsonPrimitive?.content)
     }

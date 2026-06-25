@@ -32,19 +32,19 @@ The module currently exposes:
 - `DriverBackendAction`
 - `HmcBridgeDriverBackend`
 
-`driver-fabric-1_21_6/` is the current transitional Fabric/Loom module:
+`driver-fabric/` is the current Fabric/Loom module:
 
 - `CraftlessFabricClientEntrypoint`
 - `FabricDriverBackend`
 - `FabricClientGateway`
 - `MinecraftFabricClientGateway`
 - `fabric.mod.json`
-- `craftless-driver-fabric-1_21_6.mixins.json`
+- `craftless-driver-fabric.mixins.json`
 
-The target shape is a consolidated `driver-fabric/` module with internal
-version-aware bindings, reflection/mapping probes, and small Java
+It keeps version-specific Minecraft bindings internal, currently under the
+`v1_21_6` package, with room for reflection/mapping probes and small Java
 Mixins/accessors where bytecode shape matters. Do not treat the Minecraft
-version in the current module name as part of the public architecture.
+version as part of the public module or artifact architecture.
 
 Minimum supported actions:
 

@@ -1,8 +1,7 @@
 # Fabric Driver Module Instructions
 
-`driver-fabric-1_21_6/` is the current transitional Fabric/Loom driver module.
-The target architecture is one consolidated `driver-fabric` module with
-internal version-aware bindings where practical. Delete this dir when made obsolete.
+`driver-fabric/` owns the current Fabric/Loom driver module. Keep
+version-specific Minecraft bindings internal to this module where practical.
 
 ## Scope
 
@@ -29,5 +28,5 @@ internal version-aware bindings where practical. Delete this dir when made obsol
 ## Verification
 
 ```sh
-mise exec -- gradle :driver-fabric-1_21_6:test
+mise exec -- gradle :driver-fabric:test
 ```

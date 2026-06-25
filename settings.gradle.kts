@@ -21,7 +21,7 @@ include(
     "protocol",
     "driver-api",
     "driver-runtime",
-    "driver-fabric-1_21_6",
+    "driver-fabric",
     "testkit",
     "daemon",
     "bridge-hmc",

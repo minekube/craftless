@@ -133,13 +133,9 @@ craftless/
     bridge adapter so daemon routes are no longer hard-wired to fake state.
 
   driver-fabric/
-    Target Fabric Loom module. It should contain common runtime code plus
-    internal version-aware bindings, reflection/mapping probes, metadata, mixin
-    config, and gateway-backed runtime behavior.
-
-  driver-fabric-1_21_6/
-    Current transitional module name while the first Fabric driver slice is
-    being consolidated into `driver-fabric`.
+    Fabric Loom module. It contains common runtime code plus internal
+    version-aware bindings, reflection/mapping probes, metadata, mixin config,
+    and gateway-backed runtime behavior.
 
   testkit/
     Fake clients, fake servers, process fixtures, and integration helpers.

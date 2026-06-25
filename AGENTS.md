@@ -61,8 +61,7 @@ each Minecraft action.
 - `driver-api/`: stable JVM driver contract and fake implementation for tests.
 - `driver-runtime/`: adapters from `DriverSession` to concrete backends,
   including temporary bridge adapters.
-- `driver-fabric-1_21_6/`: current transitional Fabric/Loom driver module.
-  Consolidate toward one `driver-fabric` module with internal version-aware
+- `driver-fabric/`: Fabric/Loom driver module with internal version-aware
   bindings where practical.
 - `bridge-hmc/`: evidence-only HeadlessMC/HMC-Specifics bridge code.
 - `cli/`: adaptive `craftless` CLI core and runtime OpenAPI/action dispatch.
