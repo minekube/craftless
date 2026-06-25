@@ -4,6 +4,6 @@ import net.fabricmc.api.ClientModInitializer
 
 class CraftwrightFabricClientEntrypoint : ClientModInitializer {
     override fun onInitializeClient() {
-        FabricDriverBackend.install(FabricDriverBackend.placeholder())
+        FabricDriverBackend.install(FabricDriverBackend.real())
     }
 }

@@ -113,7 +113,7 @@ class FabricDriverBackend private constructor(
     }
 
     private enum class Mode(val id: String) {
-        PLACEHOLDER("placeholder"),
+        METADATA_ONLY("metadata-only"),
         REAL_CLIENT("real-client"),
     }
 
@@ -121,7 +121,7 @@ class FabricDriverBackend private constructor(
         @Volatile
         private var installed: FabricDriverBackend? = null
 
-        fun placeholder(): FabricDriverBackend = FabricDriverBackend(Mode.PLACEHOLDER, gateway = null)
+        fun metadataOnly(): FabricDriverBackend = FabricDriverBackend(Mode.METADATA_ONLY, gateway = null)
 
         fun real(gateway: FabricClientGateway = MinecraftFabricClientGateway()): FabricDriverBackend =
             FabricDriverBackend(Mode.REAL_CLIENT, gateway)
@@ -131,7 +131,7 @@ class FabricDriverBackend private constructor(
         }
 
         fun current(): FabricDriverBackend =
-            installed ?: placeholder().also(::install)
+            installed ?: metadataOnly().also(::install)
     }
 }
 

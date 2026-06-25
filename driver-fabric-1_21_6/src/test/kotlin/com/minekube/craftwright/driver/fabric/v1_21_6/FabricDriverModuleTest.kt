@@ -38,7 +38,7 @@ class FabricDriverModuleTest {
 
     @Test
     fun `fabric backend exposes driver runtime actions without changing daemon contract`() {
-        val backend = FabricDriverBackend.placeholder()
+        val backend = FabricDriverBackend.metadataOnly()
 
         assertEquals("craftwright-driver-fabric", backend.runtimeMetadata("alice").driver)
         assertEquals("0.1.0-SNAPSHOT", backend.runtimeMetadata("alice").driverVersion)
@@ -47,7 +47,9 @@ class FabricDriverModuleTest {
             DriverBackendAction.CONNECT,
             backend.connect("alice", ConnectionTarget("127.0.0.1", 25565)).action,
         )
-        assertEquals(DriverBackendAction.STOP, backend.stop("alice").action)
+        val stop = backend.stop("alice")
+        assertEquals(DriverBackendAction.STOP, stop.action)
+        assertTrue(stop.message?.contains("metadata-only") == true)
         assertTrue(backend.events().any { it.contains("connect alice 127.0.0.1:25565") })
     }
 
