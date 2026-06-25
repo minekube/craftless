@@ -110,6 +110,40 @@ class OpenApiGenerationTest {
     }
 
     @Test
+    fun `openapi document rejects action alias routes without matching action metadata`() {
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                OpenApiDocument.from(
+                    catalog =
+                        ApiRouteCatalog(
+                            listOf(
+                                ApiRoute(
+                                    method = "POST",
+                                    path = "/clients/{id}/world:scan",
+                                    operationId = "runWorldScan",
+                                    tag = "clients",
+                                    owner = "clients",
+                                    member = "run",
+                                    target = "client",
+                                    source = "action",
+                                    actionId = "world.scan",
+                                ),
+                            ),
+                        ),
+                    actions =
+                        listOf(
+                            OpenApiAction(
+                                id = "player.chat",
+                                schemaVersion = "1",
+                            ),
+                        ),
+                )
+            }
+
+        assertEquals("action route runWorldScan references unknown action world.scan", error.message)
+    }
+
+    @Test
     fun `openapi action metadata rejects invalid action ids`() {
         listOf(
             "player",

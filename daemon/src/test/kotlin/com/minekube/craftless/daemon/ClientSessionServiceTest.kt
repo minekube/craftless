@@ -487,6 +487,45 @@ class ClientSessionServiceTest {
     }
 
     @Test
+    fun `client specific openapi derives aliases from the same action snapshot as metadata`() {
+        val service =
+            ClientSessionService.inMemory { request ->
+                BackendDriverSession(
+                    clientId = request.id,
+                    backend =
+                        ChangingActionsBackend(
+                            snapshots =
+                                listOf(
+                                    listOf(testPlayerChatActionDescriptor()),
+                                    listOf(testPlayerMoveActionDescriptor()),
+                                ),
+                        ),
+                )
+            }
+        service.createClient(
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            ),
+        )
+
+        val document = service.openApiFor("alice")
+
+        assertEquals(listOf("player.chat"), document.actions.map { it.id })
+        assertTrue(document.paths.containsKey("/clients/alice/player:chat"))
+        assertFalse(document.paths.containsKey("/clients/alice/player:move"))
+        assertEquals(
+            "player.chat",
+            document.paths["/clients/alice/player:chat"]
+                ?.post
+                ?.extensions
+                ?.get("x-craftless-action"),
+        )
+    }
+
+    @Test
     fun `client specific openapi rejects duplicate action ids`() {
         val service =
             ClientSessionService.inMemory { request ->
@@ -549,6 +588,32 @@ class ClientSessionServiceTest {
         assertEquals("1,2", extensions["x-craftless-action-schema-versions"])
         assertFalse(extensions.containsKey("x-craftless-action-schema-version"))
     }
+}
+
+private class ChangingActionsBackend(
+    private val snapshots: List<List<DriverActionDescriptor>>,
+) : DriverBackend {
+    private var calls = 0
+
+    override fun connect(
+        clientId: String,
+        target: ConnectionTarget,
+    ): DriverBackendResult = DriverBackendResult(DriverBackendAction.CONNECT)
+
+    override fun stop(clientId: String): DriverBackendResult = DriverBackendResult(DriverBackendAction.STOP)
+
+    override fun actions(clientId: String): List<DriverActionDescriptor> {
+        val index = calls.coerceAtMost(snapshots.lastIndex)
+        calls += 1
+        return snapshots[index]
+    }
+
+    override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
+
+    override fun invoke(
+        clientId: String,
+        invocation: DriverActionInvocation,
+    ): DriverActionResult = DriverActionResult(invocation.action, DriverActionStatus.ACCEPTED)
 }
 
 private fun fakeClientSessionService(): ClientSessionService =

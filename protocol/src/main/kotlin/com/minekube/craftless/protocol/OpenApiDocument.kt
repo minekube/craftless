@@ -28,6 +28,12 @@ data class OpenApiDocument(
                 throw IllegalArgumentException("duplicate action id ${duplicateAction.key}")
             }
             val actionsById = actions.associateBy { it.id }
+            catalog.routes.forEach { route ->
+                val actionId = route.actionId
+                if (actionId != null && actionId !in actionsById) {
+                    throw IllegalArgumentException("action route ${route.operationId} references unknown action $actionId")
+                }
+            }
             return OpenApiDocument(
                 paths =
                     catalog.routes.groupBy { it.path }.mapValues { (_, routes) ->

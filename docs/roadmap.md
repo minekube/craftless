@@ -24,6 +24,9 @@ Craftless currently has:
   operations;
 - daemon generic and generated-alias action routes reject unavailable action
   descriptors before invoking the driver;
+- generated action aliases are emitted from the same live action snapshot as
+  the per-client OpenAPI action metadata, and OpenAPI generation rejects alias
+  routes without matching action descriptors;
 - Fabric/Loom driver scaffolding with current action evidence;
 - Fabric-generated action descriptors for current chat/move bindings. Broader
   gameplay actions must come from real bindings or runtime discovery probes,

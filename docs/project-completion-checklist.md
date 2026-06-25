@@ -100,7 +100,7 @@ Verification:
   machine-readable availability reason.
 - [x] Daemon generic and alias action routes reject unavailable action
   descriptors before driver invocation.
-- [ ] Ensure generated aliases are derived only from the running client's
+- [x] Ensure generated aliases are derived only from the running client's
   OpenAPI/action descriptors.
 - [ ] Ensure public OpenAPI does not expose Fabric/Yarn/intermediary names,
   raw Minecraft implementation names, mod package names, commands, or launcher

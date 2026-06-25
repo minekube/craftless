@@ -74,16 +74,7 @@ class ClientSessionService private constructor(
 
     fun routesFor(clientId: String): List<ApiRoute> {
         require(clients.containsKey(clientId)) { "client $clientId not found" }
-        val actionAliases = driverFor(clientId).sortedActions().mapNotNull { it.toActionAliasRoute(clientId) }
-        return listOf(
-            route("GET", "/clients/$clientId", "getClient", "clients", "get", "route"),
-            route("GET", "/clients/$clientId/openapi.json", "getClientOpenapiJson", "clients", "openapi", "route"),
-            route("POST", "/clients/$clientId:connect", "clientConnect", "clients", "connect", "method"),
-            route("POST", "/clients/$clientId:stop", "stopClient", "clients", "stop", "method"),
-            route("GET", "/clients/$clientId/actions", "listClientActions", "clients", "actions", "action"),
-            route("POST", "/clients/$clientId:run", "runClientAction", "clients", "run", "action"),
-            route("GET", "/clients/$clientId/events", "getClientEvents", "clients", "events", "route"),
-        ) + actionAliases
+        return routesFor(clientId, driverFor(clientId).sortedActions())
     }
 
     fun openApiFor(clientId: String): OpenApiDocument {
@@ -97,7 +88,7 @@ class ClientSessionService private constructor(
                 metadata = driver.runtimeMetadata(),
             )
         return OpenApiDocument.from(
-            catalog = ApiRouteCatalog(routesFor(clientId)),
+            catalog = ApiRouteCatalog(routesFor(clientId, actions)),
             extensions = runtimeMetadata.extensions,
             actions =
                 actions.map { action ->
@@ -125,6 +116,22 @@ class ClientSessionService private constructor(
                     )
                 },
         )
+    }
+
+    private fun routesFor(
+        clientId: String,
+        actions: List<DriverActionDescriptor>,
+    ): List<ApiRoute> {
+        val actionAliases = actions.mapNotNull { it.toActionAliasRoute(clientId) }
+        return listOf(
+            route("GET", "/clients/$clientId", "getClient", "clients", "get", "route"),
+            route("GET", "/clients/$clientId/openapi.json", "getClientOpenapiJson", "clients", "openapi", "route"),
+            route("POST", "/clients/$clientId:connect", "clientConnect", "clients", "connect", "method"),
+            route("POST", "/clients/$clientId:stop", "stopClient", "clients", "stop", "method"),
+            route("GET", "/clients/$clientId/actions", "listClientActions", "clients", "actions", "action"),
+            route("POST", "/clients/$clientId:run", "runClientAction", "clients", "run", "action"),
+            route("GET", "/clients/$clientId/events", "getClientEvents", "clients", "events", "route"),
+        ) + actionAliases
     }
 
     companion object {
