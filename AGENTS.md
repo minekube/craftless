@@ -2,157 +2,132 @@
 
 ## Read First
 
-This root file contains repository-wide rules. Also read the nearest
-subdirectory `AGENTS.md` before editing files inside a module or docs tree.
-Subproject instructions add detail for their scope; they do not override these
-root rules unless they are more specific about that subproject.
+This file is the repository-wide contract. Also read the nearest
+subdirectory `AGENTS.md` before editing a module or docs directory.
 
-## Product Direction
+Craftless uses `com.minekube.craftless` for JVM packages, Gradle coordinates,
+OpenAPI metadata, Fabric entrypoints, and implementation docs. The public
+domain is `minekube.com`.
 
-Craftless is automation infrastructure for real Minecraft Java clients,
-headless or visible. The repository, JVM packages, Gradle coordinates, OpenAPI
-metadata, Fabric entrypoints, and implementation docs use
-`com.minekube.craftless`.
+## Product Shape
 
-The durable product shape is intentionally thin: launch or attach to a real
-Minecraft Java client, load a small in-client driver, and expose local APIs
-whose machine contracts are OpenAPI documents generated from the running
-system. Treat it like Browserless-style infrastructure for Minecraft clients,
-not a large hand-written SDK with one static method per Minecraft action.
+Craftless is Browserless-style automation infrastructure for real Minecraft
+Java clients, headless or visible.
 
-Do not grow a hand-coded static action surface for every player/world operation.
-Use reflection/capability discovery in the running client, with OpenAPI as the
-source of truth for available actions, objects, handles, and schemas.
+The durable shape is thin:
 
-The public domain is `minekube.com`.
+1. Launch or attach to a real Minecraft Java client.
+2. Load a small in-client driver.
+3. Discover the live client/runtime capability graph.
+4. Expose local APIs whose machine contracts are generated OpenAPI documents.
+
+Do not turn Craftless into a hand-written SDK with one static method, route, or
+CLI command per Minecraft action.
 
 ## Public API Rules
 
-There are two OpenAPI surfaces:
+Craftless has two OpenAPI surfaces:
 
-- `GET /openapi.json` is the stable supervisor/daemon kernel API. It describes
-  lifecycle, client creation, events, and how to discover per-client specs.
-- `GET /clients/{id}/openapi.json` is the live generated API for that specific
-  Minecraft client instance. It reflects the running Minecraft version, loader,
-  driver runtime, mappings, installed mods, registries, server/game features,
-  permissions, and discovered actions/capabilities.
+- `GET /openapi.json`: stable supervisor API for lifecycle, client creation,
+  events, and per-client spec discovery.
+- `GET /clients/{id}/openapi.json`: generated live API for one client
+  instance. It reflects that client's Minecraft version, loader, driver
+  runtime, mappings, installed mods, registries, server/game features,
+  permissions, and discovered actions/resources.
 
-Do not assume all clients share one static action API. Generated clients,
-agents, and `craftless` should fetch the instance spec for the target client and may
-cache it only by a capability fingerprint that includes runtime/version/mod/
-registry inputs.
+Public names must be Craftless-owned. Never expose these as public API, CLI,
+SDK, README, or docs contracts:
 
-Public names must be Craftless-owned. Do not expose HeadlessMC,
-HMC-Specifics, Fabric/Yarn/intermediary names, raw Minecraft implementation
-names, Minecraft console commands, mod package names, or launcher internals as
-public API, CLI, SDK, or documentation contracts.
+- HeadlessMC or HMC-Specifics names;
+- Fabric/Yarn/intermediary names;
+- raw Minecraft implementation names;
+- Minecraft console commands;
+- mod package names;
+- launcher internals.
 
-Use discovered/generated actions for player/world behavior such as movement,
-look, raycast, interaction, inventory, and world/entity queries. Do not add
-one-off static Kotlin methods, custom route enums, or static CLI commands for
-each Minecraft action.
+Fabric/Minecraft internals are allowed as implementation inputs. The public
+output must be a Craftless projection: actions, resources, handles, schemas,
+availability, and events that agents can use through OpenAPI.
+
+Use `actions` for user-facing discovery. Internal code may use `capability`
+only when it describes runtime support precisely.
+
+## HTTP And CLI
+
+- Use Ktor Server for local JVM HTTP/WebSocket surfaces.
+- Use Ktor Client for Kotlin/JVM HTTP clients and tests.
+- Do not add OkHttp, `com.sun.net.httpserver`, Java `HttpClient`, or
+  hand-rolled HTTP clients in product code.
+- Do not add custom HTTP method enums. Use framework-native types at framework
+  boundaries or protocol strings such as `"GET"` and `"POST"` in metadata.
+- Prefer AIP-style resource routes and custom methods such as
+  `POST /clients/{id}:run`.
+- The CLI binary is `craftless`.
+- Keep the CLI adaptive: small static core for daemon startup, config, auth,
+  output, lifecycle, discovery, and generic dispatch. Load gameplay commands
+  and help from `/openapi.json`, `/clients/{id}/openapi.json`, and
+  `/clients/{id}/actions`.
+
+## Driver Rules
+
+- Prefer one consolidated `driver-fabric` module with internal version-aware
+  bindings, reflection/mapping probes, and small Mixins/accessors.
+- Keep Minecraft calls on the client thread.
+- Version-specific code stays behind stable Craftless driver/action contracts.
+- Per-client OpenAPI exposes what actually works or is explicitly unavailable
+  for the running client. Module names and Minecraft versions are not public
+  API.
+- The bridge backend is evidence infrastructure only. Do not present it as the
+  final automation driver.
 
 ## Module Map
 
 - `protocol/`: OpenAPI/action metadata, route catalog, serializable protocol
   DTOs, and API naming rules.
-- `daemon/`: Ktor local supervisor API, client session lifecycle, per-client
-  OpenAPI/action endpoints, and runtime driver wiring.
+- `daemon/`: Ktor supervisor API, client lifecycle, per-client OpenAPI/action
+  endpoints, and runtime driver wiring.
 - `driver-api/`: stable JVM driver contract and driver-facing DTOs.
-- `driver-runtime/`: adapters from `DriverSession` to concrete backends,
-  including temporary bridge adapters.
-- `driver-fabric/`: Fabric/Loom driver module with internal version-aware
-  bindings where practical.
-- `bridge-hmc/`: evidence-only HeadlessMC/HMC-Specifics bridge code.
-- `cli/`: adaptive `craftless` CLI core and runtime OpenAPI/action dispatch.
-- `testkit/`: fake clients, fake driver sessions, fixtures, and test helpers.
-- `playwright/`: Bun-powered helper tests and external integration fixtures.
-- `docs/`: architecture, roadmap, and evidence docs.
-
-## HTTP And API
-
-- Prefer Ktor Server for local JVM HTTP/WebSocket surfaces.
-- Prefer Ktor Client for Kotlin/JVM HTTP clients and tests.
-- Do not add OkHttp, `com.sun.net.httpserver`, Java `HttpClient`, or
-  hand-rolled HTTP clients for product code.
-- Do not add custom HTTP method enums. Use framework-native types at framework
-  boundaries or protocol strings such as `"GET"` and `"POST"` in metadata.
-- Prefer resource-oriented API design in the style of AIP guidance: stable
-  resources use standard methods, and non-CRUD operations use custom methods
-  with colon syntax such as `POST /clients/{id}:run` or generated aliases such
-  as `POST /clients/{id}/player:move`.
-- Prefer `actions` for user-facing discovery. Internal code may still use
-  capability terminology when it describes runtime support precisely.
-- Keep OpenAPI authoritative for generated clients, agent tools, route
-  discovery, adaptive CLI dispatch/help, and action/capability metadata.
-
-## Driver Direction
-
-Prefer one consolidated Fabric driver module with internal version-aware
-bindings, reflection/mapping probes, and small Mixins/accessors. Do not add a
-new public Gradle subproject for every Minecraft version unless there is clear
-evidence that a separate loader/runtime artifact is required.
-
-Version-specific code must stay behind stable Craftless driver/action
-contracts. Per-client OpenAPI exposes the actions that actually work for the
-running client instead of making module names or Minecraft versions part of the
-public API.
-
-The bridge backend is evidence infrastructure only. Do not present it as the
-final automation driver.
-
-## CLI Direction
-
-The current CLI binary is `craftless`. The CLI should be adaptive rather than
-a hand-maintained mirror of every route/action. Keep a small handwritten core for daemon startup,
-configuration, auth, output modes, and generic dispatch. Build per-client
-commands and help at runtime from `/openapi.json`,
-`/clients/{id}/openapi.json`, and `/clients/{id}/actions`. Do not generate
-Kotlin CLI source for every action.
+- `driver-runtime/`: adapters from `DriverSession` to concrete backends.
+- `driver-fabric/`: Fabric/Loom driver module.
+- `bridge-hmc/`: evidence-only bridge code.
+- `cli/`: adaptive `craftless` CLI.
+- `testkit/`: fake clients, fake sessions, fixtures, and test helpers.
+- `playwright/`: Bun-powered helper tests and external fixtures.
+- `docs/`: architecture, roadmap, evidence, and project checklist.
 
 ## Tooling
 
 - Use `mise` for pinned dependencies and commands.
 - Use `mise exec -- gradle ...` for JVM work.
-- Use Bun through mise for JavaScript-side helpers: `mise exec -- bun ...`.
-- Do not use npm, npx, yarn, pnpm, or globally installed node tooling in repo
+- Use Bun through mise: `mise exec -- bun ...`.
+- Do not use npm, npx, yarn, pnpm, or globally installed Node tooling in repo
   workflows.
 
-## Development Workflow
+## Workflow
 
 - Prefer test-first changes for behavior, bug fixes, and API changes.
 - Keep edits scoped to the requested behavior and current module boundaries.
-- Preserve user or parent-thread work in the tree. Do not revert unrelated dirty
-  files.
-- If the user asks to push, push directly to `main`; do not create a PR unless
-  explicitly requested.
-- Before claiming completion for a code change, run the narrow relevant tests
-  and then `mise run ci` when practical.
+- Preserve unrelated dirty files; do not revert user work.
+- If asked to push, push directly to `main`; do not create a PR unless asked.
+- Before claiming a code change is complete, run focused tests and then
+  `mise run ci` when practical.
+- For docs-only edits, run at least `git diff --check`.
 
-## Project Completion Checklist
+## Completion Source Of Truth
 
-Use `docs/project-completion-checklist.md` as the project red line. Before
-starting substantial work, read it and identify the next unchecked item that
-moves Craftless toward completion.
+Use `docs/project-completion-checklist.md` as the active project checklist.
+Update it when project status changes.
 
-After work changes project status, update the checklist with:
-
-- status change;
-- commit SHA or working-tree note;
-- verification command run through `mise`;
-- evidence artifact path, when applicable;
-- remaining blocker or next action.
-
-Do not mark an item complete from docs, fake-driver tests, bridge-only evidence,
-or assumptions. Completion requires implementation plus verification evidence.
-If real-client Fabric smoke has not passed, the project is not complete.
+Do not mark Craftless complete while the current Fabric driver is still a
+small static placeholder action catalog. Completion requires runtime discovery,
+generated per-client OpenAPI, executable bindings for the advertised core
+actions, and real-client evidence.
 
 ## Documentation
 
-- Keep README and docs aligned with the current architecture.
-- Preserve `docs/product-positioning.md` as the record of Craftless naming and
-  Browserless/CDP analogy.
-- Do not document removed TypeScript SDK or other inactive legacy surfaces as
-  active implementation.
-- When documenting future work, make clear what is implemented now versus what
-  is still roadmap.
+- Keep README and docs aligned with current architecture.
+- Preserve `docs/product-positioning.md` as the Craftless naming and
+  Browserless/CDP analogy record.
+- Keep historical plans under `docs/superpowers/` as traceability, not current
+  product truth.
+- Make implemented state versus roadmap explicit.
