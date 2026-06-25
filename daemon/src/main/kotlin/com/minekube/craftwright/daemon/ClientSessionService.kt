@@ -65,7 +65,7 @@ class ClientSessionService private constructor(
 
     fun routesFor(clientId: String): List<ApiRoute> {
         require(clients.containsKey(clientId)) { "client $clientId not found" }
-        val actionAliases = driverFor(clientId).actions().mapNotNull { it.toActionAliasRoute(clientId) }
+        val actionAliases = driverFor(clientId).sortedActions().mapNotNull { it.toActionAliasRoute(clientId) }
         return listOf(
             route("GET", "/clients/$clientId", "clientsGet", "clients", "get", "route"),
             route("GET", "/clients/$clientId/openapi.json", "clientsOpenApi", "clients", "openapi", "route"),
@@ -80,7 +80,7 @@ class ClientSessionService private constructor(
     fun openApiFor(clientId: String): OpenApiDocument {
         val client = client(clientId)
         val driver = driverFor(clientId)
-        val actions = driver.actions()
+        val actions = driver.sortedActions()
         val runtimeMetadata = RuntimeOpenApiMetadata.forClient(
             client = client,
             actions = actions,
@@ -120,6 +120,9 @@ class ClientSessionService private constructor(
         return updated
     }
 }
+
+private fun DriverSession.sortedActions(): List<DriverActionDescriptor> =
+    actions().sortedBy { it.id }
 
 fun interface DriverSessionFactory {
     fun create(request: CreateClientRequest): DriverSession

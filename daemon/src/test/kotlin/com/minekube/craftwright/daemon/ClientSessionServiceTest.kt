@@ -105,7 +105,7 @@ class ClientSessionServiceTest {
         assertEquals("none", document.extensions["x-craftwright-server-feature-fingerprint"])
         assertEquals("local-fake", document.extensions["x-craftwright-permissions-fingerprint"])
         assertEquals(
-            "minecraft=1.21.4;loader=FABRIC;loaderVersion=none;driver=craftwright-fake;driverVersion=0.1.0-SNAPSHOT;mappings=none;mods=none;registries=none;serverFeatures=none;permissions=local-fake;actions=player.move:1,player.chat:1",
+            "minecraft=1.21.4;loader=FABRIC;loaderVersion=none;driver=craftwright-fake;driverVersion=0.1.0-SNAPSHOT;mappings=none;mods=none;registries=none;serverFeatures=none;permissions=local-fake;actions=player.chat:1,player.move:1",
             document.extensions["x-craftwright-runtime-fingerprint"],
         )
         assertTrue(document.paths.containsKey("/clients/alice/openapi.json"))
@@ -287,14 +287,50 @@ class ClientSessionServiceTest {
         assertEquals("server-features-test", extensions["x-craftwright-server-feature-fingerprint"])
         assertEquals("permissions-test", extensions["x-craftwright-permissions-fingerprint"])
         assertEquals(
-            "minecraft=1.21.4;loader=FABRIC;loaderVersion=0.16.14;driver=craftwright-driver-fabric;driverVersion=0.2.0-test;mappings=yarn-test;mods=mods-test;registries=registries-test;serverFeatures=server-features-test;permissions=permissions-test;actions=player.move:1,player.chat:1",
+            "minecraft=1.21.4;loader=FABRIC;loaderVersion=0.16.14;driver=craftwright-driver-fabric;driverVersion=0.2.0-test;mappings=yarn-test;mods=mods-test;registries=registries-test;serverFeatures=server-features-test;permissions=permissions-test;actions=player.chat:1,player.move:1",
             extensions["x-craftwright-runtime-fingerprint"],
         )
+    }
+
+    @Test
+    fun `client specific openapi action metadata is deterministic by action id`() {
+        val service = ClientSessionService.inMemory { request ->
+            BackendDriverSession(
+                clientId = request.id,
+                backend = RecordingDriverBackend(
+                    actions = listOf(
+                        testPlayerMoveActionDescriptor(),
+                        testPlayerChatActionDescriptor(),
+                    )
+                ),
+            )
+        }
+        service.createClient(
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            )
+        )
+
+        val document = service.openApiFor("alice")
+
+        assertEquals(listOf("player.chat", "player.move"), document.actions.map { it.id })
+        assertEquals(
+            "minecraft=1.21.4;loader=FABRIC;loaderVersion=none;driver=craftwright-fake;driverVersion=0.1.0-SNAPSHOT;mappings=none;mods=none;registries=none;serverFeatures=none;permissions=local-fake;actions=player.chat:1,player.move:1",
+            document.extensions["x-craftwright-runtime-fingerprint"],
+        )
+        assertEquals("player.chat:1,player.move:1", document.extensions["x-craftwright-action-fingerprint"])
     }
 }
 
 private class RecordingDriverBackend(
     private val metadata: DriverRuntimeMetadata = DriverRuntimeMetadata.fake(),
+    private val actions: List<DriverActionDescriptor> = listOf(
+        testPlayerMoveActionDescriptor(),
+        testPlayerChatActionDescriptor(),
+    ),
 ) : DriverBackend {
     val calls = mutableListOf<String>()
 
@@ -309,10 +345,7 @@ private class RecordingDriverBackend(
     }
 
     override fun actions(clientId: String): List<DriverActionDescriptor> =
-        listOf(
-            testPlayerMoveActionDescriptor(),
-            testPlayerChatActionDescriptor(),
-        )
+        actions
 
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
         metadata
