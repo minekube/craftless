@@ -28,7 +28,8 @@ Legend:
   OpenAPI action descriptor for argument schema validation, help, positional
   argument mapping, and nested generated aliases such as
   `/clients/{id}/world/block:break`, with `/clients/{id}/actions` treated as
-  an availability projection.
+  an availability projection. Invocation no longer gates on `/actions`; live
+  OpenAPI is the action existence and schema authority.
 - [x] Daemon generic and generated-alias action dispatch validate driver result
   payloads against the advertised action result descriptor before returning
   success.
@@ -95,7 +96,8 @@ Verification:
   per-client OpenAPI action snapshot, not an independent source of truth.
 - [x] Adaptive CLI generic and generated-alias action paths use the live
   per-client OpenAPI descriptor as the argument/help schema authority,
-  including nested resource aliases derived from action ids.
+  including nested resource aliases derived from action ids, and do not treat
+  `/clients/{id}/actions` as an invocation precondition.
 - [ ] CLI, agents, and generated clients consume OpenAPI/descriptors at
   runtime instead of hard-coding gameplay commands.
 - [x] `DriverSession` remains lifecycle/events/runtime metadata plus

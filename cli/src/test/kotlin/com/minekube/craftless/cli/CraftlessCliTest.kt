@@ -388,7 +388,7 @@ class CraftlessCliTest {
     }
 
     @Test
-    fun `clients run rejects actions missing from runtime action metadata`() {
+    fun `clients run rejects actions missing from live openapi action metadata`() {
         val output = StringBuilder()
         val errors = StringBuilder()
 
@@ -413,7 +413,7 @@ class CraftlessCliTest {
         }
 
         assertEquals("", output.toString())
-        assertTrue(errors.toString().contains("action player.fly is not available for client alice"))
+        assertTrue(errors.toString().contains("action player.fly is not described by live OpenAPI for client alice"))
     }
 
     @Test
@@ -976,7 +976,7 @@ class CraftlessCliTest {
     }
 
     @Test
-    fun `generated client action alias help rejects unavailable runtime action`() {
+    fun `generated client action alias help rejects actions missing from live openapi action metadata`() {
         val output = StringBuilder()
         val errors = StringBuilder()
 
@@ -1002,11 +1002,11 @@ class CraftlessCliTest {
         }
 
         assertEquals("", output.toString())
-        assertTrue(errors.toString().contains("action player.fly is not available for client alice"))
+        assertTrue(errors.toString().contains("action player.fly is not described by live OpenAPI for client alice"))
     }
 
     @Test
-    fun `generated client action alias rejects unavailable runtime action`() {
+    fun `generated client action alias rejects actions missing from live openapi action metadata`() {
         val output = StringBuilder()
         val errors = StringBuilder()
 
@@ -1031,7 +1031,7 @@ class CraftlessCliTest {
         }
 
         assertEquals("", output.toString())
-        assertTrue(errors.toString().contains("action player.fly is not available for client alice"))
+        assertTrue(errors.toString().contains("action player.fly is not described by live OpenAPI for client alice"))
     }
 
     @Test
@@ -1347,13 +1347,7 @@ class CraftlessCliTest {
                     get("/clients/alice/actions") {
                         call.respondText(
                             """
-                            [
-                              {
-                                "id": "player.chat",
-                                "schemaVersion": "1",
-                                "args": {}
-                              }
-                            ]
+                            []
                             """.trimIndent(),
                             ContentType.Application.Json,
                         )

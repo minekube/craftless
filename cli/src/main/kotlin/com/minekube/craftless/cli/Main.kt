@@ -281,20 +281,6 @@ object CraftlessCli {
         return runCatching {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
-                    val actionsResponse = http.get("${api.trimEnd('/')}/clients/$clientId/actions")
-                    val actionsBody = actionsResponse.bodyAsText()
-                    if (!actionsResponse.status.isSuccess()) {
-                        stderr(actionsBody)
-                        return@runBlocking 1
-                    }
-                    val actionProjection =
-                        json
-                            .decodeFromString<List<OpenApiAction>>(actionsBody)
-                            .firstOrNull { it.id == action }
-                    if (actionProjection == null) {
-                        stderr("error: action $action is not available for client $clientId")
-                        return@runBlocking 1
-                    }
                     val openApiResponse = http.get("${api.trimEnd('/')}/clients/$clientId/openapi.json")
                     val openApiBody = openApiResponse.bodyAsText()
                     if (!openApiResponse.status.isSuccess()) {
@@ -343,31 +329,18 @@ object CraftlessCli {
         return runCatching {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
-                    val actionsResponse = http.get("${api.trimEnd('/')}/clients/$clientId/actions")
-                    val actionsBody = actionsResponse.bodyAsText()
-                    if (!actionsResponse.status.isSuccess()) {
-                        stderr(actionsBody)
-                        return@runBlocking 1
-                    }
-                    val actions = json.decodeFromString<List<OpenApiAction>>(actionsBody)
-                    val alias = args.generatedActionAlias(actions.mapTo(mutableSetOf()) { it.id })
-                    if (alias == null) {
-                        stderr("error: usage is clients <id> <resource...> <action> [--api <url>] [--arg key=value] [--<arg> value]")
-                        return@runBlocking 2
-                    }
-                    val actionProjection =
-                        actions.firstOrNull { it.id == alias.actionId }
-                    if (actionProjection == null) {
-                        stderr("error: action ${alias.actionId} is not available for client ${alias.clientId}")
-                        return@runBlocking 1
-                    }
-                    val openApiResponse = http.get("${api.trimEnd('/')}/clients/${alias.clientId}/openapi.json")
+                    val openApiResponse = http.get("${api.trimEnd('/')}/clients/$clientId/openapi.json")
                     val openApiBody = openApiResponse.bodyAsText()
                     if (!openApiResponse.status.isSuccess()) {
                         stderr(openApiBody)
                         return@runBlocking 1
                     }
                     val openApi = json.decodeFromString<OpenApiDocument>(openApiBody)
+                    val alias = args.generatedActionAlias(openApi.actions.mapTo(mutableSetOf()) { it.id })
+                    if (alias == null) {
+                        stderr("error: usage is clients <id> <resource...> <action> [--api <url>] [--arg key=value] [--<arg> value]")
+                        return@runBlocking 2
+                    }
                     val aliasOperation = openApi.paths[alias.path]?.post
                     val openApiAction = openApi.actions.firstOrNull { it.id == alias.actionId }
                     if (
