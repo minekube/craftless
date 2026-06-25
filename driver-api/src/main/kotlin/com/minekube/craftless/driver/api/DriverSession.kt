@@ -47,6 +47,7 @@ data class DriverActionDescriptor(
     init {
         require(id.isNotBlank()) { "action id is required" }
         require(schemaVersion.isNotBlank()) { "action schema version is required" }
+        require(arguments.keys.none { it.isBlank() }) { "action argument name is required" }
     }
 }
 
@@ -85,7 +86,11 @@ data class DriverRuntimeMetadata(
 data class DriverActionArgument(
     val type: String,
     val required: Boolean = false,
-)
+) {
+    init {
+        require(type.isNotBlank()) { "action argument type is required" }
+    }
+}
 
 @Serializable
 data class DriverActionInvocation(

@@ -9,6 +9,24 @@ import kotlin.test.assertTrue
 
 class DriverSessionContractTest {
     @Test
+    fun `driver action descriptors reject invalid argument metadata`() {
+        assertFailsWith<IllegalArgumentException> {
+            DriverActionDescriptor(
+                id = "player.move",
+                schemaVersion = "1",
+                arguments = mapOf("" to DriverActionArgument("boolean")),
+            )
+        }
+        assertFailsWith<IllegalArgumentException> {
+            DriverActionDescriptor(
+                id = "player.move",
+                schemaVersion = "1",
+                arguments = mapOf("forward" to DriverActionArgument("")),
+            )
+        }
+    }
+
+    @Test
     fun `fake driver session exposes the minimum automation contract`() {
         val session = FakeDriverSession(
             clientId = "alice",
