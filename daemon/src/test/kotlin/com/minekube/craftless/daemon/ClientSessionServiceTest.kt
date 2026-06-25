@@ -22,6 +22,7 @@ import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.OpenApiActionAvailability
 import com.minekube.craftless.protocol.OpenApiActionSource
 import com.minekube.craftless.protocol.OpenApiDocument
+import com.minekube.craftless.protocol.OpenApiResourceAvailability
 import com.minekube.craftless.protocol.OpenApiResponse
 import com.minekube.craftless.protocol.Profile
 import com.minekube.craftless.testkit.FakeDriverSession
@@ -75,6 +76,7 @@ class ClientSessionServiceTest {
         assertEquals("/clients/alice/events", service.routesFor("alice").first { it.path.endsWith("/events") }.path)
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice" })
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/openapi.json" })
+        assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/resources" })
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/player:chat" })
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/player:move" })
         assertTrue(service.routesFor("alice").none { it.path == "/clients/alice/player/sendChat" })
@@ -170,6 +172,7 @@ class ClientSessionServiceTest {
         assertTrue(document.paths.containsKey("/clients/alice:connect"))
         assertTrue(document.paths.containsKey("/clients/alice:stop"))
         assertTrue(document.paths.containsKey("/clients/alice/actions"))
+        assertTrue(document.paths.containsKey("/clients/alice/resources"))
         assertTrue(document.paths.containsKey("/clients/alice:run"))
         assertTrue(document.paths.containsKey("/clients/alice/player:chat"))
         assertTrue(document.paths.containsKey("/clients/alice/player:move"))
@@ -178,6 +181,7 @@ class ClientSessionServiceTest {
         assertEquals("clientConnect", document.paths["/clients/alice:connect"]?.post?.operationId)
         assertEquals("stopClient", document.paths["/clients/alice:stop"]?.post?.operationId)
         assertEquals("listClientActions", document.paths["/clients/alice/actions"]?.get?.operationId)
+        assertEquals("listClientResources", document.paths["/clients/alice/resources"]?.get?.operationId)
         assertEquals("runClientAction", document.paths["/clients/alice:run"]?.post?.operationId)
         assertEquals("getClientEvents", document.paths["/clients/alice/events"]?.get?.operationId)
         assertFalse(document.paths.containsKey("/clients/alice/connection/connect"))
@@ -272,6 +276,57 @@ class ClientSessionServiceTest {
         )
         assertEquals("1", document.actions.single { it.id == "player.move" }.schemaVersion)
         assertEquals("1", document.actions.single { it.id == "player.chat" }.schemaVersion)
+        assertEquals(listOf("player"), document.resources.map { it.id })
+        assertEquals(listOf("player.chat", "player.move"), document.resources.single().actions)
+        assertEquals(OpenApiResourceAvailability.AVAILABLE, document.resources.single().availability)
+    }
+
+    @Test
+    fun `client resources are projected from the same live action snapshot`() {
+        val service =
+            ClientSessionService.inMemory { request ->
+                BackendDriverSession(
+                    clientId = request.id,
+                    backend =
+                        RecordingDriverBackend(
+                            actions =
+                                listOf(
+                                    DriverActionDescriptor(
+                                        id = "player.query",
+                                        schemaVersion = "1",
+                                    ),
+                                    DriverActionDescriptor(
+                                        id = "player.raycast",
+                                        schemaVersion = "1",
+                                        source = DriverActionSource.RUNTIME_PROBE,
+                                        availability = DriverActionAvailability.UNAVAILABLE,
+                                        availabilityReason = "client-not-connected",
+                                    ),
+                                    DriverActionDescriptor(
+                                        id = "world.block.break",
+                                        schemaVersion = "1",
+                                    ),
+                                ),
+                        ),
+                )
+            }
+        service.createClient(
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            ),
+        )
+
+        val document = service.openApiFor("alice")
+        val resources = service.resourcesFor("alice")
+
+        assertEquals(document.resources, resources)
+        assertEquals(listOf("player", "world.block"), resources.map { it.id })
+        val player = resources.single { it.id == "player" }
+        assertEquals(listOf("player.query", "player.raycast"), player.actions)
+        assertEquals(OpenApiResourceAvailability.PARTIAL, player.availability)
     }
 
     @Test

@@ -91,8 +91,10 @@ data class FabricClientSmokeController(
                     )
                     val openApi = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/openapi.json"))
                     val actions = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/actions"))
+                    val resources = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/resources"))
                     writeArtifact("client-openapi.json", openApi)
                     writeArtifact("client-actions.json", actions)
+                    writeArtifact("client-resources.json", resources)
                     writeArtifact("runtime-metadata.json", smokeJson.encodeToString(backend.runtimeMetadata(SMOKE_CLIENT_ID)))
 
                     if (gateway.awaitReadyToConnect(connectTimeout, pollInterval)) {
@@ -105,8 +107,10 @@ data class FabricClientSmokeController(
                     if (gateway.awaitConnected(connectTimeout, pollInterval)) {
                         val connectedOpenApi = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/openapi.json"))
                         val connectedActions = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/actions"))
+                        val connectedResources = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/resources"))
                         writeArtifact("client-openapi-connected.json", connectedOpenApi)
                         writeArtifact("client-actions-connected.json", connectedActions)
+                        writeArtifact("client-resources-connected.json", connectedResources)
 
                         val chatResult =
                             http.runAvailableAction(

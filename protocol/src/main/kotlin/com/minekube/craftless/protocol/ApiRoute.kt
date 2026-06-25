@@ -36,7 +36,7 @@ data class ApiRoute(
 
 private val SUPPORTED_ROUTE_METHODS = setOf("GET", "POST")
 private val SUPPORTED_ROUTE_TARGETS = setOf("supervisor", "client")
-private val SUPPORTED_ROUTE_SOURCES = setOf("route", "method", "action")
+private val SUPPORTED_ROUTE_SOURCES = setOf("route", "method", "action", "resource")
 private val SUPPORTED_ROUTE_RETURN_KINDS = setOf("value")
 
 private fun String.containsForbiddenPublicRoutePathToken(): Boolean =
@@ -89,6 +89,7 @@ class ApiRouteCatalog(
                     route("GET", "/clients/{id}/openapi.json", "getClientOpenapiJson", "clients", "clients", "openapi", "route"),
                     route("POST", "/clients/{id}:connect", "clientConnect", "clients", "clients", "connect", "method"),
                     route("GET", "/clients/{id}/actions", "listClientActions", "clients", "clients", "actions", "action"),
+                    route("GET", "/clients/{id}/resources", "listClientResources", "clients", "clients", "resources", "resource"),
                     route("POST", "/clients/{id}:run", "runClientAction", "clients", "clients", "run", "action"),
                     route("POST", "/clients/{id}:stop", "stopClient", "clients", "clients", "stop", "method"),
                     route("GET", "/clients/{id}/events", "getClientEvents", "clients", "clients", "events", "route"),
@@ -112,7 +113,7 @@ class ApiRouteCatalog(
                 tag = tag,
                 owner = owner,
                 member = member,
-                target = if (source == "action") "client" else "supervisor",
+                target = if (source == "action" || source == "resource") "client" else "supervisor",
                 source = source,
                 returnKind = returnKind,
             )

@@ -508,6 +508,14 @@ class LocalSessionApiServerTest {
                     assertTrue(body.contains("\"args\""))
                 }
 
+                http.get(server.url("/clients/alice/resources")).let { response ->
+                    val body = response.bodyAsText()
+                    assertEquals(HttpStatusCode.OK, response.status)
+                    assertTrue(body.contains("\"id\":\"player\""))
+                    assertTrue(body.contains("\"player.chat\""))
+                    assertTrue(body.contains("\"player.move\""))
+                }
+
                 http
                     .post(server.url("/clients/alice:run")) {
                         contentType(ContentType.Application.Json)

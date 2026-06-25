@@ -20,6 +20,9 @@ Legend:
 - [x] Stable supervisor OpenAPI exists at `GET /openapi.json`.
 - [x] Per-client OpenAPI route exists at `GET /clients/{id}/openapi.json`.
 - [x] Generic action invocation exists at `POST /clients/{id}:run`.
+- [x] Live resource projection exists at `GET /clients/{id}/resources` and in
+  `x-craftless-resources`, derived from the same action snapshot as
+  per-client OpenAPI.
 - [x] CLI binary is `craftless` and uses adaptive action metadata.
 - [x] CLI generic and generated-alias action dispatch use the live per-client
   OpenAPI action descriptor for argument schema validation, help, positional
@@ -47,7 +50,8 @@ Baseline evidence:
   join, chat, and disconnect for the same real client.
 - Current smoke controller re-fetches connected client OpenAPI/actions before
   invoking gameplay actions and writes `client-openapi-connected.json`,
-  `client-actions-connected.json`, and `gameplay-results.jsonl`.
+  `client-actions-connected.json`, `client-resources-connected.json`, and
+  `gameplay-results.jsonl`.
 - Key commands:
   - `mise run lint`
   - `mise run ci`
@@ -84,6 +88,8 @@ Verification:
   aliases, schemas, handles, availability, and runtime fingerprints.
 - [x] `/clients/{id}/actions` remains a projection of per-client OpenAPI, not
   a separate source of truth.
+- [x] `/clients/{id}/resources` remains a live projection derived from the
+  per-client OpenAPI action snapshot, not an independent source of truth.
 - [x] Adaptive CLI generic and generated-alias action paths use the live
   per-client OpenAPI descriptor as the argument/help schema authority,
   including nested resource aliases derived from action ids.
@@ -111,9 +117,11 @@ Verification:
   connected-client `world.block.break`, and
   disconnected-client unavailable probe metadata; broader
   client/world/inventory/screen probes are still roadmap.
-- [ ] Define how internal Fabric/Minecraft/mod/registry/server data becomes
+- [~] Define how internal Fabric/Minecraft/mod/registry/server data becomes
   Craftless-owned actions, resources, handles, schemas, availability, and
-  events.
+  events. Action-derived resource projection is implemented; richer handles,
+  object schemas, registry/server-feature resources, and event/resource
+  relationships are still roadmap.
 - [x] Define the rule for unavailable-but-detected operations: they may appear
   in OpenAPI only when a runtime probe discovered them and produced a
   machine-readable availability reason.
@@ -178,8 +186,8 @@ Verification:
 - [ ] The slice runs against a real Fabric client and local server fixture.
 - [~] Evidence proves observable game effects through server logs, client
   telemetry, or both. Current smoke artifacts include connected OpenAPI/actions
-  and gameplay action result telemetry, including target-item slot selection
-  when present; observable iron-sword acquisition is still missing.
+  resources and gameplay action result telemetry, including target-item slot
+  selection when present; observable iron-sword acquisition is still missing.
 
 Verification:
 

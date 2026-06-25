@@ -36,6 +36,9 @@ Craftless keeps the control plane deliberately split:
   and runtime fingerprints for that exact client.
 - `GET /clients/{id}/actions` is a projection of the per-client OpenAPI action
   metadata for discovery and filtering, not a separate source of truth.
+- `GET /clients/{id}/resources` is a projection of the same live actions into
+  Craftless-owned resource ids such as `player`, `inventory`, and
+  `world.block`.
 - `craftless` and future generated clients fetch those specs at runtime. They
   do not keep a hand-written catalog of Minecraft gameplay commands.
 
@@ -76,6 +79,7 @@ curl -sS "$CRAFTLESS/clients/alice:connect" \
 
 # Discover the generated API for that exact client.
 curl -sS "$CRAFTLESS/clients/alice/openapi.json"
+curl -sS "$CRAFTLESS/clients/alice/resources"
 
 # Run actions through the generic action endpoint described by that API.
 curl -sS "$CRAFTLESS/clients/alice:run" \
@@ -121,7 +125,8 @@ Implemented now:
   aliases and help loaded from action metadata.
 - Ktor local supervisor API with stable kernel OpenAPI at `/openapi.json`.
 - Per-client OpenAPI at `/clients/{id}/openapi.json` with Craftless metadata,
-  action schemas, source/availability metadata, and runtime/cache fingerprints.
+  action schemas, resource projections, source/availability metadata, and
+  runtime/cache fingerprints.
 - Stable lifecycle routes for creating, listing, fetching, connecting, and
   stopping daemon-managed clients.
 - Client responses include a Craftless-owned instance file layout for the
@@ -141,17 +146,19 @@ Implemented now:
 - An opt-in `:driver-fabric:fabricClientSmoke` entrypoint that launches a real
   Minecraft `1.21.6` Fabric client, keeps a local testkit Minecraft server
   alive, starts the in-client daemon API, fetches per-client OpenAPI/action
-  metadata, invokes generated `player.chat`, `player.move`, `player.query`,
-  `inventory.query`, `inventory.equip`, and `world.block.break` through
-  `POST /clients/{id}:run`, and verifies server-side join, chat, and
-  disconnect evidence plus driver-side movement and gameplay result artifacts.
+  metadata and resource projections, invokes generated `player.chat`,
+  `player.move`, `player.query`, `inventory.query`, `inventory.equip`, and
+  `world.block.break` through `POST /clients/{id}:run`, and verifies
+  server-side join, chat, and disconnect evidence plus driver-side movement and
+  gameplay result artifacts.
 
 Still roadmap:
 
 - stronger real-client movement proof using server-side position deltas or
   richer measured in-client position telemetry;
 - runtime discovery/projection for broader gameplay resources and actions such
-  as look, world/entity queries, screen interaction, crafting, and events;
+  as look, world/entity queries, screen interaction, crafting, richer handles,
+  and events;
 - consolidated Fabric driver support across more Minecraft versions;
 - fuller client file management informed by Prism Launcher source, with any
   Prism import/adapter remaining optional rather than a core dependency.

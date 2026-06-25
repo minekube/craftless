@@ -162,6 +162,14 @@ class LocalSessionApiServer private constructor(
                     call.respondMissingClient(error)
                 }
             }
+            get("/clients/{id}/resources") {
+                val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
+                runCatching {
+                    call.respondJson(HttpStatusCode.OK, service.resourcesFor(clientId))
+                }.getOrElse { error ->
+                    call.respondMissingClient(error)
+                }
+            }
             post("/clients/{id}:run") {
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {

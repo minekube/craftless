@@ -12,12 +12,15 @@ data class OpenApiDocument(
     val extensions: Map<String, String> = emptyMap(),
     @SerialName("x-craftless-actions")
     val actions: List<OpenApiAction> = emptyList(),
+    @SerialName("x-craftless-resources")
+    val resources: List<OpenApiResource> = emptyList(),
 ) {
     companion object {
         fun from(
             catalog: ApiRouteCatalog,
             extensions: Map<String, String> = emptyMap(),
             actions: List<OpenApiAction> = emptyList(),
+            resources: List<OpenApiResource>? = null,
         ): OpenApiDocument {
             val duplicateAction =
                 actions
@@ -27,7 +30,21 @@ data class OpenApiDocument(
             if (duplicateAction != null) {
                 throw IllegalArgumentException("duplicate action id ${duplicateAction.key}")
             }
+            val resourceProjection = resources ?: actions.toOpenApiResources()
             val actionsById = actions.associateBy { it.id }
+            val duplicateResource =
+                resourceProjection
+                    .groupBy { it.id }
+                    .entries
+                    .firstOrNull { (_, matches) -> matches.size > 1 }
+            if (duplicateResource != null) {
+                throw IllegalArgumentException("duplicate resource id ${duplicateResource.key}")
+            }
+            resourceProjection.forEach { resource ->
+                resource.actions.forEach { actionId ->
+                    require(actionId in actionsById) { "resource ${resource.id} references unknown action $actionId" }
+                }
+            }
             catalog.routes.forEach { route ->
                 val actionId = route.actionId
                 if (actionId != null && actionId !in actionsById) {
@@ -44,6 +61,7 @@ data class OpenApiDocument(
                     },
                 extensions = extensions,
                 actions = actions,
+                resources = resourceProjection,
             )
         }
     }
@@ -127,6 +145,35 @@ data class OpenApiAction(
 }
 
 @Serializable
+data class OpenApiResource(
+    val id: String,
+    val actions: List<String>,
+    val availability: OpenApiResourceAvailability,
+) {
+    init {
+        require(id.isCraftlessResourceId()) { "invalid resource id $id" }
+        require(actions.isNotEmpty()) { "resource $id requires at least one action" }
+        require(actions.distinct() == actions) { "resource $id declares duplicate actions" }
+        actions.forEach { actionId ->
+            require(actionId.isCraftlessActionId()) { "invalid resource action id $actionId" }
+            require(actionId.startsWith("$id.")) { "resource $id cannot reference action $actionId" }
+        }
+    }
+}
+
+@Serializable
+enum class OpenApiResourceAvailability {
+    @SerialName("available")
+    AVAILABLE,
+
+    @SerialName("partial")
+    PARTIAL,
+
+    @SerialName("unavailable")
+    UNAVAILABLE,
+}
+
+@Serializable
 enum class OpenApiActionSource {
     @SerialName("binding")
     BINDING,
@@ -172,6 +219,10 @@ fun String.isCraftlessActionId(): Boolean =
     matches(Regex("[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+")) &&
         !containsForbiddenPublicNamespaceToken()
 
+fun String.isCraftlessResourceId(): Boolean =
+    matches(Regex("[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)*")) &&
+        !containsForbiddenPublicNamespaceToken()
+
 fun String.isCraftlessActionArgumentName(): Boolean =
     matches(Regex("[a-z][a-z0-9-]*")) &&
         !containsForbiddenPublicNamespaceToken()
@@ -209,6 +260,27 @@ internal fun String.containsForbiddenPublicNamespaceToken(): Boolean {
     return FORBIDDEN_PUBLIC_NAMESPACE_TOKENS.any { token -> token in normalized }
 }
 
+fun List<OpenApiAction>.toOpenApiResources(): List<OpenApiResource> =
+    groupBy { it.resourceId() }
+        .toSortedMap()
+        .map { (resourceId, actions) ->
+            val sortedActions = actions.sortedBy { it.id }
+            OpenApiResource(
+                id = resourceId,
+                actions = sortedActions.map { it.id },
+                availability = sortedActions.toResourceAvailability(),
+            )
+        }
+
+private fun OpenApiAction.resourceId(): String = id.substringBeforeLast(".")
+
+private fun List<OpenApiAction>.toResourceAvailability(): OpenApiResourceAvailability =
+    when {
+        all { it.availability == OpenApiActionAvailability.AVAILABLE } -> OpenApiResourceAvailability.AVAILABLE
+        all { it.availability == OpenApiActionAvailability.UNAVAILABLE } -> OpenApiResourceAvailability.UNAVAILABLE
+        else -> OpenApiResourceAvailability.PARTIAL
+    }
+
 private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenApiOperation {
     val route = this
     return OpenApiOperation(
@@ -239,6 +311,7 @@ private fun ApiRoute.responses(actionsById: Map<String, OpenApiAction>): Map<Str
                 path == "/version" && method == "GET" -> versionResponse()
                 (path == "/events" || path.endsWith("/events")) && method == "GET" -> eventListResponse()
                 path.endsWith("/actions") && method == "GET" -> actionListResponse()
+                path.endsWith("/resources") && method == "GET" -> resourceListResponse()
                 path == "/clients" && method == "GET" -> clientListResponse()
                 path == "/clients" && method == "POST" -> clientResponse()
                 path.endsWith(":connect") && method == "POST" -> clientResponse()
@@ -263,6 +336,7 @@ private fun ApiRoute.errorStatuses(): List<String> =
         path == "/clients/{id}" && method == "GET" -> listOf("404")
         path == "/clients/{id}/openapi.json" && method == "GET" -> listOf("404")
         path == "/clients/{id}/actions" && method == "GET" -> listOf("404")
+        path == "/clients/{id}/resources" && method == "GET" -> listOf("404")
         path == "/clients/{id}/events" && method == "GET" -> listOf("404")
         else -> emptyList()
     }
@@ -386,6 +460,17 @@ private fun actionListResponse(): OpenApiResponse =
             ),
     )
 
+private fun resourceListResponse(): OpenApiResponse =
+    OpenApiResponse(
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "array",
+                    items = resourceDescriptorSchema(),
+                ),
+            ),
+    )
+
 private fun openApiDocumentResponse(): OpenApiResponse =
     OpenApiResponse(
         content =
@@ -412,6 +497,11 @@ private fun openApiDocumentResponse(): OpenApiResponse =
                                     type = "array",
                                     items = actionDescriptorSchema(),
                                 ),
+                            "x-craftless-resources" to
+                                OpenApiSchema(
+                                    type = "array",
+                                    items = resourceDescriptorSchema(),
+                                ),
                         ),
                     required = listOf("openapi", "info", "paths"),
                 ),
@@ -432,6 +522,18 @@ private fun actionDescriptorSchema(): OpenApiSchema =
                 "result" to OpenApiSchema(type = "object", additionalProperties = true),
             ),
         required = listOf("id", "schemaVersion", "source", "availability"),
+    )
+
+private fun resourceDescriptorSchema(): OpenApiSchema =
+    OpenApiSchema(
+        type = "object",
+        properties =
+            mapOf(
+                "id" to OpenApiSchema(type = "string"),
+                "actions" to OpenApiSchema(type = "array", items = OpenApiSchema(type = "string")),
+                "availability" to OpenApiSchema(type = "string"),
+            ),
+        required = listOf("id", "actions", "availability"),
     )
 
 private fun genericActionRequestBody(): OpenApiRequestBody =

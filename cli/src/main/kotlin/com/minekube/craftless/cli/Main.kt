@@ -62,6 +62,7 @@ object CraftlessCli {
             "clients <id> stop",
             "clients <id> openapi",
             "clients <id> actions",
+            "clients <id> resources",
             "clients <id> run <action>",
             "clients <id> <resource...> <action>",
             "server start",
@@ -97,6 +98,9 @@ object CraftlessCli {
         }
         if (args.size >= 3 && args[0] == "clients" && args[2] == "actions") {
             return getClientActions(args.drop(1), stdout, stderr, env)
+        }
+        if (args.size >= 3 && args[0] == "clients" && args[2] == "resources") {
+            return getClientResources(args.drop(1), stdout, stderr, env)
         }
         if (args.size >= 4 && args[0] == "clients" && args[2] == "run") {
             return runClientAction(args.drop(1), stdout, stderr, env)
@@ -411,6 +415,30 @@ object CraftlessCli {
             }
         }.getOrElse { error ->
             stderr("error: ${error.message ?: "failed to fetch actions"}")
+            2
+        }
+    }
+
+    private fun getClientResources(
+        args: List<String>,
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+        env: Map<String, String>,
+    ): Int {
+        val clientId = args.getOrNull(0).orEmpty()
+        if (clientId.isBlank()) {
+            stderr("error: usage is clients <id> resources [--api <url>]")
+            return 2
+        }
+        val api = args.apiBaseUrl(env)
+        return runCatching {
+            kotlinx.coroutines.runBlocking {
+                HttpClient(CIO).use { http ->
+                    http.get("${api.trimEnd('/')}/clients/$clientId/resources").forwardBody(stdout, stderr)
+                }
+            }
+        }.getOrElse { error ->
+            stderr("error: ${error.message ?: "failed to fetch resources"}")
             2
         }
     }

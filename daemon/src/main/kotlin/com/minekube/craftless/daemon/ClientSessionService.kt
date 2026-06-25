@@ -20,6 +20,7 @@ import com.minekube.craftless.protocol.OpenApiActionResult
 import com.minekube.craftless.protocol.OpenApiActionSchema
 import com.minekube.craftless.protocol.OpenApiActionSource
 import com.minekube.craftless.protocol.OpenApiDocument
+import com.minekube.craftless.protocol.OpenApiResource
 import com.minekube.craftless.protocol.isCraftlessClientId
 
 class ClientSessionService private constructor(
@@ -77,6 +78,8 @@ class ClientSessionService private constructor(
         return routesFor(clientId, driverFor(clientId).sortedActions())
     }
 
+    fun resourcesFor(clientId: String): List<OpenApiResource> = openApiFor(clientId).resources
+
     fun openApiFor(clientId: String): OpenApiDocument {
         val client = client(clientId)
         val driver = driverFor(clientId)
@@ -129,6 +132,7 @@ class ClientSessionService private constructor(
             route("POST", "/clients/$clientId:connect", "clientConnect", "clients", "connect", "method"),
             route("POST", "/clients/$clientId:stop", "stopClient", "clients", "stop", "method"),
             route("GET", "/clients/$clientId/actions", "listClientActions", "clients", "actions", "action"),
+            route("GET", "/clients/$clientId/resources", "listClientResources", "clients", "resources", "resource"),
             route("POST", "/clients/$clientId:run", "runClientAction", "clients", "run", "action"),
             route("GET", "/clients/$clientId/events", "getClientEvents", "clients", "events", "route"),
         ) + actionAliases
@@ -295,7 +299,7 @@ private fun route(
         tag = tag,
         owner = "clients",
         member = member,
-        target = if (source == "action") "client" else "supervisor",
+        target = if (source == "action" || source == "resource") "client" else "supervisor",
         source = source,
         returnKind = returnKind,
         actionId = actionId,

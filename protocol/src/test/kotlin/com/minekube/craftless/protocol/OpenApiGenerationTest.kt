@@ -95,9 +95,44 @@ class OpenApiGenerationTest {
         val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
 
         assertTrue(document.actions.isEmpty())
+        assertTrue(document.resources.isEmpty())
         assertTrue(document.paths.keys.none { it == "/clients/{id}/player:chat" })
         assertTrue(document.paths.keys.none { it == "/clients/{id}/player:move" })
         assertTrue(document.paths.keys.none { it.matches(Regex("""^/clients/\{id}/[^/]+:[^/]+$""")) })
+    }
+
+    @Test
+    fun `openapi document projects resources from discovered actions`() {
+        val document =
+            OpenApiDocument.from(
+                catalog = ApiRouteCatalog.sessionDefaults(),
+                actions =
+                    listOf(
+                        OpenApiAction(
+                            id = "player.query",
+                            schemaVersion = "1",
+                        ),
+                        OpenApiAction(
+                            id = "player.raycast",
+                            schemaVersion = "1",
+                            source = OpenApiActionSource.RUNTIME_PROBE,
+                            availability = OpenApiActionAvailability.UNAVAILABLE,
+                            availabilityReason = "client-not-connected",
+                        ),
+                        OpenApiAction(
+                            id = "world.block.break",
+                            schemaVersion = "1",
+                        ),
+                    ),
+            )
+
+        assertEquals(listOf("player", "world.block"), document.resources.map { it.id })
+        val player = document.resources.single { it.id == "player" }
+        assertEquals(listOf("player.query", "player.raycast"), player.actions)
+        assertEquals(OpenApiResourceAvailability.PARTIAL, player.availability)
+        val block = document.resources.single { it.id == "world.block" }
+        assertEquals(listOf("world.block.break"), block.actions)
+        assertEquals(OpenApiResourceAvailability.AVAILABLE, block.availability)
     }
 
     @Test

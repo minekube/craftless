@@ -14,6 +14,8 @@ Craftless currently has:
 - generated per-client OpenAPI at `/clients/{id}/openapi.json`;
 - descriptor-driven actions exposed through `/clients/{id}/actions`,
   `POST /clients/{id}:run`, and generated aliases;
+- live resource projections exposed through `/clients/{id}/resources` and
+  `x-craftless-resources`, derived from discovered action descriptors;
 - a Craftless-owned instance file layout in client responses, covering instance
   root, game root, mods, config, saves, resource packs, and shader packs;
 - an adaptive JVM `craftless` CLI using Ktor Client;
@@ -37,9 +39,10 @@ Craftless currently has:
   execution binding, and allows unbound actions only as unavailable runtime
   probes with machine-readable reasons;
 - Fabric/Loom driver scaffolding with current action evidence;
-- Fabric-generated action descriptors for current chat/move bindings. Broader
-  gameplay actions must come from real bindings or runtime discovery probes,
-  not static placeholders;
+- Fabric-generated action descriptors for current chat, movement, player query,
+  raycast, inventory query/equip, and block-break bindings. Broader gameplay
+  actions must come from real bindings or runtime discovery probes, not static
+  placeholders;
 - a minimal internal Fabric discovery projection that lists binding-backed
   actions and can represent runtime-probe unavailable actions without an
   execution binding;
@@ -60,11 +63,13 @@ Craftless currently has:
   lifecycle and a bounded client command, defaulting to
   `mise exec -- gradle :driver-fabric:runClient`, whose in-client Fabric smoke
   controller starts a local daemon API backed by the Fabric driver, fetches
-  per-client OpenAPI/action metadata, connects to the smoke server, invokes
-  generated `player.chat` and `player.move` through
-  `POST /clients/{id}:run` after connection, writes client artifacts next to
-  server artifacts, and verifies server-side join/chat/disconnect evidence
-  plus driver-side movement event telemetry;
+  per-client OpenAPI/action metadata and resource projections, connects to the
+  smoke server, invokes generated `player.chat`, `player.move`,
+  `player.query`, `inventory.query`, `inventory.equip`, and
+  `world.block.break` through `POST /clients/{id}:run` after connection,
+  writes client artifacts next to server artifacts, and verifies server-side
+  join/chat/disconnect evidence plus driver-side movement and gameplay result
+  telemetry;
 - repo-local Kotlin/JVM agent skills scoped to this codebase.
 
 ## Completion Definition
@@ -92,7 +97,8 @@ the durable Fabric direction.
 
 - Keep the opt-in Fabric smoke green: the 2026-06-25 run launched
   `:driver-fabric:runClient`, joined the provisioned Minecraft `1.21.6`
-  server, fetched generated OpenAPI/actions through the in-client daemon API,
+  server, fetched generated OpenAPI/actions/resources through the in-client
+  daemon API,
   invoked generated `player.chat`, `player.move`, `player.query`,
   `inventory.query`, `inventory.equip`, and `world.block.break` through
   `POST /clients/{id}:run`, captured server-side join/chat/disconnect evidence,
@@ -120,6 +126,9 @@ or static placeholder descriptors.
 - Current discovery has connected-client bindings with disconnected-client
   unavailable probe metadata for `player.query`, `player.raycast`,
   `inventory.query`, `inventory.equip`, and `world.block.break`.
+- Current resource projection groups discovered action ids into live resources
+  such as `player`, `inventory`, and `world.block`; richer handles and
+  resource schemas are still roadmap.
 - Project discovered runtime affordances into Craftless-owned actions,
   resources, handles, schemas, availability metadata, and events.
 - Add real execution bindings before treating an action as supported.
