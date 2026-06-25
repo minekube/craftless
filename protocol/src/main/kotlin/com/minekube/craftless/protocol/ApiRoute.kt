@@ -19,12 +19,18 @@ data class ApiRoute(
 class ApiRouteCatalog(
     val routes: List<ApiRoute>,
 ) {
-    private val byPath: Map<String, ApiRoute> = routes.associateBy { it.path }
+    private val byPath: Map<String, List<ApiRoute>> = routes.groupBy { it.path }
     private val byMethodAndPath: Map<Pair<String, String>, ApiRoute> =
         routes.associateBy { it.method to it.path }
 
-    fun route(path: String): ApiRoute =
-        byPath[path] ?: error("route not found: $path")
+    fun route(path: String): ApiRoute {
+        val matches = byPath[path] ?: error("route not found: $path")
+        if (matches.size > 1) {
+            val methods = matches.map { it.method }.sorted().joinToString(", ")
+            error("ambiguous route path $path has methods $methods; use route(method, path)")
+        }
+        return matches.single()
+    }
 
     fun route(method: String, path: String): ApiRoute =
         byMethodAndPath[method to path] ?: error("route not found: $method $path")

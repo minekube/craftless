@@ -2,6 +2,7 @@ package com.minekube.craftless.protocol
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class ApiRouteCatalogTest {
@@ -32,5 +33,18 @@ class ApiRouteCatalogTest {
         assertTrue(catalog.routes.none { it.path == "/clients/{id}/player/position" })
         assertTrue(catalog.routes.none { it.path.startsWith("/o/") })
         assertTrue(catalog.routes.none { it.path.startsWith("/c/") })
+    }
+
+    @Test
+    fun `catalog rejects path only lookup for ambiguous route paths`() {
+        val catalog = ApiRouteCatalog.sessionDefaults()
+
+        val error = assertFailsWith<IllegalStateException> {
+            catalog.route("/clients")
+        }
+
+        assertTrue(error.message!!.contains("ambiguous route path /clients"))
+        assertEquals("GET", catalog.route("GET", "/clients").method)
+        assertEquals("POST", catalog.route("POST", "/clients").method)
     }
 }
