@@ -21,6 +21,10 @@ contracts, project config, an in-memory engine, scenario parsing, and a stdio
 daemon protocol. The real Minecraft client backend is the next milestone and
 will attach behind the same engine interface.
 
+Milestone 1 hardening covers config-backed launch defaults, explicit reserved
+output modes, strict scenario validation with cleanup, and daemon parse-error
+resilience before the real-client backend lands.
+
 ## Development
 
 ```sh
