@@ -182,7 +182,13 @@ class LocalSessionApiServer private constructor(
                 val actionAlias = requireNotNull(call.parameters["actionAlias"]) { "action alias is required" }
                 runCatching {
                     val actionId = actionAlias.toActionId()
-                    val result = service.driverFor(clientId).invoke(
+                    val driver = runCatching { service.driverFor(clientId) }.getOrElse { error ->
+                        throw GeneratedActionRouteNotFound(error.message ?: "client not found")
+                    }
+                    if (driver.actions().none { it.id == actionId }) {
+                        throw GeneratedActionRouteNotFound("action $actionId is not available for client $clientId")
+                    }
+                    val result = driver.invoke(
                         DriverActionInvocation(
                             action = actionId,
                             arguments = call.receiveActionArguments(),
@@ -204,7 +210,11 @@ class LocalSessionApiServer private constructor(
                         )
                     )
                 }.getOrElse { error ->
-                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                    if (error is GeneratedActionRouteNotFound) {
+                        call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "action not found"))
+                    } else {
+                        call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                    }
                 }
             }
         }
@@ -243,6 +253,8 @@ private fun String.toActionId(): String {
     require(parts.size == 2 && parts.none { it.isBlank() }) { "action alias must use resource:action syntax" }
     return "${parts[0]}.${parts[1]}"
 }
+
+private class GeneratedActionRouteNotFound(message: String) : RuntimeException(message)
 
 @Serializable
 data class RuntimeVersion(

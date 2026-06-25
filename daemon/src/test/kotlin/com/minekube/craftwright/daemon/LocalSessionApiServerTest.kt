@@ -223,9 +223,17 @@ class LocalSessionApiServerTest {
                 setBody("{}")
             }.let { response ->
                 val body = response.bodyAsText()
-                assertEquals(HttpStatusCode.OK, response.status)
-                assertTrue(body.contains("\"action\":\"player.fly\""))
-                assertTrue(body.contains("\"status\":\"UNSUPPORTED\""))
+                assertEquals(HttpStatusCode.NotFound, response.status)
+                assertTrue(body.contains("action player.fly is not available for client alice"))
+            }
+
+            http.post(server.url("/clients/missing/player:chat")) {
+                contentType(ContentType.Application.Json)
+                setBody("""{"message":"hello"}""")
+            }.let { response ->
+                val body = response.bodyAsText()
+                assertEquals(HttpStatusCode.NotFound, response.status)
+                assertTrue(body.contains("client missing not found"))
             }
 
             http.post(server.url("/clients/alice/stop")) {
