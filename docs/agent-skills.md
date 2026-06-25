@@ -1,12 +1,12 @@
 # Agent Skills
 
-Craftwright keeps repo-local agent skills narrow and relevant to the current
+Craftless keeps repo-local agent skills narrow and relevant to the current
 Kotlin/JVM work. Broad Android, KMP, JPA, database, or one-off migration skills
 should not be installed unless the repository starts using those technologies.
 
 ## Installed Repo-Local Skills
 
-- `.agents/skills/kotlin-jvm-modern-practices` captures Craftwright's modern
+- `.agents/skills/kotlin-jvm-modern-practices` captures Craftless's modern
   Kotlin/JVM defaults: Gradle Kotlin DSL, Ktor Server/Client, structured
   concurrency, JVM tests, Fabric client-thread boundaries, and no old Java HTTP
   stack.
@@ -41,7 +41,7 @@ and project-specific Spring controller assumptions.
   `.skills/` or repo-local skill folders, but those workflows target Android
   apps.
 - Marketplace search for "modern kotlin best practices" surfaced broad
-  community skills, but none should be installed into Craftwright as-is.
+  community skills, but none should be installed into Craftless as-is.
 
 Current upstream skill folders:
 
@@ -60,13 +60,13 @@ Community candidates checked:
 - `spartan-stratos/spartan-ai-toolkit@kotlin-best-practices`: about 32 installs
   at search time and 81 GitHub stars after the GitHub redirect to
   `c0x12c/ai-toolkit`. It assumes Exposed ORM, Either-based managers, and
-  project-specific controller conventions that Craftwright does not use.
+  project-specific controller conventions that Craftless does not use.
 - `aj-geddes/useful-ai-prompts@android-kotlin-development`: about 1.1k installs
   and 278 GitHub stars, but it is Android/MVVM/Compose/Retrofit/Room focused.
 
 ## Recommendation For This Repository
 
-Do not install the whole `Kotlin/kotlin-agent-skills` set into Craftwright right
+Do not install the whole `Kotlin/kotlin-agent-skills` set into Craftless right
 now. Most upstream skills are not relevant to this repo's current Kotlin/JVM
 server, CLI, Fabric-driver, and Playwright helper work:
 
@@ -75,7 +75,7 @@ server, CLI, Fabric-driver, and Playwright helper work:
 - no JPA/Hibernate model;
 - no `kotlinx.collections.immutable` dependency.
 
-Do not install the broad community candidates listed above. If Craftwright needs
+Do not install the broad community candidates listed above. If Craftless needs
 more Kotlin guidance, evolve `.agents/skills/kotlin-jvm-modern-practices` with
 project-specific rules instead.
 

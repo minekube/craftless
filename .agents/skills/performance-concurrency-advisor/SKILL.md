@@ -1,11 +1,11 @@
 ---
 name: performance-concurrency-advisor
-description: Analyze and improve performance, throughput, latency, and concurrency behavior in Craftwright Kotlin/JVM code using real evidence from metrics, traces, event loops, process/thread signals, heap signals, and code paths. Use when Ktor endpoints are slow, clients or driver boundaries block unexpectedly, queues saturate, or caching and parallelism decisions need precise, non-generic guidance.
+description: Analyze and improve performance, throughput, latency, and concurrency behavior in Craftless Kotlin/JVM code using real evidence from metrics, traces, event loops, process/thread signals, heap signals, and code paths. Use when Ktor endpoints are slow, clients or driver boundaries block unexpectedly, queues saturate, or caching and parallelism decisions need precise, non-generic guidance.
 ---
 
 # Performance Concurrency Advisor
 
-Source mapping: Craftwright Ktor, coroutine, process, driver, and Minecraft client-thread performance analysis.
+Source mapping: Craftless Ktor, coroutine, process, driver, and Minecraft client-thread performance analysis.
 
 ## Mission
 

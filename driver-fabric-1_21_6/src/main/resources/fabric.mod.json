@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "craftwright-driver-fabric-1-21-6",
+  "id": "craftless-driver-fabric-1-21-6",
   "version": "${version}",
-  "name": "Craftwright Driver Fabric 1.21.6",
-  "description": "Craftwright in-client driver scaffold for Minecraft 1.21.6.",
+  "name": "Craftless Driver Fabric 1.21.6",
+  "description": "Craftless in-client driver scaffold for Minecraft 1.21.6.",
   "authors": [
     "Minekube"
   ],
@@ -11,11 +11,11 @@
   "environment": "client",
   "entrypoints": {
     "client": [
-      "com.minekube.craftwright.driver.fabric.v1_21_6.CraftwrightFabricClientEntrypoint"
+      "com.minekube.craftless.driver.fabric.v1_21_6.CraftlessFabricClientEntrypoint"
     ]
   },
   "mixins": [
-    "craftwright-driver-fabric-1_21_6.mixins.json"
+    "craftless-driver-fabric-1_21_6.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.19.3",

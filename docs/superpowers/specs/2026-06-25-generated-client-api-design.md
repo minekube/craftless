@@ -4,7 +4,7 @@ Date: 2026-06-25
 
 ## Purpose
 
-This spec defines Craftwright's generated local Minecraft client API direction.
+This spec defines Craftless's generated local Minecraft client API direction.
 It builds on the JVM-first rewrite decision and the ecosystem research that
 favored a Fabric-first driver for latest Minecraft plus later Forge/NeoForge
 drivers for compatibility testing.
@@ -17,7 +17,7 @@ by OpenAPI.
 
 ## Decision
 
-Craftwright should expose a generated per-session OpenAPI surface from the
+Craftless should expose a generated per-session OpenAPI surface from the
 running Minecraft client driver.
 
 - `GET /openapi.json` describes the stable supervisor/kernel API.
@@ -41,7 +41,7 @@ running Minecraft client driver.
 
 ## Kotlin And JVM Stack Decision
 
-Craftwright should use a Kotlin-first JVM stack for the generated API
+Craftless should use a Kotlin-first JVM stack for the generated API
 implementation, with Java fallbacks where Minecraft classpath or Mixin behavior
 demands it.
 
@@ -88,10 +88,10 @@ Reasons:
 - supports coroutine-first request flows used by supervisor and SDK code;
 - current Maven metadata showed `ktor-client-core-jvm` and `ktor-client-cio-jvm`
   `3.5.0`;
-- avoids mixing multiple JVM HTTP client APIs into Craftwright product code.
+- avoids mixing multiple JVM HTTP client APIs into Craftless product code.
 
 Do not use Java's standard `HttpClient`, OkHttp, `com.sun.net.httpserver`, or
-hand-rolled HTTP clients in Craftwright repository code. Throwaway
+hand-rolled HTTP clients in Craftless repository code. Throwaway
 dependency-free PoCs may live outside the repository, but they must not become
 product code, tests, docs examples, or the recommended implementation path.
 
@@ -183,7 +183,7 @@ The intended runtime model is:
 
 ```text
 CI job or local agent starts sandbox/container
-Craftwright launches one real Minecraft Java client
+Craftless launches one real Minecraft Java client
 in-client driver starts local API server on 127.0.0.1
 driver generates /openapi.json for that exact version/session
 tests, agents, adaptive CLI, or generated SDK call the API
@@ -202,7 +202,7 @@ still apply because they are cheap and prevent accidental cross-process access:
 
 ## Client Management Boundary
 
-The generated session API is not the whole client-management API. Craftwright
+The generated session API is not the whole client-management API. Craftless
 should keep persistent setup state separate from live client control:
 
 - versions, loaders, profiles, instances, mods, Java runtimes, and caches belong
@@ -227,7 +227,7 @@ Three throwaway Java PoCs and one real-client bridge PoC were created under
 
 ### Raw Reflection PoC
 
-Location: `/tmp/craftwright-reflect-poc`
+Location: `/tmp/craftless-reflect-poc`
 
 Validated:
 
@@ -245,7 +245,7 @@ primary agent UX.
 
 ### Generated Route PoC
 
-Location: `/tmp/craftwright-generated-api-poc`
+Location: `/tmp/craftless-generated-api-poc`
 
 Validated:
 
@@ -261,7 +261,7 @@ single client-process API.
 
 ### CI Client API PoC
 
-Location: `/tmp/craftwright-ci-api-poc`
+Location: `/tmp/craftless-ci-api-poc`
 
 Validated:
 
@@ -282,7 +282,7 @@ Validated:
 Verification command:
 
 ```sh
-javac -d /tmp/craftwright-ci-api-poc/out $(find /tmp/craftwright-ci-api-poc/src /tmp/craftwright-ci-api-poc/test -name '*.java') && java -cp /tmp/craftwright-ci-api-poc/out poc.CiApiPoCTest
+javac -d /tmp/craftless-ci-api-poc/out $(find /tmp/craftless-ci-api-poc/src /tmp/craftless-ci-api-poc/test -name '*.java') && java -cp /tmp/craftless-ci-api-poc/out poc.CiApiPoCTest
 ```
 
 The command exited with code `0`.
@@ -292,7 +292,7 @@ driver spike.
 
 ### Real Client Bridge PoC
 
-Location: `/tmp/craftwright-real-client-poc`
+Location: `/tmp/craftless-real-client-poc`
 
 Validated:
 
@@ -309,12 +309,12 @@ Validated:
 Observed server evidence:
 
 ```text
-CwApiBot joined the game
-<CwApiBot> api action after reconnect
-CwApiBot has the following entity data: [-5.5d, -60.0d, 10.914621337840606d]
+CraftlessApiBot joined the game
+<CraftlessApiBot> api action after reconnect
+CraftlessApiBot has the following entity data: [-5.5d, -60.0d, 10.914621337840606d]
 ```
 
-Result: the Craftwright-shaped API loop is viable against a real Minecraft
+Result: the Craftless-shaped API loop is viable against a real Minecraft
 client. The implementation is still only a bridge because it sends
 HMC-Specifics console commands underneath. This is acceptable evidence for the
 launcher/supervisor loop, but it should not become the product driver.
@@ -327,7 +327,7 @@ and expose them through the generated per-client OpenAPI surface:
   interaction;
 - generated aliases such as `POST /clients/{id}/player:move` only when the
   running driver advertises that action;
-- Craftwright-owned metadata for action schema versioning, runtime fingerprints,
+- Craftless-owned metadata for action schema versioning, runtime fingerprints,
   mappings, registries, mods, permissions, and server feature inputs.
 
 The bridge PoC found that simulated keys are fragile because first-run screens,
@@ -389,7 +389,7 @@ Path synthesis:
 - resource reads must be explicitly advertised by OpenAPI before they are
   callable; do not infer public routes from arbitrary JVM getters or fields.
 - nested resources can expand into additional generated paths only when the
-  driver advertises them as Craftwright-owned resources.
+  driver advertises them as Craftless-owned resources.
 - primitive, string, enum, list, map, and simple DTO values return JSON values.
 - complex Minecraft/JVM objects return opaque handles or DTO summaries.
 
@@ -398,7 +398,7 @@ HTTP method inference:
 - resource reads use `GET`;
 - actions and custom methods use `POST`;
 - ambiguous driver operations are not exposed until given an explicit
-  Craftwright-owned action/resource descriptor.
+  Craftless-owned action/resource descriptor.
 
 The implementation can start conservative in route expansion and increase
 coverage as real Minecraft tests show which paths are useful.
@@ -441,10 +441,10 @@ Example vendor extensions:
 
 ```json
 {
-  "x-craftwright-action": "player.chat",
-  "x-craftwright-thread": "client",
-  "x-craftwright-return": "value",
-  "x-craftwright-source": "action"
+  "x-craftless-action": "player.chat",
+  "x-craftless-thread": "client",
+  "x-craftless-return": "value",
+  "x-craftless-source": "action"
 }
 ```
 
@@ -468,7 +468,7 @@ while the fake local API exists:
 
 These are session-management and discovery routes, not HMC-Specifics command
 strings or raw Fabric/Yarn class paths. Per-client AIP-style aliases are
-generated from discovered action descriptors with Craftwright-owned
+generated from discovered action descriptors with Craftless-owned
 `resource.action` ids.
 
 ## Version Endpoint
@@ -480,7 +480,7 @@ generated from discovered action descriptors with Craftwright-owned
   "minecraft": "26.2",
   "loader": "fabric",
   "loaderVersion": "0.19.3",
-  "driver": "craftwright-driver-fabric",
+  "driver": "craftless-driver-fabric",
   "driverVersion": "0.0.1",
   "java": "25",
   "mappings": "mojang",
@@ -492,7 +492,7 @@ Tests should record this response with artifacts.
 
 ## Events And Artifacts
 
-Even if API calls are the primary interface, Craftwright still needs event and
+Even if API calls are the primary interface, Craftless still needs event and
 artifact capture for CI debugging.
 
 Each session should write:

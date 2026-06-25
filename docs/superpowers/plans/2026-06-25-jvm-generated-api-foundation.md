@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build Craftwright's Kotlin/JVM foundation with Craftwright-owned generated API contracts and a documented bridge path to the first real-client smoke test.
+**Goal:** Build Craftless's Kotlin/JVM foundation with Craftless-owned generated API contracts and a documented bridge path to the first real-client smoke test.
 
-**Architecture:** Use a Gradle Kotlin multi-project skeleton as the only implementation path. The first executable JVM slice contains protocol DTOs, OpenAPI route generation over fake Minecraft objects, a fake client/session model, and a bridge backend interface that hides HeadlessMC/HMC-Specifics command strings behind Craftwright-owned routes.
+**Architecture:** Use a Gradle Kotlin multi-project skeleton as the only implementation path. The first executable JVM slice contains protocol DTOs, OpenAPI route generation over fake Minecraft objects, a fake client/session model, and a bridge backend interface that hides HeadlessMC/HMC-Specifics command strings behind Craftless-owned routes.
 
 **Tech Stack:** Gradle Kotlin DSL, Kotlin 2.4.0, kotlinx.serialization 1.11.0, kotlinx.coroutines 1.11.0, JUnit 5, Kotest 6.2.1, Clikt 5.1.0, Ktor Server/Client 3.5.0, Java 21, and Bun for TypeScript package/test execution. Fabric Loom and TypeScript packages are planned as later modules after this foundation compiles.
 
@@ -32,14 +32,14 @@
 - Create: `settings.gradle.kts`
 - Create: `build.gradle.kts`
 - Create: `protocol/build.gradle.kts`
-- Create: `protocol/src/test/kotlin/com/minekube/craftwright/protocol/ApiRouteCatalogTest.kt`
-- Create: `protocol/src/main/kotlin/com/minekube/craftwright/protocol/ApiRoute.kt`
-- Create: `protocol/src/main/kotlin/com/minekube/craftwright/protocol/OpenApiDocument.kt`
+- Create: `protocol/src/test/kotlin/com/minekube/craftless/protocol/ApiRouteCatalogTest.kt`
+- Create: `protocol/src/main/kotlin/com/minekube/craftless/protocol/ApiRoute.kt`
+- Create: `protocol/src/main/kotlin/com/minekube/craftless/protocol/OpenApiDocument.kt`
 
 - [ ] **Step 1: Write the failing route catalog test**
 
 ```kotlin
-package com.minekube.craftwright.protocol
+package com.minekube.craftless.protocol
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -65,17 +65,17 @@ class ApiRouteCatalogTest {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `mise exec -- gradle :protocol:test --tests com.minekube.craftwright.protocol.ApiRouteCatalogTest`
+Run: `mise exec -- gradle :protocol:test --tests com.minekube.craftless.protocol.ApiRouteCatalogTest`
 
 Expected: FAIL because `ApiRouteCatalog` and Gradle module files are not implemented yet.
 
 - [ ] **Step 3: Write minimal implementation**
 
-Implement `ApiRoute`, `ApiRouteCatalog.sessionDefaults()`, route lookup, and a small serializable OpenAPI document model that can list operations for the default routes. Keep HTTP verbs as protocol data strings such as `"GET"` and `"POST"` rather than introducing a Craftwright-owned HTTP method enum.
+Implement `ApiRoute`, `ApiRouteCatalog.sessionDefaults()`, route lookup, and a small serializable OpenAPI document model that can list operations for the default routes. Keep HTTP verbs as protocol data strings such as `"GET"` and `"POST"` rather than introducing a Craftless-owned HTTP method enum.
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `mise exec -- gradle :protocol:test --tests com.minekube.craftwright.protocol.ApiRouteCatalogTest`
+Run: `mise exec -- gradle :protocol:test --tests com.minekube.craftless.protocol.ApiRouteCatalogTest`
 
 Expected: PASS.
 
@@ -90,28 +90,28 @@ git commit -m "feat: add JVM protocol foundation"
 
 **Files:**
 - Create: `testkit/build.gradle.kts`
-- Create: `testkit/src/main/kotlin/com/minekube/craftwright/testkit/FakeMinecraftClient.kt`
-- Create: `protocol/src/test/kotlin/com/minekube/craftwright/protocol/OpenApiGenerationTest.kt`
-- Modify: `protocol/src/main/kotlin/com/minekube/craftwright/protocol/ApiRoute.kt`
-- Modify: `protocol/src/main/kotlin/com/minekube/craftwright/protocol/OpenApiDocument.kt`
+- Create: `testkit/src/main/kotlin/com/minekube/craftless/testkit/FakeMinecraftClient.kt`
+- Create: `protocol/src/test/kotlin/com/minekube/craftless/protocol/OpenApiGenerationTest.kt`
+- Modify: `protocol/src/main/kotlin/com/minekube/craftless/protocol/ApiRoute.kt`
+- Modify: `protocol/src/main/kotlin/com/minekube/craftless/protocol/OpenApiDocument.kt`
 
 - [ ] **Step 1: Write the failing OpenAPI test**
 
 ```kotlin
 @Test
-fun `openapi document includes craftwright metadata for fake player routes`() {
+fun `openapi document includes craftless metadata for fake player routes`() {
     val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
 
     val operation = document.paths["/clients/{id}:run"]?.post
     assertEquals("runClientAction", operation?.operationId)
-    assertEquals("com.minekube.craftwright.daemon.clients", operation?.extensions?.get("x-craftwright-java-class"))
-    assertEquals("client", operation?.extensions?.get("x-craftwright-thread"))
+    assertEquals("com.minekube.craftless.daemon.clients", operation?.extensions?.get("x-craftless-java-class"))
+    assertEquals("client", operation?.extensions?.get("x-craftless-thread"))
 }
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `mise exec -- gradle :protocol:test --tests com.minekube.craftwright.protocol.OpenApiGenerationTest`
+Run: `mise exec -- gradle :protocol:test --tests com.minekube.craftless.protocol.OpenApiGenerationTest`
 
 Expected: FAIL because OpenAPI conversion does not include operation metadata yet.
 
@@ -121,7 +121,7 @@ Add operation IDs, tags, source class/method metadata, client-thread metadata, a
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `mise exec -- gradle :protocol:test --tests com.minekube.craftwright.protocol.OpenApiGenerationTest`
+Run: `mise exec -- gradle :protocol:test --tests com.minekube.craftless.protocol.OpenApiGenerationTest`
 
 Expected: PASS.
 
@@ -129,9 +129,9 @@ Expected: PASS.
 
 **Files:**
 - Create: `daemon/build.gradle.kts`
-- Create: `daemon/src/test/kotlin/com/minekube/craftwright/daemon/ClientSessionServiceTest.kt`
-- Create: `daemon/src/main/kotlin/com/minekube/craftwright/daemon/ClientSessionService.kt`
-- Create: `protocol/src/main/kotlin/com/minekube/craftwright/protocol/ClientModels.kt`
+- Create: `daemon/src/test/kotlin/com/minekube/craftless/daemon/ClientSessionServiceTest.kt`
+- Create: `daemon/src/main/kotlin/com/minekube/craftless/daemon/ClientSessionService.kt`
+- Create: `protocol/src/main/kotlin/com/minekube/craftless/protocol/ClientModels.kt`
 
 - [ ] **Step 1: Write the failing session service test**
 
@@ -151,7 +151,7 @@ fun `offline session creates running client with generated api route`() {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `mise exec -- gradle :daemon:test --tests com.minekube.craftwright.daemon.ClientSessionServiceTest`
+Run: `mise exec -- gradle :daemon:test --tests com.minekube.craftless.daemon.ClientSessionServiceTest`
 
 Expected: FAIL because daemon models and service are missing.
 
@@ -161,7 +161,7 @@ Add `Version`, `Loader`, `Profile`, `Instance`, `Client`, `ClientState`, `Create
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `mise exec -- gradle :daemon:test --tests com.minekube.craftwright.daemon.ClientSessionServiceTest`
+Run: `mise exec -- gradle :daemon:test --tests com.minekube.craftless.daemon.ClientSessionServiceTest`
 
 Expected: PASS.
 
@@ -169,15 +169,15 @@ Expected: PASS.
 
 **Files:**
 - Create: `bridge-hmc/build.gradle.kts`
-- Create: `bridge-hmc/src/test/kotlin/com/minekube/craftwright/bridge/hmc/HmcBridgeBackendTest.kt`
-- Create: `bridge-hmc/src/main/kotlin/com/minekube/craftwright/bridge/hmc/HmcBridgeBackend.kt`
+- Create: `bridge-hmc/src/test/kotlin/com/minekube/craftless/bridge/hmc/HmcBridgeBackendTest.kt`
+- Create: `bridge-hmc/src/main/kotlin/com/minekube/craftless/bridge/hmc/HmcBridgeBackend.kt`
 - Create: `docs/bridge-limitations.md`
 
 - [ ] **Step 1: Write the failing bridge mapping test**
 
 ```kotlin
 @Test
-fun `bridge maps craftwright chat action without exposing hmc command names`() {
+fun `bridge maps craftless chat action without exposing hmc command names`() {
     val backend = HmcBridgeBackend.dryRun()
     val result = backend.chat("alice", "hello")
 
@@ -189,25 +189,25 @@ fun `bridge maps craftwright chat action without exposing hmc command names`() {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `mise exec -- gradle :bridge-hmc:test --tests com.minekube.craftwright.bridge.hmc.HmcBridgeBackendTest`
+Run: `mise exec -- gradle :bridge-hmc:test --tests com.minekube.craftless.bridge.hmc.HmcBridgeBackendTest`
 
 Expected: FAIL because the bridge module does not exist.
 
 - [ ] **Step 3: Write minimal implementation**
 
-Add internal-only command mapping for connect, chat, move, jump, look, render text, UI dump, and UI click. Public return values use Craftwright action names only.
+Add internal-only command mapping for connect, chat, move, jump, look, render text, UI dump, and UI click. Public return values use Craftless action names only.
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `mise exec -- gradle :bridge-hmc:test --tests com.minekube.craftwright.bridge.hmc.HmcBridgeBackendTest`
+Run: `mise exec -- gradle :bridge-hmc:test --tests com.minekube.craftless.bridge.hmc.HmcBridgeBackendTest`
 
 Expected: PASS.
 
 ## Task 5: Minimal Local Minecraft Server Fixture Strategy
 
 **Files:**
-- Create: `testkit/src/main/kotlin/com/minekube/craftwright/testkit/LocalServerFixture.kt`
-- Create: `testkit/src/test/kotlin/com/minekube/craftwright/testkit/LocalServerFixtureTest.kt`
+- Create: `testkit/src/main/kotlin/com/minekube/craftless/testkit/LocalServerFixture.kt`
+- Create: `testkit/src/test/kotlin/com/minekube/craftless/testkit/LocalServerFixtureTest.kt`
 
 - [ ] **Step 1: Write failing fixture metadata test**
 
@@ -215,7 +215,7 @@ Test that the fixture writes `server.properties` with `online-mode=false`, a pin
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `mise exec -- gradle :testkit:test --tests com.minekube.craftwright.testkit.LocalServerFixtureTest`
+Run: `mise exec -- gradle :testkit:test --tests com.minekube.craftless.testkit.LocalServerFixtureTest`
 
 Expected: FAIL because the fixture is missing.
 
@@ -225,15 +225,15 @@ Create a fixture model and file writer. Do not download Paper in the default uni
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `mise exec -- gradle :testkit:test --tests com.minekube.craftwright.testkit.LocalServerFixtureTest`
+Run: `mise exec -- gradle :testkit:test --tests com.minekube.craftless.testkit.LocalServerFixtureTest`
 
 Expected: PASS.
 
 ## Task 6: Real Offline Client Launch Plan And Smoke Test Harness
 
 **Files:**
-- Create: `bridge-hmc/src/main/kotlin/com/minekube/craftwright/bridge/hmc/RealClientSmoke.kt`
-- Create: `bridge-hmc/src/test/kotlin/com/minekube/craftwright/bridge/hmc/RealClientSmokePlanTest.kt`
+- Create: `bridge-hmc/src/main/kotlin/com/minekube/craftless/bridge/hmc/RealClientSmoke.kt`
+- Create: `bridge-hmc/src/test/kotlin/com/minekube/craftless/bridge/hmc/RealClientSmokePlanTest.kt`
 - Modify: `docs/bridge-limitations.md`
 
 - [ ] **Step 1: Write failing smoke plan test**
@@ -242,25 +242,25 @@ Test that an opt-in smoke plan includes server start, client launch, API start, 
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `mise exec -- gradle :bridge-hmc:test --tests com.minekube.craftwright.bridge.hmc.RealClientSmokePlanTest`
+Run: `mise exec -- gradle :bridge-hmc:test --tests com.minekube.craftless.bridge.hmc.RealClientSmokePlanTest`
 
 Expected: FAIL because `RealClientSmokePlan` is missing.
 
 - [ ] **Step 3: Write minimal implementation**
 
-Add an opt-in plan object and guard execution behind `CRAFTWRIGHT_REAL_CLIENT_SMOKE=1`. The first implementation may describe commands and artifact paths without launching Minecraft in unit tests.
+Add an opt-in plan object and guard execution behind `CRAFTLESS_REAL_CLIENT_SMOKE=1`. The first implementation may describe commands and artifact paths without launching Minecraft in unit tests.
 
 - [ ] **Step 4: Verify unit tests pass**
 
 Run: `mise exec -- gradle :bridge-hmc:test`
 
-Expected: PASS without `CRAFTWRIGHT_REAL_CLIENT_SMOKE`.
+Expected: PASS without `CRAFTLESS_REAL_CLIENT_SMOKE`.
 
 ## Task 7: Fabric Driver Spike Plan
 
 **Files:**
 - Create: `driver-api/build.gradle.kts`
-- Create: `driver-api/src/main/kotlin/com/minekube/craftwright/driver/api/DriverApi.kt`
+- Create: `driver-api/src/main/kotlin/com/minekube/craftless/driver/api/DriverApi.kt`
 - Create: `docs/superpowers/specs/2026-06-25-fabric-driver-spike-notes.md`
 
 - [ ] **Step 1: Write failing API shape test**
@@ -289,8 +289,8 @@ Expected: PASS.
 
 **Files:**
 - Create: `cli/build.gradle.kts`
-- Create: `cli/src/test/kotlin/com/minekube/craftwright/cli/McwCliTest.kt`
-- Create: `cli/src/main/kotlin/com/minekube/craftwright/cli/Main.kt`
+- Create: `cli/src/test/kotlin/com/minekube/craftless/cli/McwCliTest.kt`
+- Create: `cli/src/main/kotlin/com/minekube/craftless/cli/Main.kt`
 
 - [ ] **Step 1: Write failing CLI help and dynamic dispatch tests**
 
@@ -305,7 +305,7 @@ rather than from static action commands.
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `mise exec -- gradle :cli:test --tests com.minekube.craftwright.cli.McwCliTest`
+Run: `mise exec -- gradle :cli:test --tests com.minekube.craftless.cli.McwCliTest`
 
 Expected: FAIL because CLI module is missing.
 
@@ -368,7 +368,7 @@ Expected: PASS.
 ```bash
 mise exec -- gradle test
 mise exec -- gradle :protocol:test :daemon:test :bridge-hmc:test
-CRAFTWRIGHT_REAL_CLIENT_SMOKE=1 mise exec -- gradle :bridge-hmc:realClientSmoke
+CRAFTLESS_REAL_CLIENT_SMOKE=1 mise exec -- gradle :bridge-hmc:realClientSmoke
 ```
 
 The default `gradle test` command must not launch Minecraft. The opt-in smoke is the only command allowed to download server/client artifacts and launch a real client.

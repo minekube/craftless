@@ -20,7 +20,7 @@ sessions.
 - Do not add public static routes such as `/clients/{id}/player/sendChat` for
   every action. Use action descriptors plus `POST /clients/{id}:run`, with
   generated aliases only when they are described by OpenAPI.
-- Keep daemon routes Craftwright-owned and independent from bridge command
+- Keep daemon routes Craftless-owned and independent from bridge command
   strings or Minecraft implementation names.
 - Preserve typed JSON action args. Do not coerce every action arg to strings.
 - Emit structured session events for lifecycle, chat, movement, stop, and

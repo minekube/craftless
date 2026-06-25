@@ -1,12 +1,12 @@
 import { expect, test } from "bun:test";
-import { createCraftwrightFixture, toHaveChat } from "./index";
+import { createCraftlessFixture, toHaveChat } from "./index";
 
 test("fixture provides an injected automation client without shelling out to CLI output", async () => {
   let usedMc: unknown;
   const client = {
     launch: async () => ({ id: "alice" }),
   };
-  const fixture = createCraftwrightFixture({ client });
+  const fixture = createCraftlessFixture({ client });
 
   await fixture({}, async (mc) => {
     usedMc = mc;

@@ -1,11 +1,11 @@
 ---
 name: gradle-kotlin-dsl-doctor
-description: Generate, debug, and repair Craftwright Kotlin/JVM Gradle builds with minimal, compatible changes. Use when `build.gradle.kts` or `settings.gradle.kts` is failing, Kotlin/Fabric/Loom/Ktor plugins or toolchains are incompatible, test or runtime classpaths are broken, or a Kotlin DSL patch must be safe and incremental.
+description: Generate, debug, and repair Craftless Kotlin/JVM Gradle builds with minimal, compatible changes. Use when `build.gradle.kts` or `settings.gradle.kts` is failing, Kotlin/Fabric/Loom/Ktor plugins or toolchains are incompatible, test or runtime classpaths are broken, or a Kotlin DSL patch must be safe and incremental.
 ---
 
 # Gradle Kotlin DSL Doctor
 
-Source mapping: Craftwright Kotlin/JVM and Gradle Kotlin DSL build maintenance.
+Source mapping: Craftless Kotlin/JVM and Gradle Kotlin DSL build maintenance.
 
 ## Mission
 

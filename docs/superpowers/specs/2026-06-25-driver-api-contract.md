@@ -34,12 +34,12 @@ The module currently exposes:
 
 `driver-fabric-1_21_6/` is the current transitional Fabric/Loom module:
 
-- `CraftwrightFabricClientEntrypoint`
+- `CraftlessFabricClientEntrypoint`
 - `FabricDriverBackend`
 - `FabricClientGateway`
 - `MinecraftFabricClientGateway`
 - `fabric.mod.json`
-- `craftwright-driver-fabric-1_21_6.mixins.json`
+- `craftless-driver-fabric-1_21_6.mixins.json`
 
 The target shape is a consolidated `driver-fabric/` module with internal
 version-aware bindings, reflection/mapping probes, and small Java
@@ -59,7 +59,7 @@ the final Minecraft driver. It exists so daemon, CLI, and fixture code can use
 the same public contract before the Fabric module lands.
 
 `BackendDriverSession` is the first runtime adapter. It keeps `DriverSession`
-state and events in Craftwright-owned types while delegating automation actions
+state and events in Craftless-owned types while delegating automation actions
 to a `DriverBackend`. The current HMC bridge adapter is temporary. The Fabric
 module now routes connect, stop, and generic action invocation such as
 `player.chat` and `player.move` through a client-thread gateway. It must still

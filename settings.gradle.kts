@@ -15,7 +15,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "craftwright"
+rootProject.name = "craftless"
 
 include(
     "protocol",

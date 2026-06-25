@@ -17,7 +17,7 @@ in-client automation implementation.
 - Do not grow one stable Kotlin method per Minecraft action as the public API.
   Internal convenience methods are acceptable only when they do not leak into
   daemon routes, CLI commands, or public docs as the action model.
-- Action IDs and DTOs must be Craftwright-owned.
+- Action IDs and DTOs must be Craftless-owned.
 - Fake implementations should exercise the same descriptors and invocation
   path that real drivers use.
 - Preserve typed `JsonElement` action args.

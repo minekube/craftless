@@ -1,4 +1,4 @@
-export interface CraftwrightAutomationClient {
+export interface CraftlessAutomationClient {
   launch(input: {
     name: string;
     id?: string;
@@ -8,21 +8,21 @@ export interface CraftwrightAutomationClient {
   }): Promise<unknown>;
 }
 
-export interface CraftwrightPlayer {
+export interface CraftlessPlayer {
   waitForChat(pattern: RegExp | string): Promise<unknown>;
 }
 
-export interface CraftwrightFixtureOptions<TClient extends CraftwrightAutomationClient> {
+export interface CraftlessFixtureOptions<TClient extends CraftlessAutomationClient> {
   client: TClient;
 }
 
 export type FixtureUse<T> = (value: T) => Promise<void>;
 
-export function createCraftwrightFixture<TClient extends CraftwrightAutomationClient>(
-  options: CraftwrightFixtureOptions<TClient>,
+export function createCraftlessFixture<TClient extends CraftlessAutomationClient>(
+  options: CraftlessFixtureOptions<TClient>,
 ) {
   const client = options.client;
-  return async function craftwrightFixture(
+  return async function craftlessFixture(
     _args: Record<string, unknown>,
     use: FixtureUse<TClient>,
   ): Promise<void> {
@@ -31,7 +31,7 @@ export function createCraftwrightFixture<TClient extends CraftwrightAutomationCl
 }
 
 export async function toHaveChat(
-  player: Pick<CraftwrightPlayer, "waitForChat">,
+  player: Pick<CraftlessPlayer, "waitForChat">,
   pattern: RegExp | string,
 ): Promise<{ pass: boolean; message: string }> {
   await player.waitForChat(pattern);

@@ -6,7 +6,7 @@ plugins {
     id("net.fabricmc.fabric-loom-remap") version "1.17.12" apply false
 }
 
-group = "com.minekube.craftwright"
+group = "com.minekube.craftless"
 version = "0.1.0-SNAPSHOT"
 
 subprojects {

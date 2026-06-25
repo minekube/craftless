@@ -1,11 +1,11 @@
 ---
 name: dependency-conflict-resolver
-description: Diagnose and resolve Gradle classpath conflicts, version drift, and binary incompatibilities in Craftwright Kotlin/JVM modules. Use when `NoSuchMethodError`, `ClassNotFoundException`, linkage errors, duplicate logging bindings, Kotlin/Ktor/Fabric/Loom/serialization mismatches, or platform-versus-explicit-version conflicts appear, and the fix must respect the repository's real version authorities.
+description: Diagnose and resolve Gradle classpath conflicts, version drift, and binary incompatibilities in Craftless Kotlin/JVM modules. Use when `NoSuchMethodError`, `ClassNotFoundException`, linkage errors, duplicate logging bindings, Kotlin/Ktor/Fabric/Loom/serialization mismatches, or platform-versus-explicit-version conflicts appear, and the fix must respect the repository's real version authorities.
 ---
 
 # Dependency Conflict Resolver
 
-Source mapping: Craftwright Kotlin/JVM dependency graph and runtime compatibility maintenance.
+Source mapping: Craftless Kotlin/JVM dependency graph and runtime compatibility maintenance.
 
 ## Mission
 

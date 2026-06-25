@@ -4,9 +4,9 @@ Date: 2026-06-25
 
 ## Purpose
 
-This spec defines Craftwright as a JVM-first Minecraft automation platform.
+This spec defines Craftless as a JVM-first Minecraft automation platform.
 
-Craftwright still has the same product goal: automate real Minecraft Java
+Craftless still has the same product goal: automate real Minecraft Java
 clients for tests, agents, and CI through a short CLI, typed fixtures, and stable
 machine protocols. The architectural change is where the real automation core
 lives. The core must run on the JVM, close to Minecraft classes, modloaders,
@@ -16,7 +16,7 @@ Kotlin/JVM is the only checked-in implementation path.
 
 ## Decision
 
-Craftwright should be rebuilt as a Kotlin-first JVM project with Java reserved
+Craftless should be rebuilt as a Kotlin-first JVM project with Java reserved
 for low-level Minecraft integration.
 
 - Kotlin is the default language for product logic.
@@ -26,7 +26,7 @@ for low-level Minecraft integration.
   generated external client code is postponed until the JVM protocol and
   generated API are steadier.
 - HeadlessMC, HMC-Specifics, and MC-Runtime-Test are primary prior art and
-  implementation references, but Craftwright should not expose their text
+  implementation references, but Craftless should not expose their text
   console as its public automation contract.
 
 ## Why The Core Must Be JVM-First
@@ -104,7 +104,7 @@ TypeScript should instead provide:
 The rewrite should use a Gradle multi-project build.
 
 ```text
-craftwright/
+craftless/
   settings.gradle.kts
   build.gradle.kts
 
@@ -154,7 +154,7 @@ the Fabric driver contract, and helper tests outside the JVM core.
 
 ## Runtime Architecture
 
-Craftwright has four layers.
+Craftless has four layers.
 
 ### 1. JVM Supervisor
 
@@ -186,7 +186,7 @@ Responsibilities:
 - Execute commands on the Minecraft client thread.
 - Connect and disconnect through real Minecraft APIs.
 - Invoke chat and command actions through real `LocalPlayer`/connection APIs.
-- Expose GUI and input actions through stable Craftwright abstractions.
+- Expose GUI and input actions through stable Craftless abstractions.
 - Set player movement intent through generated/discovered actions. The current
   `player.move` action reaches the Fabric gateway and writes
   movement intent to `ClientPlayerEntity.input`.
@@ -202,7 +202,7 @@ Responsibilities:
 The HeadlessMC/HMC-Specifics bridge PoC proved that keyboard-driven movement can
 work against a real client, but also showed why it is not the final product
 shape. Simulated keys are sensitive to first-run screens, title screens, focus,
-and client state. The Craftwright Fabric driver should operate at the
+and client state. The Craftless Fabric driver should operate at the
 Minecraft-client API level instead of relying on `key w`, `key space`, or parsed
 console text.
 
@@ -224,7 +224,7 @@ The generated local client API direction is specified separately in
 `docs/superpowers/specs/2026-06-25-generated-client-api-design.md`. That spec
 refines this protocol layer toward a per-client OpenAPI surface generated from
 the running Minecraft client, generated action/resource routes below
-`/clients/{id}`, opaque handle schemas, and Craftwright-owned runtime metadata.
+`/clients/{id}`, opaque handle schemas, and Craftless-owned runtime metadata.
 
 ### 4. External UX
 
@@ -250,7 +250,7 @@ Client management is specified further in
 
 The short version:
 
-- Craftwright's Phase 1 core must be independent of PrismLauncher.
+- Craftless's Phase 1 core must be independent of PrismLauncher.
 - PrismLauncher is valuable research and a later optional desktop adapter, not
   the CI/headless runtime dependency.
 - HeadlessMC/HMC-Specifics are valid bridge-spike tools for proving a real
@@ -265,7 +265,7 @@ CI operation before UI integrations.
 
 ## HeadlessMC Learning Plan
 
-Craftwright should study and selectively reuse ideas from HeadlessMC rather than
+Craftless should study and selectively reuse ideas from HeadlessMC rather than
 blindly fork it.
 
 ### Learn Directly
@@ -284,17 +284,17 @@ blindly fork it.
 ### Avoid In Final Public Contract
 
 - Parsing HMC console text as the main event API.
-- Exposing HeadlessMC command names as Craftwright's public UX.
+- Exposing HeadlessMC command names as Craftless's public UX.
 - Depending on an external interactive process as the only command bridge.
-- Letting upstream implementation details define Craftwright's protocol.
+- Letting upstream implementation details define Craftless's protocol.
 
 ### Possible Upstream Strategy
 
 If HeadlessMC APIs are clean enough for a component, use them as libraries where
 licenses and stability allow. If the APIs are internal or too console-oriented,
-copy the design pattern and reimplement the boundary in Craftwright.
+copy the design pattern and reimplement the boundary in Craftless.
 
-Craftwright should keep upstream references in docs and tests so future changes
+Craftless should keep upstream references in docs and tests so future changes
 can be compared against working HeadlessMC behavior.
 
 ## Public CLI Direction
@@ -347,7 +347,7 @@ until the JVM protocol is ready for generated client code.
 Playwright should be the primary test runner integration:
 
 ```ts
-import { test, expect } from "@craftwright/playwright"
+import { test, expect } from "@craftless/playwright"
 
 test("player can join through Gate", async ({ mc }) => {
   const alice = await mc.launch("alice")
@@ -391,7 +391,7 @@ client using HeadlessMC behavior and documents:
 - how commands reach the client;
 - where text parsing fails as a stable API.
 
-This spike informs the Craftwright implementation. It should not become the
+This spike informs the Craftless implementation. It should not become the
 public abstraction.
 
 ### Phase 3: First In-Client Driver
@@ -488,7 +488,7 @@ The JVM-first rewrite is ready to enter implementation planning when:
 
 ## Full Project Done Definition
 
-Craftwright is complete enough for its original goal when:
+Craftless is complete enough for its original goal when:
 
 - `mcw` can launch and supervise real Minecraft Java clients in offline mode;
 - tests can connect clients to Gate, Connect, and ordinary Minecraft servers;

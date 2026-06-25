@@ -11,7 +11,7 @@ avoiding a dependency choice that makes CI/headless operation harder.
 
 ## Decision Summary
 
-Craftwright should build its own JVM/Kotlin client-management core for Phase 1.
+Craftless should build its own JVM/Kotlin client-management core for Phase 1.
 
 PrismLauncher should be treated as a high-value reference and a later optional
 desktop integration, not as the Phase 1 runtime dependency.
@@ -37,7 +37,7 @@ management:
 - launch pipeline steps for folders, metadata, Java, libraries, assets, natives,
   mod scanning, and launch.
 
-It should not be Craftwright's Phase 1 core dependency:
+It should not be Craftless's Phase 1 core dependency:
 
 - PrismLauncher is a C++/Qt desktop application, not a small launcher library.
 - The project is GPL-3.0-only at the application level.
@@ -46,7 +46,7 @@ It should not be Craftwright's Phase 1 core dependency:
 - It does not solve the server-side/headless Minecraft client problem by
   itself.
 
-Craftwright should learn the model and reimplement the needed subset in
+Craftless should learn the model and reimplement the needed subset in
 Kotlin/JVM.
 
 ## Prism-Compatible Later Track
@@ -73,17 +73,17 @@ its existing CLI flags:
 ```
 
 This gives desktop users a polished UI for managing instances, mods, packs, and
-accounts while keeping Craftwright's CI/headless path independent.
+accounts while keeping Craftless's CI/headless path independent.
 
-If PrismLauncher ever accepts an upstream local automation API, Craftwright can
+If PrismLauncher ever accepts an upstream local automation API, Craftless can
 integrate with it. Until then, no Phase 1 work should depend on Prism internals
 or a fork.
 
 ## Headless And CI Decision
 
-The robust server/CI path must be Craftwright-owned.
+The robust server/CI path must be Craftless-owned.
 
-PrismLauncher can help desktop users manage instances, but Craftwright needs to
+PrismLauncher can help desktop users manage instances, but Craftless needs to
 launch real clients in environments where there may be no visible desktop
 window. That means the Phase 1 supervisor must support:
 
@@ -100,7 +100,7 @@ targets headless and CI usage.
 
 ## First Real Proof Of Concept Result
 
-A throwaway PoC under `/tmp/craftwright-real-client-poc` proved the fastest
+A throwaway PoC under `/tmp/craftless-real-client-poc` proved the fastest
 real-client loop:
 
 1. Started a local Paper 1.21.4 server in offline mode on port `25567`.
@@ -113,13 +113,13 @@ real-client loop:
 Observed server evidence:
 
 ```text
-CwApiBot joined the game
-CwApiBot[/127.0.0.1:...] logged in with entity id ...
-<CwApiBot> api action after reconnect
-CwApiBot has the following entity data: [-5.5d, -60.0d, 10.914621337840606d]
+CraftlessApiBot joined the game
+CraftlessApiBot[/127.0.0.1:...] logged in with entity id ...
+<CraftlessApiBot> api action after reconnect
+CraftlessApiBot has the following entity data: [-5.5d, -60.0d, 10.914621337840606d]
 ```
 
-The wrapper exposed Craftwright-shaped routes such as:
+The wrapper exposed Craftless-shaped routes such as:
 
 - `POST /start`;
 - `POST /launch`;
@@ -129,7 +129,7 @@ The wrapper exposed Craftwright-shaped routes such as:
 - `GET /clients/default/actions`;
 - `POST /clients/default:run` for discovered actions such as `player.move`;
 - generated aliases such as `POST /clients/default/player:move` when the
-  runtime can expose a clean Craftwright resource and method name;
+  runtime can expose a clean Craftless resource and method name;
 - root/session routes for current player, UI, events, and object handles.
 
 The CLI should consume this same API shape adaptively. Static `mcw` code should
@@ -137,7 +137,7 @@ own daemon/config/output behavior and a generic action runner, while per-client
 aliases such as `mcw clients default player move --forward` and their help text
 come from `/clients/default/openapi.json` and `/clients/default/actions`.
 
-This must be labelled as a bridge PoC. The API surface was Craftwright-shaped,
+This must be labelled as a bridge PoC. The API surface was Craftless-shaped,
 but the implementation still drove HMC-Specifics commands over stdin.
 
 ### Bridge PoC Findings
@@ -166,13 +166,13 @@ What was fragile:
 - the API wrapper had to infer state from text logs and server observations.
 
 Product implication: HeadlessMC/HMC-Specifics should remain a launcher and
-comparison bridge. Craftwright's real product driver should be an in-client
+comparison bridge. Craftless's real product driver should be an in-client
 Fabric mod with structured APIs for movement, look direction, raycasts, block
 inspection, entities, inventory, chat, and lifecycle events.
 
 ## API Model Decision
 
-Craftwright should separate persistent setup objects from live clients:
+Craftless should separate persistent setup objects from live clients:
 
 - `Version`: Minecraft version plus release metadata.
 - `Loader`: Fabric, NeoForge, Forge, Quilt, Vanilla.
@@ -198,7 +198,7 @@ Priority order:
 7. Optional Prism upstream API/plugin exploration.
 
 Do not spend Phase 1 building a polished Prism integration before a real client
-can join a local server through Craftwright automation.
+can join a local server through Craftless automation.
 
 ## Done Definition
 
@@ -208,7 +208,7 @@ These decisions are implemented when:
 - the first real-client PoC does not use Mineflayer or a protocol-only bot;
 - Prism is documented as reference and optional adapter, not core dependency;
 - HeadlessMC/HMC-Specifics are used only as evidence or bridge implementation;
-- the final target remains a Craftwright-owned in-client API and supervisor.
+- the final target remains a Craftless-owned in-client API and supervisor.
 
 ## References
 

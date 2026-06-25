@@ -1,11 +1,11 @@
 ---
 name: test-suite-builder
-description: Design and generate layered Craftwright Kotlin/JVM tests that balance speed, realism, and regression value across unit, protocol, Ktor HTTP, CLI, Fabric-boundary, and integration levels. Use when adding coverage for protocol logic, daemon routes, client lifecycle, serialization, adaptive CLI behavior, driver contracts, or end-to-end workflows.
+description: Design and generate layered Craftless Kotlin/JVM tests that balance speed, realism, and regression value across unit, protocol, Ktor HTTP, CLI, Fabric-boundary, and integration levels. Use when adding coverage for protocol logic, daemon routes, client lifecycle, serialization, adaptive CLI behavior, driver contracts, or end-to-end workflows.
 ---
 
 # Test Suite Builder
 
-Source mapping: Craftwright Kotlin/JVM, Ktor, CLI, protocol, and driver test strategy.
+Source mapping: Craftless Kotlin/JVM, Ktor, CLI, protocol, and driver test strategy.
 
 ## Mission
 

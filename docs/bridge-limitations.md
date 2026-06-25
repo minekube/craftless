@@ -1,8 +1,8 @@
 # HeadlessMC/HMC-Specifics Bridge Limitations
 
-Craftwright's Phase 1 bridge backend is temporary evidence infrastructure. It
+Craftless's Phase 1 bridge backend is temporary evidence infrastructure. It
 may launch and drive a real Minecraft Java client through HeadlessMC and
-HMC-Specifics, but public routes and CLI output must remain Craftwright-owned.
+HMC-Specifics, but public routes and CLI output must remain Craftless-owned.
 
 The bridge must not expose HeadlessMC or HMC-Specifics command strings as public
 API names, JSON fields, CLI verbs, or SDK methods. Those command strings are an
@@ -22,7 +22,7 @@ Known limitations:
 - Rendered text and server logs are useful evidence, but they are not the final
   structured event or perception API.
 - Nearby blocks, nearby entities, raycasts, inventory, screen state, and clicks
-  need a Craftwright Fabric driver with direct Minecraft client API access.
+  need a Craftless Fabric driver with direct Minecraft client API access.
 
 The Fabric backend now has a client-thread gateway for connection, chat,
 command, stop, and generated action invocation. It accepts `player.move` and

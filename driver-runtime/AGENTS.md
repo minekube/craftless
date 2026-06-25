@@ -11,7 +11,7 @@
 ## Rules
 
 - Keep bridge details internal. Public results, events, actions, and errors must
-  stay Craftwright-owned.
+  stay Craftless-owned.
 - Do not let HMC-Specifics commands, console text, or command syntax become the
   public API.
 - The bridge backend is evidence infrastructure only; do not present it as the

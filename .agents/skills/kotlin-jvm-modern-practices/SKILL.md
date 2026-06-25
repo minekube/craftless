@@ -1,6 +1,6 @@
 ---
 name: kotlin-jvm-modern-practices
-description: Use when writing, reviewing, or refactoring Kotlin/JVM code in Craftwright, especially CLI, daemon, protocol, Ktor HTTP/WebSocket, Gradle Kotlin DSL, coroutine, test, or Fabric driver-adjacent code. Applies modern Kotlin practice without Android, Spring, JPA, Retrofit, OkHttp, or old Java HTTP assumptions.
+description: Use when writing, reviewing, or refactoring Kotlin/JVM code in Craftless, especially CLI, daemon, protocol, Ktor HTTP/WebSocket, Gradle Kotlin DSL, coroutine, test, or Fabric driver-adjacent code. Applies modern Kotlin practice without Android, Spring, JPA, Retrofit, OkHttp, or old Java HTTP assumptions.
 ---
 
 # Kotlin/JVM Modern Practices
@@ -11,7 +11,7 @@ description: Use when writing, reviewing, or refactoring Kotlin/JVM code in Craf
 - Use Gradle Kotlin DSL for build configuration.
 - Use `kotlinx.serialization` for JSON contracts when possible.
 - Use Ktor Server for local HTTP/WebSocket APIs.
-- Use Ktor Client when Craftwright needs an HTTP client.
+- Use Ktor Client when Craftless needs an HTTP client.
 - Keep Java for Fabric Mixins, accessors, and bytecode-sensitive Minecraft glue.
 - Run tools through `mise`; use Bun for JavaScript-side test helpers.
 
@@ -32,8 +32,8 @@ description: Use when writing, reviewing, or refactoring Kotlin/JVM code in Craf
 
 - Do not add custom HTTP method enums or hand-rolled HTTP clients.
 - Do not use `com.sun.net.httpserver`, `java.net.http.HttpClient`, or OkHttp for
-  new Craftwright HTTP paths unless a local constraint is documented first.
-- Keep public API names Craftwright-owned; never expose HeadlessMC,
+  new Craftless HTTP paths unless a local constraint is documented first.
+- Keep public API names Craftless-owned; never expose HeadlessMC,
   HMC-Specifics, or Minecraft console command strings as stable route names.
 - Make error payloads machine-readable and stable enough for generated clients.
 

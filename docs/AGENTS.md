@@ -9,7 +9,7 @@ material.
 - Make clear what is implemented now versus roadmap.
 - Do not document removed TypeScript SDK or other inactive legacy surfaces as
   active implementation.
-- Use `minekube.com` and `com.minekube.craftwright` for public domain/package
+- Use `minekube.com` and `com.minekube.craftless` for public domain/package
   references.
 - Describe the bridge as evidence infrastructure only.
 - Describe the durable driver direction as Fabric with generated per-client

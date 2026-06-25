@@ -1,11 +1,11 @@
 ---
 name: integration-resilience-engineer
-description: Design resilient HTTP, process, WebSocket, and scheduled integrations for Craftwright Kotlin/JVM services with explicit timeout budgets, retries, idempotency, circuit breakers, bounded queues, and failure observability. Use when integrating with unstable external systems, local daemons, Minecraft client processes, generated APIs, or driver bridges.
+description: Design resilient HTTP, process, WebSocket, and scheduled integrations for Craftless Kotlin/JVM services with explicit timeout budgets, retries, idempotency, circuit breakers, bounded queues, and failure observability. Use when integrating with unstable external systems, local daemons, Minecraft client processes, generated APIs, or driver bridges.
 ---
 
 # Integration Resilience Engineer
 
-Source mapping: Craftwright daemon, Ktor client/server, process, and driver-boundary resilience.
+Source mapping: Craftless daemon, Ktor client/server, process, and driver-boundary resilience.
 
 ## Mission
 

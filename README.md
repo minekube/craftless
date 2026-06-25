@@ -96,7 +96,7 @@ Craftless is a Kotlin/JVM-first project with one implementation direction:
 - a temporary HeadlessMC/HMC-Specifics bridge backend for Phase 1 evidence;
 - a real Fabric driver implementation as the durable automation engine;
 - stable kernel OpenAPI at `/openapi.json` plus per-client OpenAPI at
-  `/clients/{id}/openapi.json` with Craftwright metadata and discovered
+  `/clients/{id}/openapi.json` with Craftless metadata and discovered
   action schemas plus runtime/cache fingerprints;
 - stable kernel lifecycle routes for creating, listing, fetching, connecting,
   and stopping daemon-managed clients;
@@ -104,7 +104,7 @@ Craftless is a Kotlin/JVM-first project with one implementation direction:
 
 ## Evidence
 
-A throwaway real-client PoC was built under `/tmp/craftwright-real-client-poc`.
+A throwaway real-client PoC was built under `/tmp/craftless-real-client-poc`.
 It proved the core loop:
 
 1. start a local offline Paper 1.21.4 server;
@@ -118,13 +118,13 @@ It proved the core loop:
 Observed server evidence:
 
 ```text
-CwApiBot joined the game
-<CwApiBot> api action after reconnect
-CwApiBot has the following entity data: [-5.5d, -60.0d, 10.914621337840606d]
+CraftlessApiBot joined the game
+<CraftlessApiBot> api action after reconnect
+CraftlessApiBot has the following entity data: [-5.5d, -60.0d, 10.914621337840606d]
 ```
 
 This was a bridge PoC. It used HMC-Specifics commands behind a
-Craftwright-shaped API. That is good enough to prove the launch/control loop,
+Craftless-shaped API. That is good enough to prove the launch/control loop,
 but not good enough as the final product driver.
 
 The final driver should be a Fabric mod that directly implements movement,

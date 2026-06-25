@@ -1,6 +1,6 @@
 # Protocol Module Instructions
 
-`protocol/` owns Craftwright's machine-readable API metadata and serializable
+`protocol/` owns Craftless's machine-readable API metadata and serializable
 protocol DTOs.
 
 ## Scope
@@ -15,8 +15,8 @@ protocol DTOs.
 - Keep OpenAPI and action descriptors authoritative for agents, SDKs, adaptive
   CLI dispatch/help, and tests.
 - Keep HTTP verbs as protocol data strings such as `"GET"` and `"POST"`.
-  Do not introduce a Craftwright-owned HTTP method enum.
-- Prefer Craftwright-owned action names such as `player.move` and `player.chat`.
+  Do not introduce a Craftless-owned HTTP method enum.
+- Prefer Craftless-owned action names such as `player.move` and `player.chat`.
   Do not expose Fabric, Yarn, Minecraft implementation, HMC-Specifics, or
   launcher names in public metadata.
 - Stable kernel routes belong here; per-client generated behavior should be

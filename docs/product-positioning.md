@@ -15,7 +15,7 @@ with generated local APIs.
 ```
 
 The current repository, package names, OpenAPI metadata, and JVM coordinates
-still use `craftwright` / `com.minekube.craftwright` until a deliberate rename
+still use `craftless` / `com.minekube.craftless` until a deliberate rename
 is implemented. Documentation should make that distinction explicit when it
 matters.
 
@@ -60,7 +60,7 @@ not only like a high-level client library.
 
 ## Name Comparison
 
-`Craftwright` works well as a Playwright-like framework name. It has a polished
+`Craftless` works well as a Playwright-like framework name. It has a polished
 developer-tool feel, but `wright` is not immediately understood by everyone and
 it over-emphasizes the framework/client-library layer.
 
@@ -83,13 +83,13 @@ Checked during the side session:
 
 - `minekube/craftless` was available.
 - GitHub search had 23 global name hits for `craftless`.
-- One exact public repo, `Craftless/Craftless`, had 0 stars.
+- One exact public repo, `Craftless/craftless`, had 0 stars.
 
 This was a quick GitHub availability check, not a trademark or domain search.
 
 ## Naming Architecture
 
-Preferred target naming if the rename proceeds:
+Preferred naming after the rename:
 
 - Product/repository: `Craftless`
 - Protocol: `Craftless Client Protocol`
@@ -99,5 +99,5 @@ Preferred target naming if the rename proceeds:
   than hand-written as the source of truth
 - Durable client driver: Craftless Fabric driver
 
-Implementation package names may remain `com.minekube.craftwright` until a
+Implementation package names may remain `com.minekube.craftless` until a
 separate package-level migration is explicitly planned.
