@@ -48,33 +48,6 @@ data class DriverActionDescriptor(
         require(id.isNotBlank()) { "action id is required" }
         require(schemaVersion.isNotBlank()) { "action schema version is required" }
     }
-
-    companion object {
-        fun playerMove(): DriverActionDescriptor =
-            DriverActionDescriptor(
-                id = "player.move",
-                schemaVersion = "1",
-                arguments = mapOf(
-                    "forward" to DriverActionArgument("boolean"),
-                    "backward" to DriverActionArgument("boolean"),
-                    "left" to DriverActionArgument("boolean"),
-                    "right" to DriverActionArgument("boolean"),
-                    "jump" to DriverActionArgument("boolean"),
-                    "sneak" to DriverActionArgument("boolean"),
-                    "sprint" to DriverActionArgument("boolean"),
-                    "ticks" to DriverActionArgument("integer"),
-                ),
-            )
-
-        fun playerChat(): DriverActionDescriptor =
-            DriverActionDescriptor(
-                id = "player.chat",
-                schemaVersion = "1",
-                arguments = mapOf(
-                    "message" to DriverActionArgument("string", required = true),
-                ),
-            )
-    }
 }
 
 @Serializable
@@ -203,8 +176,8 @@ class FakeDriverSession(
 
     override fun actions(): List<DriverActionDescriptor> =
         listOf(
-            DriverActionDescriptor.playerMove(),
-            DriverActionDescriptor.playerChat(),
+            fakePlayerMoveActionDescriptor(),
+            fakePlayerChatActionDescriptor(),
         )
 
     override fun runtimeMetadata(): DriverRuntimeMetadata =
@@ -250,3 +223,28 @@ class FakeDriverSession(
     override fun events(): List<DriverEvent> =
         events.toList()
 }
+
+private fun fakePlayerMoveActionDescriptor(): DriverActionDescriptor =
+    DriverActionDescriptor(
+        id = "player.move",
+        schemaVersion = "1",
+        arguments = mapOf(
+            "forward" to DriverActionArgument("boolean"),
+            "backward" to DriverActionArgument("boolean"),
+            "left" to DriverActionArgument("boolean"),
+            "right" to DriverActionArgument("boolean"),
+            "jump" to DriverActionArgument("boolean"),
+            "sneak" to DriverActionArgument("boolean"),
+            "sprint" to DriverActionArgument("boolean"),
+            "ticks" to DriverActionArgument("integer"),
+        ),
+    )
+
+private fun fakePlayerChatActionDescriptor(): DriverActionDescriptor =
+    DriverActionDescriptor(
+        id = "player.chat",
+        schemaVersion = "1",
+        arguments = mapOf(
+            "message" to DriverActionArgument("string", required = true),
+        ),
+    )

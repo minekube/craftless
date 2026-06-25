@@ -4,6 +4,7 @@ import com.minekube.craftwright.bridge.hmc.ClientAction
 import com.minekube.craftwright.bridge.hmc.HmcBridgeBackend
 import com.minekube.craftwright.bridge.hmc.MoveIntent
 import com.minekube.craftwright.driver.api.ConnectionTarget
+import com.minekube.craftwright.driver.api.DriverActionArgument
 import com.minekube.craftwright.driver.api.DriverActionDescriptor
 import com.minekube.craftwright.driver.api.DriverActionInvocation
 import com.minekube.craftwright.driver.api.DriverActionResult
@@ -30,8 +31,8 @@ class HmcBridgeDriverBackend(
 
     override fun actions(clientId: String): List<DriverActionDescriptor> =
         listOf(
-            DriverActionDescriptor.playerMove(),
-            DriverActionDescriptor.playerChat(),
+            bridgePlayerMoveActionDescriptor(),
+            bridgePlayerChatActionDescriptor(),
         )
 
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
@@ -74,3 +75,28 @@ class HmcBridgeDriverBackend(
         )
     }
 }
+
+private fun bridgePlayerMoveActionDescriptor(): DriverActionDescriptor =
+    DriverActionDescriptor(
+        id = "player.move",
+        schemaVersion = "1",
+        arguments = mapOf(
+            "forward" to DriverActionArgument("boolean"),
+            "backward" to DriverActionArgument("boolean"),
+            "left" to DriverActionArgument("boolean"),
+            "right" to DriverActionArgument("boolean"),
+            "jump" to DriverActionArgument("boolean"),
+            "sneak" to DriverActionArgument("boolean"),
+            "sprint" to DriverActionArgument("boolean"),
+            "ticks" to DriverActionArgument("integer"),
+        ),
+    )
+
+private fun bridgePlayerChatActionDescriptor(): DriverActionDescriptor =
+    DriverActionDescriptor(
+        id = "player.chat",
+        schemaVersion = "1",
+        arguments = mapOf(
+            "message" to DriverActionArgument("string", required = true),
+        ),
+    )

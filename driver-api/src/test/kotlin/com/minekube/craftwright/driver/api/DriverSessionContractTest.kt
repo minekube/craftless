@@ -21,6 +21,9 @@ class DriverSessionContractTest {
         assertTrue(DriverSession::class.java.methods.none { it.name == "sendChat" })
         assertTrue(DriverSession::class.java.methods.none { it.name == "capabilities" })
         assertTrue(DriverSession::class.java.methods.none { it.name == "player" })
+        assertTrue(DriverActionDescriptor::class.java.methods.none { it.name.startsWith("player") })
+        assertTrue(DriverActionDescriptor::class.java.declaredClasses.flatMap { it.methods.toList() }
+            .none { it.name.startsWith("player") })
 
         val actions = session.actions()
         assertEquals("1", actions.single { it.id == "player.move" }.schemaVersion)

@@ -1,6 +1,7 @@
 package com.minekube.craftwright.driver.runtime
 
 import com.minekube.craftwright.driver.api.ConnectionTarget
+import com.minekube.craftwright.driver.api.DriverActionArgument
 import com.minekube.craftwright.driver.api.DriverActionDescriptor
 import com.minekube.craftwright.driver.api.DriverActionInvocation
 import com.minekube.craftwright.driver.api.DriverActionResult
@@ -111,8 +112,8 @@ private class RecordingDriverBackend : DriverBackend {
 
     override fun actions(clientId: String): List<DriverActionDescriptor> =
         listOf(
-            DriverActionDescriptor.playerMove(),
-            DriverActionDescriptor.playerChat(),
+            testPlayerMoveActionDescriptor(),
+            testPlayerChatActionDescriptor(),
         )
 
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
@@ -132,3 +133,28 @@ private class RecordingDriverBackend : DriverBackend {
         return DriverActionResult(invocation.action, DriverActionStatus.ACCEPTED)
     }
 }
+
+private fun testPlayerMoveActionDescriptor(): DriverActionDescriptor =
+    DriverActionDescriptor(
+        id = "player.move",
+        schemaVersion = "1",
+        arguments = mapOf(
+            "forward" to DriverActionArgument("boolean"),
+            "backward" to DriverActionArgument("boolean"),
+            "left" to DriverActionArgument("boolean"),
+            "right" to DriverActionArgument("boolean"),
+            "jump" to DriverActionArgument("boolean"),
+            "sneak" to DriverActionArgument("boolean"),
+            "sprint" to DriverActionArgument("boolean"),
+            "ticks" to DriverActionArgument("integer"),
+        ),
+    )
+
+private fun testPlayerChatActionDescriptor(): DriverActionDescriptor =
+    DriverActionDescriptor(
+        id = "player.chat",
+        schemaVersion = "1",
+        arguments = mapOf(
+            "message" to DriverActionArgument("string", required = true),
+        ),
+    )
