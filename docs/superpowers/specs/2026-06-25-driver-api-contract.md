@@ -52,7 +52,8 @@ Minimum supported actions:
 - connect to a host/port;
 - invoke discovered actions such as `player.chat` and `player.move`;
 - stop the session;
-- return structured driver events.
+- return structured driver events, including `ERROR` events for rejected
+  action results with messages.
 
 `FakeDriverSession` is a test and daemon-development implementation. It is not
 the final Minecraft driver. It exists so daemon, CLI, and fixture code can use
@@ -84,7 +85,7 @@ per-client OpenAPI document:
 - preserve action invocation arguments as JSON values so schemas can use
   booleans, numbers, strings, arrays, and objects without string-only coercion;
 - emit `DriverEvent` values for ready, connect, chat, movement, stop, and
-  error lifecycle events;
+  `ERROR` lifecycle events;
 - keep low-level Mixins/accessors in Java when bytecode shape matters.
 
 The public daemon routes remain:

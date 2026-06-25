@@ -17,6 +17,8 @@ with generated local APIs.
 The repository, package names, OpenAPI metadata, JVM coordinates, and Fabric
 metadata use `craftless` / `com.minekube.craftless`.
 
+Public web/domain references use `minekube.com`.
+
 ## Why This Product Exists
 
 Minecraft already provides the real client runtime. Craftless should stay thin:
@@ -85,6 +87,7 @@ This was a quick GitHub availability check, not a trademark or domain search.
 Current naming architecture:
 
 - Product/repository: `Craftless`
+- Public domain: `minekube.com`
 - Protocol: `Craftless Client Protocol`
 - Runtime: `Craftless Runtime`
 - CLI: `craftless`

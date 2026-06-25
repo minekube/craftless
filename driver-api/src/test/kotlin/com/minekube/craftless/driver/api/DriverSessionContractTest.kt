@@ -70,6 +70,10 @@ class DriverSessionContractTest {
         )
         assertEquals("player.fly", unknown.action)
         assertEquals(DriverActionStatus.UNSUPPORTED, unknown.status)
+        assertTrue(session.events().any {
+            it.type == DriverEventType.ERROR &&
+                it.message == "unsupported fake action player.fly"
+        })
 
         val stopped = session.stop()
         assertEquals(ClientState.STOPPED, stopped.state)

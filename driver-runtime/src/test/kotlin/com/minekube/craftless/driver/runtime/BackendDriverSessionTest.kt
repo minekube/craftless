@@ -78,6 +78,31 @@ class BackendDriverSessionTest {
     }
 
     @Test
+    fun `runtime driver session records error events for rejected actions`() {
+        val backend = RecordingDriverBackend(
+            rejectedAction = "player.fail",
+        )
+        val session = BackendDriverSession(
+            clientId = "alice",
+            backend = backend,
+        )
+
+        val result = session.invoke(
+            DriverActionInvocation(
+                action = "player.fail",
+                arguments = mapOf("message" to JsonPrimitive("boom")),
+            )
+        )
+
+        assertEquals("player.fail", result.action)
+        assertEquals(DriverActionStatus.FAILED, result.status)
+        assertTrue(session.events().any {
+            it.type == DriverEventType.ERROR &&
+                it.message == "rejected player.fail"
+        })
+    }
+
+    @Test
     fun `hmc bridge backend adapts the temporary bridge to runtime backend actions`() {
         val backend = HmcBridgeDriverBackend(HmcBridgeBackend.dryRun())
 
@@ -101,7 +126,9 @@ class BackendDriverSessionTest {
     }
 }
 
-private class RecordingDriverBackend : DriverBackend {
+private class RecordingDriverBackend(
+    private val rejectedAction: String? = null,
+) : DriverBackend {
     val calls = mutableListOf<String>()
 
     override fun connect(clientId: String, target: ConnectionTarget): DriverBackendResult {
@@ -133,6 +160,9 @@ private class RecordingDriverBackend : DriverBackend {
         )
 
     override fun invoke(clientId: String, invocation: DriverActionInvocation): DriverActionResult {
+        if (invocation.action == rejectedAction) {
+            return DriverActionResult(invocation.action, DriverActionStatus.FAILED, "rejected ${invocation.action}")
+        }
         val message = "action $clientId ${invocation.action} ${
             invocation.arguments.entries.joinToString(" ") { "${it.key}=${it.value.jsonPrimitive.content}" }
         }"

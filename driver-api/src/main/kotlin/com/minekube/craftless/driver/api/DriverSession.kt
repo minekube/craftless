@@ -135,6 +135,7 @@ enum class DriverEventType {
     CHAT,
     MOVEMENT,
     CLIENT_STOPPED,
+    ERROR,
 }
 
 class FakeDriverSession(
@@ -196,7 +197,7 @@ class FakeDriverSession(
 
     override fun invoke(invocation: DriverActionInvocation): DriverActionResult {
         require(invocation.action.isNotBlank()) { "action is required" }
-        return when (invocation.action) {
+        val result = when (invocation.action) {
             "player.chat" -> {
                 val message = requireNotNull(invocation.arguments.stringArgument("message")) { "message is required" }
                 val event = recordChat(message)
@@ -222,6 +223,14 @@ class FakeDriverSession(
                 message = "unsupported fake action ${invocation.action}",
             )
         }
+        if (result.status != DriverActionStatus.ACCEPTED && result.message != null) {
+            events += DriverEvent(
+                type = DriverEventType.ERROR,
+                client = clientId,
+                message = result.message,
+            )
+        }
+        return result
     }
 
     override fun stop(): DriverClientSnapshot {
