@@ -90,7 +90,10 @@ Reasons:
   `3.5.0`;
 - avoids mixing multiple JVM HTTP client APIs into Craftwright product code.
 
-Use Java's standard `HttpClient` only in tiny dependency-free PoCs.
+Do not use Java's standard `HttpClient`, OkHttp, `com.sun.net.httpserver`, or
+hand-rolled HTTP clients in Craftwright repository code. Throwaway
+dependency-free PoCs may live outside the repository, but they must not become
+product code, tests, docs examples, or the recommended implementation path.
 
 ### JSON And Protocol Models
 
