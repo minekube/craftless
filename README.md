@@ -94,10 +94,9 @@ Legend: 🟢 yes, 🟡 partial or limited, 🔵 planned, 🔴 no.
 
 The comparison is based on upstream project docs. Mineflayer is strongest for
 protocol-visible bot APIs, while Baritone is strongest for in-client
-pathfinding. Recent-version checks used Mojang's version manifest, Fabric
-metadata, and upstream git history: Fabric Loader already lists Minecraft
-`26.2`, but Craftless support is paced by Fabric driver bindings,
-mappings/accessors, and real-client smoke validation.
+pathfinding. Craftless support is paced by Fabric driver bindings,
+mappings/accessors, and real-client smoke validation rather than by a static
+protocol matrix alone.
 
 ## Status
 
