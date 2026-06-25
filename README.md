@@ -143,6 +143,7 @@ Still roadmap:
 
 - `docs/product-positioning.md`
 - `docs/bridge-limitations.md`
+- `docs/client-file-management.md`
 - `docs/agent-skills.md`
 - `docs/roadmap.md`
 

@@ -157,8 +157,9 @@ Goal: make Craftless usable as local and CI infrastructure.
   automated.
 - Expand configuration for profiles, client files, logs, auth mode, and runtime
   directories.
-- Continue modelling client files and instance layout after Prism Launcher
-  source findings without making Prism a required runtime dependency.
+- Keep client file management launcher-neutral. Prism Launcher source findings
+  are captured in `docs/client-file-management.md` as design input only; Prism
+  remains an optional future adapter, not a required runtime dependency.
 - Add observability for daemon requests, client lifecycle, driver action
   latency, and failure categories.
 - Publish examples that create a client, fetch its OpenAPI, invoke generated

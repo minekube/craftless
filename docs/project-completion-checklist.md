@@ -311,8 +311,8 @@ Evidence:
   record.
 - [x] `docs/roadmap.md` reflects the current completion status.
 - [x] `docs/bridge-limitations.md` keeps bridge scoped as evidence-only.
-- [ ] README has no stale SVG dependency.
-- [ ] Docs do not advertise inactive TypeScript SDK, bridge internals, or
+- [x] README has no stale SVG dependency.
+- [x] Docs do not advertise inactive TypeScript SDK, bridge internals, or
   launcher internals as product surfaces.
 
 Evidence:
@@ -320,8 +320,12 @@ Evidence:
 - Commands:
   - `sed -n '1,240p' README.md`
   - `sed -n '1,260p' docs/roadmap.md`
-- Next action: run final docs searches before marking the remaining items
-  complete.
+  - `find . -path './.git' -prune -o -path './build' -prune -o -path '*/build' -prune -o -path './driver-fabric/run' -prune -o -name '*.svg' -print`
+  - `rg -n "svg|\\.svg|typescript|TypeScript|sdk|SDK|bridge|HeadlessMC|HMC|Prism|PrismLauncher|MultiMC|MMC|launcher internals|minekube\\.dev|dev\\.minekube|player/sendChat|/player/sendChat" README.md docs -S --glob '!docs/superpowers/**'`
+  - manual previous product-name search using split literals to avoid embedding
+    stale names in docs
+  - `mise exec -- gradle :protocol:test --tests com.minekube.craftless.protocol.NamespacePolicyTest`
+  - `mise run ci`
 
 ## 11. CI And Verification
 
