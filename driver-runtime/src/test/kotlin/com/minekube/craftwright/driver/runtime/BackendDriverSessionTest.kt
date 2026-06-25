@@ -7,7 +7,6 @@ import com.minekube.craftwright.driver.api.DriverActionResult
 import com.minekube.craftwright.driver.api.DriverActionStatus
 import com.minekube.craftwright.driver.api.DriverEventType
 import com.minekube.craftwright.driver.api.DriverRuntimeMetadata
-import com.minekube.craftwright.driver.api.PlayerPosition
 import com.minekube.craftwright.bridge.hmc.HmcBridgeBackend
 import com.minekube.craftwright.protocol.ClientState
 import kotlinx.serialization.json.JsonPrimitive
@@ -22,7 +21,6 @@ class BackendDriverSessionTest {
         val backend = RecordingDriverBackend()
         val session = BackendDriverSession(
             clientId = "alice",
-            profileName = "Alice",
             backend = backend,
         )
 
@@ -32,8 +30,6 @@ class BackendDriverSessionTest {
         assertEquals(ClientState.CONNECTED, connected.state)
         assertEquals("connect alice 127.0.0.1:25565", backend.calls.single())
 
-        assertEquals("Alice", session.player().name)
-        assertEquals(ClientState.CONNECTED, session.player().state)
         assertTrue(session.actions().any { it.id == "player.move" })
         assertTrue(session.actions().any { it.id == "player.chat" })
         assertEquals("recording-backend", session.runtimeMetadata().driver)
@@ -46,34 +42,10 @@ class BackendDriverSessionTest {
     }
 
     @Test
-    fun `runtime driver session reads observed player state from backend`() {
-        val backend = RecordingDriverBackend(
-            observedPlayer = DriverBackendPlayer(
-                name = "ObservedAlice",
-                state = ClientState.CONNECTED,
-                position = PlayerPosition(x = 12.5, y = 64.0, z = -8.25),
-            )
-        )
-        val session = BackendDriverSession(
-            clientId = "alice",
-            profileName = "Alice",
-            backend = backend,
-        )
-
-        val player = session.player()
-
-        assertEquals("ObservedAlice", player.name)
-        assertEquals(ClientState.CONNECTED, player.state)
-        assertEquals(PlayerPosition(x = 12.5, y = 64.0, z = -8.25), player.position)
-        assertEquals(listOf("player alice"), backend.calls)
-    }
-
-    @Test
     fun `runtime driver session invokes generic backend actions`() {
         val backend = RecordingDriverBackend()
         val session = BackendDriverSession(
             clientId = "alice",
-            profileName = "Alice",
             backend = backend,
         )
 
@@ -124,9 +96,7 @@ class BackendDriverSessionTest {
     }
 }
 
-private class RecordingDriverBackend(
-    private val observedPlayer: DriverBackendPlayer? = null,
-) : DriverBackend {
+private class RecordingDriverBackend : DriverBackend {
     val calls = mutableListOf<String>()
 
     override fun connect(clientId: String, target: ConnectionTarget): DriverBackendResult {
@@ -137,11 +107,6 @@ private class RecordingDriverBackend(
     override fun stop(clientId: String): DriverBackendResult {
         calls += "stop $clientId"
         return DriverBackendResult(DriverBackendAction.STOP, "stopped")
-    }
-
-    override fun player(clientId: String): DriverBackendPlayer? {
-        calls += "player $clientId"
-        return observedPlayer
     }
 
     override fun actions(clientId: String): List<DriverActionDescriptor> =

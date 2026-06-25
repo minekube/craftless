@@ -148,8 +148,7 @@ Test layers:
 - pure unit tests for route generation and OpenAPI generation;
 - fake-client tests for handles, events, JSON, and token behavior;
 - Ktor Client tests for JVM clients and local API routes;
-- opt-in Fabric real-client smoke tests for generated state routes and action
-  invocation such as `GET /clients/{id}/player` and
+- opt-in Fabric real-client smoke tests for generated actions/resources such as
   `POST /clients/{id}:run` with `player.chat` or `player.move`.
 
 ### Java Fallbacks
@@ -251,9 +250,9 @@ Location: `/tmp/craftwright-ci-api-poc`
 
 Validated:
 
-- short root paths: `/client`, `/player`;
+- short root paths: `/client` and generated action/resource paths;
 - generated action invocation route: `POST /clients/{id}:run`;
-- generated getter route: `GET /player/name`;
+- generated getter/action routes only when discovered in the running client;
 - `/version`;
 - `/events`;
 - `/openapi.json`;
@@ -463,7 +462,6 @@ while the fake local API exists:
 - `POST /clients/{id}:run`
 - generated aliases such as `POST /clients/{id}/player:move` and
   `POST /clients/{id}/player:chat`
-- `GET /clients/{id}/player`
 - `POST /clients/{id}/stop`
 - `GET /clients/{id}/events`
 
@@ -553,9 +551,8 @@ target Minecraft version:
 - exposes object handle fallback under `/o/{handle}`;
 - exposes class metadata under `/c/{className}`;
 - schedules calls on the Minecraft client thread;
-- supports `GET /clients/{id}/player` plus `POST /clients/{id}:run` actions
-  such as `player.chat` and `player.move` against the real client as the first
-  proof.
+- supports `POST /clients/{id}:run` actions such as `player.chat` and
+  `player.move` against the real client as the first proof.
 
 ## Done Definition
 

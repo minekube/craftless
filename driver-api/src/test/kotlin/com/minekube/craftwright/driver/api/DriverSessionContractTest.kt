@@ -11,7 +11,6 @@ class DriverSessionContractTest {
     fun `fake driver session exposes the minimum automation contract`() {
         val session = FakeDriverSession(
             clientId = "alice",
-            profileName = "Alice",
         )
 
         assertEquals(ClientState.RUNNING, session.snapshot().state)
@@ -21,12 +20,7 @@ class DriverSessionContractTest {
 
         assertTrue(DriverSession::class.java.methods.none { it.name == "sendChat" })
         assertTrue(DriverSession::class.java.methods.none { it.name == "capabilities" })
-
-        val player = session.player()
-        assertEquals("alice", player.id)
-        assertEquals("Alice", player.name)
-        assertEquals(ClientState.CONNECTED, player.state)
-        assertEquals(PlayerPosition(0.0, 0.0, 0.0), player.position)
+        assertTrue(DriverSession::class.java.methods.none { it.name == "player" })
 
         val actions = session.actions()
         assertEquals("1", actions.single { it.id == "player.move" }.schemaVersion)

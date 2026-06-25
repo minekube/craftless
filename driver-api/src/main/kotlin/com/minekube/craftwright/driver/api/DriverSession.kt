@@ -15,8 +15,6 @@ interface DriverSession {
 
     fun connect(target: ConnectionTarget): DriverClientSnapshot
 
-    fun player(): PlayerSnapshot
-
     fun actions(): List<DriverActionDescriptor>
 
     fun runtimeMetadata(): DriverRuntimeMetadata
@@ -150,21 +148,6 @@ enum class DriverActionStatus {
 }
 
 @Serializable
-data class PlayerPosition(
-    val x: Double,
-    val y: Double,
-    val z: Double,
-)
-
-@Serializable
-data class PlayerSnapshot(
-    val id: String,
-    val name: String,
-    val state: ClientState,
-    val position: PlayerPosition,
-)
-
-@Serializable
 data class DriverEvent(
     val type: DriverEventType,
     val client: String,
@@ -182,7 +165,6 @@ enum class DriverEventType {
 
 class FakeDriverSession(
     override val clientId: String,
-    private val profileName: String,
 ) : DriverSession {
     private var state = ClientState.RUNNING
     private val events = mutableListOf(
@@ -218,14 +200,6 @@ class FakeDriverSession(
         events += event
         return event
     }
-
-    override fun player(): PlayerSnapshot =
-        PlayerSnapshot(
-            id = clientId,
-            name = profileName,
-            state = state,
-            position = PlayerPosition(0.0, 0.0, 0.0),
-        )
 
     override fun actions(): List<DriverActionDescriptor> =
         listOf(

@@ -47,7 +47,8 @@ class ClientSessionServiceTest {
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/player:move" })
         assertTrue(service.routesFor("alice").none { it.path == "/clients/alice/player/sendChat" })
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/connection/connect" })
-        assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/player/position" })
+        assertTrue(service.routesFor("alice").none { it.path == "/clients/alice/player" })
+        assertTrue(service.routesFor("alice").none { it.path == "/clients/alice/player/position" })
     }
 
     @Test
@@ -109,6 +110,8 @@ class ClientSessionServiceTest {
         assertTrue(document.paths.containsKey("/clients/alice:run"))
         assertTrue(document.paths.containsKey("/clients/alice/player:chat"))
         assertTrue(document.paths.containsKey("/clients/alice/player:move"))
+        assertFalse(document.paths.containsKey("/clients/alice/player"))
+        assertFalse(document.paths.containsKey("/clients/alice/player/position"))
         val clientSchema = document.paths["/clients/alice"]?.get
             ?.responses
             ?.get("200")
@@ -200,7 +203,6 @@ class ClientSessionServiceTest {
             )
         )
         assertEquals(DriverActionStatus.ACCEPTED, chat.status)
-        assertEquals("Alice", driver.player().name)
         assertTrue(driver.events().any { it.type == DriverEventType.CHAT })
     }
 
@@ -210,7 +212,6 @@ class ClientSessionServiceTest {
         val service = ClientSessionService.inMemory { request ->
             BackendDriverSession(
                 clientId = request.id,
-                profileName = request.profile.name,
                 backend = backend,
             )
         }
@@ -255,7 +256,6 @@ class ClientSessionServiceTest {
         val service = ClientSessionService.inMemory { request ->
             BackendDriverSession(
                 clientId = request.id,
-                profileName = request.profile.name,
                 backend = backend,
             )
         }

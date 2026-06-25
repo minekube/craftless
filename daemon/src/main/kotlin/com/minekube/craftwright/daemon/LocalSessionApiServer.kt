@@ -2,7 +2,6 @@ package com.minekube.craftwright.daemon
 
 import com.minekube.craftwright.driver.api.ConnectionTarget
 import com.minekube.craftwright.driver.api.DriverActionInvocation
-import com.minekube.craftwright.driver.api.PlayerPosition
 import com.minekube.craftwright.protocol.ApiRouteCatalog
 import com.minekube.craftwright.protocol.Client
 import com.minekube.craftwright.protocol.CreateClientRequest
@@ -125,31 +124,6 @@ class LocalSessionApiServer private constructor(
                     call.respondJson(HttpStatusCode.OK, client)
                 }.getOrElse { error ->
                     call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
-                }
-            }
-            get("/clients/{id}/player") {
-                val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
-                runCatching {
-                    val player = service.driverFor(clientId).player()
-                    call.respondJson(
-                        HttpStatusCode.OK,
-                        PlayerSnapshot(
-                            id = player.id,
-                            name = player.name,
-                            state = player.state.name,
-                            position = player.position,
-                        )
-                    )
-                }.getOrElse { error ->
-                    call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
-                }
-            }
-            get("/clients/{id}/player/position") {
-                val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
-                runCatching {
-                    call.respondJson(HttpStatusCode.OK, service.driverFor(clientId).player().position)
-                }.getOrElse { error ->
-                    call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
                 }
             }
             get("/clients/{id}/actions") {
@@ -327,12 +301,4 @@ data class ActionInvocationResponse(
     val action: String,
     val status: String,
     val message: String? = null,
-)
-
-@Serializable
-data class PlayerSnapshot(
-    val id: String,
-    val name: String,
-    val state: String,
-    val position: PlayerPosition,
 )

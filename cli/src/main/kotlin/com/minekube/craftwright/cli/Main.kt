@@ -56,6 +56,7 @@ object McwCli {
         "profiles",
         "clients create",
         "clients list",
+        "clients <id> get",
         "clients <id> connect",
         "clients api",
         "clients <id> openapi",
@@ -80,6 +81,9 @@ object McwCli {
         }
         if (args.take(2) == listOf("clients", "list")) {
             return listClients(args.drop(2), stdout, stderr, env)
+        }
+        if (args.size >= 3 && args[0] == "clients" && args[2] == "get") {
+            return getClient(args.drop(1), stdout, stderr, env)
         }
         if (args.size >= 3 && args[0] == "clients" && args[2] == "connect") {
             return connectClient(args.drop(1), stdout, stderr, env)
@@ -189,6 +193,30 @@ object McwCli {
             }
         }.getOrElse { error ->
             stderr("error: ${error.message ?: "failed to connect client"}")
+            2
+        }
+    }
+
+    private fun getClient(
+        args: List<String>,
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+        env: Map<String, String>,
+    ): Int {
+        val clientId = args.getOrNull(0).orEmpty()
+        if (clientId.isBlank()) {
+            stderr("error: usage is clients <id> get [--api <url>]")
+            return 2
+        }
+        val api = args.apiBaseUrl(env)
+        return runCatching {
+            kotlinx.coroutines.runBlocking {
+                HttpClient(CIO).use { http ->
+                    http.get("${api.trimEnd('/')}/clients/$clientId").forwardBody(stdout, stderr)
+                }
+            }
+        }.getOrElse { error ->
+            stderr("error: ${error.message ?: "failed to fetch client"}")
             2
         }
     }

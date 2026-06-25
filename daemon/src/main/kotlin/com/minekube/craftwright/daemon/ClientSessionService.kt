@@ -73,8 +73,6 @@ class ClientSessionService private constructor(
             route("POST", "/clients/$clientId/stop", "clientsStop", "clients", "stop", "method"),
             route("GET", "/clients/$clientId/actions", "clientsActions", "clients", "actions", "action"),
             route("POST", "/clients/$clientId:run", "clientsRunAction", "clients", "run", "action"),
-            route("GET", "/clients/$clientId/player", "clientsPlayer", "clients", "player", "root", "handle"),
-            route("GET", "/clients/$clientId/player/position", "clientsPlayerPosition", "clients", "position", "getter"),
             route("GET", "/clients/$clientId/events", "clientsEvents", "clients", "events", "route"),
         ) + actionAliases
     }
@@ -111,7 +109,6 @@ class ClientSessionService private constructor(
             driverFactory: DriverSessionFactory = DriverSessionFactory { request ->
                 FakeDriverSession(
                     clientId = request.id,
-                    profileName = request.profile.name,
                 )
             },
         ): ClientSessionService = ClientSessionService(driverFactory)

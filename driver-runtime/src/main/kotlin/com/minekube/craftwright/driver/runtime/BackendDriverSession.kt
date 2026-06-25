@@ -10,13 +10,10 @@ import com.minekube.craftwright.driver.api.DriverEvent
 import com.minekube.craftwright.driver.api.DriverEventType
 import com.minekube.craftwright.driver.api.DriverRuntimeMetadata
 import com.minekube.craftwright.driver.api.DriverSession
-import com.minekube.craftwright.driver.api.PlayerPosition
-import com.minekube.craftwright.driver.api.PlayerSnapshot
 import com.minekube.craftwright.protocol.ClientState
 
 class BackendDriverSession(
     override val clientId: String,
-    private val profileName: String,
     private val backend: DriverBackend,
 ) : DriverSession {
     private var state = ClientState.RUNNING
@@ -44,21 +41,6 @@ class BackendDriverSession(
         )
         return snapshot()
     }
-
-    override fun player(): PlayerSnapshot =
-        backend.player(clientId)?.let { observed ->
-            PlayerSnapshot(
-                id = clientId,
-                name = observed.name,
-                state = observed.state,
-                position = observed.position,
-            )
-        } ?: PlayerSnapshot(
-            id = clientId,
-            name = profileName,
-            state = state,
-            position = PlayerPosition(0.0, 0.0, 0.0),
-        )
 
     override fun actions(): List<DriverActionDescriptor> =
         backend.actions(clientId)
@@ -98,8 +80,6 @@ class BackendDriverSession(
 interface DriverBackend {
     fun connect(clientId: String, target: ConnectionTarget): DriverBackendResult
 
-    fun player(clientId: String): DriverBackendPlayer? = null
-
     fun actions(clientId: String): List<DriverActionDescriptor> = emptyList()
 
     fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
@@ -114,12 +94,6 @@ interface DriverBackend {
 
     fun stop(clientId: String): DriverBackendResult
 }
-
-data class DriverBackendPlayer(
-    val name: String,
-    val state: ClientState,
-    val position: PlayerPosition,
-)
 
 data class DriverBackendResult(
     val action: DriverBackendAction,

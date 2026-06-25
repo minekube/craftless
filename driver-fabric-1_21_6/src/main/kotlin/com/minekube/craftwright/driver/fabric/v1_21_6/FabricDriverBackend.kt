@@ -11,7 +11,6 @@ import com.minekube.craftwright.driver.api.intArgument
 import com.minekube.craftwright.driver.api.stringArgument
 import com.minekube.craftwright.driver.runtime.DriverBackend
 import com.minekube.craftwright.driver.runtime.DriverBackendAction
-import com.minekube.craftwright.driver.runtime.DriverBackendPlayer
 import com.minekube.craftwright.driver.runtime.DriverBackendResult
 
 class FabricDriverBackend private constructor(
@@ -42,15 +41,6 @@ class FabricDriverBackend private constructor(
         }
         return message
     }
-
-    override fun player(clientId: String): DriverBackendPlayer? =
-        gateway?.player()?.let { player ->
-            DriverBackendPlayer(
-                name = player.name,
-                state = player.state,
-                position = player.position,
-            )
-        }
 
     override fun actions(clientId: String): List<DriverActionDescriptor> =
         listOf(

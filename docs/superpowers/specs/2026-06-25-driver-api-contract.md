@@ -16,7 +16,6 @@ The module currently exposes:
 - `DriverSession`
 - `DriverClientSnapshot`
 - `ConnectionTarget`
-- `PlayerSnapshot`
 - `DriverActionDescriptor`
 - `DriverActionInvocation`
 - `DriverActionResult`
@@ -52,7 +51,6 @@ Minimum supported actions:
 - snapshot current client state;
 - connect to a host/port;
 - invoke discovered actions such as `player.chat` and `player.move`;
-- return player identity/state;
 - stop the session;
 - return structured driver events.
 
@@ -63,10 +61,11 @@ the same public contract before the Fabric module lands.
 `BackendDriverSession` is the first runtime adapter. It keeps `DriverSession`
 state and events in Craftwright-owned types while delegating automation actions
 to a `DriverBackend`. The current HMC bridge adapter is temporary. The Fabric
-module now routes connect, stop, player name/connection-state observation,
-player position, and generic action invocation such as `player.chat` and
-`player.move` through a client-thread gateway. It must still add real-client
-movement smoke proof, perception, and structured event observation.
+module now routes connect, stop, and generic action invocation such as
+`player.chat` and `player.move` through a client-thread gateway. It must still
+add real-client movement smoke proof, perception, and structured event
+observation through generated actions/resources rather than static player
+methods.
 
 ## Fabric Handoff
 
@@ -77,7 +76,8 @@ per-client OpenAPI document:
 
 - map `connect(ConnectionTarget)` to in-client server connection behavior;
 - keep Minecraft calls scheduled on the client thread;
-- make `player()` return real player state and position from the Fabric gateway;
+- expose player state and position only through generated actions/resources
+  described by the live per-client OpenAPI document;
 - route generated/discovered actions such as `player.chat` and `player.move`
   through generic action invocation instead of adding one method per player
   action;
@@ -95,7 +95,6 @@ The public daemon routes remain:
 - generated aliases such as `POST /clients/{id}/player:move` and
   `POST /clients/{id}/player:chat` when described by that client's OpenAPI
   document
-- `GET /clients/{id}/player`
 - `POST /clients/{id}/stop`
 - `GET /clients/{id}/events`
 

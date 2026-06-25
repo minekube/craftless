@@ -1,8 +1,6 @@
 package com.minekube.craftwright.driver.fabric.v1_21_6
 
 import com.minekube.craftwright.driver.api.ConnectionTarget
-import com.minekube.craftwright.driver.api.PlayerPosition
-import com.minekube.craftwright.protocol.ClientState
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.screen.TitleScreen
 import net.minecraft.client.gui.screen.multiplayer.ConnectScreen
@@ -20,18 +18,10 @@ interface FabricClientGateway {
 
     fun sendCommand(command: String)
 
-    fun player(): FabricClientPlayer?
-
     fun move(intent: FabricMovementIntent)
 
     fun stop()
 }
-
-data class FabricClientPlayer(
-    val name: String,
-    val state: ClientState,
-    val position: PlayerPosition,
-)
 
 data class FabricMovementIntent(
     val forward: Boolean = false,
@@ -80,25 +70,6 @@ class MinecraftFabricClientGateway(
         require(!command.startsWith("/")) { "chat command must not start with slash" }
         val networkHandler = requireNotNull(client.networkHandler) { "client is not connected to a server" }
         networkHandler.sendChatCommand(command)
-    }
-
-    override fun player(): FabricClientPlayer {
-        val player = client.player
-        return FabricClientPlayer(
-            name = player?.name?.string ?: client.session.username,
-            state = if (player != null && client.world != null && client.networkHandler != null) {
-                ClientState.CONNECTED
-            } else {
-                ClientState.RUNNING
-            },
-            position = player?.let {
-                PlayerPosition(
-                    x = it.x,
-                    y = it.y,
-                    z = it.z,
-                )
-            } ?: PlayerPosition(0.0, 0.0, 0.0),
-        )
     }
 
     override fun move(intent: FabricMovementIntent) {

@@ -114,6 +114,8 @@ class LocalSessionApiServerTest {
                 assertTrue(body.contains("\"message\":{\"type\":\"string\""))
                 assertTrue(body.contains("\"ticks\":{\"type\":\"integer\""))
                 assertTrue(!body.contains("/player/sendChat"))
+                assertTrue(!body.contains("/clients/alice/player\""))
+                assertTrue(!body.contains("/clients/alice/player/position"))
                 assertTrue(!body.contains("/actions/move"))
             }
         }
@@ -175,18 +177,8 @@ class LocalSessionApiServerTest {
                 assertTrue(response.bodyAsText().contains("\"message\":\"hello from alias\""))
             }
 
-            http.get(server.url("/clients/alice/player")).let { response ->
-                assertEquals(HttpStatusCode.OK, response.status)
-                assertTrue(response.bodyAsText().contains("\"name\":\"Alice\""))
-            }
-
-            http.get(server.url("/clients/alice/player/position")).let { response ->
-                val body = response.bodyAsText()
-                assertEquals(HttpStatusCode.OK, response.status)
-                assertTrue(body.contains("\"x\":0.0"))
-                assertTrue(body.contains("\"y\":0.0"))
-                assertTrue(body.contains("\"z\":0.0"))
-            }
+            assertEquals(HttpStatusCode.NotFound, http.get(server.url("/clients/alice/player")).status)
+            assertEquals(HttpStatusCode.NotFound, http.get(server.url("/clients/alice/player/position")).status)
 
             http.get(server.url("/clients/alice/actions")).let { response ->
                 val body = response.bodyAsText()

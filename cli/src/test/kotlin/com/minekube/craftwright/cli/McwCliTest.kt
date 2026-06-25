@@ -24,6 +24,7 @@ class McwCliTest {
         assertTrue(commands.contains("profiles"))
         assertTrue(commands.contains("clients create"))
         assertTrue(commands.contains("clients list"))
+        assertTrue(commands.contains("clients <id> get"))
         assertTrue(commands.contains("clients <id> connect"))
         assertTrue(commands.contains("clients api"))
         assertTrue(commands.contains("clients <id> openapi"))
@@ -140,6 +141,32 @@ class McwCliTest {
         assertEquals(2, lines.size)
         assertEquals("alice", Json.parseToJsonElement(lines[0]).jsonObject["id"]?.jsonPrimitive?.content)
         assertEquals("bob", Json.parseToJsonElement(lines[1]).jsonObject["id"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `clients get fetches one client from daemon`() {
+        val output = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = McwCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "get",
+                    "--api",
+                    server.url,
+                ),
+                stdout = { output.appendLine(it) },
+            )
+
+            assertEquals(0, exit)
+        }
+
+        val client = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        assertEquals("alice", client["id"]?.jsonPrimitive?.content)
+        assertEquals("RUNNING", client["state"]?.jsonPrimitive?.content)
     }
 
     @Test

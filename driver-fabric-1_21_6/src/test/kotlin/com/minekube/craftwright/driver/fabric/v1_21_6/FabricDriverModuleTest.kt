@@ -3,9 +3,7 @@ package com.minekube.craftwright.driver.fabric.v1_21_6
 import com.minekube.craftwright.driver.api.ConnectionTarget
 import com.minekube.craftwright.driver.api.DriverActionInvocation
 import com.minekube.craftwright.driver.api.DriverActionStatus
-import com.minekube.craftwright.driver.api.PlayerPosition
 import com.minekube.craftwright.driver.runtime.DriverBackendAction
-import com.minekube.craftwright.protocol.ClientState
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
@@ -82,25 +80,6 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `fabric backend exposes observed player state from gateway`() {
-        val gateway = RecordingFabricClientGateway(
-            observedPlayer = FabricClientPlayer(
-                name = "ObservedAlice",
-                state = ClientState.CONNECTED,
-                position = PlayerPosition(x = 4.5, y = 70.0, z = -11.25),
-            )
-        )
-        val backend = FabricDriverBackend.real(gateway)
-
-        val player = backend.player("alice")
-
-        assertEquals("ObservedAlice", player?.name)
-        assertEquals(ClientState.CONNECTED, player?.state)
-        assertEquals(PlayerPosition(x = 4.5, y = 70.0, z = -11.25), player?.position)
-        assertEquals(listOf("player"), gateway.actions)
-    }
-
-    @Test
     fun `fabric backend maps player move action to movement intent`() {
         val gateway = RecordingFabricClientGateway()
         val backend = FabricDriverBackend.real(gateway)
@@ -148,9 +127,7 @@ class FabricDriverModuleTest {
         ).jsonObject
 }
 
-private class RecordingFabricClientGateway(
-    private val observedPlayer: FabricClientPlayer? = null,
-) : FabricClientGateway {
+private class RecordingFabricClientGateway : FabricClientGateway {
     var scheduled = 0
     val actions = mutableListOf<String>()
 
@@ -169,11 +146,6 @@ private class RecordingFabricClientGateway(
 
     override fun sendCommand(command: String) {
         actions += "command $command"
-    }
-
-    override fun player(): FabricClientPlayer? {
-        actions += "player"
-        return observedPlayer
     }
 
     override fun move(intent: FabricMovementIntent) {
