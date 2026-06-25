@@ -193,6 +193,7 @@ class LocalSessionApiServer private constructor(
                     if (result.status == DriverActionStatus.UNSUPPORTED) {
                         throw UnsupportedAction(result.message ?: "action ${request.action} is not available for client $clientId")
                     }
+                    action.requireResult(result)
                     result.toSessionEvent(clientId)?.let { events += it }
                     call.respondJson(
                         HttpStatusCode.OK,
@@ -252,6 +253,7 @@ class LocalSessionApiServer private constructor(
                     if (result.status == DriverActionStatus.UNSUPPORTED) {
                         throw UnsupportedAction(result.message ?: "action $actionId is not available for client $clientId")
                     }
+                    action.requireResult(result)
                     result.toSessionEvent(clientId)?.let { events += it }
                     call.respondJson(
                         HttpStatusCode.OK,
@@ -356,6 +358,40 @@ private fun DriverActionDescriptor.requireAvailable(clientId: String) {
     }
 }
 
+private fun DriverActionDescriptor.requireResult(result: DriverActionResult) {
+    if (result.action != id) {
+        throw DriverResultMismatch("action $id returned result for ${result.action}")
+    }
+
+    val fields = result.responseFields()
+    val undeclared = fields.keys.firstOrNull { it !in this.result.properties }
+    if (undeclared != null) {
+        throw DriverResultMismatch("action $id result does not declare property $undeclared")
+    }
+
+    val missingRequired = this.result.required.firstOrNull { it !in fields }
+    if (missingRequired != null) {
+        throw DriverResultMismatch("action $id result requires property $missingRequired")
+    }
+
+    fields.forEach { (name, value) ->
+        val property = this.result.properties.getValue(name)
+        if (!value.matchesActionArgumentType(property.type)) {
+            throw DriverResultMismatch("action $id result property $name must be ${property.type}")
+        }
+    }
+}
+
+private fun DriverActionResult.responseFields(): Map<String, JsonElement> =
+    buildMap {
+        put("action", JsonPrimitive(action))
+        put("status", JsonPrimitive(status.name))
+        message?.let { put("message", JsonPrimitive(it)) }
+        if (data.isNotEmpty()) {
+            put("data", data)
+        }
+    }
+
 private fun DriverActionArgument.requireValueType(
     actionId: String,
     name: String,
@@ -429,6 +465,10 @@ private class UnsupportedAction(
 private class InvalidActionInput(
     message: String,
 ) : RouteFailure(HttpStatusCode.BadRequest, "INVALID_ACTION_INPUT", message)
+
+private class DriverResultMismatch(
+    message: String,
+) : RouteFailure(HttpStatusCode.BadGateway, "DRIVER_RESULT_MISMATCH", message)
 
 private class StoppedClient(
     message: String,

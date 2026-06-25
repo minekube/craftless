@@ -6,6 +6,8 @@ import com.minekube.craftless.driver.api.DriverActionAvailability
 import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
+import com.minekube.craftless.driver.api.DriverActionResultDescriptor
+import com.minekube.craftless.driver.api.DriverActionResultProperty
 import com.minekube.craftless.driver.api.DriverActionSource
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverClientSnapshot
@@ -354,6 +356,47 @@ class LocalSessionApiServerTest {
                             assertEquals("ACCEPTED", body["status"]?.jsonPrimitive?.content)
                             assertEquals(true, data["hit"]?.jsonPrimitive?.boolean)
                             assertEquals("block", data["target-kind"]?.jsonPrimitive?.content)
+                        }
+                }
+        }
+
+    @Test
+    fun `server rejects driver results that violate advertised result schema`() =
+        withHttpClient { http ->
+            LocalSessionApiServer
+                .inMemory(
+                    driverFactory =
+                        DriverSessionFactory { request ->
+                            MissingRequiredResultDataDriverSession(request.id)
+                        },
+                ).use { server ->
+                    server.start()
+                    createAlice(http, server)
+
+                    http
+                        .post(server.url("/clients/alice:run")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"action":"player.raycast","args":{}}""")
+                        }.let { response ->
+                            assertEquals(HttpStatusCode.BadGateway, response.status)
+                            assertError(
+                                response.bodyAsText(),
+                                "DRIVER_RESULT_MISMATCH",
+                                "action player.raycast result requires property data",
+                            )
+                        }
+
+                    http
+                        .post(server.url("/clients/alice/player:raycast")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("{}")
+                        }.let { response ->
+                            assertEquals(HttpStatusCode.BadGateway, response.status)
+                            assertError(
+                                response.bodyAsText(),
+                                "DRIVER_RESULT_MISMATCH",
+                                "action player.raycast result requires property data",
+                            )
                         }
                 }
         }
@@ -775,6 +818,44 @@ private class DataActionDriverSession(
                     put("hit", true)
                     put("target-kind", "block")
                 },
+        )
+
+    override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
+
+    override fun events(): List<DriverEvent> = emptyList()
+}
+
+private class MissingRequiredResultDataDriverSession(
+    override val clientId: String,
+) : DriverSession {
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.RUNNING)
+
+    override fun connect(target: ConnectionTarget): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.CONNECTED)
+
+    override fun actions(): List<DriverActionDescriptor> =
+        listOf(
+            DriverActionDescriptor(
+                id = "player.raycast",
+                schemaVersion = "1",
+                result =
+                    DriverActionResultDescriptor(
+                        required = listOf("action", "status", "data"),
+                        properties =
+                            mapOf(
+                                "action" to DriverActionResultProperty("string"),
+                                "status" to DriverActionResultProperty("string"),
+                                "data" to DriverActionResultProperty("object"),
+                            ),
+                    ),
+            ),
+        )
+
+    override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
+
+    override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
+        DriverActionResult(
+            action = invocation.action,
+            status = DriverActionStatus.ACCEPTED,
         )
 
     override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)

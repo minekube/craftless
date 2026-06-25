@@ -29,6 +29,9 @@ Legend:
   argument mapping, and nested generated aliases such as
   `/clients/{id}/world/block:break`, with `/clients/{id}/actions` treated as
   an availability projection.
+- [x] Daemon generic and generated-alias action dispatch validate driver result
+  payloads against the advertised action result descriptor before returning
+  success.
 - [x] Fabric smoke has proven real client launch, server join, generated chat,
   generated movement invocation, disconnect, and artifact capture.
 - [~] Current Fabric driver has real chat, movement, connected-client
@@ -127,6 +130,8 @@ Verification:
   machine-readable availability reason.
 - [x] Daemon generic and alias action routes reject unavailable action
   descriptors before driver invocation.
+- [x] Daemon generic and alias action routes reject driver results that do not
+  match the advertised action result descriptor.
 - [x] Ensure generated aliases are derived only from the running client's
   OpenAPI/action descriptors.
 - [x] Ensure public OpenAPI does not expose Fabric/Yarn/intermediary names,
