@@ -145,7 +145,7 @@ private data class RuntimeOpenApiMetadata(
                 "x-craftless-loader-version" to metadata.loaderVersion,
                 "x-craftless-driver" to metadata.driver,
                 "x-craftless-driver-version" to metadata.driverVersion,
-                "x-craftless-mappings" to metadata.mappings,
+                "x-craftless-mappings-fingerprint" to metadata.mappings,
                 "x-craftless-installed-mods-fingerprint" to metadata.installedModsFingerprint,
                 "x-craftless-registry-fingerprint" to metadata.registryFingerprint,
                 "x-craftless-server-feature-fingerprint" to metadata.serverFeatureFingerprint,

@@ -99,7 +99,8 @@ class ClientSessionServiceTest {
         assertEquals("none", document.extensions["x-craftless-loader-version"])
         assertEquals("craftless-fake", document.extensions["x-craftless-driver"])
         assertEquals("0.1.0-SNAPSHOT", document.extensions["x-craftless-driver-version"])
-        assertEquals("none", document.extensions["x-craftless-mappings"])
+        assertEquals("none", document.extensions["x-craftless-mappings-fingerprint"])
+        assertFalse(document.extensions.containsKey("x-craftless-mappings"))
         assertEquals("none", document.extensions["x-craftless-installed-mods-fingerprint"])
         assertEquals("none", document.extensions["x-craftless-registry-fingerprint"])
         assertEquals("none", document.extensions["x-craftless-server-feature-fingerprint"])
@@ -254,7 +255,7 @@ class ClientSessionServiceTest {
                 loaderVersion = "0.16.14",
                 driver = "craftless-driver-fabric",
                 driverVersion = "0.2.0-test",
-                mappings = "yarn-test",
+                mappings = "mappings-fingerprint-test",
                 installedModsFingerprint = "mods-test",
                 registryFingerprint = "registries-test",
                 serverFeatureFingerprint = "server-features-test",
@@ -281,13 +282,14 @@ class ClientSessionServiceTest {
         assertEquals("0.16.14", extensions["x-craftless-loader-version"])
         assertEquals("craftless-driver-fabric", extensions["x-craftless-driver"])
         assertEquals("0.2.0-test", extensions["x-craftless-driver-version"])
-        assertEquals("yarn-test", extensions["x-craftless-mappings"])
+        assertEquals("mappings-fingerprint-test", extensions["x-craftless-mappings-fingerprint"])
+        assertFalse(extensions.containsKey("x-craftless-mappings"))
         assertEquals("mods-test", extensions["x-craftless-installed-mods-fingerprint"])
         assertEquals("registries-test", extensions["x-craftless-registry-fingerprint"])
         assertEquals("server-features-test", extensions["x-craftless-server-feature-fingerprint"])
         assertEquals("permissions-test", extensions["x-craftless-permissions-fingerprint"])
         assertEquals(
-            "minecraft=1.21.4;loader=FABRIC;loaderVersion=0.16.14;driver=craftless-driver-fabric;driverVersion=0.2.0-test;mappings=yarn-test;mods=mods-test;registries=registries-test;serverFeatures=server-features-test;permissions=permissions-test;actions=player.chat:1,player.move:1",
+            "minecraft=1.21.4;loader=FABRIC;loaderVersion=0.16.14;driver=craftless-driver-fabric;driverVersion=0.2.0-test;mappings=mappings-fingerprint-test;mods=mods-test;registries=registries-test;serverFeatures=server-features-test;permissions=permissions-test;actions=player.chat:1,player.move:1",
             extensions["x-craftless-runtime-fingerprint"],
         )
     }
