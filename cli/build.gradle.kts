@@ -11,6 +11,7 @@ dependencies {
     implementation("io.ktor:ktor-client-cio-jvm:3.5.0")
 
     testImplementation(project(":driver-api"))
+    testImplementation(project(":testkit"))
     testImplementation("io.ktor:ktor-server-core-jvm:3.5.0")
     testImplementation("io.ktor:ktor-server-cio-jvm:3.5.0")
 }

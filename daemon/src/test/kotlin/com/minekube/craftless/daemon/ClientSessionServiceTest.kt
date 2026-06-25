@@ -20,6 +20,8 @@ import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.OpenApiResponse
 import com.minekube.craftless.protocol.Profile
+import com.minekube.craftless.testkit.FakeDriverSession
+import com.minekube.craftless.testkit.fakeDriverRuntimeMetadata
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
@@ -31,8 +33,28 @@ import kotlin.test.assertTrue
 
 class ClientSessionServiceTest {
     @Test
-    fun `offline session creates running client with generated api route`() {
+    fun `session service requires an explicit driver factory`() {
         val service = ClientSessionService.inMemory()
+
+        val error =
+            assertFailsWith<IllegalStateException> {
+                service.createClient(
+                    CreateClientRequest(
+                        id = "alice",
+                        version = "1.21.4",
+                        loader = Loader.FABRIC,
+                        profile = Profile.offline("Alice"),
+                    ),
+                )
+            }
+
+        assertEquals("no Craftless driver runtime configured for client alice", error.message)
+        assertTrue(service.listClients().isEmpty())
+    }
+
+    @Test
+    fun `offline session creates running client with generated api route`() {
+        val service = fakeClientSessionService()
         val client =
             service.createClient(
                 CreateClientRequest(
@@ -62,7 +84,7 @@ class ClientSessionServiceTest {
 
     @Test
     fun `session service lists clients in creation order`() {
-        val service = ClientSessionService.inMemory()
+        val service = fakeClientSessionService()
 
         service.createClient(
             CreateClientRequest(
@@ -86,7 +108,7 @@ class ClientSessionServiceTest {
 
     @Test
     fun `session service rejects client ids that cannot be used as route segments`() {
-        val service = ClientSessionService.inMemory()
+        val service = fakeClientSessionService()
 
         listOf(
             "",
@@ -111,7 +133,7 @@ class ClientSessionServiceTest {
 
     @Test
     fun `client specific openapi exposes action metadata without static action routes`() {
-        val service = ClientSessionService.inMemory()
+        val service = fakeClientSessionService()
         service.createClient(
             CreateClientRequest(
                 id = "alice",
@@ -250,7 +272,7 @@ class ClientSessionServiceTest {
 
     @Test
     fun `minecraft usernames longer than sixteen characters are rejected`() {
-        val service = ClientSessionService.inMemory()
+        val service = fakeClientSessionService()
 
         val result =
             runCatching {
@@ -270,7 +292,7 @@ class ClientSessionServiceTest {
 
     @Test
     fun `created clients expose a driver session contract`() {
-        val service = ClientSessionService.inMemory()
+        val service = fakeClientSessionService()
         service.createClient(
             CreateClientRequest(
                 id = "alice",
@@ -480,8 +502,15 @@ class ClientSessionServiceTest {
     }
 }
 
+private fun fakeClientSessionService(): ClientSessionService =
+    ClientSessionService.inMemory(
+        DriverSessionFactory { request ->
+            FakeDriverSession(request.id)
+        },
+    )
+
 private class RecordingDriverBackend(
-    private val metadata: DriverRuntimeMetadata = DriverRuntimeMetadata.fake(),
+    private val metadata: DriverRuntimeMetadata = fakeDriverRuntimeMetadata(),
     private val actions: List<DriverActionDescriptor> =
         listOf(
             testPlayerMoveActionDescriptor(),

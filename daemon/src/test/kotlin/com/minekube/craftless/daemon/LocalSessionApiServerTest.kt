@@ -16,6 +16,8 @@ import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.Profile
+import com.minekube.craftless.testkit.FakeDriverSession
+import com.minekube.craftless.testkit.fakeDriverRuntimeMetadata
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
@@ -37,7 +39,7 @@ class LocalSessionApiServerTest {
     @Test
     fun `server exposes session metadata and creates fake clients over http`() =
         withHttpClient { http ->
-            LocalSessionApiServer.inMemory().use { server ->
+            fakeLocalSessionApiServer().use { server ->
                 server.start()
 
                 http.get(server.url("/version")).let { version ->
@@ -148,7 +150,7 @@ class LocalSessionApiServerTest {
     @Test
     fun `server rejects invalid client creation as bad request`() =
         withHttpClient { http ->
-            LocalSessionApiServer.inMemory().use { server ->
+            fakeLocalSessionApiServer().use { server ->
                 server.start()
 
                 http
@@ -174,7 +176,7 @@ class LocalSessionApiServerTest {
     @Test
     fun `server reports missing client connect as not found`() =
         withHttpClient { http ->
-            LocalSessionApiServer.inMemory().use { server ->
+            fakeLocalSessionApiServer().use { server ->
                 server.start()
 
                 http
@@ -192,7 +194,7 @@ class LocalSessionApiServerTest {
     @Test
     fun `server returns structured action error codes`() =
         withHttpClient { http ->
-            LocalSessionApiServer.inMemory().use { server ->
+            fakeLocalSessionApiServer().use { server ->
                 server.start()
                 createAlice(http, server)
 
@@ -276,7 +278,7 @@ class LocalSessionApiServerTest {
     @Test
     fun `server handles session routes for fake client actions`() =
         withHttpClient { http ->
-            LocalSessionApiServer.inMemory().use { server ->
+            fakeLocalSessionApiServer().use { server ->
                 server.start()
                 createAlice(http, server)
 
@@ -531,6 +533,14 @@ class LocalSessionApiServerTest {
     }
 }
 
+private fun fakeLocalSessionApiServer(): LocalSessionApiServer =
+    LocalSessionApiServer.inMemory(
+        driverFactory =
+            DriverSessionFactory { request ->
+                FakeDriverSession(request.id)
+            },
+    )
+
 private class EventMetadataDriverSession(
     override val clientId: String,
 ) : DriverSession {
@@ -547,7 +557,7 @@ private class EventMetadataDriverSession(
             ),
         )
 
-    override fun runtimeMetadata(): DriverRuntimeMetadata = DriverRuntimeMetadata.fake()
+    override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
 
     override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
         DriverActionResult(

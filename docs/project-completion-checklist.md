@@ -105,14 +105,13 @@ Evidence:
 - [x] `DriverSession` does not expose user-facing `capabilities()`.
 - [x] Driver action descriptors validate Craftless-owned action IDs.
 - [x] Runtime metadata rejects non-Craftless public driver names.
-- [ ] Fake driver remains test-only and does not define public architecture.
+- [x] Fake driver remains test-only and does not define public architecture.
 
 Evidence:
 
 - Commands:
   - `sed -n '1,220p' driver-api/src/main/kotlin/com/minekube/craftless/driver/api/DriverSession.kt`
-- Tests to rerun before final completion:
-  - `mise exec -- gradle :driver-api:test`
+  - `mise exec -- gradle :protocol:test --tests com.minekube.craftless.protocol.NamespacePolicyTest :testkit:test --tests com.minekube.craftless.testkit.FakeDriverSessionTest :driver-api:test --tests com.minekube.craftless.driver.api.DriverSessionContractTest :daemon:test :cli:test`
 
 ## 4. Generated OpenAPI And Actions
 
@@ -173,9 +172,10 @@ Current action-boundary audit:
 - Verification:
   - `mise exec -- gradle :driver-fabric:test --tests com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest`
   - `rg -n "dispatchChatMessage|fun move\\(|when \\(invocation\\.action\\)|if \\(invocation\\.action|DriverActionDescriptor\\(|actions\\(clientId|player\\.chat|player\\.move|executeOnClient" driver-fabric/src/main driver-fabric/src/test -S`
-- Allowed only as a fake fixture: `driver-api/.../FakeDriverSession` has a
-  small hard-coded action switch for tests. It must not define public
-  architecture or be copied into real drivers.
+- Fake fixture quarantine: `testkit/.../FakeDriverSession` has a small
+  hard-coded action switch for tests. `NamespacePolicyTest` rejects fake driver
+  symbols in non-testkit product sources, and daemon/CLI tests opt into the fake
+  through explicit test factories.
 - Allowed only as evidence/legacy bridge: `driver-runtime/.../HmcBridgeDriverBackend.kt`
   and `bridge-hmc/.../HmcBridgeBackend.kt` contain static chat/move/jump/look
   methods or switches. They must remain isolated from the final Fabric path.

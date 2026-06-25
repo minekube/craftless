@@ -7,7 +7,7 @@ import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverSession
-import com.minekube.craftless.driver.api.FakeDriverSession
+import com.minekube.craftless.testkit.FakeDriverSession
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get

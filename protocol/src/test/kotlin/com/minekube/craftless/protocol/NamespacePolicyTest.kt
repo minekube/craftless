@@ -149,6 +149,28 @@ class NamespacePolicyTest {
     }
 
     @Test
+    fun `production kotlin sources do not define or instantiate fake drivers`() {
+        val fakeDriverSymbol = "Fake" + "DriverSession"
+        val root = repositoryRoot()
+        val violations =
+            repositoryContentViolations(
+                include = { path ->
+                    val relative = root.relativize(path).pathString
+                    path.name.endsWith(".kt") &&
+                        relative.contains("/src/main/") &&
+                        !relative.startsWith("testkit/")
+                },
+            ) { contents ->
+                contents.contains(fakeDriverSymbol)
+            }
+
+        assertTrue(
+            violations.isEmpty(),
+            "Fake driver implementations must stay out of product sources:\n${violations.joinToString("\n")}",
+        )
+    }
+
+    @Test
     fun `public kotlin sources do not expose launcher internals`() {
         val forbiddenNames =
             listOf(

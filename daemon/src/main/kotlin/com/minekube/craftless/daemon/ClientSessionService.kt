@@ -4,7 +4,6 @@ import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.api.DriverSession
-import com.minekube.craftless.driver.api.FakeDriverSession
 import com.minekube.craftless.protocol.ApiRoute
 import com.minekube.craftless.protocol.ApiRouteCatalog
 import com.minekube.craftless.protocol.Client
@@ -44,8 +43,9 @@ class ClientSessionService private constructor(
                 profile = request.profile,
                 state = ClientState.RUNNING,
             )
+        val driver = driverFactory.create(request)
         clients[request.id] = client
-        drivers[request.id] = driverFactory.create(request)
+        drivers[request.id] = driver
         return client
     }
 
@@ -121,14 +121,8 @@ class ClientSessionService private constructor(
     }
 
     companion object {
-        fun inMemory(
-            driverFactory: DriverSessionFactory =
-                DriverSessionFactory { request ->
-                    FakeDriverSession(
-                        clientId = request.id,
-                    )
-                },
-        ): ClientSessionService = ClientSessionService(driverFactory)
+        fun inMemory(driverFactory: DriverSessionFactory = DriverSessionFactory.unavailable()): ClientSessionService =
+            ClientSessionService(driverFactory)
     }
 
     private fun updateState(
@@ -156,6 +150,13 @@ private fun DriverSession.sortedActions(): List<DriverActionDescriptor> {
 
 fun interface DriverSessionFactory {
     fun create(request: CreateClientRequest): DriverSession
+
+    companion object {
+        fun unavailable(): DriverSessionFactory =
+            DriverSessionFactory { request ->
+                error("no Craftless driver runtime configured for client ${request.id}")
+            }
+    }
 }
 
 private data class RuntimeOpenApiMetadata(
