@@ -296,11 +296,7 @@ object CraftlessCli {
                     }
                     val payload = ActionRunRequest(
                         action = action,
-                        args = args.optionValues("--arg").associate { argument ->
-                            val parts = argument.split("=", limit = 2)
-                            require(parts.size == 2 && parts[0].isNotBlank()) { "--arg must use key=value syntax" }
-                            parts[0] to parts[1].toJsonArgument(descriptor.arguments[parts[0]]?.type)
-                        },
+                        args = args.genericActionArguments(action, descriptor),
                     )
                     val response = http.post("${api.trimEnd('/')}/clients/$clientId:run") {
                         contentType(ContentType.Application.Json)
@@ -523,6 +519,20 @@ object CraftlessCli {
 
         return values
     }
+
+    private fun List<String>.genericActionArguments(
+        actionId: String,
+        action: OpenApiAction,
+    ): Map<String, JsonElement> =
+        optionValues("--arg").associate { argument ->
+            val parts = argument.split("=", limit = 2)
+            require(parts.size == 2 && parts[0].isNotBlank()) { "--arg must use key=value syntax" }
+            val name = parts[0]
+            val descriptor = requireNotNull(action.arguments[name]) {
+                "action $actionId does not declare argument $name"
+            }
+            name to parts[1].toJsonArgument(descriptor.type)
+        }
 
     private fun OpenApiAction.generatedAliasHelp(
         clientId: String,

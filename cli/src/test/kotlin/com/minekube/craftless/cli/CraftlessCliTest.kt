@@ -551,6 +551,38 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `clients run rejects args missing from runtime action metadata`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = CraftlessCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "run",
+                    "player.chat",
+                    "--api",
+                    server.url,
+                    "--arg",
+                    "message=hello",
+                    "--arg",
+                    "surprise=value",
+                ),
+                stdout = { output.appendLine(it) },
+                stderr = { errors.appendLine(it) },
+            )
+
+            assertEquals(2, exit)
+        }
+
+        assertEquals("", output.toString())
+        assertTrue(errors.toString().contains("action player.chat does not declare argument surprise"))
+    }
+
+    @Test
     fun `generated client action alias dispatches from runtime action metadata`() {
         val output = StringBuilder()
 
