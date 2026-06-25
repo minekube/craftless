@@ -40,7 +40,6 @@ object McwCli {
         GroupCommand("clients").subcommands(
             LeafCommand("create"),
             LeafCommand("list"),
-            LeafCommand("connect"),
             LeafCommand("api"),
         ),
         GroupCommand("server").subcommands(
@@ -56,7 +55,7 @@ object McwCli {
         "profiles",
         "clients create",
         "clients list",
-        "clients connect",
+        "clients <id> connect",
         "clients api",
         "clients <id> openapi",
         "clients <id> actions",
@@ -79,6 +78,9 @@ object McwCli {
         }
         if (args.take(2) == listOf("clients", "list")) {
             return listClients(args.drop(2), stdout, stderr)
+        }
+        if (args.size >= 3 && args[0] == "clients" && args[2] == "connect") {
+            return connectClient(args.drop(1), stdout, stderr)
         }
         if (args.size >= 3 && args[0] == "clients" && args[2] == "openapi") {
             return getClientOpenApi(args.drop(1), stdout, stderr)
@@ -146,6 +148,37 @@ object McwCli {
             }
         }.getOrElse { error ->
             stderr("error: ${error.message ?: "failed to list clients"}")
+            2
+        }
+    }
+
+    private fun connectClient(
+        args: List<String>,
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+    ): Int {
+        val clientId = args.getOrNull(0).orEmpty()
+        val host = args.optionValue("--host")
+        val port = args.optionValue("--port")?.toIntOrNull()
+        if (clientId.isBlank() || host.isNullOrBlank() || port == null) {
+            stderr("error: usage is clients <id> connect --host <host> --port <port> [--api <url>]")
+            return 2
+        }
+        val api = args.apiBaseUrl()
+        val request = ConnectClientRequest(host = host, port = port)
+
+        return runCatching {
+            kotlinx.coroutines.runBlocking {
+                HttpClient(CIO).use { http ->
+                    val response = http.post("${api.trimEnd('/')}/clients/$clientId/connection/connect") {
+                        contentType(ContentType.Application.Json)
+                        setBody(json.encodeToString(request))
+                    }
+                    response.forwardBody(stdout, stderr)
+                }
+            }
+        }.getOrElse { error ->
+            stderr("error: ${error.message ?: "failed to connect client"}")
             2
         }
     }
@@ -311,6 +344,12 @@ data class ApiServerMetadata(
 data class ActionRunRequest(
     val action: String,
     val args: Map<String, JsonElement> = emptyMap(),
+)
+
+@Serializable
+data class ConnectClientRequest(
+    val host: String,
+    val port: Int,
 )
 
 private class RootCommand : CoreCliktCommand(
