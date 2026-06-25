@@ -427,7 +427,6 @@ object McwCli {
     private fun List<String>.apiBaseUrl(env: Map<String, String>): String =
         optionValue("--api")
             ?: env["CRAFTLESS"]
-            ?: env["CRAFTLESS"]
             ?: "http://127.0.0.1:8080"
 
     private fun List<String>.optionValues(name: String): List<String> =
