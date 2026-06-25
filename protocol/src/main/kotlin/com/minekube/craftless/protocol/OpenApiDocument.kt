@@ -121,6 +121,7 @@ private fun ApiRoute.responses(): Map<String, OpenApiResponse> {
             successStatus,
             when {
                 source == "action" && method == "POST" -> actionInvocationResponse()
+                path.endsWith("openapi.json") && method == "GET" -> openApiDocumentResponse()
                 path == "/version" && method == "GET" -> versionResponse()
                 (path == "/events" || path.endsWith("/events")) && method == "GET" -> eventListResponse()
                 path.endsWith("/actions") && method == "GET" -> actionListResponse()
@@ -261,17 +262,47 @@ private fun actionListResponse(): OpenApiResponse =
         content = jsonContent(
             OpenApiSchema(
                 type = "array",
-                items = OpenApiSchema(
-                    type = "object",
-                    properties = mapOf(
-                        "id" to OpenApiSchema(type = "string"),
-                        "schemaVersion" to OpenApiSchema(type = "string"),
-                        "args" to OpenApiSchema(type = "object", additionalProperties = true),
-                    ),
-                    required = listOf("id", "schemaVersion"),
-                ),
+                items = actionDescriptorSchema(),
             )
         )
+    )
+
+private fun openApiDocumentResponse(): OpenApiResponse =
+    OpenApiResponse(
+        content = jsonContent(
+            OpenApiSchema(
+                type = "object",
+                properties = mapOf(
+                    "openapi" to OpenApiSchema(type = "string"),
+                    "info" to OpenApiSchema(
+                        type = "object",
+                        properties = mapOf(
+                            "title" to OpenApiSchema(type = "string"),
+                            "version" to OpenApiSchema(type = "string"),
+                        ),
+                        required = listOf("title", "version"),
+                    ),
+                    "paths" to OpenApiSchema(type = "object", additionalProperties = true),
+                    "x-craftless" to OpenApiSchema(type = "object", additionalProperties = true),
+                    "x-craftless-actions" to OpenApiSchema(
+                        type = "array",
+                        items = actionDescriptorSchema(),
+                    ),
+                ),
+                required = listOf("openapi", "info", "paths"),
+            )
+        )
+    )
+
+private fun actionDescriptorSchema(): OpenApiSchema =
+    OpenApiSchema(
+        type = "object",
+        properties = mapOf(
+            "id" to OpenApiSchema(type = "string"),
+            "schemaVersion" to OpenApiSchema(type = "string"),
+            "args" to OpenApiSchema(type = "object", additionalProperties = true),
+        ),
+        required = listOf("id", "schemaVersion"),
     )
 
 private fun genericActionRequestBody(): OpenApiRequestBody =

@@ -96,6 +96,9 @@ class OpenApiGenerationTest {
     fun `stable discovery routes describe metadata action and event response bodies`() {
         val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
 
+        assertOpenApiDocumentSchema(requireNotNull(document.paths["/openapi.json"]?.get?.okSchema()))
+        assertOpenApiDocumentSchema(requireNotNull(document.paths["/clients/{id}/openapi.json"]?.get?.okSchema()))
+
         val versionSchema = requireNotNull(document.paths["/version"]?.get?.okSchema())
         assertEquals("object", versionSchema.type)
         assertEquals(
@@ -169,6 +172,18 @@ class OpenApiGenerationTest {
         assertEquals("string", eventSchema.properties["client"]?.type)
         assertEquals("string", eventSchema.properties["message"]?.type)
         assertEquals("string", eventSchema.properties["time"]?.type)
+    }
+
+    private fun assertOpenApiDocumentSchema(schema: OpenApiSchema) {
+        assertEquals("object", schema.type)
+        assertEquals(listOf("openapi", "info", "paths"), schema.required)
+        assertEquals("string", schema.properties["openapi"]?.type)
+        assertEquals("object", schema.properties["info"]?.type)
+        assertEquals("object", schema.properties["paths"]?.type)
+        assertEquals(true, schema.properties["paths"]?.additionalProperties)
+        assertEquals("object", schema.properties["x-craftless"]?.type)
+        assertEquals(true, schema.properties["x-craftless"]?.additionalProperties)
+        assertEquals("array", schema.properties["x-craftless-actions"]?.type)
     }
 
     private fun assertClientSchema(schema: OpenApiSchema) {
