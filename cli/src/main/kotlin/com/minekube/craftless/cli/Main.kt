@@ -63,7 +63,7 @@ object CraftlessCli {
             "clients <id> openapi",
             "clients <id> actions",
             "clients <id> run <action>",
-            "clients <id> <namespace> <action>",
+            "clients <id> <resource...> <action>",
             "server start",
         )
 
@@ -329,15 +329,12 @@ object CraftlessCli {
         stderr: (String) -> Unit,
         env: Map<String, String>,
     ): Int {
-        val clientId = args.getOrNull(0).orEmpty()
-        val namespace = args.getOrNull(1).orEmpty()
-        val actionName = args.getOrNull(2).orEmpty()
-        if (clientId.isBlank() || namespace.isBlank() || actionName.isBlank()) {
-            stderr("error: usage is clients <id> <namespace> <action> [--api <url>] [--arg key=value] [--<arg> value]")
+        val clientId = args.getOrNull(0)?.takeIf { it.isNotBlank() }
+        if (clientId == null) {
+            stderr("error: usage is clients <id> <resource...> <action> [--api <url>] [--arg key=value] [--<arg> value]")
             return 2
         }
         val api = args.apiBaseUrl(env)
-        val actionId = "$namespace.$actionName"
 
         return runCatching {
             kotlinx.coroutines.runBlocking {
@@ -348,39 +345,42 @@ object CraftlessCli {
                         stderr(actionsBody)
                         return@runBlocking 1
                     }
+                    val actions = json.decodeFromString<List<OpenApiAction>>(actionsBody)
+                    val alias = args.generatedActionAlias(actions.mapTo(mutableSetOf()) { it.id })
+                    if (alias == null) {
+                        stderr("error: usage is clients <id> <resource...> <action> [--api <url>] [--arg key=value] [--<arg> value]")
+                        return@runBlocking 2
+                    }
                     val actionProjection =
-                        json
-                            .decodeFromString<List<OpenApiAction>>(actionsBody)
-                            .firstOrNull { it.id == actionId }
+                        actions.firstOrNull { it.id == alias.actionId }
                     if (actionProjection == null) {
-                        stderr("error: action $actionId is not available for client $clientId")
+                        stderr("error: action ${alias.actionId} is not available for client ${alias.clientId}")
                         return@runBlocking 1
                     }
-                    val openApiResponse = http.get("${api.trimEnd('/')}/clients/$clientId/openapi.json")
+                    val openApiResponse = http.get("${api.trimEnd('/')}/clients/${alias.clientId}/openapi.json")
                     val openApiBody = openApiResponse.bodyAsText()
                     if (!openApiResponse.status.isSuccess()) {
                         stderr(openApiBody)
                         return@runBlocking 1
                     }
-                    val aliasPath = "/clients/$clientId/$namespace:$actionName"
                     val openApi = json.decodeFromString<OpenApiDocument>(openApiBody)
-                    val aliasOperation = openApi.paths[aliasPath]?.post
-                    val openApiAction = openApi.actions.firstOrNull { it.id == actionId }
+                    val aliasOperation = openApi.paths[alias.path]?.post
+                    val openApiAction = openApi.actions.firstOrNull { it.id == alias.actionId }
                     if (
-                        aliasOperation?.extensions?.get("x-craftless-action") != actionId ||
+                        aliasOperation?.extensions?.get("x-craftless-action") != alias.actionId ||
                         openApiAction == null
                     ) {
-                        stderr("error: action $actionId is not described by live OpenAPI for client $clientId")
+                        stderr("error: action ${alias.actionId} is not described by live OpenAPI for client ${alias.clientId}")
                         return@runBlocking 1
                     }
                     if (args.contains("--help")) {
-                        stdout(openApiAction.generatedAliasHelp(clientId, namespace, actionName, "POST $aliasPath"))
+                        stdout(openApiAction.generatedAliasHelp(alias, "POST ${alias.path}"))
                         return@runBlocking 0
                     }
                     val response =
-                        http.post("${api.trimEnd('/')}/clients/$clientId/$namespace:$actionName") {
+                        http.post("${api.trimEnd('/')}${alias.path}") {
                             contentType(ContentType.Application.Json)
-                            setBody(json.encodeToString(args.actionAliasArguments(openApiAction)))
+                            setBody(json.encodeToString(args.actionAliasArguments(openApiAction, alias.argumentStartIndex)))
                         }
                     response.forwardActionResultBody(stdout, stderr)
                 }
@@ -485,7 +485,10 @@ object CraftlessCli {
             if (value == name && index + 1 < size) this[index + 1] else null
         }
 
-    private fun List<String>.actionAliasArguments(action: OpenApiAction): Map<String, JsonElement> {
+    private fun List<String>.actionAliasArguments(
+        action: OpenApiAction,
+        startIndex: Int,
+    ): Map<String, JsonElement> {
         val values = linkedMapOf<String, JsonElement>()
         optionValues("--arg").forEach { argument ->
             val parts = argument.split("=", limit = 2)
@@ -499,7 +502,7 @@ object CraftlessCli {
         }
 
         val positional = mutableListOf<String>()
-        var index = 3
+        var index = startIndex
         while (index < size) {
             val token = this[index]
             when {
@@ -578,15 +581,13 @@ object CraftlessCli {
     }
 
     private fun OpenApiAction.generatedAliasHelp(
-        clientId: String,
-        namespace: String,
-        actionName: String,
+        alias: GeneratedActionAlias,
         route: String,
     ): String =
         buildString {
             appendLine("Action: $id")
             appendLine("Route: $route")
-            appendLine("Usage: craftless clients $clientId $namespace $actionName [--api <url>] [args]")
+            appendLine("Usage: craftless clients ${alias.clientId} ${alias.segments.joinToString(" ")} [--api <url>] [args]")
             appendLine("Arguments:")
             if (arguments.isEmpty()) {
                 appendLine("  none")
@@ -605,6 +606,32 @@ object CraftlessCli {
             toIntOrNull() != null -> JsonPrimitive(toInt())
             else -> JsonPrimitive(this)
         }
+
+    private fun List<String>.generatedActionAlias(actionIds: Set<String>): GeneratedActionAlias? {
+        val clientId = getOrNull(0)?.takeIf { it.isNotBlank() } ?: return null
+        val commandTokens =
+            drop(1)
+                .takeWhile { !it.startsWith("--") }
+                .filter { it.isNotBlank() }
+        val segmentCount =
+            commandTokens.size
+                .downTo(2)
+                .firstOrNull { count -> commandTokens.take(count).joinToString(".") in actionIds }
+                ?: commandTokens.size
+        val segments = commandTokens.take(segmentCount)
+        if (segments.size < 2) {
+            return null
+        }
+        val resourcePath = segments.dropLast(1).joinToString("/")
+        val actionName = segments.last()
+        return GeneratedActionAlias(
+            clientId = clientId,
+            segments = segments,
+            actionId = segments.joinToString("."),
+            path = "/clients/$clientId/$resourcePath:$actionName",
+            argumentStartIndex = 1 + segments.size,
+        )
+    }
 
     private fun String.toJsonArgument(type: String?): JsonElement =
         when (type) {
@@ -692,6 +719,14 @@ data class ActionInvocationResponse(
     val action: String,
     val status: String,
     val message: String? = null,
+)
+
+data class GeneratedActionAlias(
+    val clientId: String,
+    val segments: List<String>,
+    val actionId: String,
+    val path: String,
+    val argumentStartIndex: Int,
 )
 
 @Serializable

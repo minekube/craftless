@@ -45,7 +45,7 @@ class CraftlessCliTest {
         assertTrue(commands.contains("clients <id> openapi"))
         assertTrue(commands.contains("clients <id> actions"))
         assertTrue(commands.contains("clients <id> run <action>"))
-        assertTrue(commands.contains("clients <id> <namespace> <action>"))
+        assertTrue(commands.contains("clients <id> <resource...> <action>"))
         assertTrue(commands.contains("server start"))
         assertTrue("clients api" !in commands)
         assertTrue("versions" !in commands)
@@ -870,6 +870,44 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `generated nested client action alias dispatches from runtime action metadata`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        LocalTestApiServer(
+            driverFactory =
+                DriverSessionFactory { request ->
+                    WorldBlockBreakDriver(FakeDriverSession(request.id))
+                },
+        ).use { server ->
+            server.createAlice()
+
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "world",
+                        "block",
+                        "break",
+                        "--api",
+                        server.url,
+                        "--max-distance",
+                        "4.0",
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
+
+            assertEquals(0, exit, errors.toString())
+        }
+
+        val response = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        assertEquals("world.block.break", response["action"]?.jsonPrimitive?.content)
+        assertEquals("ACCEPTED", response["status"]?.jsonPrimitive?.content)
+    }
+
+    @Test
     fun `generated client action alias help is loaded from runtime action metadata`() {
         val output = StringBuilder()
         val errors = StringBuilder()
@@ -1098,6 +1136,32 @@ class CraftlessCliTest {
                     action = invocation.action,
                     status = DriverActionStatus.FAILED,
                     message = "driver rejected ${invocation.action}",
+                )
+            } else {
+                delegate.invoke(invocation)
+            }
+    }
+
+    private class WorldBlockBreakDriver(
+        private val delegate: DriverSession,
+    ) : DriverSession by delegate {
+        override fun actions(): List<DriverActionDescriptor> =
+            delegate.actions() +
+                DriverActionDescriptor(
+                    id = "world.block.break",
+                    schemaVersion = "1",
+                    arguments =
+                        mapOf(
+                            "max-distance" to DriverActionArgument("number"),
+                        ),
+                )
+
+        override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
+            if (invocation.action == "world.block.break") {
+                DriverActionResult(
+                    action = invocation.action,
+                    status = DriverActionStatus.ACCEPTED,
+                    message = "block break accepted",
                 )
             } else {
                 delegate.invoke(invocation)

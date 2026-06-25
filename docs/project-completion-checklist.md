@@ -22,8 +22,10 @@ Legend:
 - [x] Generic action invocation exists at `POST /clients/{id}:run`.
 - [x] CLI binary is `craftless` and uses adaptive action metadata.
 - [x] CLI generic and generated-alias action dispatch use the live per-client
-  OpenAPI action descriptor for argument schema validation and help, with
-  `/clients/{id}/actions` treated as an availability projection.
+  OpenAPI action descriptor for argument schema validation, help, positional
+  argument mapping, and nested generated aliases such as
+  `/clients/{id}/world/block:break`, with `/clients/{id}/actions` treated as
+  an availability projection.
 - [x] Fabric smoke has proven real client launch, server join, generated chat,
   generated movement invocation, disconnect, and artifact capture.
 - [~] Current Fabric driver has real chat, movement, connected-client
@@ -82,7 +84,8 @@ Verification:
 - [x] `/clients/{id}/actions` remains a projection of per-client OpenAPI, not
   a separate source of truth.
 - [x] Adaptive CLI generic and generated-alias action paths use the live
-  per-client OpenAPI descriptor as the argument/help schema authority.
+  per-client OpenAPI descriptor as the argument/help schema authority,
+  including nested resource aliases derived from action ids.
 - [ ] CLI, agents, and generated clients consume OpenAPI/descriptors at
   runtime instead of hard-coding gameplay commands.
 - [x] `DriverSession` remains lifecycle/events/runtime metadata plus

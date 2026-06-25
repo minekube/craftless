@@ -221,7 +221,7 @@ class LocalSessionApiServer private constructor(
                     call.respondMissingClient(error)
                 }
             }
-            post("/clients/{id}/{actionAlias}") {
+            post(Regex("/clients/(?<id>[^/]+)/(?<actionAlias>.+:.+)")) {
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 val actionAlias = requireNotNull(call.parameters["actionAlias"]) { "action alias is required" }
                 runCatching {
@@ -376,7 +376,11 @@ private fun String.toActionId(): String {
     if (parts.size != 2 || parts.any { it.isBlank() }) {
         throw UnsupportedAction("action alias must use resource:action syntax")
     }
-    return "${parts[0]}.${parts[1]}"
+    val resourceParts = parts[0].split("/")
+    if (resourceParts.any { it.isBlank() }) {
+        throw UnsupportedAction("action alias must use resource:action syntax")
+    }
+    return (resourceParts + parts[1]).joinToString(".")
 }
 
 private fun DriverActionResult.toSessionEvent(clientId: String): SessionEvent? {

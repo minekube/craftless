@@ -359,6 +359,37 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `server dispatches nested generated action aliases`() =
+        withHttpClient { http ->
+            LocalSessionApiServer
+                .inMemory(
+                    driverFactory =
+                        DriverSessionFactory { request ->
+                            NestedActionDriverSession(request.id)
+                        },
+                ).use { server ->
+                    server.start()
+                    createAlice(http, server)
+
+                    http.get(server.url("/clients/alice/openapi.json")).let { response ->
+                        assertEquals(HttpStatusCode.OK, response.status)
+                        assertTrue(response.bodyAsText().contains("/clients/alice/world/block:break"))
+                    }
+
+                    http
+                        .post(server.url("/clients/alice/world/block:break")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"max-distance":4.0}""")
+                        }.let { response ->
+                            val body = json.parseToJsonElement(response.bodyAsText()).jsonObject
+                            assertEquals(HttpStatusCode.OK, response.status)
+                            assertEquals("world.block.break", body["action"]?.jsonPrimitive?.content)
+                            assertEquals("ACCEPTED", body["status"]?.jsonPrimitive?.content)
+                        }
+                }
+        }
+
+    @Test
     fun `client actions endpoint is a projection of live per client openapi actions`() =
         withHttpClient { http ->
             fakeLocalSessionApiServer().use { server ->
@@ -736,6 +767,35 @@ private class DataActionDriverSession(
                     put("hit", true)
                     put("target-kind", "block")
                 },
+        )
+
+    override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
+
+    override fun events(): List<DriverEvent> = emptyList()
+}
+
+private class NestedActionDriverSession(
+    override val clientId: String,
+) : DriverSession {
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.RUNNING)
+
+    override fun connect(target: ConnectionTarget): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.CONNECTED)
+
+    override fun actions(): List<DriverActionDescriptor> =
+        listOf(
+            DriverActionDescriptor(
+                id = "world.block.break",
+                schemaVersion = "1",
+                arguments = mapOf("max-distance" to DriverActionArgument("number")),
+            ),
+        )
+
+    override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
+
+    override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
+        DriverActionResult(
+            action = invocation.action,
+            status = DriverActionStatus.ACCEPTED,
         )
 
     override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
