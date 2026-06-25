@@ -182,6 +182,26 @@ class LocalSessionApiServerTest {
                 assertTrue(body.contains("\"status\":\"ACCEPTED\""))
             }
 
+            http.post(server.url("/clients/alice:run")) {
+                contentType(ContentType.Application.Json)
+                setBody("""{"action":"player.fly","args":{}}""")
+            }.let { response ->
+                val body = response.bodyAsText()
+                assertEquals(HttpStatusCode.OK, response.status)
+                assertTrue(body.contains("\"action\":\"player.fly\""))
+                assertTrue(body.contains("\"status\":\"UNSUPPORTED\""))
+            }
+
+            http.post(server.url("/clients/alice/player:fly")) {
+                contentType(ContentType.Application.Json)
+                setBody("{}")
+            }.let { response ->
+                val body = response.bodyAsText()
+                assertEquals(HttpStatusCode.OK, response.status)
+                assertTrue(body.contains("\"action\":\"player.fly\""))
+                assertTrue(body.contains("\"status\":\"UNSUPPORTED\""))
+            }
+
             http.post(server.url("/clients/alice/stop")) {
                 contentType(ContentType.Application.Json)
                 setBody("{}")

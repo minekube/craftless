@@ -176,7 +176,7 @@ CI job or local agent starts sandbox/container
 Craftwright launches one real Minecraft Java client
 in-client driver starts local API server on 127.0.0.1
 driver generates /openapi.json for that exact version/session
-tests, agents, generated CLI, or generated SDK call the API
+tests, agents, adaptive CLI, or generated SDK call the API
 events and artifacts are recorded
 process/container is destroyed
 ```

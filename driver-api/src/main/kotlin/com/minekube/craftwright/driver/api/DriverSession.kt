@@ -209,20 +209,29 @@ class FakeDriverSession(
 
     override fun invoke(invocation: DriverCapabilityInvocation): DriverCapabilityResult {
         require(invocation.capability.isNotBlank()) { "capability is required" }
-        if (invocation.capability == "player.chat") {
-            val message = requireNotNull(invocation.arguments.stringArgument("message")) { "message is required" }
-            val event = sendChat(ChatCommand(message))
-            return DriverCapabilityResult(
+        return when (invocation.capability) {
+            "player.chat" -> {
+                val message = requireNotNull(invocation.arguments.stringArgument("message")) { "message is required" }
+                val event = sendChat(ChatCommand(message))
+                DriverCapabilityResult(
+                    capability = invocation.capability,
+                    status = DriverCapabilityStatus.ACCEPTED,
+                    message = event.message,
+                )
+            }
+
+            "player.move" -> DriverCapabilityResult(
                 capability = invocation.capability,
                 status = DriverCapabilityStatus.ACCEPTED,
-                message = event.message,
+                message = "accepted ${invocation.capability} for $clientId",
+            )
+
+            else -> DriverCapabilityResult(
+                capability = invocation.capability,
+                status = DriverCapabilityStatus.UNSUPPORTED,
+                message = "unsupported fake capability ${invocation.capability}",
             )
         }
-        return DriverCapabilityResult(
-            capability = invocation.capability,
-            status = DriverCapabilityStatus.ACCEPTED,
-            message = "accepted ${invocation.capability} for $clientId",
-        )
     }
 
     override fun stop(): DriverClientSnapshot {
