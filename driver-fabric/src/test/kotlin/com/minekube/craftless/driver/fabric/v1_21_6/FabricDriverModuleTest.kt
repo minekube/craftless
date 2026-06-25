@@ -101,7 +101,7 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `fabric backend maps player chat action to chat send`() {
+    fun `fabric backend maps player chat action to chat execution`() {
         val gateway = RecordingFabricClientGateway()
         val backend = FabricDriverBackend.real(gateway)
 
