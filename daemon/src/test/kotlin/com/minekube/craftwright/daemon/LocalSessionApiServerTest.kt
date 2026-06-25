@@ -250,13 +250,21 @@ class LocalSessionApiServerTest {
                 assertTrue(body.contains("client missing not found"))
             }
 
-            http.post(server.url("/clients/alice/stop")) {
+            http.post(server.url("/clients/alice:stop")) {
                 contentType(ContentType.Application.Json)
                 setBody("{}")
             }.let { response ->
                 assertEquals(HttpStatusCode.OK, response.status)
                 assertTrue(response.bodyAsText().contains("\"state\":\"STOPPED\""))
             }
+
+            assertEquals(
+                HttpStatusCode.NotFound,
+                http.post(server.url("/clients/alice/stop")) {
+                    contentType(ContentType.Application.Json)
+                    setBody("{}")
+                }.status,
+            )
 
             http.get(server.url("/clients/alice/events")).let { response ->
                 val body = response.bodyAsText()

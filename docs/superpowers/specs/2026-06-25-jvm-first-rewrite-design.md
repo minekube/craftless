@@ -222,9 +222,9 @@ streams. The protocol must be independent of HeadlessMC console text.
 
 The generated local client API direction is specified separately in
 `docs/superpowers/specs/2026-06-25-generated-client-api-design.md`. That spec
-refines this protocol layer toward a per-session OpenAPI surface generated from
-the running Minecraft client, short root paths such as `/player`, object handles
-under `/o/{handle}`, and class metadata under `/c/{className}`.
+refines this protocol layer toward a per-client OpenAPI surface generated from
+the running Minecraft client, generated action/resource routes below
+`/clients/{id}`, opaque handle schemas, and Craftwright-owned runtime metadata.
 
 ### 4. External UX
 

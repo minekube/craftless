@@ -35,9 +35,9 @@ class FabricDriverBackend private constructor(
         record("chat $clientId $message")
         gateway?.execute {
             if (message.startsWith("/")) {
-                gateway.sendCommand(message.removePrefix("/"))
+                gateway.dispatchCommand(message.removePrefix("/"))
             } else {
-                gateway.sendChat(message)
+                gateway.dispatchChatMessage(message)
             }
         }
         return message

@@ -70,7 +70,7 @@ class ClientSessionService private constructor(
             route("GET", "/clients/$clientId", "clientsGet", "clients", "get", "route"),
             route("GET", "/clients/$clientId/openapi.json", "clientsOpenApi", "clients", "openapi", "route"),
             route("POST", "/clients/$clientId:connect", "clientsConnect", "clients", "connect", "method"),
-            route("POST", "/clients/$clientId/stop", "clientsStop", "clients", "stop", "method"),
+            route("POST", "/clients/$clientId:stop", "clientsStop", "clients", "stop", "method"),
             route("GET", "/clients/$clientId/actions", "clientsActions", "clients", "actions", "action"),
             route("POST", "/clients/$clientId:run", "clientsRunAction", "clients", "run", "action"),
             route("GET", "/clients/$clientId/events", "clientsEvents", "clients", "events", "route"),

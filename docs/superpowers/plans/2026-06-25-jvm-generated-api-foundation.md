@@ -57,7 +57,7 @@ class ApiRouteCatalogTest {
         assertEquals("GET", catalog.route("/clients/{id}/openapi.json").method)
         assertEquals("GET", catalog.route("/clients/{id}/actions").method)
         assertEquals("POST", catalog.route("/clients/{id}:run").method)
-        assertEquals("POST", catalog.route("/clients/{id}/stop").method)
+        assertEquals("POST", catalog.route("/clients/{id}:stop").method)
         assertEquals("GET", catalog.route("/clients/{id}/events").method)
     }
 }

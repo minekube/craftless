@@ -95,7 +95,7 @@ The public daemon routes remain:
 - generated aliases such as `POST /clients/{id}/player:move` and
   `POST /clients/{id}/player:chat` when described by that client's OpenAPI
   document
-- `POST /clients/{id}/stop`
+- `POST /clients/{id}:stop`
 - `GET /clients/{id}/events`
 
 Generic action invocation request bodies use typed JSON argument values:

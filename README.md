@@ -56,7 +56,7 @@ curl -sS "$CRAFTLESS/clients"
 curl -sS "$CRAFTLESS/clients/alice"
 
 # Connect the client through the lifecycle API.
-curl -sS "$CRAFTLESS/clients/alice/connection/connect" \
+curl -sS "$CRAFTLESS/clients/alice:connect" \
   -H 'content-type: application/json' \
   -d '{"host":"localhost","port":25565}'
 

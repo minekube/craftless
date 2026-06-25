@@ -83,7 +83,7 @@ class OpenApiGenerationTest {
         assertClientSchema(requireNotNull(document.paths["/clients"]?.post?.successSchema("201")))
         assertClientSchema(requireNotNull(document.paths["/clients/{id}"]?.get?.okSchema()))
         assertClientSchema(requireNotNull(document.paths["/clients/{id}:connect"]?.post?.okSchema()))
-        assertClientSchema(requireNotNull(document.paths["/clients/{id}/stop"]?.post?.okSchema()))
+        assertClientSchema(requireNotNull(document.paths["/clients/{id}:stop"]?.post?.okSchema()))
     }
 
     private fun OpenApiOperation.okSchema(): OpenApiSchema? =

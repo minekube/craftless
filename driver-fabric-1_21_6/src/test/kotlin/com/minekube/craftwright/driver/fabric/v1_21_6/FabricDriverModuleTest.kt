@@ -140,11 +140,11 @@ private class RecordingFabricClientGateway : FabricClientGateway {
         actions += "connect ${target.host}:${target.port}"
     }
 
-    override fun sendChat(message: String) {
+    override fun dispatchChatMessage(message: String) {
         actions += "chat $message"
     }
 
-    override fun sendCommand(command: String) {
+    override fun dispatchCommand(command: String) {
         actions += "command $command"
     }
 

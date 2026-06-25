@@ -163,7 +163,7 @@ class LocalSessionApiServer private constructor(
                     call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
                 }
             }
-            post("/clients/{id}/stop") {
+            post("/clients/{id}:stop") {
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {
                     val client = service.stopClient(clientId)
@@ -250,7 +250,9 @@ private suspend fun ApplicationCall.receiveActionArguments(): Map<String, JsonEl
 
 private fun String.toActionId(): String {
     val parts = split(":", limit = 2)
-    require(parts.size == 2 && parts.none { it.isBlank() }) { "action alias must use resource:action syntax" }
+    if (parts.size != 2 || parts.any { it.isBlank() }) {
+        throw GeneratedActionRouteNotFound("action alias must use resource:action syntax")
+    }
     return "${parts[0]}.${parts[1]}"
 }
 

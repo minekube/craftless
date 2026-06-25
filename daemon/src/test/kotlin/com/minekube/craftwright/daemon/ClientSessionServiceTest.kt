@@ -48,7 +48,9 @@ class ClientSessionServiceTest {
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/player:move" })
         assertTrue(service.routesFor("alice").none { it.path == "/clients/alice/player/sendChat" })
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice:connect" })
+        assertTrue(service.routesFor("alice").any { it.path == "/clients/alice:stop" })
         assertTrue(service.routesFor("alice").none { it.path == "/clients/alice/connection/connect" })
+        assertTrue(service.routesFor("alice").none { it.path == "/clients/alice/stop" })
         assertTrue(service.routesFor("alice").none { it.path == "/clients/alice/player" })
         assertTrue(service.routesFor("alice").none { it.path == "/clients/alice/player/position" })
     }
@@ -109,11 +111,13 @@ class ClientSessionServiceTest {
         assertTrue(document.paths.containsKey("/clients/alice/openapi.json"))
         assertTrue(document.paths.containsKey("/clients/alice"))
         assertTrue(document.paths.containsKey("/clients/alice:connect"))
+        assertTrue(document.paths.containsKey("/clients/alice:stop"))
         assertTrue(document.paths.containsKey("/clients/alice/actions"))
         assertTrue(document.paths.containsKey("/clients/alice:run"))
         assertTrue(document.paths.containsKey("/clients/alice/player:chat"))
         assertTrue(document.paths.containsKey("/clients/alice/player:move"))
         assertFalse(document.paths.containsKey("/clients/alice/connection/connect"))
+        assertFalse(document.paths.containsKey("/clients/alice/stop"))
         assertFalse(document.paths.containsKey("/clients/alice/player"))
         assertFalse(document.paths.containsKey("/clients/alice/player/position"))
         val clientSchema = document.paths["/clients/alice"]?.get

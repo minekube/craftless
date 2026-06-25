@@ -122,7 +122,7 @@ private fun ApiRoute.responses(): Map<String, OpenApiResponse> {
             path == "/clients" && method == "GET" -> clientListResponse()
             path == "/clients" && method == "POST" -> clientResponse()
             path.endsWith(":connect") && method == "POST" -> clientResponse()
-            path.endsWith("/stop") && method == "POST" -> clientResponse()
+            path.endsWith(":stop") && method == "POST" -> clientResponse()
             path.matches(Regex("/clients/\\{?[^/]+}?")) && method == "GET" -> clientResponse()
             else -> OpenApiResponse()
         }

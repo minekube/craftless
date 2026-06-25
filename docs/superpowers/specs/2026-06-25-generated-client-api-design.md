@@ -20,14 +20,20 @@ by OpenAPI.
 Craftwright should expose a generated per-session OpenAPI surface from the
 running Minecraft client driver.
 
-- `/openapi.json` is the source of truth for agents, generated SDKs, generated
-  CLIs, and test integrations.
-- Common roots use short paths such as `/client`, `/player`, `/world`,
-  `/screen`, `/inventory`, `/connection`, `/chat`, `/input`, and `/render`.
-- Deep or unknown objects use object handles under `/o/{handle}`.
-- Class metadata uses `/c/{className}`.
-- The API is generated from live JVM classes, methods, fields, getter chains,
-  root objects, mappings, and driver-discovered actions/resources.
+- `GET /openapi.json` describes the stable supervisor/kernel API.
+- `GET /clients/{id}/openapi.json` is the source of truth for agents,
+  generated SDKs, generated CLIs, and test integrations for one running client.
+- Public per-client operations are exposed as generated action/resource routes
+  below `/clients/{id}` such as `POST /clients/{id}:run` and aliases like
+  `POST /clients/{id}/player:move` when advertised by that client's OpenAPI.
+- Deep or unknown objects may be represented by opaque handle identifiers in
+  response schemas, but handle routes are roadmap work and must not be exposed
+  as a static kernel surface.
+- Class and mapping metadata may appear as OpenAPI extensions and schemas, but
+  raw JVM or Minecraft class names should not become public route contracts.
+- The API is generated from live driver-discovered actions/resources, runtime
+  metadata, mappings, registries, installed mods, permissions, and server
+  features.
 - The first implementation may be unsafe by design, because it runs locally in
   an isolated CI/session context.
 - A curated stable API can be layered on later, but the generated API is the
@@ -196,8 +202,12 @@ should keep persistent setup state separate from live client control:
 
 - versions, loaders, profiles, instances, mods, Java runtimes, and caches belong
   to the supervisor/client-manager API;
-- `/openapi.json`, `/client`, `/player`, `/connection`, `/events`, `/o/*`, and
-  `/c/*` belong to one running client session.
+- stable routes such as `/openapi.json`, `/clients`, `/clients/{id}`,
+  `/clients/{id}/openapi.json`, `/clients/{id}/actions`, and
+  `/clients/{id}/events` belong to the supervisor/kernel API;
+- generated action/resource routes below `/clients/{id}` belong to one running
+  client session and are available only when that client's OpenAPI document
+  advertises them.
 
 The client-management decision is documented in
 `docs/superpowers/specs/2026-06-25-client-management-decisions.md`. PrismLauncher
@@ -250,14 +260,15 @@ Location: `/tmp/craftwright-ci-api-poc`
 
 Validated:
 
-- short root paths: `/client` and generated action/resource paths;
-- generated action invocation route: `POST /clients/{id}:run`;
+- historical short root paths in the throwaway PoC;
+- generated action invocation route shape now represented as
+  `POST /clients/{id}:run`;
 - generated getter/action routes only when discovered in the running client;
 - `/version`;
 - `/events`;
 - `/openapi.json`;
-- object fallback routes under `/o/{handle}`;
-- class metadata routes under `/c/{className}`;
+- opaque handle and class metadata concepts as implementation evidence, not
+  active public kernel routes;
 - OpenAPI vendor extensions such as Java class/method and client-thread
   metadata;
 - random token check;
@@ -306,9 +317,11 @@ launcher/supervisor loop, but it should not become the product driver.
 The product driver should implement these actions directly inside a Fabric mod
 and expose them through the generated per-client OpenAPI surface:
 
-- stable roots such as `/player`, `/world`, `/screen`, and `/events`;
-- discovered action routes and schemas for movement, jump, look, raycast,
-  inventory, world/entity queries, and screen interaction;
+- discovered action/resource routes and schemas below `/clients/{id}` for
+  movement, jump, look, raycast, inventory, world/entity queries, and screen
+  interaction;
+- generated aliases such as `POST /clients/{id}/player:move` only when the
+  running driver advertises that action;
 - Craftwright-owned metadata for action schema versioning, runtime fingerprints,
   mappings, registries, mods, permissions, and server feature inputs.
 
@@ -319,85 +332,68 @@ structured perception data rather than parsing rendered text or server logs.
 
 ## API Shape
 
-Required top-level endpoints:
+Required supervisor/kernel endpoints:
 
 ```text
 GET /openapi.json
 GET /version
 GET /events
-```
-
-Generated short roots:
-
-```text
-GET  /client
-GET  /client/state
-GET  /player
-GET  /player/name
+GET /clients
+POST /clients
+GET /clients/{id}
+POST /clients/{id}:connect
+POST /clients/{id}:stop
+GET /clients/{id}/openapi.json
+GET /clients/{id}/actions
 POST /clients/{id}:run
-GET  /world
-GET  /screen
-GET  /inventory
-GET  /connection
-POST /chat
-POST /input/key
-GET  /render
+GET /clients/{id}/events
 ```
 
-Object fallback:
+Generated per-client aliases:
 
 ```text
-GET  /o/{handle}
-GET  /o/{handle}/fields
-GET  /o/{handle}/field/{field}
-POST /o/{handle}/field/{field}
-GET  /o/{handle}/methods
-POST /o/{handle}/method/{method}
-```
-
-Class metadata:
-
-```text
-GET /c/{className}
-GET /c/{className}/fields
-GET /c/{className}/methods
+POST /clients/{id}/player:move
+POST /clients/{id}/player:chat
+POST /clients/{id}/inventory:select
+GET  /clients/{id}/world:query
 ```
 
 The exact generated path set is per Minecraft version, loader, driver runtime,
-active bindings, and live client state. The stable contract is that
-`/openapi.json` describes the available operations for the current session.
+active bindings, permissions, server features, and live client state. The
+stable contract is that `/clients/{id}/openapi.json` describes the available
+operations for the current session.
 
 ## Route Generation Rules
 
 The generator should require minimal hand annotation.
 
-Root aliases are registered by the driver:
+Action/resource namespaces are registered by the driver:
 
 ```text
-client      -> Minecraft client singleton
-player      -> current local player when present
-world       -> current client world when present
-screen      -> current screen when present
-inventory   -> current player inventory when present
-connection  -> current client connection when present
+player      -> local player actions/resources when present
+world       -> client world queries when present
+screen      -> current screen actions/resources when present
+inventory   -> current inventory actions/resources when present
+connection  -> lifecycle/connection actions when present
 ```
 
 Path synthesis:
 
-- `getX()` becomes `/x` for reads.
-- `isX()` becomes `/x` for boolean reads.
-- public/readable field `x` becomes `/x`.
-- ordinary method `foo(...)` becomes `/foo`.
-- nested object roots can expand into additional generated paths.
+- action `namespace.name` becomes `/clients/{id}/namespace:name`.
+- generic action invocation remains available through `/clients/{id}:run`.
+- resource reads must be explicitly advertised by OpenAPI before they are
+  callable; do not infer public routes from arbitrary JVM getters or fields.
+- nested resources can expand into additional generated paths only when the
+  driver advertises them as Craftwright-owned resources.
 - primitive, string, enum, list, map, and simple DTO values return JSON values.
-- complex Minecraft/JVM objects return object handles.
+- complex Minecraft/JVM objects return opaque handles or DTO summaries.
 
 HTTP method inference:
 
-- zero-argument getters and fields use `GET`;
-- methods with arguments use `POST`;
-- field writes use `POST`;
-- ambiguous methods use `POST`.
+- resource reads use `GET`;
+- actions and custom methods use `POST`;
+- ambiguous driver operations are not exposed until given an explicit
+  Craftwright-owned action/resource descriptor.
 
 The implementation can start conservative in route expansion and increase
 coverage as real Minecraft tests show which paths are useful.
@@ -411,7 +407,7 @@ Complex objects should not be deeply serialized by default. Return handles:
   "kind": "handle",
   "id": "o_481",
   "class": "net.minecraft.client.player.LocalPlayer",
-  "path": "/player"
+  "resource": "player"
 }
 ```
 
@@ -462,7 +458,7 @@ while the fake local API exists:
 - `POST /clients/{id}:run`
 - generated aliases such as `POST /clients/{id}/player:move` and
   `POST /clients/{id}/player:chat`
-- `POST /clients/{id}/stop`
+- `POST /clients/{id}:stop`
 - `GET /clients/{id}/events`
 
 These are session-management and discovery routes, not HMC-Specifics command
@@ -543,13 +539,15 @@ target Minecraft version:
 
 - starts local API server on `127.0.0.1`;
 - requires a random token;
-- registers root aliases for client, player, screen, world, and connection;
+- registers action/resource descriptors for client, player, screen, world, and
+  connection behavior;
 - generates `/openapi.json`;
 - exposes `/version`;
 - exposes `/events`;
-- generates short routes for discovered getters, fields, and methods;
-- exposes object handle fallback under `/o/{handle}`;
-- exposes class metadata under `/c/{className}`;
+- generates per-client action aliases and resource routes only from advertised
+  descriptors;
+- represents object handles and class metadata through schemas/extensions until
+  a deliberate handle-resource design lands;
 - schedules calls on the Minecraft client thread;
 - supports `POST /clients/{id}:run` actions such as `player.chat` and
   `player.move` against the real client as the first proof.
