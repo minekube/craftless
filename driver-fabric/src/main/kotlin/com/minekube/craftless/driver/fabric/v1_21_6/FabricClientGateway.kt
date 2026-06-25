@@ -19,6 +19,8 @@ interface FabricClientGateway {
     fun move(intent: FabricMovementIntent)
 
     fun stop()
+
+    fun isConnected(): Boolean
 }
 
 data class FabricMovementIntent(
@@ -80,4 +82,7 @@ class MinecraftFabricClientGateway(
     override fun stop() {
         client.scheduleStop()
     }
+
+    override fun isConnected(): Boolean =
+        client.networkHandler != null && client.player != null
 }

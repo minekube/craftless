@@ -4,6 +4,7 @@ import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.runtime.DriverBackendAction
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
@@ -12,6 +13,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class FabricDriverModuleTest {
@@ -183,6 +185,44 @@ class FabricDriverModuleTest {
         assertEquals(0, gateway.scheduled)
     }
 
+    @Test
+    fun `fabric smoke controller is inert without opt in`() {
+        val gateway = RecordingFabricClientGateway()
+        val backend = FabricDriverBackend.real(gateway)
+        val controller = FabricClientSmokeController.fromEnvironment(emptyMap())
+
+        assertFalse(controller.enabled)
+        assertFalse(controller.start(backend, gateway))
+        assertEquals(emptyList(), gateway.actions)
+    }
+
+    @Test
+    fun `fabric smoke controller invokes generated chat action after connecting`() {
+        val gateway = RecordingFabricClientGateway()
+        val backend = FabricDriverBackend.real(gateway)
+        val controller = FabricClientSmokeController.fromEnvironment(
+            mapOf(
+                "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
+                "CRAFTLESS_SMOKE_SERVER_HOST" to "localhost",
+                "CRAFTLESS_SMOKE_SERVER_PORT" to "25567",
+                "CRAFTLESS_FABRIC_SMOKE_CHAT_MESSAGE" to "hello from fabric smoke",
+                "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS" to "1000",
+            )
+        )
+
+        assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
+
+        gateway.awaitActions(3)
+        assertEquals(
+            listOf(
+                "connect localhost:25567",
+                "chat hello from fabric smoke",
+                "stop",
+            ),
+            gateway.actions,
+        )
+    }
+
     private fun resourceJson(path: String) =
         json.parseToJsonElement(
             requireNotNull(javaClass.classLoader.getResource(path)) { "missing resource $path" }.readText()
@@ -192,6 +232,8 @@ class FabricDriverModuleTest {
 private class RecordingFabricClientGateway : FabricClientGateway {
     var scheduled = 0
     val actions = mutableListOf<String>()
+    @Volatile
+    var connected = false
 
     override fun execute(action: () -> Unit) {
         scheduled += 1
@@ -200,6 +242,7 @@ private class RecordingFabricClientGateway : FabricClientGateway {
 
     override fun connect(target: ConnectionTarget) {
         actions += "connect ${target.host}:${target.port}"
+        connected = true
     }
 
     override fun dispatchChatMessage(message: String) {
@@ -222,5 +265,18 @@ private class RecordingFabricClientGateway : FabricClientGateway {
 
     override fun stop() {
         actions += "stop"
+        connected = false
+    }
+
+    override fun isConnected(): Boolean = connected
+
+    fun awaitActions(count: Int) {
+        val deadline = System.nanoTime() + 1_000_000_000
+        while (System.nanoTime() < deadline) {
+            if (actions.size >= count) {
+                return
+            }
+            Thread.sleep(10)
+        }
     }
 }

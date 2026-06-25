@@ -124,7 +124,9 @@ Implemented now:
 - An opt-in `:driver-fabric:fabricClientSmoke` entrypoint that runs the testkit
   server lifecycle and can execute a bounded client command while the server is
   alive. By default, the enabled Fabric smoke command is
-  `mise exec -- gradle :driver-fabric:runClient`.
+  `mise exec -- gradle :driver-fabric:runClient`, whose in-client smoke
+  controller connects to the test server and invokes generated `player.chat`
+  through the Fabric driver backend.
 
 Still roadmap:
 
@@ -177,8 +179,11 @@ CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientS
 ```
 
 Override the client command with `CRAFTLESS_SMOKE_ACTION_COMMAND_JSON`, encoded
-as a JSON string array, when testing a different launch wrapper.
+as a JSON string array, when testing a different launch wrapper. The in-client
+Fabric smoke controller reads `CRAFTLESS_SMOKE_SERVER_HOST`,
+`CRAFTLESS_SMOKE_SERVER_PORT`, `CRAFTLESS_FABRIC_SMOKE_CHAT_MESSAGE`, and
+`CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS`.
 
-That task is not yet proof of a full real-client run. Completion still requires
-the Fabric client to launch, join the local server, invoke generated actions,
-and verify server-side evidence.
+That task is not yet recorded proof of a full real-client run in CI. Completion
+still requires running the opt-in smoke against a real Minecraft client and
+verifying the server-side evidence artifacts.
