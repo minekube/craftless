@@ -331,6 +331,34 @@ class ClientSessionServiceTest {
             document.extensions["x-craftless-action-fingerprint"],
         )
     }
+
+    @Test
+    fun `client specific openapi reports all action schema versions`() {
+        val service = ClientSessionService.inMemory { request ->
+            BackendDriverSession(
+                clientId = request.id,
+                backend = RecordingDriverBackend(
+                    actions = listOf(
+                        testPlayerChatActionDescriptor(),
+                        testPlayerMoveActionDescriptor().copy(schemaVersion = "2"),
+                    )
+                ),
+            )
+        }
+        service.createClient(
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            )
+        )
+
+        val extensions = service.openApiFor("alice").extensions
+
+        assertEquals("1,2", extensions["x-craftless-action-schema-versions"])
+        assertFalse(extensions.containsKey("x-craftless-action-schema-version"))
+    }
 }
 
 private class RecordingDriverBackend(

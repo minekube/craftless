@@ -141,6 +141,12 @@ private data class RuntimeOpenApiMetadata(
             metadata: DriverRuntimeMetadata,
         ): RuntimeOpenApiMetadata {
             val actionFingerprint = actions.joinToString(",") { it.fingerprintPart() }
+            val actionSchemaVersions = actions
+                .map { it.schemaVersion }
+                .distinct()
+                .sorted()
+                .ifEmpty { listOf("none") }
+                .joinToString(",")
             val extensions = linkedMapOf(
                 "x-craftless-client-id" to client.id,
                 "x-craftless-minecraft-version" to client.instance.version.id,
@@ -153,7 +159,7 @@ private data class RuntimeOpenApiMetadata(
                 "x-craftless-registry-fingerprint" to metadata.registryFingerprint,
                 "x-craftless-server-feature-fingerprint" to metadata.serverFeatureFingerprint,
                 "x-craftless-permissions-fingerprint" to metadata.permissionsFingerprint,
-                "x-craftless-action-schema-version" to (actions.firstOrNull()?.schemaVersion ?: "none"),
+                "x-craftless-action-schema-versions" to actionSchemaVersions,
                 "x-craftless-action-fingerprint" to actionFingerprint,
             )
             extensions["x-craftless-runtime-fingerprint"] = runtimeFingerprint(client, metadata, actionFingerprint)
