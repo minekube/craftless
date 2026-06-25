@@ -91,6 +91,16 @@ class OpenApiGenerationTest {
     }
 
     @Test
+    fun `stable supervisor openapi does not publish gameplay action metadata`() {
+        val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
+
+        assertTrue(document.actions.isEmpty())
+        assertTrue(document.paths.keys.none { it == "/clients/{id}/player:chat" })
+        assertTrue(document.paths.keys.none { it == "/clients/{id}/player:move" })
+        assertTrue(document.paths.keys.none { it.matches(Regex("""^/clients/\{id}/[^/]+:[^/]+$""")) })
+    }
+
+    @Test
     fun `openapi document rejects duplicate action ids`() {
         val action =
             OpenApiAction(

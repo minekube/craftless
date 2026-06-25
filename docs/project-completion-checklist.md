@@ -68,7 +68,7 @@ Verification:
   API, Fabric discovery/projection, and Fabric execution bindings.
 - [ ] README and architecture docs explain those layers without reintroducing
   stale static action routes.
-- [ ] Supervisor/client-management API remains lifecycle/setup/discovery only;
+- [x] Supervisor/client-management API remains lifecycle/setup/discovery only;
   gameplay does not move into the stable kernel route catalog.
 - [ ] Live per-client OpenAPI owns gameplay actions/resources, generated
   aliases, schemas, handles, availability, and runtime fingerprints.

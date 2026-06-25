@@ -36,6 +36,19 @@ class ApiRouteCatalogTest {
     }
 
     @Test
+    fun `stable session route catalog keeps gameplay out of supervisor routes`() {
+        val catalog = ApiRouteCatalog.sessionDefaults()
+        val generatedAliasPattern = Regex("""^/clients/\{id}/[^/]+:[^/]+$""")
+
+        assertTrue(catalog.routes.none { it.path.matches(generatedAliasPattern) })
+        assertTrue(catalog.routes.none { it.actionId != null })
+        assertTrue(catalog.routes.none { it.operationId == "runPlayerChat" })
+        assertTrue(catalog.routes.none { it.operationId == "runPlayerMove" })
+        assertTrue(catalog.routes.none { it.path == "/clients/{id}/player:chat" })
+        assertTrue(catalog.routes.none { it.path == "/clients/{id}/player:move" })
+    }
+
+    @Test
     fun `catalog rejects path only lookup for ambiguous route paths`() {
         val catalog = ApiRouteCatalog.sessionDefaults()
 
