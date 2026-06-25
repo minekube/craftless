@@ -572,4 +572,5 @@ private fun defaultOpenApiActionResultProperties(): Map<String, OpenApiActionSch
         "action" to OpenApiActionSchema("string"),
         "status" to OpenApiActionSchema("string"),
         "message" to OpenApiActionSchema("string"),
+        "data" to OpenApiActionSchema("object"),
     )

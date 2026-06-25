@@ -26,10 +26,11 @@ Legend:
   `/clients/{id}/actions` treated as an availability projection.
 - [x] Fabric smoke has proven real client launch, server join, generated chat,
   generated movement invocation, disconnect, and artifact capture.
-- [~] Current Fabric driver has real chat and movement bindings plus a
-  gateway-backed unavailable `player.raycast` probe with typed argument/result
-  metadata when the client is not connected. Broader gameplay discovery is not
-  implemented yet and must not be represented as a static placeholder catalog.
+- [~] Current Fabric driver has real chat, movement, and connected-client
+  `player.raycast` perception bindings. When the client is disconnected,
+  raycast is exposed only through gateway-backed unavailable probe metadata.
+  Broader gameplay discovery is not implemented yet and must not be represented
+  as a static placeholder catalog.
 - [ ] Craftless is complete.
 
 Baseline evidence:
@@ -95,8 +96,8 @@ Verification:
 - [x] Action descriptors and per-client OpenAPI carry action source,
   availability, and machine-readable availability reasons.
 - [~] Design the Fabric runtime discovery/projection layer. A minimal internal
-  discovery abstraction exists for binding-backed actions and a concrete
-  client-state `player.raycast` unavailable probe with schema metadata; real
+  discovery abstraction exists for binding-backed actions, connected-client
+  `player.raycast`, and disconnected-client unavailable probe metadata; broader
   client/world/inventory/screen probes are still roadmap.
 - [ ] Define how internal Fabric/Minecraft/mod/registry/server data becomes
   Craftless-owned actions, resources, handles, schemas, availability, and
@@ -125,8 +126,11 @@ Verification:
 - [x] `player.move` has a real Fabric binding and driver-side event evidence.
 - [x] Fabric action listing goes through an internal discovery snapshot instead
   of directly returning the binding map.
-- [ ] Real look/perception/block/inventory/screen capabilities are discovered
-  from the running client before they are advertised.
+- [~] Real look/perception/block/inventory/screen capabilities are discovered
+  from the running client before they are advertised. `player.raycast` now
+  changes from unavailable probe metadata to an available binding based on
+  connected-client state; broader block/inventory/screen discovery is still
+  missing.
 - [x] Each advertised gameplay action has either a real Fabric execution
   binding or probe-backed unavailable metadata.
 - [x] No future gameplay action is added as a hand-written placeholder

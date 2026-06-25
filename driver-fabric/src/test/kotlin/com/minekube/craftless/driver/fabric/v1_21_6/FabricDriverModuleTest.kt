@@ -9,9 +9,12 @@ import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -253,13 +256,21 @@ class FabricDriverModuleTest {
         assertEquals("client-not-connected", raycast.availabilityReason)
         assertEquals("number", raycast.arguments["max-distance"]?.type)
         assertEquals("boolean", raycast.arguments["include-fluids"]?.type)
-        assertEquals("boolean", raycast.result.properties["hit"]?.type)
-        assertEquals("object", raycast.result.properties["target"]?.type)
+        assertEquals("object", raycast.result.properties["data"]?.type)
         assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
         assertEquals("client-not-connected", result.message)
 
         gateway.connected = true
-        assertFalse(backend.actions("alice").any { it.id == "player.raycast" })
+        val connectedRaycast = backend.actions("alice").single { it.id == "player.raycast" }
+        assertEquals(DriverActionSource.BINDING, connectedRaycast.source)
+        assertEquals(DriverActionAvailability.AVAILABLE, connectedRaycast.availability)
+        assertEquals(null, connectedRaycast.availabilityReason)
+        assertEquals("object", connectedRaycast.result.properties["data"]?.type)
+
+        val connectedResult = backend.invoke("alice", DriverActionInvocation("player.raycast"))
+        assertEquals(DriverActionStatus.ACCEPTED, connectedResult.status)
+        assertEquals(true, connectedResult.data["hit"]?.jsonPrimitive?.boolean)
+        assertEquals("block", connectedResult.data["target-kind"]?.jsonPrimitive?.content)
     }
 
     @Test
@@ -412,6 +423,16 @@ private class RecordingFabricClientGateway : FabricClientGateway {
     override fun executeOnClient(action: net.minecraft.client.MinecraftClient.() -> Unit) {
         scheduled += 1
         actions += "client-action"
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T> queryOnClient(query: net.minecraft.client.MinecraftClient.() -> T): T {
+        scheduled += 1
+        actions += "client-query"
+        return buildJsonObject {
+            put("hit", true)
+            put("target-kind", "block")
+        } as T
     }
 
     override fun stop() {

@@ -7,7 +7,9 @@ import com.minekube.craftless.protocol.isCraftlessActionId
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import java.time.Instant
@@ -187,6 +189,7 @@ data class DriverActionResult(
     val status: DriverActionStatus,
     val message: String? = null,
     val eventType: DriverEventType? = null,
+    val data: JsonObject = buildJsonObject {},
 ) {
     init {
         require(action.isCraftlessActionId()) { "invalid action id $action" }
@@ -223,4 +226,5 @@ private fun defaultDriverActionResultProperties(): Map<String, DriverActionResul
         "action" to DriverActionResultProperty("string"),
         "status" to DriverActionResultProperty("string"),
         "message" to DriverActionResultProperty("string"),
+        "data" to DriverActionResultProperty("object"),
     )

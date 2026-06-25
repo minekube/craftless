@@ -1,6 +1,10 @@
 package com.minekube.craftless.driver.api
 
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -186,6 +190,23 @@ class DriverSessionContractTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun `driver action results carry generic json payloads`() {
+        val result =
+            DriverActionResult(
+                action = "player.raycast",
+                status = DriverActionStatus.ACCEPTED,
+                data =
+                    buildJsonObject {
+                        put("hit", true)
+                        put("target-kind", "block")
+                    },
+            )
+
+        assertEquals(true, result.data["hit"]?.jsonPrimitive?.boolean)
+        assertEquals("block", result.data["target-kind"]?.jsonPrimitive?.content)
     }
 
     @Test

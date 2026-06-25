@@ -32,6 +32,11 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -321,6 +326,35 @@ class LocalSessionApiServerTest {
                         }
 
                     assertEquals(0, driver.invokeCount)
+                }
+        }
+
+    @Test
+    fun `server returns generic action result data payload`() =
+        withHttpClient { http ->
+            LocalSessionApiServer
+                .inMemory(
+                    driverFactory =
+                        DriverSessionFactory { request ->
+                            DataActionDriverSession(request.id)
+                        },
+                ).use { server ->
+                    server.start()
+                    createAlice(http, server)
+
+                    http
+                        .post(server.url("/clients/alice:run")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"action":"player.raycast","args":{}}""")
+                        }.let { response ->
+                            assertEquals(HttpStatusCode.OK, response.status)
+                            val body = json.parseToJsonElement(response.bodyAsText()).jsonObject
+                            val data = requireNotNull(body["data"]?.jsonObject)
+                            assertEquals("player.raycast", body["action"]?.jsonPrimitive?.content)
+                            assertEquals("ACCEPTED", body["status"]?.jsonPrimitive?.content)
+                            assertEquals(true, data["hit"]?.jsonPrimitive?.boolean)
+                            assertEquals("block", data["target-kind"]?.jsonPrimitive?.content)
+                        }
                 }
         }
 
@@ -670,6 +704,39 @@ private class UnavailableActionDriverSession(
         invokeCount += 1
         return DriverActionResult(invocation.action, DriverActionStatus.ACCEPTED)
     }
+
+    override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
+
+    override fun events(): List<DriverEvent> = emptyList()
+}
+
+private class DataActionDriverSession(
+    override val clientId: String,
+) : DriverSession {
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.RUNNING)
+
+    override fun connect(target: ConnectionTarget): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.CONNECTED)
+
+    override fun actions(): List<DriverActionDescriptor> =
+        listOf(
+            DriverActionDescriptor(
+                id = "player.raycast",
+                schemaVersion = "1",
+            ),
+        )
+
+    override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
+
+    override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
+        DriverActionResult(
+            action = invocation.action,
+            status = DriverActionStatus.ACCEPTED,
+            data =
+                buildJsonObject {
+                    put("hit", true)
+                    put("target-kind", "block")
+                },
+        )
 
     override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
 

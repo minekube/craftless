@@ -162,7 +162,7 @@ class ClientSessionServiceTest {
         assertEquals("none", document.extensions["x-craftless-server-feature-fingerprint"])
         assertEquals("local-fake", document.extensions["x-craftless-permissions-fingerprint"])
         assertEquals(
-            "minecraft=1.21.4;loader=FABRIC;loaderVersion=none;driver=craftless-fake;driverVersion=0.1.0-SNAPSHOT;mappings=none;mods=none;registries=none;serverFeatures=none;permissions=local-fake;actions=player.chat:1:binding:available(message:string!)->(action:string!,message:string,status:string!),player.move:1:binding:available(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)->(action:string!,message:string,status:string!)",
+            "minecraft=1.21.4;loader=FABRIC;loaderVersion=none;driver=craftless-fake;driverVersion=0.1.0-SNAPSHOT;mappings=none;mods=none;registries=none;serverFeatures=none;permissions=local-fake;actions=player.chat:1:binding:available(message:string!)->(action:string!,data:object,message:string,status:string!),player.move:1:binding:available(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)->(action:string!,data:object,message:string,status:string!)",
             document.extensions["x-craftless-runtime-fingerprint"],
         )
         assertTrue(document.paths.containsKey("/clients/alice/openapi.json"))
@@ -314,7 +314,7 @@ class ClientSessionServiceTest {
         assertEquals(OpenApiActionAvailability.UNAVAILABLE, action.availability)
         assertEquals("client-not-connected", action.availabilityReason)
         assertEquals(
-            "player.raycast:1:runtime-probe:unavailable:client-not-connected()->(action:string!,message:string,status:string!)",
+            "player.raycast:1:runtime-probe:unavailable:client-not-connected()->(action:string!,data:object,message:string,status:string!)",
             document.extensions["x-craftless-action-fingerprint"],
         )
     }
@@ -443,7 +443,7 @@ class ClientSessionServiceTest {
         assertEquals("server-features-test", extensions["x-craftless-server-feature-fingerprint"])
         assertEquals("permissions-test", extensions["x-craftless-permissions-fingerprint"])
         assertEquals(
-            "minecraft=1.21.4;loader=FABRIC;loaderVersion=0.16.14;driver=craftless-driver-fabric;driverVersion=0.2.0-test;mappings=mappings-fingerprint-test;mods=mods-test;registries=registries-test;serverFeatures=server-features-test;permissions=permissions-test;actions=player.chat:1:binding:available(message:string!)->(action:string!,message:string,status:string!),player.move:1:binding:available(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)->(action:string!,message:string,status:string!)",
+            "minecraft=1.21.4;loader=FABRIC;loaderVersion=0.16.14;driver=craftless-driver-fabric;driverVersion=0.2.0-test;mappings=mappings-fingerprint-test;mods=mods-test;registries=registries-test;serverFeatures=server-features-test;permissions=permissions-test;actions=player.chat:1:binding:available(message:string!)->(action:string!,data:object,message:string,status:string!),player.move:1:binding:available(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)->(action:string!,message:string,status:string!)",
             extensions["x-craftless-runtime-fingerprint"],
         )
     }
@@ -477,11 +477,11 @@ class ClientSessionServiceTest {
 
         assertEquals(listOf("player.chat", "player.move"), document.actions.map { it.id })
         assertEquals(
-            "minecraft=1.21.4;loader=FABRIC;loaderVersion=none;driver=craftless-fake;driverVersion=0.1.0-SNAPSHOT;mappings=none;mods=none;registries=none;serverFeatures=none;permissions=local-fake;actions=player.chat:1:binding:available(message:string!)->(action:string!,message:string,status:string!),player.move:1:binding:available(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)->(action:string!,message:string,status:string!)",
+            "minecraft=1.21.4;loader=FABRIC;loaderVersion=none;driver=craftless-fake;driverVersion=0.1.0-SNAPSHOT;mappings=none;mods=none;registries=none;serverFeatures=none;permissions=local-fake;actions=player.chat:1:binding:available(message:string!)->(action:string!,data:object,message:string,status:string!),player.move:1:binding:available(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)->(action:string!,message:string,status:string!)",
             document.extensions["x-craftless-runtime-fingerprint"],
         )
         assertEquals(
-            "player.chat:1:binding:available(message:string!)->(action:string!,message:string,status:string!),player.move:1:binding:available(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)->(action:string!,message:string,status:string!)",
+            "player.chat:1:binding:available(message:string!)->(action:string!,data:object,message:string,status:string!),player.move:1:binding:available(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)->(action:string!,message:string,status:string!)",
             document.extensions["x-craftless-action-fingerprint"],
         )
     }

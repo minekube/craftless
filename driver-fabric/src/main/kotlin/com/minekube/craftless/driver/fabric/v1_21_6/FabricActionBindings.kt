@@ -4,16 +4,27 @@ import com.minekube.craftless.driver.api.DriverActionArgument
 import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
+import com.minekube.craftless.driver.api.DriverActionResultDescriptor
+import com.minekube.craftless.driver.api.DriverActionResultProperty
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.booleanArgument
 import com.minekube.craftless.driver.api.intArgument
 import com.minekube.craftless.driver.api.requireChatMessage
 import com.minekube.craftless.driver.api.stringArgument
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.input.Input
 import net.minecraft.util.PlayerInput
+import net.minecraft.util.hit.BlockHitResult
+import net.minecraft.util.hit.EntityHitResult
+import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.Vec2f
+import net.minecraft.util.math.Vec3d
 
 internal interface FabricActionBinding {
     val descriptor: DriverActionDescriptor
@@ -33,12 +44,66 @@ internal data class FabricActionContext(
     fun executeOnClient(action: MinecraftClient.() -> Unit) {
         gateway?.executeOnClient(action)
     }
+
+    fun <T> queryOnClient(query: MinecraftClient.() -> T): T {
+        val clientGateway = requireNotNull(gateway) { "client gateway is required" }
+        return clientGateway.queryOnClient(query)
+    }
 }
 
 internal fun defaultFabricActionBindings(): List<FabricActionBinding> =
     listOf(
         FabricPlayerMoveActionBinding,
         FabricPlayerChatActionBinding,
+    )
+
+internal object FabricPlayerRaycastActionBinding : FabricActionBinding {
+    override val descriptor: DriverActionDescriptor = fabricRaycastDescriptor()
+
+    override fun invoke(
+        clientId: String,
+        invocation: DriverActionInvocation,
+        context: FabricActionContext,
+    ): DriverActionResult {
+        val maxDistance = invocation.arguments["max-distance"]?.jsonPrimitive?.doubleOrNull ?: DEFAULT_MAX_DISTANCE
+        require(maxDistance > 0.0) { "raycast max-distance must be positive" }
+        val includeFluids = invocation.arguments.booleanArgument("include-fluids")
+        val data =
+            context.queryOnClient {
+                val camera = requireNotNull(cameraEntity ?: player) { "client is not connected to a server" }
+                camera.raycast(maxDistance, 1.0f, includeFluids).toCraftlessRaycastData()
+            }
+        return DriverActionResult(
+            action = invocation.action,
+            status = DriverActionStatus.ACCEPTED,
+            message = "fabric ${context.modeId} action ${invocation.action} queried",
+            data = data,
+        )
+    }
+
+    private const val DEFAULT_MAX_DISTANCE = 5.0
+}
+
+internal fun fabricRaycastDescriptor(): DriverActionDescriptor =
+    DriverActionDescriptor(
+        id = "player.raycast",
+        schemaVersion = "1",
+        arguments =
+            mapOf(
+                "max-distance" to DriverActionArgument("number"),
+                "include-fluids" to DriverActionArgument("boolean"),
+            ),
+        result =
+            DriverActionResultDescriptor(
+                properties =
+                    mapOf(
+                        "action" to DriverActionResultProperty("string"),
+                        "status" to DriverActionResultProperty("string"),
+                        "message" to DriverActionResultProperty("string"),
+                        "data" to DriverActionResultProperty("object"),
+                    ),
+                required = listOf("action", "status"),
+            ),
     )
 
 private object FabricPlayerChatActionBinding : FabricActionBinding {
@@ -180,4 +245,27 @@ private fun movementMultiplier(
         positive == negative -> 0f
         positive -> 1f
         else -> -1f
+    }
+
+private fun HitResult.toCraftlessRaycastData(): JsonObject =
+    buildJsonObject {
+        put("hit", type != HitResult.Type.MISS)
+        put("target-kind", type.name.lowercase())
+        put("position", pos.toCraftlessJson())
+        when (this@toCraftlessRaycastData) {
+            is BlockHitResult -> {
+                put("block", blockPos.toShortString())
+                put("side", side.name.lowercase())
+            }
+            is EntityHitResult -> {
+                put("entity-id", entity.id)
+            }
+        }
+    }
+
+private fun Vec3d.toCraftlessJson(): JsonObject =
+    buildJsonObject {
+        put("x", x)
+        put("y", y)
+        put("z", z)
     }

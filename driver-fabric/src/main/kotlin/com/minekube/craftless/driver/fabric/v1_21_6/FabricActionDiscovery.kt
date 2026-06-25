@@ -1,10 +1,7 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
-import com.minekube.craftless.driver.api.DriverActionArgument
 import com.minekube.craftless.driver.api.DriverActionAvailability
 import com.minekube.craftless.driver.api.DriverActionDescriptor
-import com.minekube.craftless.driver.api.DriverActionResultDescriptor
-import com.minekube.craftless.driver.api.DriverActionResultProperty
 import com.minekube.craftless.driver.api.DriverActionSource
 
 internal fun interface FabricActionDiscovery {
@@ -64,7 +61,12 @@ internal fun defaultFabricActionDiscovery(): FabricActionDiscovery =
 private fun FabricActionDiscoveryContext.probeUnavailableActions(): List<FabricDiscoveredAction> {
     val gateway = gateway ?: return emptyList()
     return if (gateway.isConnected()) {
-        emptyList()
+        listOf(
+            FabricDiscoveredAction(
+                descriptor = FabricPlayerRaycastActionBinding.descriptor,
+                binding = FabricPlayerRaycastActionBinding,
+            ),
+        )
     } else {
         listOf(
             FabricDiscoveredAction(
@@ -75,26 +77,7 @@ private fun FabricActionDiscoveryContext.probeUnavailableActions(): List<FabricD
 }
 
 private fun unavailableRaycastDescriptor(): DriverActionDescriptor =
-    DriverActionDescriptor(
-        id = "player.raycast",
-        schemaVersion = "1",
-        arguments =
-            mapOf(
-                "max-distance" to DriverActionArgument("number"),
-                "include-fluids" to DriverActionArgument("boolean"),
-            ),
-        result =
-            DriverActionResultDescriptor(
-                properties =
-                    mapOf(
-                        "action" to DriverActionResultProperty("string"),
-                        "status" to DriverActionResultProperty("string"),
-                        "message" to DriverActionResultProperty("string"),
-                        "hit" to DriverActionResultProperty("boolean"),
-                        "target" to DriverActionResultProperty("object"),
-                    ),
-                required = listOf("action", "status", "hit"),
-            ),
+    fabricRaycastDescriptor().copy(
         source = DriverActionSource.RUNTIME_PROBE,
         availability = DriverActionAvailability.UNAVAILABLE,
         availabilityReason = "client-not-connected",

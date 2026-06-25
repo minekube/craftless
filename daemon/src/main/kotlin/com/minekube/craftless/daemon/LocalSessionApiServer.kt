@@ -192,6 +192,7 @@ class LocalSessionApiServer private constructor(
                             action = result.action,
                             status = result.status.name,
                             message = result.message,
+                            data = result.data.takeIf { it.isNotEmpty() },
                         ),
                     )
                 }.getOrElse { error ->
@@ -250,6 +251,7 @@ class LocalSessionApiServer private constructor(
                             action = result.action,
                             status = result.status.name,
                             message = result.message,
+                            data = result.data.takeIf { it.isNotEmpty() },
                         ),
                     )
                 }.getOrElse { error ->
@@ -477,4 +479,5 @@ data class ActionInvocationResponse(
     val action: String,
     val status: String,
     val message: String? = null,
+    val data: JsonObject? = null,
 )
