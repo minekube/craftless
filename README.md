@@ -43,7 +43,7 @@ craftless clients api --port 8080
 ```sh
 CRAFTLESS=http://127.0.0.1:8080
 
-# Create a real client session.
+# Create a daemon-managed client session.
 curl -sS "$CRAFTLESS/clients" \
   -H 'content-type: application/json' \
   -d '{
@@ -81,14 +81,14 @@ Legend: 🟢 yes, 🟡 partial or limited, 🔵 planned, 🔴 no.
 
 | Capability | Craftless | [Mineflayer](https://github.com/PrismarineJS/mineflayer) | [Baritone](https://github.com/cabaletta/baritone) | [HeadlessMC / HMC-Specifics](https://github.com/headlesshq/headlessmc) |
 | --- | --- | --- | --- | --- |
-| Real Minecraft Java client | 🟢 | 🔴 protocol bot | 🟢 | 🟢 |
-| Headless and visible operation | 🟢 | 🔴 | 🟡 visible client | 🟢 |
+| Real Minecraft Java client | 🟡 Fabric driver hooks, smoke planned | 🔴 protocol bot | 🟢 | 🟢 |
+| Headless and visible operation | 🟡 supervisor and bridge evidence | 🔴 | 🟡 visible client | 🟢 |
 | Live per-client OpenAPI/action schema | 🟢 | 🔴 | 🔴 | 🔴 |
 | Runtime discovery from version, mods, server features, and permissions | 🟢 | 🟡 protocol data | 🟡 in-client state | 🟡 fixed commands |
 | Stable automation surface for agents and generated clients | 🟢 | 🟡 library API | 🟡 Java API | 🟡 CLI commands |
 | Movement/pathfinding depth | 🔵 planned actions | 🟢 | 🟢 | 🟡 basic |
 | Inventory, screen, perception, and world queries | 🔵 planned actions | 🟢 | 🟡 pathing-focused | 🟡 GUI-focused |
-| Multi-client local supervisor | 🟢 | 🔴 | 🔴 | 🟡 |
+| Multi-client local supervisor | 🟡 in-memory API now | 🔴 | 🔴 | 🟡 |
 | Minecraft version support model | 🔵 stable API; Fabric driver/mappings paced | 🟡 protocol matrix | 🟡 versioned builds | 🟡 versioned mods |
 | Best fit | Real-client automation infrastructure | Fast bot scripts | In-game pathfinding | Client launch and CI runtime |
 
