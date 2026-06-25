@@ -27,6 +27,9 @@ Craftless currently has:
 - generated action aliases are emitted from the same live action snapshot as
   the per-client OpenAPI action metadata, and OpenAPI generation rejects alias
   routes without matching action descriptors;
+- protocol policy tests reject public action descriptors and route metadata
+  that leak Fabric, Yarn, intermediary, raw Minecraft, bridge, or launcher
+  namespace tokens;
 - Fabric/Loom driver scaffolding with current action evidence;
 - Fabric-generated action descriptors for current chat/move bindings. Broader
   gameplay actions must come from real bindings or runtime discovery probes,

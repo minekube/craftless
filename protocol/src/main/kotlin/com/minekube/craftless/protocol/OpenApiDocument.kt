@@ -170,11 +170,11 @@ data class OpenApiActionSchema(
 
 fun String.isCraftlessActionId(): Boolean =
     matches(Regex("[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+")) &&
-        !startsWith("minecraft.")
+        !containsForbiddenPublicNamespaceToken()
 
 fun String.isCraftlessActionArgumentName(): Boolean =
     matches(Regex("[a-z][a-z0-9-]*")) &&
-        !startsWith("minecraft-")
+        !containsForbiddenPublicNamespaceToken()
 
 @Serializable
 data class OpenApiActionArgument(
@@ -190,6 +190,24 @@ fun String.isCraftlessActionArgumentType(): Boolean = this in CRAFTLESS_ACTION_A
 
 private val CRAFTLESS_ACTION_ARGUMENT_TYPES =
     setOf("boolean", "integer", "number", "string", "object", "array")
+
+private val FORBIDDEN_PUBLIC_NAMESPACE_TOKENS =
+    setOf(
+        "fabric",
+        "yarn",
+        "intermediary",
+        "minecraft",
+        "hmc",
+        "headlessmc",
+        "prism",
+        "multimc",
+        "mmc",
+    )
+
+internal fun String.containsForbiddenPublicNamespaceToken(): Boolean {
+    val normalized = lowercase()
+    return FORBIDDEN_PUBLIC_NAMESPACE_TOKENS.any { token -> token in normalized }
+}
 
 private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenApiOperation {
     val route = this

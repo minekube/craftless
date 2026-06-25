@@ -18,10 +18,15 @@ data class ApiRoute(
     init {
         require(method in SUPPORTED_ROUTE_METHODS) { "unsupported route method $method" }
         require(path.startsWith("/")) { "route path must start with /" }
+        require(!path.containsForbiddenPublicRoutePathToken()) { "route path must be Craftless-owned" }
         require(operationId.isNotBlank()) { "route operation id is required" }
+        require(!operationId.containsForbiddenPublicNamespaceToken()) { "route operation id must be Craftless-owned" }
         require(tag.isNotBlank()) { "route tag is required" }
+        require(!tag.containsForbiddenPublicNamespaceToken()) { "route tag must be Craftless-owned" }
         require(owner.isNotBlank()) { "route owner is required" }
+        require(!owner.containsForbiddenPublicNamespaceToken()) { "route owner must be Craftless-owned" }
         require(member == null || member.isNotBlank()) { "route member is required" }
+        require(member == null || !member.containsForbiddenPublicNamespaceToken()) { "route member must be Craftless-owned" }
         require(target in SUPPORTED_ROUTE_TARGETS) { "unsupported route target $target" }
         require(source in SUPPORTED_ROUTE_SOURCES) { "unsupported route source $source" }
         require(returnKind in SUPPORTED_ROUTE_RETURN_KINDS) { "unsupported route return kind $returnKind" }
@@ -33,6 +38,10 @@ private val SUPPORTED_ROUTE_METHODS = setOf("GET", "POST")
 private val SUPPORTED_ROUTE_TARGETS = setOf("supervisor", "client")
 private val SUPPORTED_ROUTE_SOURCES = setOf("route", "method", "action")
 private val SUPPORTED_ROUTE_RETURN_KINDS = setOf("value")
+
+private fun String.containsForbiddenPublicRoutePathToken(): Boolean =
+    replace(Regex("^/clients/[^/:]+"), "/clients/{id}")
+        .containsForbiddenPublicNamespaceToken()
 
 class ApiRouteCatalog(
     val routes: List<ApiRoute>,

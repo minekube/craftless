@@ -6,6 +6,7 @@ import kotlin.io.path.isDirectory
 import kotlin.io.path.name
 import kotlin.io.path.pathString
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class NamespacePolicyTest {
@@ -199,6 +200,152 @@ class NamespacePolicyTest {
         assertTrue(
             violations.isEmpty(),
             "Public Kotlin sources must not expose launcher internals:\n${violations.joinToString("\n")}",
+        )
+    }
+
+    @Test
+    fun `public action descriptors reject implementation namespace leaks`() {
+        listOf(
+            "fabric.screen",
+            "yarn.client-player",
+            "intermediary.class-1234",
+            "hmc.command",
+            "headlessmc.launch",
+            "prism.instance",
+        ).forEach { actionId ->
+            assertFailsWith<IllegalArgumentException> {
+                OpenApiAction(
+                    id = actionId,
+                    schemaVersion = "1",
+                )
+            }
+        }
+
+        listOf(
+            "fabric-name",
+            "yarn-name",
+            "intermediary-name",
+            "hmc-command",
+            "headlessmc-command",
+            "prism-instance",
+        ).forEach { publicName ->
+            assertFailsWith<IllegalArgumentException> {
+                OpenApiAction(
+                    id = "player.inspect",
+                    schemaVersion = "1",
+                    arguments = mapOf(publicName to OpenApiActionArgument("string")),
+                )
+            }
+
+            assertFailsWith<IllegalArgumentException> {
+                OpenApiAction(
+                    id = "player.inspect",
+                    schemaVersion = "1",
+                    result =
+                        OpenApiActionResult(
+                            properties = mapOf("action" to OpenApiActionSchema("string"), publicName to OpenApiActionSchema("string")),
+                            required = listOf("action"),
+                        ),
+                )
+            }
+
+            assertFailsWith<IllegalArgumentException> {
+                OpenApiAction(
+                    id = "player.inspect",
+                    schemaVersion = "1",
+                    source = OpenApiActionSource.RUNTIME_PROBE,
+                    availability = OpenApiActionAvailability.UNAVAILABLE,
+                    availabilityReason = publicName,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `public route metadata rejects implementation namespace leaks`() {
+        listOf(
+            {
+                ApiRoute(
+                    method = "GET",
+                    path = "/clients/{id}/fabric:inspect",
+                    operationId = "inspectClient",
+                    tag = "clients",
+                    owner = "clients",
+                    member = "inspect",
+                    target = "client",
+                    source = "route",
+                )
+            },
+            {
+                ApiRoute(
+                    method = "GET",
+                    path = "/clients/{id}/inspect",
+                    operationId = "getYarnClientPlayer",
+                    tag = "clients",
+                    owner = "clients",
+                    member = "inspect",
+                    target = "client",
+                    source = "route",
+                )
+            },
+            {
+                ApiRoute(
+                    method = "GET",
+                    path = "/clients/{id}/inspect",
+                    operationId = "inspectClient",
+                    tag = "intermediary",
+                    owner = "clients",
+                    member = "inspect",
+                    target = "client",
+                    source = "route",
+                )
+            },
+            {
+                ApiRoute(
+                    method = "GET",
+                    path = "/clients/{id}/inspect",
+                    operationId = "inspectClient",
+                    tag = "clients",
+                    owner = "headlessmc",
+                    member = "inspect",
+                    target = "client",
+                    source = "route",
+                )
+            },
+            {
+                ApiRoute(
+                    method = "GET",
+                    path = "/clients/{id}/inspect",
+                    operationId = "inspectClient",
+                    tag = "clients",
+                    owner = "clients",
+                    member = "prism-instance",
+                    target = "client",
+                    source = "route",
+                )
+            },
+        ).forEach { routeFactory ->
+            assertFailsWith<IllegalArgumentException> {
+                ApiRouteCatalog(listOf(routeFactory()))
+            }
+        }
+    }
+
+    @Test
+    fun `public route path policy ignores concrete client id values`() {
+        ApiRouteCatalog(
+            listOf(
+                ApiRoute(
+                    method = "GET",
+                    path = "/clients/fabric-smoke/openapi.json",
+                    operationId = "getClientOpenapiJson",
+                    tag = "clients",
+                    owner = "clients",
+                    member = "openapi",
+                    target = "client",
+                    source = "route",
+                ),
+            ),
         )
     }
 

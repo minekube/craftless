@@ -102,10 +102,10 @@ Verification:
   descriptors before driver invocation.
 - [x] Ensure generated aliases are derived only from the running client's
   OpenAPI/action descriptors.
-- [ ] Ensure public OpenAPI does not expose Fabric/Yarn/intermediary names,
+- [x] Ensure public OpenAPI does not expose Fabric/Yarn/intermediary names,
   raw Minecraft implementation names, mod package names, commands, or launcher
   internals.
-- [ ] Add tests that fail if public descriptors leak implementation names.
+- [x] Add tests that fail if public descriptors leak implementation names.
 
 Verification:
 
