@@ -23,46 +23,7 @@ instead of a static list of hard-coded actions.
 Minecraft already provides the client runtime. Craftless adds a thin driver,
 runtime, and protocol layer around that real client.
 
-```mermaid
-flowchart TB
-  User["Agents / tools / tests / CI / humans"]
-
-  subgraph DeveloperAPI["Developer interfaces"]
-    CLI["CLI\ncurrently mcw"]
-    HTTP["HTTP API\nOpenAPI"]
-    Clients["Generated clients\nroadmap"]
-  end
-
-  subgraph Runtime["Craftless runtime"]
-    Daemon["Local daemon"]
-    Sessions["Client sessions"]
-    Files["Files / logs / profiles"]
-    OpenAPI["Per-client OpenAPI"]
-    Actions["Generated actions"]
-    Docker["Docker / CI image"]
-  end
-
-  subgraph Client["Real Minecraft Java client"]
-    MC["Minecraft client"]
-    Driver["Craftless driver\nFabric mod / runtime bridge"]
-    State["Player / world / screen / inventory"]
-  end
-
-  User --> CLI
-  User --> HTTP
-  User --> Clients
-  CLI --> Daemon
-  Clients --> HTTP
-  HTTP --> Daemon
-  Docker --> Daemon
-  Daemon --> Sessions
-  Daemon --> Files
-  Daemon --> OpenAPI
-  Daemon --> Actions
-  Daemon <--> Driver
-  Driver <--> MC
-  Driver <--> State
-```
+![Craftless stack layers](docs/assets/craftless-stack.svg)
 
 ## Example
 
