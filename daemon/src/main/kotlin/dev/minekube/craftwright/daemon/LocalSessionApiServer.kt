@@ -1,24 +1,30 @@
 package dev.minekube.craftwright.daemon
 
-import com.sun.net.httpserver.HttpExchange
-import com.sun.net.httpserver.HttpServer
 import dev.minekube.craftwright.protocol.ApiRouteCatalog
 import dev.minekube.craftwright.protocol.Client
 import dev.minekube.craftwright.protocol.CreateClientRequest
 import dev.minekube.craftwright.protocol.OpenApiDocument
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.Application
+import io.ktor.server.application.call
+import io.ktor.server.cio.CIO
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.request.receiveText
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.routing
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.net.InetAddress
-import java.net.InetSocketAddress
-import java.nio.charset.StandardCharsets
+import java.net.ServerSocket
 import java.time.Instant
-import java.util.concurrent.Executors
 
 class LocalSessionApiServer private constructor(
     private val service: ClientSessionService,
-    bindAddress: InetAddress,
-    port: Int,
+    private val host: String,
+    requestedPort: Int,
 ) : AutoCloseable {
     private val json = Json {
         prettyPrint = false
@@ -26,14 +32,9 @@ class LocalSessionApiServer private constructor(
         ignoreUnknownKeys = true
     }
     private val events = mutableListOf<SessionEvent>()
-    private val server = HttpServer.create(InetSocketAddress(bindAddress, port), 0)
-    private val executor = Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "craftwright-local-api").apply { isDaemon = true }
-    }
-
-    init {
-        server.executor = executor
-        server.createContext("/") { exchange -> handle(exchange) }
+    private val port = if (requestedPort == 0) allocateLoopbackPort() else requestedPort
+    private val server = embeddedServer(CIO, host = host, port = port) {
+        installRoutes()
     }
 
     fun start() {
@@ -41,74 +42,71 @@ class LocalSessionApiServer private constructor(
     }
 
     fun url(path: String): String =
-        "http://127.0.0.1:${server.address.port}$path"
+        "http://$host:$port$path"
 
     override fun close() {
-        server.stop(0)
-        executor.shutdownNow()
+        server.stop(gracePeriodMillis = 250, timeoutMillis = 1_000)
     }
 
-    private fun handle(exchange: HttpExchange) {
-        try {
-            when {
-                exchange.requestMethod == "GET" && exchange.requestURI.path == "/version" ->
-                    exchange.writeJson(200, RuntimeVersion.current())
-
-                exchange.requestMethod == "GET" && exchange.requestURI.path == "/openapi.json" ->
-                    exchange.writeJson(200, OpenApiDocument.from(ApiRouteCatalog.sessionDefaults()))
-
-                exchange.requestMethod == "GET" && exchange.requestURI.path == "/events" ->
-                    exchange.writeJson(200, events)
-
-                exchange.requestMethod == "POST" && exchange.requestURI.path == "/clients" ->
-                    createClient(exchange)
-
-                exchange.requestMethod == "GET" && exchange.requestURI.path.matches(Regex("""/clients/[^/]+/events""")) ->
-                    clientEvents(exchange)
-
-                else ->
-                    exchange.writeJson(404, ErrorResponse("NOT_FOUND", "route not found: ${exchange.requestURI.path}"))
+    private fun Application.installRoutes() {
+        routing {
+            get("/version") {
+                call.respondJson(HttpStatusCode.OK, RuntimeVersion.current())
             }
-        } catch (error: IllegalArgumentException) {
-            exchange.writeJson(400, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
-        } catch (error: Exception) {
-            exchange.writeJson(500, ErrorResponse("INTERNAL_ERROR", error.message ?: "internal error"))
+            get("/openapi.json") {
+                call.respondJson(HttpStatusCode.OK, OpenApiDocument.from(ApiRouteCatalog.sessionDefaults()))
+            }
+            get("/events") {
+                call.respondJson(HttpStatusCode.OK, events)
+            }
+            post("/clients") {
+                runCatching {
+                    val request = json.decodeFromString<CreateClientRequest>(call.receiveText())
+                    val client = service.createClient(request)
+                    events += SessionEvent(
+                        type = "client.created",
+                        client = client.id,
+                        message = "created client ${client.id}",
+                    )
+                    call.respondJson(HttpStatusCode.Created, client)
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                }
+            }
+            get("/clients/{id}/events") {
+                val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
+                runCatching {
+                    service.routesFor(clientId)
+                    call.respondJson(HttpStatusCode.OK, events.filter { it.client == clientId })
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
+                }
+            }
         }
-    }
-
-    private fun createClient(exchange: HttpExchange) {
-        val request = json.decodeFromString<CreateClientRequest>(exchange.requestBody.readAllBytes().toString(StandardCharsets.UTF_8))
-        val client = service.createClient(request)
-        events += SessionEvent(
-            type = "client.created",
-            client = client.id,
-            message = "created client ${client.id}",
-        )
-        exchange.writeJson(201, client)
-    }
-
-    private fun clientEvents(exchange: HttpExchange) {
-        val clientId = exchange.requestURI.path.removePrefix("/clients/").removeSuffix("/events")
-        service.routesFor(clientId)
-        exchange.writeJson(200, events.filter { it.client == clientId })
-    }
-
-    private inline fun <reified T> HttpExchange.writeJson(status: Int, value: T) {
-        val bytes = json.encodeToString(value).toByteArray(StandardCharsets.UTF_8)
-        responseHeaders.set("Content-Type", "application/json")
-        sendResponseHeaders(status, bytes.size.toLong())
-        responseBody.use { it.write(bytes) }
     }
 
     companion object {
         fun inMemory(port: Int = 0): LocalSessionApiServer =
             LocalSessionApiServer(
                 service = ClientSessionService.inMemory(),
-                bindAddress = InetAddress.getLoopbackAddress(),
-                port = port,
+                host = "127.0.0.1",
+                requestedPort = port,
             )
     }
+
+    private suspend inline fun <reified T> io.ktor.server.application.ApplicationCall.respondJson(
+        status: HttpStatusCode,
+        value: T,
+    ) {
+        respondText(json.encodeToString(value), ContentType.Application.Json, status)
+    }
 }
+
+private fun allocateLoopbackPort(): Int =
+    ServerSocket(0).use { socket ->
+        socket.reuseAddress = true
+        socket.localPort
+    }
 
 @Serializable
 data class RuntimeVersion(

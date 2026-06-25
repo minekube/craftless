@@ -62,8 +62,9 @@ Preferred server stack:
 
 Fallback server stack:
 
-- Java's built-in `com.sun.net.httpserver.HttpServer` for early spikes or if
-  Ktor introduces Fabric/Minecraft classpath conflicts.
+- If Ktor introduces Fabric/Minecraft classpath conflicts, isolate the Ktor
+  server outside the client process or use a small purpose-built transport
+  module for that driver spike.
 - A small hand-rolled OpenAPI emitter is acceptable for the first spike if the
   generator is isolated and replaced before the public SDK depends on it.
 
