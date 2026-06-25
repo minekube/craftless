@@ -88,9 +88,6 @@ private fun bridgePlayerMoveActionDescriptor(): DriverActionDescriptor =
             "backward" to DriverActionArgument("boolean"),
             "left" to DriverActionArgument("boolean"),
             "right" to DriverActionArgument("boolean"),
-            "jump" to DriverActionArgument("boolean"),
-            "sneak" to DriverActionArgument("boolean"),
-            "sprint" to DriverActionArgument("boolean"),
             "ticks" to DriverActionArgument("integer"),
         ),
     )

@@ -123,6 +123,10 @@ class BackendDriverSessionTest {
         )
         assertEquals("craftless-driver-bridge", backend.runtimeMetadata("alice").driver)
         assertEquals("bridge-evidence", backend.runtimeMetadata("alice").permissionsFingerprint)
+        assertEquals(
+            setOf("forward", "backward", "left", "right", "ticks"),
+            backend.actions("alice").single { it.id == "player.move" }.arguments.keys,
+        )
         assertFailsWith<IllegalArgumentException> {
             backend.invoke(
                 "alice",
