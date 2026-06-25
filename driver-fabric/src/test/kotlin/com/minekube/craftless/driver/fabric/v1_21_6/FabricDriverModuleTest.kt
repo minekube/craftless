@@ -497,6 +497,29 @@ class FabricDriverModuleTest {
                     "CRAFTLESS_SMOKE_ARTIFACTS_DIR" to artifactsDir.toString(),
                 ),
             )
+        gateway.queryResults +=
+            buildJsonObject {
+                put("selected-slot", 0)
+                put("slot-count", 46)
+                put(
+                    "slots",
+                    buildJsonArray {
+                        add(
+                            buildJsonObject {
+                                put("slot", 1)
+                                put("empty", false)
+                                put("count", 1)
+                                put("item-name", "Iron Sword")
+                            },
+                        )
+                    },
+                )
+            }
+        gateway.queryResults +=
+            buildJsonObject {
+                put("hit", true)
+                put("target-kind", "block")
+            }
 
         assertEquals(0.milliseconds, controller.startupSettleDelay)
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
@@ -526,6 +549,8 @@ class FabricDriverModuleTest {
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("\"availability\":\"available\""))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("inventory.query"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("inventory.equip"))
+        assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("slot 1"))
+        assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("Iron Sword"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("world.block.break"))
         assertTrue(Files.readString(artifactsDir.resolve("runtime-metadata.json")).contains("craftless-driver-fabric"))
         assertTrue(Files.readString(artifactsDir.resolve("client-events.jsonl")).contains("hello from fabric smoke"))
@@ -578,6 +603,7 @@ class FabricDriverModuleTest {
 private class RecordingFabricClientGateway : FabricClientGateway {
     var scheduled = 0
     val actions = mutableListOf<String>()
+    val queryResults = ArrayDeque<kotlinx.serialization.json.JsonObject>()
     var queryResult =
         buildJsonObject {
             put("hit", true)
@@ -609,7 +635,7 @@ private class RecordingFabricClientGateway : FabricClientGateway {
     override fun <T> queryOnClient(query: net.minecraft.client.MinecraftClient.() -> T): T {
         scheduled += 1
         actions += "client-query"
-        return queryResult as T
+        return (queryResults.removeFirstOrNull() ?: queryResult) as T
     }
 
     override fun stop() {

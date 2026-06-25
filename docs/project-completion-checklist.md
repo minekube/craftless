@@ -153,22 +153,27 @@ Verification:
 
 ## 5. Real Gameplay Vertical Slice
 
-- [ ] Define the first useful end-to-end gameplay slice.
-- [ ] Recommended target: obtain/equip an iron sword using real client actions,
-  without Minecraft console commands as the public API.
+- [x] Define the first useful end-to-end gameplay slice: discover a target
+  inventory item, equip it through live action metadata, and exercise a world
+  block action through generated API contracts.
+- [~] Recommended target: obtain/equip an iron sword using real client actions,
+  without Minecraft console commands as the public API. The smoke can now
+  equip an `Iron Sword` when it appears in `inventory.query`; real acquisition
+  is still missing.
 - [~] The slice uses generated OpenAPI/action metadata as the client contract.
   The smoke controller now re-fetches connected client metadata and gates
   `inventory.query`, `inventory.equip`, and `world.block.break` invocations on
   available action descriptors before calling generic `POST /clients/{id}:run`.
 - [~] The slice discovers the needed actions/resources from the running client;
   it does not call hard-coded Kotlin methods or static CLI commands for current
-  smoke gameplay actions. The final iron-sword workflow still needs stronger
-  world/resource discovery and real evidence.
+  smoke gameplay actions. The smoke chooses the equip slot from live
+  `inventory.query` data. The final iron-sword workflow still needs real
+  acquisition evidence.
 - [ ] The slice runs against a real Fabric client and local server fixture.
 - [~] Evidence proves observable game effects through server logs, client
   telemetry, or both. Current smoke artifacts include connected OpenAPI/actions
-  and gameplay action result telemetry; observable iron-sword acquisition is
-  still missing.
+  and gameplay action result telemetry, including target-item slot selection
+  when present; observable iron-sword acquisition is still missing.
 
 Verification:
 

@@ -37,6 +37,7 @@ data class FabricClientSmokeController(
     val enabled: Boolean,
     val target: ConnectionTarget = ConnectionTarget("127.0.0.1", 25565),
     val chatMessage: String = "hello from Craftless Fabric smoke",
+    val equipItemName: String = "Iron Sword",
     val connectTimeout: Duration = 30_000.milliseconds,
     val startupSettleDelay: Duration = 0.milliseconds,
     val artifactsDir: Path? = null,
@@ -107,46 +108,61 @@ data class FabricClientSmokeController(
                         writeArtifact("client-openapi-connected.json", connectedOpenApi)
                         writeArtifact("client-actions-connected.json", connectedActions)
 
+                        val chatResult =
+                            http.runAvailableAction(
+                                api = api,
+                                clientId = SMOKE_CLIENT_ID,
+                                actions = connectedActions,
+                                action = "player.chat",
+                                args = mapOf("message" to JsonPrimitive(chatMessage)),
+                            )
+                        val moveResult =
+                            http.runAvailableAction(
+                                api = api,
+                                clientId = SMOKE_CLIENT_ID,
+                                actions = connectedActions,
+                                action = "player.move",
+                                args =
+                                    mapOf(
+                                        "forward" to JsonPrimitive(true),
+                                        "ticks" to JsonPrimitive(20),
+                                    ),
+                            )
+                        val inventoryResult =
+                            http.runAvailableAction(
+                                api = api,
+                                clientId = SMOKE_CLIENT_ID,
+                                actions = connectedActions,
+                                action = "inventory.query",
+                            )
+                        val equipSlot =
+                            inventoryResult.findHotbarSlotForItem(equipItemName)
+                                ?: inventoryResult.selectedInventorySlot()
+                                ?: 0
+                        val equipResult =
+                            http.runAvailableAction(
+                                api = api,
+                                clientId = SMOKE_CLIENT_ID,
+                                actions = connectedActions,
+                                action = "inventory.equip",
+                                args = mapOf("slot" to JsonPrimitive(equipSlot)),
+                            )
+                        val blockBreakResult =
+                            http.runAvailableAction(
+                                api = api,
+                                clientId = SMOKE_CLIENT_ID,
+                                actions = connectedActions,
+                                action = "world.block.break",
+                                args = mapOf("max-distance" to JsonPrimitive(4.0)),
+                            )
                         val smokeResults =
                             listOf(
-                                http.runAvailableAction(
-                                    api = api,
-                                    clientId = SMOKE_CLIENT_ID,
-                                    actions = connectedActions,
-                                    action = "player.chat",
-                                    args = mapOf("message" to JsonPrimitive(chatMessage)),
-                                ),
-                                http.runAvailableAction(
-                                    api = api,
-                                    clientId = SMOKE_CLIENT_ID,
-                                    actions = connectedActions,
-                                    action = "player.move",
-                                    args =
-                                        mapOf(
-                                            "forward" to JsonPrimitive(true),
-                                            "ticks" to JsonPrimitive(20),
-                                        ),
-                                ),
-                                http.runAvailableAction(
-                                    api = api,
-                                    clientId = SMOKE_CLIENT_ID,
-                                    actions = connectedActions,
-                                    action = "inventory.query",
-                                ),
-                                http.runAvailableAction(
-                                    api = api,
-                                    clientId = SMOKE_CLIENT_ID,
-                                    actions = connectedActions,
-                                    action = "inventory.equip",
-                                    args = mapOf("slot" to JsonPrimitive(0)),
-                                ),
-                                http.runAvailableAction(
-                                    api = api,
-                                    clientId = SMOKE_CLIENT_ID,
-                                    actions = connectedActions,
-                                    action = "world.block.break",
-                                    args = mapOf("max-distance" to JsonPrimitive(4.0)),
-                                ),
+                                chatResult,
+                                moveResult,
+                                inventoryResult,
+                                """{"event":"craftless-smoke-inventory-select","message":"selected slot $equipSlot for $equipItemName"}""",
+                                equipResult,
+                                blockBreakResult,
                             )
                         writeLinesArtifact("gameplay-results.jsonl", smokeResults)
                     }
@@ -190,6 +206,7 @@ data class FabricClientSmokeController(
         private const val HOST = "CRAFTLESS_SMOKE_SERVER_HOST"
         private const val PORT = "CRAFTLESS_SMOKE_SERVER_PORT"
         private const val CHAT_MESSAGE = "CRAFTLESS_FABRIC_SMOKE_CHAT_MESSAGE"
+        private const val EQUIP_ITEM = "CRAFTLESS_FABRIC_SMOKE_EQUIP_ITEM"
         private const val CONNECT_TIMEOUT = "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS"
         private const val STARTUP_SETTLE = "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS"
         private const val ARTIFACTS_DIR = "CRAFTLESS_SMOKE_ARTIFACTS_DIR"
@@ -208,6 +225,7 @@ data class FabricClientSmokeController(
                 chatMessage =
                     env[CHAT_MESSAGE]?.takeIf { it.isNotBlank() }
                         ?: "hello from Craftless Fabric smoke",
+                equipItemName = env[EQUIP_ITEM]?.takeIf { it.isNotBlank() } ?: "Iron Sword",
                 connectTimeout = (env[CONNECT_TIMEOUT]?.toLongStrict(CONNECT_TIMEOUT) ?: 30_000).milliseconds,
                 startupSettleDelay = (env[STARTUP_SETTLE]?.toLongStrict(STARTUP_SETTLE) ?: 0).milliseconds,
                 artifactsDir = env[ARTIFACTS_DIR]?.takeIf { it.isNotBlank() }?.let(Path::of),
@@ -269,6 +287,37 @@ private fun String.requireAvailableAction(action: String) {
             }
     check(available) { "fabric smoke action $action is not available in connected client metadata" }
 }
+
+private fun String.findHotbarSlotForItem(itemName: String): Int? =
+    inventorySlots()
+        .firstOrNull { slot ->
+            slot["item-name"]?.jsonPrimitive?.content == itemName &&
+                slot["slot"]?.jsonPrimitive?.content?.toIntOrNull() in 0..8
+        }?.get("slot")
+        ?.jsonPrimitive
+        ?.content
+        ?.toIntOrNull()
+
+private fun String.selectedInventorySlot(): Int? =
+    smokeJson
+        .parseToJsonElement(this)
+        .jsonObject["data"]
+        ?.jsonObject
+        ?.get("selected-slot")
+        ?.jsonPrimitive
+        ?.content
+        ?.toIntOrNull()
+        ?.takeIf { it in 0..8 }
+
+private fun String.inventorySlots(): List<kotlinx.serialization.json.JsonObject> =
+    smokeJson
+        .parseToJsonElement(this)
+        .jsonObject["data"]
+        ?.jsonObject
+        ?.get("slots")
+        ?.jsonArray
+        ?.map { it.jsonObject }
+        .orEmpty()
 
 private suspend fun HttpResponse.expectSuccess() {
     check(status.value in 200..299) {
