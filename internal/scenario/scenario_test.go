@@ -161,6 +161,44 @@ steps:
 	}
 }
 
+func TestValidateFileRejectsDuplicateStepActionKeys(t *testing.T) {
+	path := writeScenario(t, `version: 1
+clients:
+  alice:
+    mc: "1.21.6"
+    loader: fabric
+    offline: true
+  bob:
+    mc: "1.21.6"
+    loader: fabric
+    offline: true
+steps:
+  - launch: alice
+    launch: bob
+`)
+	if _, err := scenario.ValidateFile(path); err == nil || !strings.Contains(err.Error(), "duplicate") {
+		t.Fatalf("duplicate action err = %v", err)
+	}
+}
+
+func TestValidateFileRejectsDuplicateActionBodyFields(t *testing.T) {
+	path := writeScenario(t, `version: 1
+clients:
+  alice:
+    mc: "1.21.6"
+    loader: fabric
+    offline: true
+steps:
+  - chat:
+      client: alice
+      client: alice
+      message: hi
+`)
+	if _, err := scenario.ValidateFile(path); err == nil || !strings.Contains(err.Error(), "duplicate") {
+		t.Fatalf("duplicate action field err = %v", err)
+	}
+}
+
 func TestRunFileRejectsMissingLaunchClientFieldsBeforeEngineCalls(t *testing.T) {
 	path := writeScenario(t, `version: 1
 clients:
