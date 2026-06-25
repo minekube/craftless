@@ -116,8 +116,10 @@ private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenA
 
 private fun ApiRoute.responses(): Map<String, OpenApiResponse> {
     val successStatus = if (path == "/clients" && method == "POST") "201" else "200"
-    return mapOf(
-        successStatus to when {
+    return buildMap {
+        put(
+            successStatus,
+            when {
             source == "action" && method == "POST" -> actionInvocationResponse()
             path == "/clients" && method == "GET" -> clientListResponse()
             path == "/clients" && method == "POST" -> clientResponse()
@@ -125,9 +127,26 @@ private fun ApiRoute.responses(): Map<String, OpenApiResponse> {
             path.endsWith(":stop") && method == "POST" -> clientResponse()
             path.matches(Regex("/clients/\\{?[^/]+}?")) && method == "GET" -> clientResponse()
             else -> OpenApiResponse()
+            },
+        )
+        errorStatuses().forEach { status ->
+            put(status, errorResponse(status))
         }
-    )
+    }
 }
+
+private fun ApiRoute.errorStatuses(): List<String> =
+    when {
+        path == "/clients" && method == "POST" -> listOf("400")
+        path.endsWith(":connect") && method == "POST" -> listOf("400")
+        path.endsWith(":run") && method == "POST" -> listOf("400", "404")
+        path.endsWith(":stop") && method == "POST" -> listOf("404")
+        path == "/clients/{id}" && method == "GET" -> listOf("404")
+        path == "/clients/{id}/openapi.json" && method == "GET" -> listOf("404")
+        path == "/clients/{id}/actions" && method == "GET" -> listOf("404")
+        path == "/clients/{id}/events" && method == "GET" -> listOf("404")
+        else -> emptyList()
+    }
 
 private fun ApiRoute.requestBody(actionsById: Map<String, OpenApiAction>): OpenApiRequestBody? =
     when {
@@ -163,6 +182,26 @@ private fun actionInvocationResponse(): OpenApiResponse =
                 required = listOf("action", "status"),
             )
         )
+    )
+
+private fun errorResponse(status: String): OpenApiResponse =
+    OpenApiResponse(
+        description = when (status) {
+            "400" -> "Bad Request"
+            "404" -> "Not Found"
+            else -> "Error"
+        },
+        content = jsonContent(errorSchema()),
+    )
+
+private fun errorSchema(): OpenApiSchema =
+    OpenApiSchema(
+        type = "object",
+        properties = mapOf(
+            "code" to OpenApiSchema(type = "string"),
+            "message" to OpenApiSchema(type = "string"),
+        ),
+        required = listOf("code", "message"),
     )
 
 private fun genericActionRequestBody(): OpenApiRequestBody =

@@ -92,11 +92,34 @@ class OpenApiGenerationTest {
         assertClientSchema(requireNotNull(document.paths["/clients/{id}:stop"]?.post?.okSchema()))
     }
 
+    @Test
+    fun `stable routes describe machine readable error responses`() {
+        val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
+
+        assertErrorSchema(requireNotNull(document.paths["/clients"]?.post?.errorSchema("400")))
+        assertErrorSchema(requireNotNull(document.paths["/clients/{id}"]?.get?.errorSchema("404")))
+        assertErrorSchema(requireNotNull(document.paths["/clients/{id}/actions"]?.get?.errorSchema("404")))
+        assertErrorSchema(requireNotNull(document.paths["/clients/{id}:connect"]?.post?.errorSchema("400")))
+        assertErrorSchema(requireNotNull(document.paths["/clients/{id}:run"]?.post?.errorSchema("400")))
+        assertErrorSchema(requireNotNull(document.paths["/clients/{id}:run"]?.post?.errorSchema("404")))
+        assertErrorSchema(requireNotNull(document.paths["/clients/{id}:stop"]?.post?.errorSchema("404")))
+    }
+
     private fun OpenApiOperation.okSchema(): OpenApiSchema? =
         successSchema("200")
 
     private fun OpenApiOperation.successSchema(status: String): OpenApiSchema? =
         responses[status]?.content?.get("application/json")?.schema
+
+    private fun OpenApiOperation.errorSchema(status: String): OpenApiSchema? =
+        responses[status]?.content?.get("application/json")?.schema
+
+    private fun assertErrorSchema(schema: OpenApiSchema) {
+        assertEquals("object", schema.type)
+        assertEquals(listOf("code", "message"), schema.required)
+        assertEquals("string", schema.properties["code"]?.type)
+        assertEquals("string", schema.properties["message"]?.type)
+    }
 
     private fun assertClientSchema(schema: OpenApiSchema) {
         assertEquals("object", schema.type)
