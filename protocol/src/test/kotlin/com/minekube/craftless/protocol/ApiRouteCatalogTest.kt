@@ -47,4 +47,23 @@ class ApiRouteCatalogTest {
         assertEquals("GET", catalog.route("GET", "/clients").method)
         assertEquals("POST", catalog.route("POST", "/clients").method)
     }
+
+    @Test
+    fun `catalog rejects duplicate method and path routes`() {
+        val route = ApiRoute(
+            method = "GET",
+            path = "/clients",
+            operationId = "listClients",
+            tag = "clients",
+            owner = "clients",
+            member = "list",
+            source = "route",
+        )
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            ApiRouteCatalog(listOf(route, route.copy(operationId = "listClientsDuplicate")))
+        }
+
+        assertTrue(error.message!!.contains("duplicate route GET /clients"))
+    }
 }

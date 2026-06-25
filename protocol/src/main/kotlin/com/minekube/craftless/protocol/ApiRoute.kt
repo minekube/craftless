@@ -19,6 +19,17 @@ data class ApiRoute(
 class ApiRouteCatalog(
     val routes: List<ApiRoute>,
 ) {
+    init {
+        val duplicateRoute = routes
+            .groupBy { it.method to it.path }
+            .entries
+            .firstOrNull { (_, matches) -> matches.size > 1 }
+        if (duplicateRoute != null) {
+            val (method, path) = duplicateRoute.key
+            require(false) { "duplicate route $method $path" }
+        }
+    }
+
     private val byPath: Map<String, List<ApiRoute>> = routes.groupBy { it.path }
     private val byMethodAndPath: Map<Pair<String, String>, ApiRoute> =
         routes.associateBy { it.method to it.path }
