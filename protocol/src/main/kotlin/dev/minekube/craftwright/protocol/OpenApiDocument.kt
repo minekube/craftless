@@ -13,8 +13,8 @@ data class OpenApiDocument(
         fun from(catalog: ApiRouteCatalog): OpenApiDocument =
             OpenApiDocument(paths = catalog.routes.groupBy { it.path }.mapValues { (_, routes) ->
                 OpenApiPath(
-                    get = routes.firstOrNull { it.method == HttpMethod.GET }?.toOperation(),
-                    post = routes.firstOrNull { it.method == HttpMethod.POST }?.toOperation(),
+                    get = routes.firstOrNull { it.method == "GET" }?.toOperation(),
+                    post = routes.firstOrNull { it.method == "POST" }?.toOperation(),
                 )
             })
     }
