@@ -133,6 +133,7 @@ enum class DriverEventType {
     CLIENT_CREATED,
     CLIENT_CONNECTED,
     CHAT,
+    MOVEMENT,
     CLIENT_STOPPED,
 }
 
@@ -174,6 +175,16 @@ class FakeDriverSession(
         return event
     }
 
+    private fun recordMovement(message: String): DriverEvent {
+        val event = DriverEvent(
+            type = DriverEventType.MOVEMENT,
+            client = clientId,
+            message = message,
+        )
+        events += event
+        return event
+    }
+
     override fun actions(): List<DriverActionDescriptor> =
         listOf(
             fakePlayerMoveActionDescriptor(),
@@ -196,11 +207,14 @@ class FakeDriverSession(
                 )
             }
 
-            "player.move" -> DriverActionResult(
-                action = invocation.action,
-                status = DriverActionStatus.ACCEPTED,
-                message = "accepted ${invocation.action} for $clientId",
-            )
+            "player.move" -> {
+                val event = recordMovement("accepted ${invocation.action} for $clientId")
+                DriverActionResult(
+                    action = invocation.action,
+                    status = DriverActionStatus.ACCEPTED,
+                    message = event.message,
+                )
+            }
 
             else -> DriverActionResult(
                 action = invocation.action,

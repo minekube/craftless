@@ -57,6 +57,10 @@ class DriverSessionContractTest {
         )
         assertEquals("player.move", action.action)
         assertEquals(DriverActionStatus.ACCEPTED, action.status)
+        assertTrue(session.events().any {
+            it.type.name == "MOVEMENT" &&
+                it.message == "accepted player.move for alice"
+        })
 
         val unknown = session.invoke(
             DriverActionInvocation(
