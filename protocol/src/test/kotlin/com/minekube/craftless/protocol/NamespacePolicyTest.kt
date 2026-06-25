@@ -11,29 +11,29 @@ import kotlin.test.assertTrue
 class NamespacePolicyTest {
     @Test
     fun `repository uses minekube com namespace`() {
-        val legacyPackage = "dev" + ".minekube"
-        val legacyDomain = "minekube" + ".dev"
+        val previousPackage = "dev" + ".minekube"
+        val previousDomain = "minekube" + ".dev"
         val violations = repositoryContentViolations { contents ->
-            contents.contains(legacyPackage) || contents.contains(legacyDomain)
+            contents.contains(previousPackage) || contents.contains(previousDomain)
         }
 
         assertTrue(
             violations.isEmpty(),
-            "Legacy minekube .dev namespace remains:\n${violations.joinToString("\n")}",
+            "Previous minekube .dev namespace remains:\n${violations.joinToString("\n")}",
         )
     }
 
     @Test
     fun `repository uses craftless product naming`() {
-        val legacyBrand = "Craft" + "wright"
-        val legacyBrandLower = "craft" + "wright"
+        val previousBrand = "Craft" + "wright"
+        val previousBrandLower = "craft" + "wright"
         val violations = repositoryContentViolations { contents ->
-            contents.contains(legacyBrand) || contents.contains(legacyBrandLower)
+            contents.contains(previousBrand) || contents.contains(previousBrandLower)
         }
 
         assertTrue(
             violations.isEmpty(),
-            "Legacy " + legacyBrand + " naming remains:\n${violations.joinToString("\n")}",
+            "Previous " + previousBrand + " naming remains:\n${violations.joinToString("\n")}",
         )
     }
 
