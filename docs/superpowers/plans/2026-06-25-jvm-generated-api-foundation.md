@@ -6,7 +6,7 @@
 
 **Architecture:** Use a Gradle Kotlin multi-project skeleton as the only implementation path. The first executable JVM slice contains protocol DTOs, OpenAPI route generation over fake Minecraft objects, a fake client/session model, and a bridge backend interface that hides HeadlessMC/HMC-Specifics command strings behind Craftwright-owned routes.
 
-**Tech Stack:** Gradle Kotlin DSL, Kotlin 2.4.0, kotlinx.serialization 1.11.0, kotlinx.coroutines 1.11.0, JUnit 5, Kotest 6.2.1, Clikt 5.1.0, OkHttp 5.4.0, Java 21, and Bun for TypeScript package/test execution. Fabric Loom and TypeScript packages are planned as later modules after this foundation compiles.
+**Tech Stack:** Gradle Kotlin DSL, Kotlin 2.4.0, kotlinx.serialization 1.11.0, kotlinx.coroutines 1.11.0, JUnit 5, Kotest 6.2.1, Clikt 5.1.0, Ktor Server/Client 3.5.0, Java 21, and Bun for TypeScript package/test execution. Fabric Loom and TypeScript packages are planned as later modules after this foundation compiles.
 
 ---
 

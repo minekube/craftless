@@ -73,19 +73,18 @@ proves it does not conflict with Minecraft's own Netty usage.
 
 ### HTTP Client
 
-Use OkHttp for JVM-side clients and tests that call the generated local API.
+Use Ktor Client for Kotlin/JVM clients and tests that call the generated local
+API.
 
 Reasons:
 
-- mature JVM HTTP client;
-- current Maven metadata showed `com.squareup.okhttp3:okhttp:5.4.0`;
-- good testing support through MockWebServer;
-- better ergonomics than Java's standard `HttpClient` for our expected local
-  API/client tests.
+- keeps the Kotlin HTTP stack consistent with Ktor Server;
+- supports coroutine-first request flows used by supervisor and SDK code;
+- current Maven metadata showed `ktor-client-core-jvm` and `ktor-client-cio-jvm`
+  `3.5.0`;
+- avoids mixing multiple JVM HTTP client APIs into Craftwright product code.
 
-Ktor Client with the OkHttp engine is acceptable if sharing Ktor types materially
-reduces code. Do not use Java's standard `HttpClient` as the primary client
-library except in tiny dependency-free PoCs.
+Use Java's standard `HttpClient` only in tiny dependency-free PoCs.
 
 ### JSON And Protocol Models
 
@@ -129,7 +128,7 @@ Test layers:
 
 - pure unit tests for route generation and OpenAPI generation;
 - fake-client tests for handles, events, JSON, and token behavior;
-- MockWebServer/OkHttp tests for JVM clients;
+- Ktor Client tests for JVM clients and local API routes;
 - opt-in Fabric real-client smoke tests for generated routes like
   `GET /player/name` and `POST /player/sendChat`.
 
@@ -539,8 +538,8 @@ This design is ready for implementation planning when:
   https://ktor.io/docs/openapi-spec-generation.html
 - Ktor OpenAPI serving:
   https://ktor.io/docs/server-openapi.html
-- OkHttp:
-  https://github.com/square/okhttp
+- Ktor Client:
+  https://ktor.io/docs/client-create-new-application.html
 - kotlinx.serialization:
   https://github.com/Kotlin/kotlinx.serialization
 - Clikt:

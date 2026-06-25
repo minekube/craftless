@@ -88,6 +88,7 @@ Current docs:
 - `docs/superpowers/specs/2026-06-25-generated-client-api-design.md`
 - `docs/superpowers/plans/2026-06-25-jvm-generated-api-foundation.md`
 - `docs/bridge-limitations.md`
+- `docs/agent-skills.md`
 
 ## Development
 

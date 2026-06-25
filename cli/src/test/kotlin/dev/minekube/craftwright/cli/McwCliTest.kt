@@ -1,10 +1,11 @@
 package dev.minekube.craftwright.cli
 
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.request.get
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -33,10 +34,11 @@ class McwCliTest {
             listOf("clients", "api", "--once"),
             stdout = { output.appendLine(it) },
             afterStart = { metadata ->
-                val response = OkHttpClient()
-                    .newCall(Request.Builder().url("${metadata.url}/version").build())
-                    .execute()
-                response.use { versionStatus = it.code }
+                kotlinx.coroutines.runBlocking {
+                    HttpClient(CIO).use { http ->
+                        versionStatus = http.get("${metadata.url}/version").status.value
+                    }
+                }
             },
         )
 
