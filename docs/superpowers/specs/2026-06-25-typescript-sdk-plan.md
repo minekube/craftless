@@ -21,6 +21,12 @@ mise exec -- bun test ts-sdk
 mise exec -- bun test playwright
 ```
 
+Full repository CI runs through mise as well:
+
+```sh
+mise run ci
+```
+
 ## Current SDK Surface
 
 The initial SDK is intentionally route-focused:

@@ -97,6 +97,7 @@ Install and run pinned tools through `mise`:
 
 ```sh
 mise install
+mise run ci
 mise exec -- gradle test
 ```
 
