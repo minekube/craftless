@@ -58,6 +58,7 @@ object McwCli {
         "clients list",
         "clients <id> get",
         "clients <id> connect",
+        "clients <id> stop",
         "clients api",
         "clients <id> openapi",
         "clients <id> actions",
@@ -87,6 +88,9 @@ object McwCli {
         }
         if (args.size >= 3 && args[0] == "clients" && args[2] == "connect") {
             return connectClient(args.drop(1), stdout, stderr, env)
+        }
+        if (args.size >= 3 && args[0] == "clients" && args[2] == "stop") {
+            return stopClient(args.drop(1), stdout, stderr, env)
         }
         if (args.size >= 3 && args[0] == "clients" && args[2] == "openapi") {
             return getClientOpenApi(args.drop(1), stdout, stderr, env)
@@ -217,6 +221,30 @@ object McwCli {
             }
         }.getOrElse { error ->
             stderr("error: ${error.message ?: "failed to fetch client"}")
+            2
+        }
+    }
+
+    private fun stopClient(
+        args: List<String>,
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+        env: Map<String, String>,
+    ): Int {
+        val clientId = args.getOrNull(0).orEmpty()
+        if (clientId.isBlank()) {
+            stderr("error: usage is clients <id> stop [--api <url>]")
+            return 2
+        }
+        val api = args.apiBaseUrl(env)
+        return runCatching {
+            kotlinx.coroutines.runBlocking {
+                HttpClient(CIO).use { http ->
+                    http.post("${api.trimEnd('/')}/clients/$clientId:stop").forwardBody(stdout, stderr)
+                }
+            }
+        }.getOrElse { error ->
+            stderr("error: ${error.message ?: "failed to stop client"}")
             2
         }
     }

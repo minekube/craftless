@@ -26,6 +26,7 @@ class McwCliTest {
         assertTrue(commands.contains("clients list"))
         assertTrue(commands.contains("clients <id> get"))
         assertTrue(commands.contains("clients <id> connect"))
+        assertTrue(commands.contains("clients <id> stop"))
         assertTrue(commands.contains("clients api"))
         assertTrue(commands.contains("clients <id> openapi"))
         assertTrue(commands.contains("clients <id> actions"))
@@ -260,6 +261,32 @@ class McwCliTest {
         val client = Json.parseToJsonElement(output.toString().trim()).jsonObject
         assertEquals("alice", client["id"]?.jsonPrimitive?.content)
         assertEquals("CONNECTED", client["state"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `clients stop posts stop lifecycle method to daemon`() {
+        val output = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = McwCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "stop",
+                    "--api",
+                    server.url,
+                ),
+                stdout = { output.appendLine(it) },
+            )
+
+            assertEquals(0, exit)
+        }
+
+        val client = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        assertEquals("alice", client["id"]?.jsonPrimitive?.content)
+        assertEquals("STOPPED", client["state"]?.jsonPrimitive?.content)
     }
 
     @Test

@@ -295,6 +295,7 @@ Expected: PASS.
 - [ ] **Step 1: Write failing CLI help and dynamic dispatch tests**
 
 Test `mcw --help`, `mcw daemon start`, `mcw clients create`, `mcw clients list`,
+`mcw clients NAME get`, `mcw clients NAME connect`, `mcw clients NAME stop`,
 `mcw clients NAME openapi`, `mcw clients NAME actions`, and the stable generic
 runner `mcw clients NAME run player.move --forward --ticks 20`. Add a fake
 per-client OpenAPI/actions fixture and test that `mcw clients NAME player move
