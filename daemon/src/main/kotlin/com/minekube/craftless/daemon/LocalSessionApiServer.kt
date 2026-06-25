@@ -1,10 +1,12 @@
 package com.minekube.craftless.daemon
 
 import com.minekube.craftless.driver.api.ConnectionTarget
+import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverEventType
+import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.ApiRouteCatalog
 import com.minekube.craftless.protocol.Client
 import com.minekube.craftless.protocol.CreateClientRequest
@@ -151,6 +153,9 @@ class LocalSessionApiServer private constructor(
                     val driver = runCatching { service.driverFor(clientId) }.getOrElse { error ->
                         throw ClientRouteNotFound(error.message ?: "client not found")
                     }
+                    val action = driver.actionDescriptor(request.action)
+                        ?: throw GeneratedActionRouteNotFound("action ${request.action} is not available for client $clientId")
+                    action.requireArguments(request.args)
                     val result = driver.invoke(
                         DriverActionInvocation(
                             action = request.action,
@@ -167,7 +172,7 @@ class LocalSessionApiServer private constructor(
                         )
                     )
                 }.getOrElse { error ->
-                    if (error is ClientRouteNotFound) {
+                    if (error is ClientRouteNotFound || error is GeneratedActionRouteNotFound) {
                         call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
                     } else {
                         call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
@@ -196,13 +201,16 @@ class LocalSessionApiServer private constructor(
                     val driver = runCatching { service.driverFor(clientId) }.getOrElse { error ->
                         throw GeneratedActionRouteNotFound(error.message ?: "client not found")
                     }
-                    if (driver.actions().none { it.id == actionId }) {
+                    val action = driver.actionDescriptor(actionId)
+                    if (action == null) {
                         throw GeneratedActionRouteNotFound("action $actionId is not available for client $clientId")
                     }
+                    val arguments = call.receiveActionArguments()
+                    action.requireArguments(arguments)
                     val result = driver.invoke(
                         DriverActionInvocation(
                             action = actionId,
-                            arguments = call.receiveActionArguments(),
+                            arguments = arguments,
                         )
                     )
                     result.toSessionEvent(clientId)?.let { events += it }
@@ -256,6 +264,19 @@ private fun allocateLoopbackPort(): Int =
 private suspend fun ApplicationCall.receiveActionArguments(): Map<String, JsonElement> {
     val body = receiveText()
     return if (body.isBlank()) emptyMap() else Json.decodeFromString(body)
+}
+
+private fun DriverSession.actionDescriptor(actionId: String): DriverActionDescriptor? =
+    actions().firstOrNull { it.id == actionId }
+
+private fun DriverActionDescriptor.requireArguments(arguments: Map<String, JsonElement>) {
+    val undeclared = arguments.keys.firstOrNull { it !in this.arguments }
+    require(undeclared == null) { "action $id does not declare argument $undeclared" }
+    val missingRequired = this.arguments
+        .filterValues { it.required }
+        .keys
+        .firstOrNull { it !in arguments }
+    require(missingRequired == null) { "action $id requires argument $missingRequired" }
 }
 
 private fun String.toActionId(): String {
