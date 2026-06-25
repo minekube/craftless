@@ -7,7 +7,7 @@ version-specific Minecraft bindings internal to this module where practical.
 
 - Fabric client entrypoint and metadata.
 - Mixins/accessors and bytecode-sensitive Minecraft glue.
-- Client-thread gateway for connect, chat, command, stop, and generated action
+- Client-thread gateway for connect, chat, stop, and generated action
   invocation.
 - First real Fabric backend behavior.
 

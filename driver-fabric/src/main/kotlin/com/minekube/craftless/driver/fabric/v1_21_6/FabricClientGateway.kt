@@ -16,8 +16,6 @@ interface FabricClientGateway {
 
     fun dispatchChatMessage(message: String)
 
-    fun dispatchCommand(command: String)
-
     fun move(intent: FabricMovementIntent)
 
     fun stop()
@@ -63,13 +61,6 @@ class MinecraftFabricClientGateway(
         require(!message.startsWith("/")) { "chat message must not start with slash" }
         val networkHandler = requireNotNull(client.networkHandler) { "client is not connected to a server" }
         networkHandler.sendChatMessage(message)
-    }
-
-    override fun dispatchCommand(command: String) {
-        require(command.isNotBlank()) { "chat command is required" }
-        require(!command.startsWith("/")) { "chat command must not start with slash" }
-        val networkHandler = requireNotNull(client.networkHandler) { "client is not connected to a server" }
-        networkHandler.sendChatCommand(command)
     }
 
     override fun move(intent: FabricMovementIntent) {

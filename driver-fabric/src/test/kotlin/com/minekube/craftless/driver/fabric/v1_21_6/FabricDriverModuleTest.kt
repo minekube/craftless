@@ -38,6 +38,11 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric gateway does not expose raw command dispatch`() {
+        assertTrue(FabricClientGateway::class.java.methods.none { it.name == "dispatchCommand" })
+    }
+
+    @Test
     fun `fabric backend exposes driver runtime actions without changing daemon contract`() {
         val backend = FabricDriverBackend.metadataOnly()
 
@@ -159,10 +164,6 @@ private class RecordingFabricClientGateway : FabricClientGateway {
 
     override fun dispatchChatMessage(message: String) {
         actions += "chat $message"
-    }
-
-    override fun dispatchCommand(command: String) {
-        actions += "command $command"
     }
 
     override fun move(intent: FabricMovementIntent) {
