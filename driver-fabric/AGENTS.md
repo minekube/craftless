@@ -19,8 +19,11 @@ version-specific Minecraft bindings internal to this module where practical.
 - Keep Minecraft calls on the client thread.
 - Do not expose Fabric, Yarn, intermediary, or Minecraft implementation names as
   public action IDs, routes, CLI commands, or docs.
-- Register only actions that this runtime can actually support. Per-client
-  OpenAPI/action descriptors should reflect support checks.
+- Register executable actions only when a real binding exists.
+- Do not register static placeholder descriptors for future gameplay actions.
+- If an unavailable action/resource appears in per-client OpenAPI, it must come
+  from a runtime discovery probe that inspected the running client and records
+  why the operation is unavailable.
 - Prefer internal version-aware bindings and reflection/mapping probes over new
   public Gradle subprojects per Minecraft version.
 - Do not depend on the HMC bridge for final Fabric behavior.

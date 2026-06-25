@@ -23,6 +23,9 @@ The durable shape is thin:
 
 Do not turn Craftless into a hand-written SDK with one static method, route, or
 CLI command per Minecraft action.
+Do not add static placeholder action descriptors. A public action/resource may
+appear only when it comes from a real binding or from a runtime discovery probe
+that inspected the running client and produced explicit availability metadata.
 
 ## Public API Rules
 
@@ -51,6 +54,9 @@ availability, and events that agents can use through OpenAPI.
 
 Use `actions` for user-facing discovery. Internal code may use `capability`
 only when it describes runtime support precisely.
+Generated aliases such as `POST /clients/{id}/player:move` are derived from
+the running client's OpenAPI/action descriptors. Do not create static gameplay
+route families in Kotlin, CLI source, README examples, or tests.
 
 ## HTTP And CLI
 
@@ -74,9 +80,11 @@ only when it describes runtime support precisely.
   bindings, reflection/mapping probes, and small Mixins/accessors.
 - Keep Minecraft calls on the client thread.
 - Version-specific code stays behind stable Craftless driver/action contracts.
-- Per-client OpenAPI exposes what actually works or is explicitly unavailable
-  for the running client. Module names and Minecraft versions are not public
-  API.
+- Per-client OpenAPI exposes real executable bindings and runtime-discovered
+  resources/actions for the running client. Unavailable actions may be exposed
+  only when a runtime probe discovered the operation and records why it is not
+  currently executable.
+- Module names and Minecraft versions are not public API.
 - The bridge backend is evidence infrastructure only. Do not present it as the
   final automation driver.
 
@@ -119,9 +127,9 @@ Use `docs/project-completion-checklist.md` as the active project checklist.
 Update it when project status changes.
 
 Do not mark Craftless complete while the current Fabric driver is still a
-small static placeholder action catalog. Completion requires runtime discovery,
-generated per-client OpenAPI, executable bindings for the advertised core
-actions, and real-client evidence.
+small hand-written binding list. Completion requires runtime discovery,
+generated per-client OpenAPI, executable bindings or probe-backed availability
+for advertised actions/resources, and real-client evidence.
 
 ## Documentation
 

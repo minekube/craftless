@@ -20,11 +20,9 @@ Craftless currently has:
 - a stable `DriverSession` contract with lifecycle primitives plus generic
   action discovery and invocation;
 - Fabric/Loom driver scaffolding with current action evidence;
-- Fabric-generated action descriptors for current chat/move bindings plus
-  broader Craftless-owned gameplay families such as look, raycast, block
-  interaction, inventory, equip, and crafting. Unimplemented descriptors are
-  visible in the live spec and return structured `UNSUPPORTED` until a real
-  binding exists;
+- Fabric-generated action descriptors for current chat/move bindings. Broader
+  gameplay actions must come from real bindings or runtime discovery probes,
+  not static placeholders;
 - bridge code treated as evidence infrastructure only;
 - a testkit local server layout that can launch a supplied Minecraft server jar
   with accepted EULA, collect short-lived process output, and import recognized
@@ -92,13 +90,17 @@ mise run ci
 
 ## Phase 2: Generated Action Surface
 
-Goal: grow automation breadth without creating a static SDK-shaped action list.
+Goal: grow automation breadth without creating a static SDK-shaped action list
+or static placeholder descriptors.
 
-- Grow discovered action descriptors beyond the current look, raycast, block
-  interaction, inventory, equip, and crafting starter catalog as runtime probes
-  can prove support.
-- Add real execution bindings for each discovered action before treating it as
-  successful automation.
+- Add Fabric runtime discovery providers that inspect the running client,
+  player, world, interaction manager, inventory, screen, registries, mods,
+  permissions, and server features.
+- Project discovered runtime affordances into Craftless-owned actions,
+  resources, handles, schemas, availability metadata, and events.
+- Add real execution bindings before treating an action as supported.
+- Expose unavailable operations only when a runtime probe discovered them and
+  recorded why they cannot execute in the current client state.
 - Add typed argument schemas and result schemas where the current OpenAPI model
   needs more than primitive request arguments.
 - Add runtime fingerprints that include Minecraft version, loader, mappings,

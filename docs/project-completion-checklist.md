@@ -23,14 +23,18 @@ Legend:
 - [x] CLI binary is `craftless` and uses adaptive action metadata.
 - [x] Fabric smoke has proven real client launch, server join, generated chat,
   generated movement invocation, disconnect, and artifact capture.
-- [~] Current Fabric action catalog is broader than chat/move, but most
-  advertised gameplay families still return `UNSUPPORTED`.
+- [~] Current Fabric driver has real chat and movement bindings. Broader
+  gameplay discovery is not implemented yet and must not be represented as a
+  static placeholder catalog.
 - [ ] Craftless is complete.
 
 Baseline evidence:
 
 - Latest real-smoke evidence path:
   `driver-fabric/build/craftless-local-server-smoke/artifacts/`
+- Latest static-placeholder cleanup smoke: `client-actions.json` contained
+  only `player.chat` and `player.move`; `server-evidence.jsonl` contained
+  join, chat, and disconnect for the same real client.
 - Key commands:
   - `mise run lint`
   - `mise run ci`
@@ -56,13 +60,16 @@ Verification:
 
 ## 2. Runtime Discovery Architecture
 
-- [ ] Replace the static placeholder mindset with a Fabric runtime discovery
-  design.
+- [x] Remove static placeholder action descriptors from product code and tests.
+- [ ] Design the Fabric runtime discovery/projection layer.
 - [ ] Define how internal Fabric/Minecraft/mod/registry/server data becomes
   Craftless-owned actions, resources, handles, schemas, availability, and
   events.
-- [ ] Decide whether unavailable-but-detected operations appear in OpenAPI as
-  unavailable actions or are omitted until executable.
+- [ ] Define the rule for unavailable-but-detected operations: they may appear
+  in OpenAPI only when a runtime probe discovered them and produced a
+  machine-readable availability reason.
+- [ ] Ensure generated aliases are derived only from the running client's
+  OpenAPI/action descriptors.
 - [ ] Ensure public OpenAPI does not expose Fabric/Yarn/intermediary names,
   raw Minecraft implementation names, mod package names, commands, or launcher
   internals.
@@ -72,19 +79,18 @@ Verification:
 
 - `mise exec -- gradle :protocol:test :driver-fabric:test`
 - `mise exec -- gradle :protocol:test --tests com.minekube.craftless.protocol.NamespacePolicyTest`
+- `mise exec -- gradle :driver-fabric:test --tests com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest`
 
 ## 3. Fabric Driver Action Bindings
 
 - [x] `player.chat` has a real Fabric binding.
 - [x] `player.move` has a real Fabric binding and driver-side event evidence.
-- [ ] `player.look` has a real Fabric binding.
-- [ ] `player.raycast` has a real Fabric binding.
-- [ ] `world.block.interact` has a real Fabric binding.
-- [ ] `world.block.break` has a real Fabric binding.
-- [ ] `inventory.query` has a real Fabric binding.
-- [ ] `inventory.equip` has a real Fabric binding.
-- [ ] `item.craft` has a real Fabric binding or an explicitly narrower
-  Craftless action replaces it.
+- [ ] Real look/perception/block/inventory/screen capabilities are discovered
+  from the running client before they are advertised.
+- [ ] Each advertised gameplay action has either a real Fabric execution
+  binding or probe-backed unavailable metadata.
+- [ ] No future gameplay action is added as a hand-written placeholder
+  descriptor.
 - [ ] `FabricClientGateway` stays generic and does not grow one method per
   gameplay action.
 
@@ -99,6 +105,8 @@ Verification:
 - [ ] Recommended target: obtain/equip an iron sword using real client actions,
   without Minecraft console commands as the public API.
 - [ ] The slice uses generated OpenAPI/action metadata as the client contract.
+- [ ] The slice discovers the needed actions/resources from the running client;
+  it does not call hard-coded Kotlin methods or static CLI commands.
 - [ ] The slice runs against a real Fabric client and local server fixture.
 - [ ] Evidence proves observable game effects through server logs, client
   telemetry, or both.
@@ -142,11 +150,11 @@ Verification:
 Craftless is complete only when all are true:
 
 - [ ] README and docs match the restored product direction.
-- [ ] Per-client OpenAPI is generated from runtime discovery, not a static
-  placeholder action list.
+- [ ] Per-client OpenAPI is generated from runtime discovery and real bindings,
+  not a static placeholder action list.
 - [ ] Public API names are Craftless-owned and policy tests enforce that.
-- [ ] Core player/world/inventory actions advertised in OpenAPI have real
-  Fabric execution bindings or are explicitly marked unavailable by design.
+- [ ] Advertised player/world/inventory/screen actions have real Fabric
+  execution bindings or probe-backed unavailable metadata.
 - [ ] A real gameplay vertical slice passes through API/CLI the way a user or
   agent would use it.
 - [ ] `mise run lint` passes.

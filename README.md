@@ -117,11 +117,9 @@ Implemented now:
   packs.
 - Fabric/Loom driver module with internal version-aware bindings and
   gateway-backed runtime hooks for current action evidence.
-- Fabric-generated action descriptors for current chat/move bindings plus
-  broader Craftless-owned gameplay families such as look, raycast, block
-  interaction, inventory, equip, and crafting. Unimplemented descriptors are
-  visible in the live spec and return structured `UNSUPPORTED` until a real
-  binding exists.
+- Fabric-generated action descriptors for current chat/move bindings. Broader
+  gameplay actions are not advertised until they come from real bindings or
+  runtime discovery probes.
 - Testkit helpers and an opt-in `:testkit:localMinecraftServerSmoke` task for
   provisioning a Minecraft server jar, accepting the EULA, starting the server,
   keeping it running around a caller-supplied smoke action, and collecting
@@ -137,9 +135,9 @@ Still roadmap:
 
 - stronger real-client movement proof using server-side position deltas or
   measured in-client position telemetry;
-- real execution bindings for the broader generated action families, including
-  look, raycast, inventory, world/entity queries, screen interaction, crafting,
-  and events;
+- runtime discovery/projection for broader gameplay resources and actions such
+  as look, raycast, inventory, world/entity queries, screen interaction,
+  crafting, and events;
 - consolidated Fabric driver support across more Minecraft versions;
 - fuller client file management informed by Prism Launcher source, with any
   Prism import/adapter remaining optional rather than a core dependency.
