@@ -47,13 +47,12 @@ Use this checklist after converting each Java file to Kotlin.
 - [ ] `when` expression used instead of `switch`
 - [ ] Smart casts used after `is` checks (no explicit casts)
 
-## Framework-Specific (check applicable items)
-- [ ] **Spring**: Classes that need proxying are `open`; `@Bean` methods are `open`
-- [ ] **Lombok**: All Lombok annotations removed; replaced with Kotlin equivalents
-- [ ] **Hibernate/JPA**: Entities are `open` (not data classes); no-arg constructor provided
-- [ ] **Jackson**: `@field:` and `@get:` annotation site targets correct
-- [ ] **RxJava**: Reactive types correctly mapped to Coroutines/Flow
-- [ ] **Mockito**: `when` keyword escaped or replaced with MockK equivalent
+## Craftless-Specific
+- [ ] Nearest `AGENTS.md` was read before editing the file
+- [ ] Fabric Mixins, accessors, and bytecode-sensitive Minecraft glue stayed Java
+- [ ] JVM HTTP code uses Ktor boundaries, not old Java HTTP stacks
+- [ ] JSON contracts use kotlinx.serialization where possible
+- [ ] No static per-action Minecraft API surface was introduced
 
 ## Git History
 - [ ] File renamed via `git mv` (not delete + create)

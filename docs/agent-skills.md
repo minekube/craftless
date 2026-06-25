@@ -10,9 +10,9 @@ should not be installed unless the repository starts using those technologies.
   Kotlin/JVM defaults: Gradle Kotlin DSL, Ktor Server/Client, structured
   concurrency, JVM tests, Fabric client-thread boundaries, and no old Java HTTP
   stack.
-- `.agents/skills/kotlin-tooling-java-to-kotlin` is installed for concrete
-  Java-to-Kotlin conversion tasks. Java still remains appropriate for Fabric
-  Mixins and bytecode-sensitive Minecraft glue.
+- `.agents/skills/kotlin-tooling-java-to-kotlin` is installed as a narrowed
+  Craftless-scoped Java-to-Kotlin conversion workflow. Java still remains
+  appropriate for Fabric Mixins and bytecode-sensitive Minecraft glue.
 - `.agents/skills/gradle-kotlin-dsl-doctor` is installed for Gradle Kotlin DSL
   and dependency-model repair.
 - `.agents/skills/dependency-conflict-resolver` is installed for Gradle

@@ -3,9 +3,7 @@ name: kotlin-tooling-java-to-kotlin
 description: >
   Use when converting Java source files to idiomatic Kotlin, when user mentions
   "java to kotlin", "j2k", "convert java", "migrate java to kotlin", or when
-  working with .java files that need to become .kt files. Handles framework-aware
-  conversion for Spring, Lombok, Hibernate, Jackson, Micronaut, Quarkus, Dagger/Hilt,
-  RxJava, JUnit, Guice, Retrofit, and Mockito.
+  working with .java files that need to become .kt files in Craftless JVM modules.
 license: Apache-2.0
 metadata:
   author: JetBrains
@@ -14,9 +12,10 @@ metadata:
 
 # Java to Kotlin Conversion
 
-Convert Java source files to idiomatic Kotlin using a disciplined 4-step conversion
-methodology with 5 invariants checked at each step. Supports framework-aware conversion
-that handles annotation site targets, library idioms, and API preservation.
+Convert Java source files to idiomatic Kotlin using a disciplined 4-step
+conversion methodology with 5 invariants checked at each step. Keep Java for
+Fabric Mixins, accessors, and bytecode-sensitive Minecraft glue unless there is
+clear evidence Kotlin is the right boundary.
 
 ## Workflow
 
@@ -24,8 +23,7 @@ that handles annotation site targets, library idioms, and API preservation.
 digraph j2k_workflow {
   rankdir=TB;
   "User specifies files" -> "Step 0: Scan & Detect";
-  "Step 0: Scan & Detect" -> "Load framework guides";
-  "Load framework guides" -> "Step 1: Convert";
+  "Step 0: Scan & Detect" -> "Step 1: Convert";
   "Step 1: Convert" -> "Step 2: Write .kt";
   "Step 2: Write .kt" -> "Step 3: Git rename";
   "Step 3: Git rename" -> "Step 4: Verify";
@@ -37,30 +35,12 @@ digraph j2k_workflow {
 }
 ```
 
-## Step 0: Scan & Detect Frameworks
+## Step 0: Scan Scope
 
-Before converting, scan the Java file's import statements to detect which frameworks
-are in use. Load ONLY the matching framework reference files to keep context focused.
-
-### Framework Detection Table
-
-| Import prefix | Framework guide |
-|---|---|
-| `org.springframework.*` | [SPRING.md](references/frameworks/SPRING.md) |
-| `lombok.*` | [LOMBOK.md](references/frameworks/LOMBOK.md) |
-| `javax.persistence.*`, `jakarta.persistence.*`, `org.hibernate.*` | [HIBERNATE.md](references/frameworks/HIBERNATE.md) |
-| `com.fasterxml.jackson.*` | [JACKSON.md](references/frameworks/JACKSON.md) |
-| `io.micronaut.*` | [MICRONAUT.md](references/frameworks/MICRONAUT.md) |
-| `io.quarkus.*`, `javax.enterprise.*`, `jakarta.enterprise.*` | [QUARKUS.md](references/frameworks/QUARKUS.md) |
-| `dagger.*`, `dagger.hilt.*` | [DAGGER-HILT.md](references/frameworks/DAGGER-HILT.md) |
-| `io.reactivex.*`, `rx.*` | [RXJAVA.md](references/frameworks/RXJAVA.md) |
-| `org.junit.*`, `org.testng.*` | [JUNIT.md](references/frameworks/JUNIT.md) |
-| `com.google.inject.*` | [GUICE.md](references/frameworks/GUICE.md) |
-| `retrofit2.*`, `okhttp3.*` | [RETROFIT.md](references/frameworks/RETROFIT.md) |
-| `org.mockito.*` | [MOCKITO.md](references/frameworks/MOCKITO.md) |
-
-If `javax.inject.*` is detected, check for Dagger/Hilt vs Guice by looking for other
-imports from those frameworks. If ambiguous, load both guides.
+Before converting, scan the Java file and nearest `AGENTS.md` to confirm the
+file is not Fabric Mixin/accessor or bytecode-sensitive Minecraft glue that
+should remain Java. If conversion is appropriate, preserve package names,
+public API shape, annotations, and runtime behavior.
 
 ## Step 1: Convert
 
@@ -75,7 +55,9 @@ This is a 4-step chain-of-thought process:
 Five invariants are checked after each step. If any invariant is violated, revert
 to the previous step and redo.
 
-Apply any loaded framework-specific guidance during step 4 (idiomatic transformations).
+Keep Craftless stack rules in force during step 4: Ktor for JVM HTTP
+boundaries, kotlinx.serialization for JSON contracts, and no old Java HTTP
+stack or static Minecraft action surface.
 
 ## Step 2: Write Output
 
