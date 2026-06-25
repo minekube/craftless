@@ -316,21 +316,21 @@ Expected: PASS.
 - Create: `playwright/src/index.ts`
 - Create: `docs/superpowers/specs/2026-06-25-typescript-sdk-plan.md`
 
-- [ ] **Step 1: Write failing package smoke tests**
+- [x] **Step 1: Write failing package smoke tests**
 
 Test that SDK methods map to daemon/session routes and Playwright fixtures call the SDK rather than parsing human CLI output.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `mise exec -- bun test ts-sdk && mise exec -- bun test playwright`
 
 Expected: FAIL until packages are scaffolded.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Create typed client stubs for start, launch, connect, chat, waitForChat, player, and stop.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run: `mise exec -- bun test ts-sdk && mise exec -- bun test playwright`
 

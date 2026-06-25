@@ -86,6 +86,7 @@ Current docs:
 - `docs/superpowers/specs/2026-06-25-jvm-first-rewrite-design.md`
 - `docs/superpowers/specs/2026-06-25-client-management-decisions.md`
 - `docs/superpowers/specs/2026-06-25-generated-client-api-design.md`
+- `docs/superpowers/specs/2026-06-25-typescript-sdk-plan.md`
 - `docs/superpowers/plans/2026-06-25-jvm-generated-api-foundation.md`
 - `docs/bridge-limitations.md`
 - `docs/agent-skills.md`
@@ -102,5 +103,6 @@ mise exec -- gradle test
 Use Bun for TypeScript package work when SDK modules are added:
 
 ```sh
-mise exec -- bun test
+mise exec -- bun test ts-sdk
+mise exec -- bun test playwright
 ```
