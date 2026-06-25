@@ -121,6 +121,9 @@ private fun ApiRoute.responses(): Map<String, OpenApiResponse> {
             successStatus,
             when {
                 source == "action" && method == "POST" -> actionInvocationResponse()
+                path == "/version" && method == "GET" -> versionResponse()
+                (path == "/events" || path.endsWith("/events")) && method == "GET" -> eventListResponse()
+                path.endsWith("/actions") && method == "GET" -> actionListResponse()
                 path == "/clients" && method == "GET" -> clientListResponse()
                 path == "/clients" && method == "POST" -> clientResponse()
                 path.endsWith(":connect") && method == "POST" -> clientResponse()
@@ -139,6 +142,7 @@ private fun ApiRoute.errorStatuses(): List<String> =
     when {
         path == "/clients" && method == "POST" -> listOf("400")
         path.endsWith(":connect") && method == "POST" -> listOf("400", "404")
+        source == "action" && method == "POST" -> listOf("400", "404")
         path.endsWith(":run") && method == "POST" -> listOf("400", "404")
         path.endsWith(":stop") && method == "POST" -> listOf("404")
         path == "/clients/{id}" && method == "GET" -> listOf("404")
@@ -202,6 +206,72 @@ private fun errorSchema(): OpenApiSchema =
             "message" to OpenApiSchema(type = "string"),
         ),
         required = listOf("code", "message"),
+    )
+
+private fun versionResponse(): OpenApiResponse =
+    OpenApiResponse(
+        content = jsonContent(
+            OpenApiSchema(
+                type = "object",
+                properties = mapOf(
+                    "minecraft" to OpenApiSchema(type = "string"),
+                    "loader" to OpenApiSchema(type = "string"),
+                    "loaderVersion" to OpenApiSchema(type = "string"),
+                    "driver" to OpenApiSchema(type = "string"),
+                    "driverVersion" to OpenApiSchema(type = "string"),
+                    "java" to OpenApiSchema(type = "string"),
+                    "mappingsFingerprint" to OpenApiSchema(type = "string"),
+                    "openapiGeneratedAt" to OpenApiSchema(type = "string"),
+                ),
+                required = listOf(
+                    "minecraft",
+                    "loader",
+                    "loaderVersion",
+                    "driver",
+                    "driverVersion",
+                    "java",
+                    "mappingsFingerprint",
+                    "openapiGeneratedAt",
+                ),
+            )
+        )
+    )
+
+private fun eventListResponse(): OpenApiResponse =
+    OpenApiResponse(
+        content = jsonContent(
+            OpenApiSchema(
+                type = "array",
+                items = OpenApiSchema(
+                    type = "object",
+                    properties = mapOf(
+                        "type" to OpenApiSchema(type = "string"),
+                        "client" to OpenApiSchema(type = "string"),
+                        "message" to OpenApiSchema(type = "string"),
+                        "time" to OpenApiSchema(type = "string"),
+                    ),
+                    required = listOf("type", "time"),
+                ),
+            )
+        )
+    )
+
+private fun actionListResponse(): OpenApiResponse =
+    OpenApiResponse(
+        content = jsonContent(
+            OpenApiSchema(
+                type = "array",
+                items = OpenApiSchema(
+                    type = "object",
+                    properties = mapOf(
+                        "id" to OpenApiSchema(type = "string"),
+                        "schemaVersion" to OpenApiSchema(type = "string"),
+                        "args" to OpenApiSchema(type = "object", additionalProperties = true),
+                    ),
+                    required = listOf("id", "schemaVersion"),
+                ),
+            )
+        )
     )
 
 private fun genericActionRequestBody(): OpenApiRequestBody =

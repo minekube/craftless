@@ -93,6 +93,44 @@ class OpenApiGenerationTest {
     }
 
     @Test
+    fun `stable discovery routes describe metadata action and event response bodies`() {
+        val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
+
+        val versionSchema = requireNotNull(document.paths["/version"]?.get?.okSchema())
+        assertEquals("object", versionSchema.type)
+        assertEquals(
+            listOf(
+                "minecraft",
+                "loader",
+                "loaderVersion",
+                "driver",
+                "driverVersion",
+                "java",
+                "mappingsFingerprint",
+                "openapiGeneratedAt",
+            ),
+            versionSchema.required,
+        )
+        assertEquals("string", versionSchema.properties["minecraft"]?.type)
+        assertEquals("string", versionSchema.properties["mappingsFingerprint"]?.type)
+        assertEquals("string", versionSchema.properties["openapiGeneratedAt"]?.type)
+
+        val eventsSchema = requireNotNull(document.paths["/events"]?.get?.okSchema())
+        assertEventListSchema(eventsSchema)
+        assertEventListSchema(requireNotNull(document.paths["/clients/{id}/events"]?.get?.okSchema()))
+
+        val actionsSchema = requireNotNull(document.paths["/clients/{id}/actions"]?.get?.okSchema())
+        assertEquals("array", actionsSchema.type)
+        val actionSchema = requireNotNull(actionsSchema.items)
+        assertEquals("object", actionSchema.type)
+        assertEquals(listOf("id", "schemaVersion"), actionSchema.required)
+        assertEquals("string", actionSchema.properties["id"]?.type)
+        assertEquals("string", actionSchema.properties["schemaVersion"]?.type)
+        assertEquals("object", actionSchema.properties["args"]?.type)
+        assertEquals(true, actionSchema.properties["args"]?.additionalProperties)
+    }
+
+    @Test
     fun `stable routes describe machine readable error responses`() {
         val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
 
@@ -120,6 +158,17 @@ class OpenApiGenerationTest {
         assertEquals(listOf("code", "message"), schema.required)
         assertEquals("string", schema.properties["code"]?.type)
         assertEquals("string", schema.properties["message"]?.type)
+    }
+
+    private fun assertEventListSchema(schema: OpenApiSchema) {
+        assertEquals("array", schema.type)
+        val eventSchema = requireNotNull(schema.items)
+        assertEquals("object", eventSchema.type)
+        assertEquals(listOf("type", "time"), eventSchema.required)
+        assertEquals("string", eventSchema.properties["type"]?.type)
+        assertEquals("string", eventSchema.properties["client"]?.type)
+        assertEquals("string", eventSchema.properties["message"]?.type)
+        assertEquals("string", eventSchema.properties["time"]?.type)
     }
 
     private fun assertClientSchema(schema: OpenApiSchema) {

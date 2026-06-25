@@ -16,6 +16,7 @@ import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.OpenApiDocument
+import com.minekube.craftless.protocol.OpenApiResponse
 import com.minekube.craftless.protocol.Profile
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
@@ -167,6 +168,8 @@ class ClientSessionServiceTest {
         assertNotNull(chatResponseSchema)
         assertEquals(listOf("action", "status"), chatResponseSchema.required)
         assertEquals("string", chatResponseSchema.properties["message"]?.type)
+        assertErrorSchema(requireNotNull(document.paths["/clients/alice/player:chat"]?.post?.responses?.get("400")))
+        assertErrorSchema(requireNotNull(document.paths["/clients/alice/player:chat"]?.post?.responses?.get("404")))
         assertEquals("1", document.actions.single { it.id == "player.move" }.schemaVersion)
         assertEquals("1", document.actions.single { it.id == "player.chat" }.schemaVersion)
     }
@@ -383,3 +386,11 @@ private fun testPlayerChatActionDescriptor(): DriverActionDescriptor =
             "message" to DriverActionArgument("string", required = true),
         ),
     )
+
+private fun assertErrorSchema(response: OpenApiResponse) {
+    val schema = requireNotNull(response.content["application/json"]?.schema)
+    assertEquals("object", schema.type)
+    assertEquals(listOf("code", "message"), schema.required)
+    assertEquals("string", schema.properties["code"]?.type)
+    assertEquals("string", schema.properties["message"]?.type)
+}
