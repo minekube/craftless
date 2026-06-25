@@ -165,6 +165,24 @@ class BackendDriverSessionTest {
         }
         assertEquals(DriverBackendAction.STOP, backend.stop("alice").action)
     }
+
+    @Test
+    fun `hmc bridge backend keeps unsupported action errors craftless owned`() {
+        val backend = HmcBridgeDriverBackend(HmcBridgeBackend.dryRun())
+
+        val result = backend.invoke(
+            "alice",
+            DriverActionInvocation(
+                action = "world.scan",
+                arguments = emptyMap(),
+            ),
+        )
+
+        assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
+        assertEquals("unsupported action world.scan", result.message)
+        assertTrue(result.message?.contains("bridge", ignoreCase = true) == false)
+        assertTrue(result.message?.contains("hmc", ignoreCase = true) == false)
+    }
 }
 
 private class RecordingDriverBackend(

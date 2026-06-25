@@ -61,7 +61,7 @@ class HmcBridgeDriverBackend(
             return DriverActionResult(
                 action = invocation.action,
                 status = DriverActionStatus.UNSUPPORTED,
-                message = "unsupported bridge action ${invocation.action}",
+                message = "unsupported action ${invocation.action}",
             )
         }
         val intent = when {
