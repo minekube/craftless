@@ -32,7 +32,7 @@ Craftwright is a Kotlin/JVM-first project with one implementation direction:
 - a real Fabric driver implementation as the durable automation engine;
 - stable kernel OpenAPI at `/openapi.json` plus per-client OpenAPI at
   `/clients/{id}/openapi.json` with Craftwright metadata and discovered
-  action schemas;
+  action schemas plus runtime/cache fingerprints;
 - Playwright helper tests.
 
 ## Evidence
@@ -82,8 +82,9 @@ Phase 1:
 - route Fabric connect, chat, command, stop, player state, player position
   observation, and generated `player.move`/`player.chat` action invocation
   through a real Minecraft client gateway;
-- expose `/clients/{id}/openapi.json` with runtime metadata and discovered
-  action schemas while avoiding static hand-written action route expansion;
+- expose `/clients/{id}/openapi.json` with runtime fingerprint metadata and
+  discovered action schemas while avoiding static hand-written action route
+  expansion;
 - expose AIP-style action invocation through `POST /clients/{id}:run` plus
   generated aliases such as `POST /clients/{id}/player:move` and
   `POST /clients/{id}/player:chat`;

@@ -77,16 +77,10 @@ class ClientSessionService private constructor(
     fun openApiFor(clientId: String): OpenApiDocument {
         val client = client(clientId)
         val capabilities = driverFor(clientId).capabilities()
+        val runtimeMetadata = RuntimeOpenApiMetadata.forClient(client, capabilities)
         return OpenApiDocument.from(
             catalog = ApiRouteCatalog(routesFor(clientId)),
-            extensions = mapOf(
-                "x-craftwright-client-id" to client.id,
-                "x-craftwright-minecraft-version" to client.instance.version.id,
-                "x-craftwright-loader" to client.instance.loader.name,
-                "x-craftwright-driver" to "craftwright-daemon",
-                "x-craftwright-capability-schema-version" to (capabilities.firstOrNull()?.schemaVersion ?: "none"),
-                "x-craftwright-capability-fingerprint" to capabilities.joinToString(",") { "${it.id}:${it.schemaVersion}" },
-            ),
+            extensions = runtimeMetadata.extensions,
             capabilities = capabilities.map { capability ->
                 OpenApiCapability(
                     id = capability.id,
@@ -122,6 +116,62 @@ class ClientSessionService private constructor(
 
 fun interface DriverSessionFactory {
     fun create(request: CreateClientRequest): DriverSession
+}
+
+private data class RuntimeOpenApiMetadata(
+    val extensions: Map<String, String>,
+) {
+    companion object {
+        private const val loaderVersion = "none"
+        private const val driver = "craftwright-daemon"
+        private const val driverVersion = "0.1.0-SNAPSHOT"
+        private const val mappings = "none"
+        private const val installedModsFingerprint = "none"
+        private const val registryFingerprint = "none"
+        private const val serverFeatureFingerprint = "none"
+        private const val permissionsFingerprint = "local-fake"
+
+        fun forClient(
+            client: Client,
+            capabilities: List<DriverCapabilityDescriptor>,
+        ): RuntimeOpenApiMetadata {
+            val capabilityFingerprint = capabilities.joinToString(",") { "${it.id}:${it.schemaVersion}" }
+            val extensions = linkedMapOf(
+                "x-craftwright-client-id" to client.id,
+                "x-craftwright-minecraft-version" to client.instance.version.id,
+                "x-craftwright-loader" to client.instance.loader.name,
+                "x-craftwright-loader-version" to loaderVersion,
+                "x-craftwright-driver" to driver,
+                "x-craftwright-driver-version" to driverVersion,
+                "x-craftwright-mappings" to mappings,
+                "x-craftwright-installed-mods-fingerprint" to installedModsFingerprint,
+                "x-craftwright-registry-fingerprint" to registryFingerprint,
+                "x-craftwright-server-feature-fingerprint" to serverFeatureFingerprint,
+                "x-craftwright-permissions-fingerprint" to permissionsFingerprint,
+                "x-craftwright-capability-schema-version" to (capabilities.firstOrNull()?.schemaVersion ?: "none"),
+                "x-craftwright-capability-fingerprint" to capabilityFingerprint,
+            )
+            extensions["x-craftwright-runtime-fingerprint"] = runtimeFingerprint(client, capabilityFingerprint)
+            return RuntimeOpenApiMetadata(extensions)
+        }
+
+        private fun runtimeFingerprint(
+            client: Client,
+            capabilityFingerprint: String,
+        ): String = listOf(
+            "minecraft=${client.instance.version.id}",
+            "loader=${client.instance.loader.name}",
+            "loaderVersion=$loaderVersion",
+            "driver=$driver",
+            "driverVersion=$driverVersion",
+            "mappings=$mappings",
+            "mods=$installedModsFingerprint",
+            "registries=$registryFingerprint",
+            "serverFeatures=$serverFeatureFingerprint",
+            "permissions=$permissionsFingerprint",
+            "actions=$capabilityFingerprint",
+        ).joinToString(";")
+    }
 }
 
 private fun route(

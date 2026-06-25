@@ -60,6 +60,18 @@ class ClientSessionServiceTest {
         assertEquals("alice", document.extensions["x-craftwright-client-id"])
         assertEquals("1.21.4", document.extensions["x-craftwright-minecraft-version"])
         assertEquals("FABRIC", document.extensions["x-craftwright-loader"])
+        assertEquals("none", document.extensions["x-craftwright-loader-version"])
+        assertEquals("craftwright-daemon", document.extensions["x-craftwright-driver"])
+        assertEquals("0.1.0-SNAPSHOT", document.extensions["x-craftwright-driver-version"])
+        assertEquals("none", document.extensions["x-craftwright-mappings"])
+        assertEquals("none", document.extensions["x-craftwright-installed-mods-fingerprint"])
+        assertEquals("none", document.extensions["x-craftwright-registry-fingerprint"])
+        assertEquals("none", document.extensions["x-craftwright-server-feature-fingerprint"])
+        assertEquals("local-fake", document.extensions["x-craftwright-permissions-fingerprint"])
+        assertEquals(
+            "minecraft=1.21.4;loader=FABRIC;loaderVersion=none;driver=craftwright-daemon;driverVersion=0.1.0-SNAPSHOT;mappings=none;mods=none;registries=none;serverFeatures=none;permissions=local-fake;actions=player.move:1,player.chat:1",
+            document.extensions["x-craftwright-runtime-fingerprint"],
+        )
         assertTrue(document.paths.containsKey("/clients/alice/openapi.json"))
         assertTrue(document.paths.containsKey("/clients/alice/actions"))
         assertTrue(document.paths.containsKey("/clients/alice:run"))
