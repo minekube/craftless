@@ -20,7 +20,9 @@
 - Create `bridge-hmc/`: temporary HeadlessMC/HMC-Specifics bridge interface, limitation docs, and command mapping kept internal.
 - Create `cli/`: JVM `mcw` entrypoint and first command tree tests.
 - Create `docs/bridge-limitations.md`: public warning that bridge movement is simulated and not the final Fabric driver.
-- Later create `driver-api/`, `driver-runtime/`, `driver-fabric-1_21_6/`, `ts-sdk/`, and `playwright/` once the bridge-backed skeleton is verified.
+- `driver-api/`, `ts-sdk/`, and `playwright/` now exist. Later create
+  `driver-runtime/` and `driver-fabric-1_21_6/` once the bridge-backed skeleton
+  is verified.
 
 ## Task 1: Gradle/Kotlin Foundation
 

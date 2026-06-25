@@ -1,5 +1,8 @@
 package dev.minekube.craftwright.daemon
 
+import dev.minekube.craftwright.driver.api.ChatCommand
+import dev.minekube.craftwright.driver.api.ConnectionTarget
+import dev.minekube.craftwright.driver.api.DriverEventType
 import dev.minekube.craftwright.protocol.ClientState
 import dev.minekube.craftwright.protocol.CreateClientRequest
 import dev.minekube.craftwright.protocol.Loader
@@ -47,5 +50,24 @@ class ClientSessionServiceTest {
 
         assertTrue(result.isFailure)
         assertEquals("offline profile name must be 16 characters or fewer", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `created clients expose a driver session contract`() {
+        val service = ClientSessionService.inMemory()
+        service.createClient(
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            )
+        )
+
+        val driver = service.driverFor("alice")
+        assertEquals(ClientState.RUNNING, driver.snapshot().state)
+        assertEquals(ClientState.CONNECTED, driver.connect(ConnectionTarget("localhost", 25565)).state)
+        assertEquals(DriverEventType.CHAT, driver.sendChat(ChatCommand("from driver")).type)
+        assertEquals("Alice", driver.player().name)
     }
 }

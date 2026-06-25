@@ -63,7 +63,8 @@ The daemon fake-session API currently implements the SDK smoke routes:
 
 These routes update in-memory client state and session events. They are not a
 real Minecraft driver yet, but they let the CLI, SDK, fixtures, and OpenAPI
-metadata converge on one contract before the Fabric driver replaces fake state.
+metadata converge on one contract before the Fabric driver replaces
+`FakeDriverSession` behind the `driver-api` boundary.
 
 ## Playwright Direction
 

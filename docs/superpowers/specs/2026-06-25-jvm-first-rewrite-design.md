@@ -123,7 +123,8 @@ craftwright/
     Kotlin YAML scenario parser and runner.
 
   driver-api/
-    Stable JVM interfaces exposed by the in-client driver.
+    Stable JVM interfaces exposed by the in-client driver. The repository now
+    starts this boundary with `DriverSession` and `FakeDriverSession`.
 
   driver-runtime/
     JVM runtime loaded with or before Minecraft.
@@ -165,6 +166,10 @@ that is known to work in offline mode.
 
 The driver runs inside the Minecraft client JVM. It is the real automation
 engine.
+
+The supervisor and daemon should talk to this layer through `driver-api/`.
+Current fake daemon state uses `FakeDriverSession`; the Fabric module should
+replace that implementation without changing SDK or daemon routes.
 
 Responsibilities:
 

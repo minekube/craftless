@@ -1,5 +1,8 @@
 package dev.minekube.craftwright.daemon
 
+import dev.minekube.craftwright.driver.api.ConnectionTarget
+import dev.minekube.craftwright.driver.api.DriverSession
+import dev.minekube.craftwright.driver.api.FakeDriverSession
 import dev.minekube.craftwright.protocol.ApiRoute
 import dev.minekube.craftwright.protocol.Client
 import dev.minekube.craftwright.protocol.ClientState
@@ -9,6 +12,7 @@ import dev.minekube.craftwright.protocol.MinecraftVersion
 
 class ClientSessionService private constructor() {
     private val clients = linkedMapOf<String, Client>()
+    private val drivers = linkedMapOf<String, DriverSession>()
 
     fun createClient(request: CreateClientRequest): Client {
         require(request.id.isNotBlank()) { "client id is required" }
@@ -28,17 +32,28 @@ class ClientSessionService private constructor() {
             state = ClientState.RUNNING,
         )
         clients[request.id] = client
+        drivers[request.id] = FakeDriverSession(
+            clientId = request.id,
+            profileName = request.profile.name,
+        )
         return client
     }
 
     fun client(clientId: String): Client =
         clients[clientId] ?: error("client $clientId not found")
 
-    fun connectClient(clientId: String): Client =
-        updateState(clientId, ClientState.CONNECTED)
+    fun driverFor(clientId: String): DriverSession =
+        drivers[clientId] ?: error("client $clientId not found")
 
-    fun stopClient(clientId: String): Client =
-        updateState(clientId, ClientState.STOPPED)
+    fun connectClient(clientId: String, target: ConnectionTarget): Client {
+        val snapshot = driverFor(clientId).connect(target)
+        return updateState(clientId, snapshot.state)
+    }
+
+    fun stopClient(clientId: String): Client {
+        val snapshot = driverFor(clientId).stop()
+        return updateState(clientId, snapshot.state)
+    }
 
     fun routesFor(clientId: String): List<ApiRoute> {
         require(clients.containsKey(clientId)) { "client $clientId not found" }

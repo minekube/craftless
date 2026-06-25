@@ -16,6 +16,8 @@ Craftwright is a Kotlin/JVM-first project with one implementation direction:
 
 - a short scriptable CLI, currently `mcw` unless renamed separately;
 - a local supervisor/API for client sessions;
+- a stable JVM `driver-api` contract with a fake implementation for daemon and
+  SDK integration;
 - a temporary HeadlessMC/HMC-Specifics bridge backend for Phase 1 evidence;
 - a real Fabric driver as the durable automation engine;
 - generated OpenAPI for the running client/session;
@@ -86,6 +88,7 @@ Current docs:
 - `docs/superpowers/specs/2026-06-25-jvm-first-rewrite-design.md`
 - `docs/superpowers/specs/2026-06-25-client-management-decisions.md`
 - `docs/superpowers/specs/2026-06-25-generated-client-api-design.md`
+- `docs/superpowers/specs/2026-06-25-driver-api-contract.md`
 - `docs/superpowers/specs/2026-06-25-typescript-sdk-plan.md`
 - `docs/superpowers/plans/2026-06-25-jvm-generated-api-foundation.md`
 - `docs/bridge-limitations.md`

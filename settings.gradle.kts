@@ -16,6 +16,7 @@ rootProject.name = "craftwright"
 
 include(
     "protocol",
+    "driver-api",
     "testkit",
     "daemon",
     "bridge-hmc",

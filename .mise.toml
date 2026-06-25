@@ -17,4 +17,8 @@ run = "mise exec -- bun test playwright"
 
 [tasks.ci]
 description = "Run all repository verification checks"
-depends = ["jvm-test", "ts-sdk-test", "playwright-test"]
+run = [
+    "mise exec -- gradle test",
+    "mise exec -- bun test ts-sdk",
+    "mise exec -- bun test playwright",
+]
