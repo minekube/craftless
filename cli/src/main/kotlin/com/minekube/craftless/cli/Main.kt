@@ -42,8 +42,6 @@ object CraftlessCli {
     }
 
     fun root(): CoreCliktCommand = RootCommand().subcommands(
-        LeafCommand("versions"),
-        LeafCommand("profiles"),
         GroupCommand("clients").subcommands(
             LeafCommand("create"),
             LeafCommand("list"),
@@ -52,14 +50,9 @@ object CraftlessCli {
         GroupCommand("server").subcommands(
             LeafCommand("start"),
         ),
-        GroupCommand("test").subcommands(
-            LeafCommand("run"),
-        ),
     )
 
     fun registeredCommandPaths(): Set<String> = setOf(
-        "versions",
-        "profiles",
         "clients create",
         "clients list",
         "clients <id> get",
@@ -71,7 +64,6 @@ object CraftlessCli {
         "clients <id> run <action>",
         "clients <id> <namespace> <action>",
         "server start",
-        "test run",
     )
 
     fun run(
@@ -82,6 +74,9 @@ object CraftlessCli {
         env: Map<String, String> = System.getenv(),
     ): Int {
         if (args.take(2) == listOf("clients", "api")) {
+            return runClientsApi(args.drop(2), stdout, stderr, afterStart)
+        }
+        if (args.take(2) == listOf("server", "start")) {
             return runClientsApi(args.drop(2), stdout, stderr, afterStart)
         }
         if (args.take(2) == listOf("clients", "create")) {
@@ -110,6 +105,10 @@ object CraftlessCli {
         }
         if (args.size >= 4 && args[0] == "clients") {
             return runGeneratedClientAction(args.drop(1), stdout, stderr, env)
+        }
+        if (args.isNotEmpty()) {
+            stderr("error: unknown command ${args.joinToString(" ")}")
+            return 2
         }
         root().main(args)
         return 0

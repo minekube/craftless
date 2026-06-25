@@ -28,8 +28,6 @@ class CraftlessCliTest {
     fun `cli registers first jvm command tree`() {
         val commands = CraftlessCli.registeredCommandPaths()
 
-        assertTrue(commands.contains("versions"))
-        assertTrue(commands.contains("profiles"))
         assertTrue(commands.contains("clients create"))
         assertTrue(commands.contains("clients list"))
         assertTrue(commands.contains("clients <id> get"))
@@ -41,7 +39,25 @@ class CraftlessCliTest {
         assertTrue(commands.contains("clients <id> run <action>"))
         assertTrue(commands.contains("clients <id> <namespace> <action>"))
         assertTrue(commands.contains("server start"))
-        assertTrue(commands.contains("test run"))
+        assertTrue("versions" !in commands)
+        assertTrue("profiles" !in commands)
+        assertTrue("test run" !in commands)
+    }
+
+    @Test
+    fun `inactive static commands return explicit usage errors`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        val exit = CraftlessCli.run(
+            listOf("versions"),
+            stdout = { output.appendLine(it) },
+            stderr = { errors.appendLine(it) },
+        )
+
+        assertEquals(2, exit)
+        assertEquals("", output.toString())
+        assertTrue(errors.toString().contains("unknown command versions"))
     }
 
     @Test
@@ -51,6 +67,33 @@ class CraftlessCliTest {
 
         val exit = CraftlessCli.run(
             listOf("clients", "api", "--once"),
+            stdout = { output.appendLine(it) },
+            afterStart = { metadata ->
+                kotlinx.coroutines.runBlocking {
+                    HttpClient(CIO).use { http ->
+                        versionStatus = http.get("${metadata.url}/version").status.value
+                    }
+                }
+            },
+        )
+
+        assertEquals(0, exit)
+        assertEquals(200, versionStatus)
+
+        val json = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        assertEquals(true.toString(), json["ok"]?.jsonPrimitive?.content)
+        assertTrue(json["url"]?.jsonPrimitive?.content?.startsWith("http://127.0.0.1:") == true)
+        assertEquals("/openapi.json", json["openapi"]?.jsonPrimitive?.content)
+        assertEquals("/events", json["events"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `server start once prints server metadata and keeps server reachable during callback`() {
+        val output = StringBuilder()
+        var versionStatus = 0
+
+        val exit = CraftlessCli.run(
+            listOf("server", "start", "--once"),
             stdout = { output.appendLine(it) },
             afterStart = { metadata ->
                 kotlinx.coroutines.runBlocking {

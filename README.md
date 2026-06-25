@@ -37,7 +37,7 @@ permissions, and driver runtime.
 
 ```sh
 # Start the local Craftless supervisor API.
-craftless clients api --port 8080
+craftless server start --port 8080
 ```
 
 ```sh
