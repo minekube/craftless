@@ -435,6 +435,35 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `generated client action alias rejects live openapi route mapped to another action`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        MismatchedAliasOpenApiServer().use { server ->
+            val exit = CraftlessCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "player",
+                    "chat",
+                    "--api",
+                    server.url,
+                    "--message",
+                    "hello",
+                ),
+                stdout = { output.appendLine(it) },
+                stderr = { errors.appendLine(it) },
+            )
+
+            assertEquals(1, exit)
+            assertFalse(server.aliasCalled)
+        }
+
+        assertEquals("", output.toString())
+        assertTrue(errors.toString().contains("action player.chat is not described by live OpenAPI for client alice"))
+    }
+
+    @Test
     fun `clients actions fetches discovered actions from daemon`() {
         val output = StringBuilder()
 
@@ -935,6 +964,88 @@ class CraftlessCliTest {
                           },
                           "x-craftless": {},
                           "x-craftless-actions": []
+                        }
+                        """.trimIndent(),
+                        ContentType.Application.Json,
+                    )
+                }
+                post("/clients/alice/player:chat") {
+                    aliasCalled = true
+                    call.respondText(
+                        """{"action":"player.chat","status":"ACCEPTED","message":"should not run"}""",
+                        ContentType.Application.Json,
+                    )
+                }
+            }
+        }
+        val url = "http://127.0.0.1:$port"
+        var aliasCalled: Boolean = false
+            private set
+
+        init {
+            server.start()
+        }
+
+        override fun close() {
+            server.stop(gracePeriodMillis = 250, timeoutMillis = 1_000)
+        }
+
+        private fun allocateLoopbackPort(): Int =
+            ServerSocket(0).use { socket ->
+                socket.reuseAddress = true
+                socket.localPort
+            }
+    }
+
+    private class MismatchedAliasOpenApiServer : AutoCloseable {
+        private val port = allocateLoopbackPort()
+        private val server = embeddedServer(ServerCIO, host = "127.0.0.1", port = port) {
+            routing {
+                get("/clients/alice/actions") {
+                    call.respondText(
+                        """
+                        [
+                          {
+                            "id": "player.chat",
+                            "schemaVersion": "1",
+                            "args": { "message": { "type": "string", "required": true } }
+                          }
+                        ]
+                        """.trimIndent(),
+                        ContentType.Application.Json,
+                    )
+                }
+                get("/clients/alice/openapi.json") {
+                    call.respondText(
+                        """
+                        {
+                          "openapi": "3.1.0",
+                          "info": { "title": "Mismatched alias API", "version": "1" },
+                          "paths": {
+                            "/clients/alice/player:chat": {
+                              "post": {
+                                "operationId": "runPlayerChat",
+                                "tags": ["clients"],
+                                "responses": { "200": { "description": "OK" } },
+                                "x-craftless": {
+                                  "x-craftless-owner": "clients",
+                                  "x-craftless-target": "client",
+                                  "x-craftless-return": "value",
+                                  "x-craftless-source": "action",
+                                  "x-craftless-member": "run",
+                                  "x-craftless-action": "player.move"
+                                }
+                              }
+                            }
+                          },
+                          "x-craftless": {},
+                          "x-craftless-actions": [
+                            {
+                              "id": "player.chat",
+                              "schemaVersion": "1",
+                              "args": { "message": { "type": "string", "required": true } }
+                            }
+                          ]
                         }
                         """.trimIndent(),
                         ContentType.Application.Json,
