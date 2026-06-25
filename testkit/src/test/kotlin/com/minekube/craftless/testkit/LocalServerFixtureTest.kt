@@ -223,6 +223,74 @@ class LocalServerFixtureTest {
             layout.readEvidence(),
         )
     }
+
+    @Test
+    fun `fixture keeps minecraft server running until caller stops it`() {
+        val root = Files.createTempDirectory("craftless-minecraft-server-handle")
+        val layout = LocalServerFixture(root = root, port = 25567).prepare()
+        val fakeJava = root.resolve("fake-java")
+        val fakeServerJar = root.resolve("server.jar")
+        Files.writeString(fakeServerJar, "fake")
+        Files.writeString(
+            fakeJava,
+            """
+            #!/bin/sh
+            printf '%s\n' "$@" > minecraft-server-args.txt
+            echo '[12:00:00] [Server thread/INFO]: Done (1.000s)! For help, type "help"'
+            touch server-is-ready
+            read command
+            printf '%s\n' "${'$'}command" > minecraft-server-stdin.txt
+            echo '[12:00:01] [Server thread/INFO]: Alice joined the game'
+            echo '[12:00:02] [Server thread/INFO]: <Alice> hello while server stayed running'
+            echo '[12:00:03] [Server thread/INFO]: Alice left the game'
+            """.trimIndent() + "\n"
+        )
+        assertTrue(fakeJava.toFile().setExecutable(true))
+
+        val handle = layout.startMinecraftServer(
+            serverJar = fakeServerJar,
+            javaExecutable = fakeJava,
+            minHeap = "256M",
+            maxHeap = "512M",
+            readinessTimeoutMillis = 5_000,
+            shutdownTimeoutMillis = 5_000,
+        )
+
+        assertTrue(handle.isRunning())
+        assertTrue(waitUntilExists(root.resolve("server-is-ready")))
+        assertFalse(Files.exists(root.resolve("minecraft-server-stdin.txt")))
+
+        val result = handle.stopAndCollect()
+
+        assertEquals(0, result.exitCode)
+        assertEquals(3, result.evidenceCount)
+        assertFalse(handle.isRunning())
+        assertEquals("stop\n", Files.readString(root.resolve("minecraft-server-stdin.txt")))
+        assertTrue(Files.readString(layout.serverLog).contains("hello while server stayed running"))
+        assertEquals(
+            listOf(
+                LocalServerEvidence(type = LocalServerEvidenceType.PLAYER_JOINED, player = "Alice"),
+                LocalServerEvidence(
+                    type = LocalServerEvidenceType.CHAT,
+                    player = "Alice",
+                    message = "hello while server stayed running",
+                ),
+                LocalServerEvidence(type = LocalServerEvidenceType.PLAYER_DISCONNECTED, player = "Alice"),
+            ),
+            layout.readEvidence(),
+        )
+    }
+}
+
+private fun waitUntilExists(path: Path, timeoutMillis: Long = 1_000): Boolean {
+    val deadline = System.nanoTime() + timeoutMillis * 1_000_000
+    while (System.nanoTime() < deadline) {
+        if (Files.exists(path)) {
+            return true
+        }
+        Thread.sleep(10)
+    }
+    return Files.exists(path)
 }
 
 private object LocalServerLogEmitter {

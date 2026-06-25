@@ -7,6 +7,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption.APPEND
 import java.nio.file.StandardOpenOption.CREATE
+import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
@@ -129,14 +130,14 @@ data class LocalServerLayout(
         )
     }
 
-    fun collectMinecraftServerStartupEvidence(
+    fun startMinecraftServer(
         serverJar: Path,
         javaExecutable: Path = Path.of(System.getProperty("java.home")).resolve("bin").resolve("java"),
         minHeap: String = "512M",
         maxHeap: String = "1G",
         readinessTimeoutMillis: Long = 120_000,
         shutdownTimeoutMillis: Long = 10_000,
-    ): LocalServerProcessResult {
+    ): LocalMinecraftServerHandle {
         require(Files.exists(serverJar)) { "minecraft server jar does not exist: $serverJar" }
         require(Files.exists(javaExecutable)) { "java executable does not exist: $javaExecutable" }
         require(minHeap.isNotBlank()) { "minecraft server minimum heap is required" }
@@ -157,7 +158,7 @@ data class LocalServerLayout(
             .directory(root.toFile())
             .redirectErrorStream(true)
             .start()
-        val output = mutableListOf<String>()
+        val output = Collections.synchronizedList(mutableListOf<String>())
         val ready = CountDownLatch(1)
         val outputReader = thread(name = "craftless-minecraft-server-output") {
             process.inputStream.bufferedReader().useLines { lines ->
@@ -173,7 +174,7 @@ data class LocalServerLayout(
         fun stopAndCollect(message: String): Nothing {
             process.destroyForcibly()
             outputReader.join(1_000)
-            persistProcessOutput(output)
+            persistProcessOutput(output.snapshot())
             error(message)
         }
 
@@ -181,21 +182,32 @@ data class LocalServerLayout(
             stopAndCollect("minecraft server did not become ready after ${readinessTimeoutMillis}ms")
         }
 
-        process.outputStream.bufferedWriter().use { writer ->
-            writer.write("stop\n")
-            writer.flush()
-        }
-        val exited = process.waitFor(shutdownTimeoutMillis, TimeUnit.MILLISECONDS)
-        if (!exited) {
-            stopAndCollect("minecraft server did not stop after ${shutdownTimeoutMillis}ms")
-        }
-        outputReader.join()
-
-        val imported = persistProcessOutput(output)
-        return LocalServerProcessResult(
-            exitCode = process.exitValue(),
-            evidenceCount = imported,
+        return LocalMinecraftServerHandle(
+            layout = this,
+            process = process,
+            outputReader = outputReader,
+            output = output,
+            shutdownTimeoutMillis = shutdownTimeoutMillis,
         )
+    }
+
+    fun collectMinecraftServerStartupEvidence(
+        serverJar: Path,
+        javaExecutable: Path = Path.of(System.getProperty("java.home")).resolve("bin").resolve("java"),
+        minHeap: String = "512M",
+        maxHeap: String = "1G",
+        readinessTimeoutMillis: Long = 120_000,
+        shutdownTimeoutMillis: Long = 10_000,
+    ): LocalServerProcessResult {
+        val handle = startMinecraftServer(
+            serverJar = serverJar,
+            javaExecutable = javaExecutable,
+            minHeap = minHeap,
+            maxHeap = maxHeap,
+            readinessTimeoutMillis = readinessTimeoutMillis,
+            shutdownTimeoutMillis = shutdownTimeoutMillis,
+        )
+        return handle.stopAndCollect()
     }
 
     fun readEvidence(): List<LocalServerEvidence> {
@@ -207,7 +219,7 @@ data class LocalServerLayout(
             .map { line -> localServerEvidenceJson.decodeFromString<LocalServerEvidence>(line) }
     }
 
-    private fun persistProcessOutput(output: List<String>): Int {
+    internal fun persistProcessOutput(output: List<String>): Int {
         Files.writeString(serverLog, output.joinToString("\n", postfix = "\n"), CREATE, APPEND)
         var imported = 0
         output.forEach { line ->
@@ -216,6 +228,45 @@ data class LocalServerLayout(
             }
         }
         return imported
+    }
+}
+
+class LocalMinecraftServerHandle internal constructor(
+    private val layout: LocalServerLayout,
+    private val process: Process,
+    private val outputReader: Thread,
+    private val output: MutableList<String>,
+    private val shutdownTimeoutMillis: Long,
+) {
+    private var collected = false
+
+    fun isRunning(): Boolean = process.isAlive
+
+    fun stopAndCollect(): LocalServerProcessResult {
+        check(!collected) { "minecraft server output has already been collected" }
+
+        if (process.isAlive) {
+            process.outputStream.bufferedWriter().use { writer ->
+                writer.write("stop\n")
+                writer.flush()
+            }
+            val exited = process.waitFor(shutdownTimeoutMillis, TimeUnit.MILLISECONDS)
+            if (!exited) {
+                process.destroyForcibly()
+                outputReader.join(1_000)
+                layout.persistProcessOutput(output.snapshot())
+                collected = true
+                error("minecraft server did not stop after ${shutdownTimeoutMillis}ms")
+            }
+        }
+
+        outputReader.join()
+        val imported = layout.persistProcessOutput(output.snapshot())
+        collected = true
+        return LocalServerProcessResult(
+            exitCode = process.exitValue(),
+            evidenceCount = imported,
+        )
     }
 }
 
@@ -328,3 +379,6 @@ private val movementRegex = Regex(
 
 private fun String.isMinecraftServerReadyLine(): Boolean =
     contains("Done (") && contains("For help, type")
+
+private fun <T> MutableList<T>.snapshot(): List<T> =
+    synchronized(this) { toList() }
