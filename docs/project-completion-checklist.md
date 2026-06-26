@@ -199,12 +199,12 @@ Verification:
   `public-agent-state.jsonl`. The Fabric final harness now injects its live
   daemon URL into that external runner while the client is connected; completing
   the live survival proof through generated primitives is still open. Latest
-  no-hold live evidence now shows the public agent can mine, recover material
-  into public inventory state, equip it, place/interact with a block through
-  generated `world.block.interact`, and reach generated `entity.attack`.
-  Completion is still blocked at
-  `insufficient-public-evidence:entity.attack.outcome` because repeated public
-  attack attempts have not yet produced entity-not-alive or loot evidence.
+  recent no-hold live evidence shows the public agent can mine, recover
+  material into public inventory state, equip it, place/interact with a block
+  through generated `world.block.interact`, and reach generated
+  `entity.attack`. The latest no-hold run is still seed-sensitive and blocked
+  earlier at `insufficient-public-evidence:navigation.follow.succeeded` while
+  navigating to a discovered material target after bounded exploration.
 - [ ] Robin joins or observes the server session after a macOS `say` prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.
@@ -448,10 +448,13 @@ Verification:
   `world.block.query` data. Focused tests cover lower-target selection.
 - [x] Public-agent runner composes pickup movement with `navigation.plan` and
   `navigation.follow` after `world.block.break` reports `changed = true`.
-- [x] Live no-hold evidence reaches inventory material proof after pickup
-  movement/drop perception. Latest evidence includes `inventory.query` with an
-  `Oak Log`, followed by generated `inventory.equip` and selected-slot
-  verification before placement.
+- [~] Live no-hold evidence is seed-sensitive. Recent evidence reaches
+  inventory material proof after pickup movement/drop perception, including
+  `inventory.query` with an `Oak Log`, followed by generated `inventory.equip`
+  and selected-slot verification before placement. The latest run blocked
+  earlier at `insufficient-public-evidence:navigation.follow.succeeded` while
+  navigating to a discovered material target, so material target reselection or
+  stronger reachability evidence remains open.
 
 Verification:
 
@@ -467,9 +470,11 @@ Verification:
   movement, optionally navigates to observed material drop positions, and still
   verifies pickup through `inventory.query`. Focused tests cover public material
   drop navigation.
-- [x] Live no-hold evidence runs `entity.query` after material break, uses
+- [~] Live no-hold evidence runs `entity.query` after material break, uses
   public drop perception when block-target pickup navigation is insufficient,
-  and reaches inventory material proof without a pickup shortcut.
+  and can reach inventory material proof without a pickup shortcut. The latest
+  run did not reach drop perception because it blocked earlier at material
+  target navigation.
 
 Verification:
 
@@ -484,11 +489,12 @@ Verification:
 - [x] Public-agent runner uses shorter overlapping generated-navigation
   waypoints after an empty local `world.block.query`. Focused tests verify the
   first exploration waypoint is 24 blocks rather than the previous 48.
-- [x] Live no-hold evidence progressed through the material path without the
-  previous exploration timeout, with `world.block.query`,
+- [~] Live no-hold evidence progressed through the material path in prior runs
+  without the previous exploration timeout, with `world.block.query`,
   `navigation.plan/follow`, `world.block.break`, `entity.query`,
   `inventory.query`, `inventory.equip`, and selected-slot verification. The
-  current overall public-agent state is blocked later at combat outcome.
+  latest overall public-agent state is blocked earlier at material target
+  navigation after bounded exploration.
 
 Verification:
 
@@ -512,14 +518,15 @@ Verification:
   without that evidence it blocks with
   `insufficient-public-evidence:entity.attack.outcome`.
 - [x] Focused driver and public-agent tests pass.
-- [~] Latest live no-hold evidence reaches generic attack invocation through
+- [~] Recent live no-hold evidence reaches generic attack invocation through
   generated `entity.attack` after material pickup and placement. Focused
   public-agent tests require post-attack entity or inventory proof, bounded
   generated-navigation exploration when no target is visible, vertically
-  reachable target preference, and fresh close-range target revalidation before
-  attack. Combat/loot proof remains incomplete because repeated hits still
-  leave public `entity.query` reporting the target alive and `inventory.query`
-  showing no combat loot.
+  reachable target preference, fresh close-range target revalidation before
+  attack, a bounded pause between unproven attacks, and target refresh between
+  unproven attacks. Combat/loot proof remains incomplete; the latest live run
+  blocked earlier at material target navigation before combat refresh behavior
+  could be re-exercised.
 
 Verification:
 
@@ -545,9 +552,9 @@ Verification:
   `world.block.interact` path accepts a public block handle plus side and
   reports `accepted = true` and `changed = true`. This clears the previous
   `insufficient-public-evidence:world.block.interact.changed` blocker, but it
-  is not final project completion because the current overall public-agent run
-  blocks later at combat outcome and Robin-confirmed multiplayer gameplay is
-  still outstanding.
+  is not final project completion because the latest overall public-agent run
+  blocks earlier at material target navigation and Robin-confirmed multiplayer
+  gameplay is still outstanding.
 
 Verification:
 

@@ -306,6 +306,65 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner pauses between unproven generated attack attempts`() =
+        runBlocking {
+            var pauses = 0
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            deadCowEntityQueryResponse,
+                        ),
+                )
+            val runner =
+                PublicAgentGameplayRunner(
+                    baseUrl = server.url,
+                    clientId = "fabric-smoke",
+                    http = server.http,
+                    combatPause = { pauses += 1 },
+                )
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertEquals(1, pauses)
+            assertTrue(result.actionLog.map { it.action }.count { it == "entity.attack" } >= 2)
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner refreshes public attack target position between unproven attacks`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            movedCowEntityQueryResponse,
+                            reachableMovedCowEntityQueryResponse,
+                            deadMovedCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(result.actionLog.map { it.action }.count { it == "entity.attack" } >= 2)
+            assertTrue(result.actionLog.map { it.action }.count { it == "navigation.plan" } >= 4)
+            assertTrue(server.requestBodies.any { it.contains(""""x":24.0""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner blocks when discovered entity attack has no public attack target`() =
         runBlocking {
             val server =
@@ -1160,6 +1219,69 @@ private val deadCowEntityQueryResponse =
             "alive": false,
             "distance": 3.0,
             "position": {"x": 14.5, "y": 64.0, "z": -6.5}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val movedCowEntityQueryResponse =
+    """
+    {
+      "action": "entity.query",
+      "status": "ACCEPTED",
+      "data": {
+        "origin": {"x": 14.0, "y": 64.0, "z": -6.0},
+        "entities": [
+          {
+            "handle": "entity.handle-42",
+            "label": "Cow",
+            "category": "passive",
+            "alive": true,
+            "distance": 8.0,
+            "position": {"x": 24.0, "y": 64.0, "z": -10.0}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val reachableMovedCowEntityQueryResponse =
+    """
+    {
+      "action": "entity.query",
+      "status": "ACCEPTED",
+      "data": {
+        "origin": {"x": 23.0, "y": 64.0, "z": -10.0},
+        "entities": [
+          {
+            "handle": "entity.handle-42",
+            "label": "Cow",
+            "category": "passive",
+            "alive": true,
+            "distance": 2.0,
+            "position": {"x": 24.0, "y": 64.0, "z": -10.0}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val deadMovedCowEntityQueryResponse =
+    """
+    {
+      "action": "entity.query",
+      "status": "ACCEPTED",
+      "data": {
+        "origin": {"x": 23.0, "y": 64.0, "z": -10.0},
+        "entities": [
+          {
+            "handle": "entity.handle-42",
+            "label": "Cow",
+            "category": "passive",
+            "alive": false,
+            "distance": 2.0,
+            "position": {"x": 24.0, "y": 64.0, "z": -10.0}
           }
         ]
       }
