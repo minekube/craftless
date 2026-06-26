@@ -20,6 +20,8 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.Collections
@@ -1370,6 +1372,21 @@ class FabricDriverModuleTest {
         assertEquals("world.block:1:65:1", result.data["adjacent-handle"]?.jsonPrimitive?.content)
         assertEquals(listOf("client-query"), gateway.actions)
         assertEquals(1, gateway.scheduled)
+    }
+
+    @Test
+    fun `targeted block interact hit position is centered on requested face`() {
+        val position = BlockPos(10, 64, -4)
+
+        val up = craftlessBlockFaceHitPosition(position, Direction.UP)
+        val north = craftlessBlockFaceHitPosition(position, Direction.NORTH)
+
+        assertEquals(10.5, up.x)
+        assertEquals(65.0, up.y)
+        assertEquals(-3.5, up.z)
+        assertEquals(10.5, north.x)
+        assertEquals(64.5, north.y)
+        assertEquals(-4.0, north.z)
     }
 
     @Test

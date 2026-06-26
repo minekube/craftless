@@ -192,6 +192,35 @@ class PublicAgentGameplayRunnerTest {
             val server =
                 RecordingCraftlessHttpServer(
                     actions = completeActionCatalog() + "entity.attack",
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            deadCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(result.actionLog.map { it.action }.contains("entity.attack"))
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("entity.attack") &&
+                        it.contains(""""target":{"handle":"entity.handle-42"}""")
+                },
+            )
+            assertTrue(server.requestBodies.any { it.contains(""""max-distance":4.5""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner blocks when entity attack lacks public outcome evidence`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
                     entityQueryResponse =
                         """
                         {
@@ -216,15 +245,11 @@ class PublicAgentGameplayRunnerTest {
 
             val result = runner.runOnce()
 
-            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertEquals(PublicAgentGameplayState.BLOCKED, result.state)
+            assertEquals("insufficient-public-evidence:entity.attack.outcome", result.blocker)
             assertTrue(result.actionLog.map { it.action }.contains("entity.attack"))
-            assertTrue(
-                server.requestBodies.any {
-                    it.contains("entity.attack") &&
-                        it.contains(""""target":{"handle":"entity.handle-42"}""")
-                },
-            )
-            assertTrue(server.requestBodies.any { it.contains(""""max-distance":4.5""") })
+            assertTrue(result.actionLog.map { it.action }.count { it == "entity.query" } >= 2)
+            assertTrue(result.actionLog.map { it.action }.count { it == "inventory.query" } >= 3)
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 
@@ -267,6 +292,56 @@ class PublicAgentGameplayRunnerTest {
                         it.contains(""""side":"up"""")
                 },
             )
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner retries alternate public block interact targets before blocking placement`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "world.block.interact",
+                    actionArguments =
+                        mapOf(
+                            "world.block.interact" to listOf("target", "side", "max-distance"),
+                        ),
+                    blockQueryResponses = listOf(logBlockQueryResponse, placementSupportBlocksQueryResponse),
+                    blockInteractResponses =
+                        listOf(
+                            """
+                            {
+                              "action": "world.block.interact",
+                              "status": "ACCEPTED",
+                              "data": {
+                                "accepted": false,
+                                "changed": false,
+                                "handle": "world.block:11:64:-4"
+                              }
+                            }
+                            """.trimIndent(),
+                            """
+                            {
+                              "action": "world.block.interact",
+                              "status": "ACCEPTED",
+                              "data": {
+                                "accepted": true,
+                                "changed": true,
+                                "handle": "world.block:12:64:-4",
+                                "adjacent-handle": "world.block:12:65:-4"
+                              }
+                            }
+                            """.trimIndent(),
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertEquals(2, result.actionLog.map { it.action }.count { it == "world.block.interact" })
+            assertTrue(result.actionLog.map { it.action }.count { it == "player.look" } >= 3)
+            assertTrue(server.requestBodies.any { it.contains(""""handle":"world.block:11:64:-4"""") })
+            assertTrue(server.requestBodies.any { it.contains(""""handle":"world.block:12:64:-4"""") })
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 
@@ -519,7 +594,9 @@ private class RecordingCraftlessHttpServer(
         """{"action":"world.block.break","status":"ACCEPTED","data":{"hit":true,"target-kind":"block","started":true,"changed":true}}""",
     private val blockInteractResponse: String =
         """{"action":"world.block.interact","status":"ACCEPTED","data":{"accepted":true,"changed":true}}""",
+    private val blockInteractResponses: List<String>? = null,
     private val entityQueryResponse: String = """{"action":"entity.query","status":"ACCEPTED","data":{"entities":[]}}""",
+    private val entityQueryResponses: List<String>? = null,
     private val finalInventoryResponse: String =
         """
         {
@@ -540,6 +617,8 @@ private class RecordingCraftlessHttpServer(
     val requestBodies = mutableListOf<String>()
     private var inventoryQueryCount = 0
     private var blockQueryCount = 0
+    private var entityQueryCount = 0
+    private var blockInteractCount = 0
     val http =
         HttpClient(
             MockEngine { request ->
@@ -583,11 +662,11 @@ private class RecordingCraftlessHttpServer(
             body.contains("player.raycast") ->
                 """{"action":"player.raycast","status":"ACCEPTED","data":{"hit":true,"target-kind":"block"}}"""
             body.contains("world.block.break") -> blockBreakResponse
-            body.contains("world.block.interact") -> blockInteractResponse
+            body.contains("world.block.interact") -> blockInteractResponse()
             body.contains("inventory.equip") -> """{"action":"inventory.equip","status":"ACCEPTED"}"""
             body.contains("entity.attack") ->
                 """{"action":"entity.attack","status":"ACCEPTED","data":{"hit":true,"handle":"entity.handle-42"}}"""
-            body.contains("entity.query") -> entityQueryResponse
+            body.contains("entity.query") -> entityQueryResponse()
             else -> """{"action":"unknown","status":"UNSUPPORTED","message":"unexpected action"}"""
         }
     }
@@ -607,6 +686,18 @@ private class RecordingCraftlessHttpServer(
     private fun blockQueryResponse(): String {
         blockQueryCount += 1
         return blockQueryResponses.getOrElse(blockQueryCount - 1) { blockQueryResponses.last() }
+    }
+
+    private fun entityQueryResponse(): String {
+        entityQueryCount += 1
+        return entityQueryResponses?.getOrElse(entityQueryCount - 1) { entityQueryResponses.last() }
+            ?: entityQueryResponse
+    }
+
+    private fun blockInteractResponse(): String {
+        blockInteractCount += 1
+        return blockInteractResponses?.getOrElse(blockInteractCount - 1) { blockInteractResponses.last() }
+            ?: blockInteractResponse
     }
 
     private fun actionsJson(): String =
@@ -630,6 +721,49 @@ private class RecordingCraftlessHttpServer(
 
 private const val EMPTY_BLOCK_QUERY_RESPONSE =
     """{"action":"world.block.query","status":"ACCEPTED","data":{"count":0,"blocks":[]}}"""
+
+private const val EMPTY_ENTITY_QUERY_RESPONSE =
+    """{"action":"entity.query","status":"ACCEPTED","data":{"entities":[]}}"""
+
+private val aliveCowEntityQueryResponse =
+    """
+    {
+      "action": "entity.query",
+      "status": "ACCEPTED",
+      "data": {
+        "entities": [
+          {
+            "handle": "entity.handle-42",
+            "label": "Cow",
+            "category": "passive",
+            "alive": true,
+            "distance": 3.0,
+            "position": {"x": 14.5, "y": 64.0, "z": -6.5}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val deadCowEntityQueryResponse =
+    """
+    {
+      "action": "entity.query",
+      "status": "ACCEPTED",
+      "data": {
+        "entities": [
+          {
+            "handle": "entity.handle-42",
+            "label": "Cow",
+            "category": "passive",
+            "alive": false,
+            "distance": 3.0,
+            "position": {"x": 14.5, "y": 64.0, "z": -6.5}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
 
 private val logBlockQueryResponse =
     """
@@ -688,6 +822,31 @@ private val placementSupportBlockQueryResponse =
             "category": "block",
             "distance": 2.0,
             "position": {"x": 11, "y": 64, "z": -4}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val placementSupportBlocksQueryResponse =
+    """
+    {
+      "action": "world.block.query",
+      "status": "ACCEPTED",
+      "data": {
+        "count": 2,
+        "blocks": [
+          {
+            "handle": "world.block:11:64:-4",
+            "category": "block",
+            "distance": 2.0,
+            "position": {"x": 11, "y": 64, "z": -4}
+          },
+          {
+            "handle": "world.block:12:64:-4",
+            "category": "block",
+            "distance": 3.0,
+            "position": {"x": 12, "y": 64, "z": -4}
           }
         ]
       }

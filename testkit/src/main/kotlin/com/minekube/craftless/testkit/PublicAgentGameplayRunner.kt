@@ -254,7 +254,7 @@ class PublicAgentGameplayRunner(
                 return blockedAndWrite("insufficient-public-evidence:inventory.equip.selected-slot")
             }
             if (actions.actionSupportsArgument("world.block.interact", "target")) {
-                val supportTarget =
+                val supportTargets =
                     invokeGenerated(
                         action = "world.block.query",
                         args =
@@ -263,21 +263,43 @@ class PublicAgentGameplayRunner(
                                 put("limit", JsonPrimitive(16))
                                 put("category", JsonPrimitive("block"))
                             },
-                    ).responseObject()?.supportBlockTarget()
-                if (supportTarget != null) {
-                    navigateTo(position = supportTarget.position, radius = 2.5)
-                        ?.let { blocker -> return blockedAndWrite(blocker) }
-                    val interactResult =
-                        invokeGenerated(
-                            action = "world.block.interact",
-                            args =
-                                buildJsonObject {
-                                    put("max-distance", JsonPrimitive(6.0))
-                                    put("side", JsonPrimitive("up"))
-                                    put("target", supportTarget.toJsonObject())
-                                },
-                        )
-                    if (interactResult.responseObject()?.dataBoolean("changed") == false) {
+                    ).responseObject()?.supportBlockTargets().orEmpty()
+                if (supportTargets.isNotEmpty()) {
+                    var placementChanged = false
+                    for (supportTarget in supportTargets.take(PLACEMENT_TARGET_ATTEMPTS)) {
+                        navigateTo(position = supportTarget.position, radius = 2.5)
+                            ?.let { blocker -> return blockedAndWrite(blocker) }
+                        val placementPlayer = invokeGenerated("player.query")
+                        val placementPlayerPosition =
+                            placementPlayer.responseObject()?.playerPosition()
+                                ?: return blockedAndWrite("insufficient-public-evidence:player.query.position")
+                        supportTarget.position.toCraftlessPoint()?.let { targetPoint ->
+                            val placementLook = placementPlayerPosition.lookAt(targetPoint.centered())
+                            invokeGenerated(
+                                action = "player.look",
+                                args =
+                                    buildJsonObject {
+                                        put("yaw", JsonPrimitive(placementLook.yaw))
+                                        put("pitch", JsonPrimitive(placementLook.pitch))
+                                    },
+                            )
+                        }
+                        val interactResult =
+                            invokeGenerated(
+                                action = "world.block.interact",
+                                args =
+                                    buildJsonObject {
+                                        put("max-distance", JsonPrimitive(6.0))
+                                        put("side", JsonPrimitive("up"))
+                                        put("target", supportTarget.toJsonObject())
+                                    },
+                            )
+                        if (interactResult.responseObject()?.dataBoolean("changed") == true) {
+                            placementChanged = true
+                            break
+                        }
+                    }
+                    if (!placementChanged) {
                         return blockedAndWrite("insufficient-public-evidence:world.block.interact.changed")
                     }
                 }
@@ -306,22 +328,39 @@ class PublicAgentGameplayRunner(
                             )
                         }
                     }
-                    val attackResult =
-                        invokeGenerated(
-                            action = "entity.attack",
-                            args =
-                                buildJsonObject {
-                                    put(
-                                        "target",
-                                        buildJsonObject {
-                                            put("handle", JsonPrimitive(attackTarget.handle))
-                                        },
-                                    )
-                                    put("max-distance", JsonPrimitive(4.5))
-                                },
-                        )
-                    if (attackResult.responseObject()?.dataBoolean("hit") == false) {
-                        return blockedAndWrite("insufficient-public-evidence:entity.attack.hit")
+                    var combatOutcomeProved = false
+                    var combatAttempts = 0
+                    while (!combatOutcomeProved && combatAttempts < COMBAT_EVIDENCE_ATTEMPTS) {
+                        combatAttempts += 1
+                        val attackResult =
+                            invokeGenerated(
+                                action = "entity.attack",
+                                args =
+                                    buildJsonObject {
+                                        put(
+                                            "target",
+                                            buildJsonObject {
+                                                put("handle", JsonPrimitive(attackTarget.handle))
+                                            },
+                                        )
+                                        put("max-distance", JsonPrimitive(4.5))
+                                    },
+                            )
+                        if (attackResult.responseObject()?.dataBoolean("hit") == false) {
+                            return blockedAndWrite("insufficient-public-evidence:entity.attack.hit")
+                        }
+                        val combatEntityState = invokeGenerated("entity.query")
+                        val combatInventoryState = invokeGenerated("inventory.query")
+                        if (
+                            combatEntityState.responseObject()?.entityNotAlive(attackTarget.handle) == true ||
+                            combatInventoryState.responseObject()?.hasCombatLootItem() == true
+                        ) {
+                            combatOutcomeProved = true
+                            break
+                        }
+                    }
+                    if (!combatOutcomeProved) {
+                        return blockedAndWrite("insufficient-public-evidence:entity.attack.outcome")
                     }
                 }
             }
@@ -554,7 +593,28 @@ private fun JsonObject.materialBlockTarget(): PublicBlockTarget? {
         )
 }
 
-private fun JsonObject.supportBlockTarget(): PublicBlockTarget? = materialBlockTarget()
+private fun JsonObject.supportBlockTargets(): List<PublicBlockTarget> {
+    val data = this["data"] as? JsonObject ?: return emptyList()
+    val blocks = data["blocks"]?.jsonArray ?: return emptyList()
+    return blocks
+        .mapNotNull { element ->
+            val block = element as? JsonObject ?: return@mapNotNull null
+            val position = block["position"] as? JsonObject ?: return@mapNotNull null
+            PublicBlockTarget(
+                handle = block["handle"]?.jsonPrimitive?.contentOrNull,
+                position = position,
+                distance = block.doubleField("distance"),
+            )
+        }.sortedWith(
+            compareBy<PublicBlockTarget> { target ->
+                target.distance ?: Double.MAX_VALUE
+            }.thenBy { target ->
+                target.position.toCraftlessPoint()?.y ?: Double.MAX_VALUE
+            },
+        )
+}
+
+private fun JsonObject.supportBlockTarget(): PublicBlockTarget? = supportBlockTargets().firstOrNull()
 
 private fun JsonObject.playerPosition(): CraftlessPoint? {
     val data = this["data"] as? JsonObject ?: return null
@@ -625,6 +685,25 @@ private fun JsonObject.hasLogItem(): Boolean {
     return slots.any { element ->
         val slot = element as? JsonObject ?: return@any false
         slot.containsItemName("log")
+    }
+}
+
+private fun JsonObject.hasCombatLootItem(): Boolean {
+    val data = this["data"] as? JsonObject ?: return false
+    val slots = data["slots"]?.jsonArray ?: return false
+    return slots.any { element ->
+        val slot = element as? JsonObject ?: return@any false
+        combatLootNameParts.any(slot::containsItemName)
+    }
+}
+
+private fun JsonObject.entityNotAlive(handle: String): Boolean {
+    val data = this["data"] as? JsonObject ?: return false
+    val entities = data["entities"]?.jsonArray ?: return false
+    return entities.any { element ->
+        val entity = element as? JsonObject ?: return@any false
+        entity["handle"]?.jsonPrimitive?.contentOrNull == handle &&
+            entity["alive"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() == false
     }
 }
 
@@ -726,6 +805,8 @@ private data class CraftlessPoint(
 
 private const val MATERIAL_EXPLORATION_STEP = 24.0
 private const val PICKUP_EVIDENCE_ATTEMPTS = 4
+private const val COMBAT_EVIDENCE_ATTEMPTS = 4
+private const val PLACEMENT_TARGET_ATTEMPTS = 6
 
 private data class CraftlessLook(
     val yaw: Double,
@@ -751,6 +832,8 @@ private data class PublicEntityTarget(
 )
 
 private val attackableEntityCategories = setOf("passive", "hostile", "living")
+
+private val combatLootNameParts = listOf("beef", "leather", "pork", "mutton", "chicken", "rotten flesh")
 
 fun main() {
     val config = PublicAgentGameplayRunnerConfig.fromEnvironment()

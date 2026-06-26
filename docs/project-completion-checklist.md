@@ -503,12 +503,17 @@ Verification:
 - [x] Public-agent composition invokes `entity.attack` only through generated
   `POST /clients/{id}:run` dispatch after discovering both the action and a
   public entity handle.
+- [x] Public-agent composition verifies post-attack public outcome evidence
+  from `entity.query` or `inventory.query` before treating combat as proven;
+  without that evidence it blocks with
+  `insufficient-public-evidence:entity.attack.outcome`.
 - [x] Focused driver and public-agent tests pass.
-- [x] Live gameplay evidence shows generic attack invocation. Current no-hold
-  evidence: `publicAgentState=RAN`, live actions include `entity.attack`, and
-  the public-agent log invokes `entity.attack` against queried
-  `entity.handle-18` with `hit = true`. Combat/loot proof remains incomplete
-  until entity state and inventory changes are verified after real gameplay.
+- [x] Earlier live gameplay evidence showed generic attack invocation through
+  generated `entity.attack`; focused public-agent tests now require post-attack
+  entity or inventory proof before claiming combat evidence. Current stricter
+  no-hold live runs block earlier at targetable placement, so combat/loot proof
+  remains incomplete until placement/building progresses or the runner reaches
+  combat again.
 
 Verification:
 
@@ -524,14 +529,16 @@ Verification:
   side, invokes the Fabric client-thread interaction manager, and returns
   `accepted` plus state-change evidence.
 - [x] Public-agent composition invokes targetable `world.block.interact` only
-  when the generated action descriptor advertises `target`, and verifies
-  `changed` when the action reports it.
+  when the generated action descriptor advertises `target`, faces each public
+  support target with `player.query`/`player.look`, retries bounded alternate
+  support targets, and verifies `changed` before treating placement as proven.
 - [x] Focused driver and public-agent tests pass.
-- [!] Live gameplay evidence shows the targetable descriptor is generated, but
-  the no-hold run blocked before placement at
-  `insufficient-public-evidence:inventory.query.log` after a changed block
-  break. Final structure-building proof remains open until material pickup is
-  reliable enough to equip and place a collected block.
+- [!] Live gameplay evidence shows the targetable descriptor is generated and
+  the public-agent runner collects/equips logs, faces six public support
+  targets, and invokes `world.block.interact` for each. All attempts currently
+  return `accepted = false` and `changed = false`, so final structure-building
+  proof remains blocked at
+  `insufficient-public-evidence:world.block.interact.changed`.
 
 Verification:
 

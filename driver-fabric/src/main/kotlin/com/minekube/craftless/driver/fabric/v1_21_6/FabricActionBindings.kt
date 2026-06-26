@@ -312,7 +312,7 @@ internal object FabricWorldBlockInteractActionBinding : FabricActionBinding {
                     require(distance <= maxDistance) { "block target exceeds max-distance" }
                     val target =
                         BlockHitResult(
-                            Vec3d.ofCenter(requestedTarget.position),
+                            craftlessBlockFaceHitPosition(requestedTarget.position, requestedSide),
                             requestedSide,
                             requestedTarget.position,
                             false,
@@ -362,6 +362,16 @@ internal fun fabricWorldBlockInteractDescriptor(): DriverActionDescriptor =
             ),
         result =
             fabricObjectDataResultDescriptor(),
+    )
+
+internal fun craftlessBlockFaceHitPosition(
+    position: BlockPos,
+    side: Direction,
+): Vec3d =
+    Vec3d(
+        position.x + 0.5 + side.offsetX * 0.5,
+        position.y + 0.5 + side.offsetY * 0.5,
+        position.z + 0.5 + side.offsetZ * 0.5,
     )
 
 internal object FabricWorldTimeQueryActionBinding : FabricActionBinding {
