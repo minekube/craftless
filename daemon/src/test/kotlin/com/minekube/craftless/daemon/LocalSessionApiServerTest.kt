@@ -19,17 +19,21 @@ import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.CacheCleanupResult
 import com.minekube.craftless.protocol.CacheExportResult
+import com.minekube.craftless.protocol.CacheLaunchPlan
 import com.minekube.craftless.protocol.CachePrepareResult
+import com.minekube.craftless.protocol.CachePrepareStatus
 import com.minekube.craftless.protocol.Client
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
+import com.minekube.craftless.protocol.InstanceFiles
 import com.minekube.craftless.protocol.JavaRuntimeListResult
 import com.minekube.craftless.protocol.JavaRuntimeProviderKind
 import com.minekube.craftless.protocol.JavaRuntimeSelection
 import com.minekube.craftless.protocol.JavaRuntimeSelectionStatus
 import com.minekube.craftless.protocol.JsonRpcResponse
 import com.minekube.craftless.protocol.Loader
+import com.minekube.craftless.protocol.MINECRAFT_JAVA_RUNTIME_INDEX_URL
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
 import com.minekube.craftless.protocol.OpenApiAction
 import com.minekube.craftless.protocol.OpenApiDocument
@@ -60,6 +64,8 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.nio.file.Files
+import java.nio.file.Path
+import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -345,6 +351,191 @@ class LocalSessionApiServerTest {
                 assertTrue(Files.exists(workspace.resolve(export.archive)))
             }
         }
+
+    @Test
+    fun `server prepares and launches workspace client runtime without injected driver factory`() =
+        withHttpClient { http ->
+            val workspace = Files.createTempDirectory("craftless-server-workspace-client")
+            val launcher = RecordingClientRuntimeLauncher()
+            val versionUrl = "https://metadata.test/1.21.6.json"
+            val clientJarUrl = "https://metadata.test/client.jar"
+            val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
+            val javaRuntimeManifestUrl = "https://metadata.test/runtime/java-runtime-gamma/manifest.json"
+            val javaExecutableUrl = "https://metadata.test/runtime/java-runtime-gamma/bin/java"
+            val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
+            val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.17.2/profile/json"
+            val fabricLoaderJarUrl = "https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.17.2/fabric-loader-0.17.2.jar"
+            LocalSessionApiServer
+                .inMemory(
+                    workspaceRoot = workspace,
+                    cacheMetadataFetcher =
+                        ServerStaticCacheMetadataFetcher(
+                            mapOf(
+                                MINECRAFT_VERSION_INDEX_URL to
+                                    """
+                                    {
+                                      "versions": [
+                                        { "id": "1.21.6", "url": "$versionUrl" }
+                                      ]
+                                    }
+                                    """.trimIndent(),
+                                versionUrl to
+                                    """
+                                    {
+                                      "id": "1.21.6",
+                                      "assetIndex": { "id": "1.21.6", "url": "$assetIndexUrl" },
+                                      "javaVersion": {
+                                        "component": "java-runtime-gamma",
+                                        "majorVersion": 21
+                                      },
+                                      "mainClass": "test.minecraft.Main",
+                                      "arguments": {
+                                        "jvm": ["-cp", "${'$'}{classpath}"],
+                                        "game": ["--gameDir", "${'$'}{game_directory}"]
+                                      },
+                                      "downloads": {
+                                        "client": { "url": "$clientJarUrl" }
+                                      }
+                                    }
+                                    """.trimIndent(),
+                                MINECRAFT_JAVA_RUNTIME_INDEX_URL to serverJavaRuntimeIndexJson(javaRuntimeManifestUrl),
+                                javaRuntimeManifestUrl to
+                                    """
+                                    {
+                                      "files": {
+                                        "bin/java": {
+                                          "type": "file",
+                                          "downloads": {
+                                            "raw": { "url": "$javaExecutableUrl" }
+                                          }
+                                        }
+                                      }
+                                    }
+                                    """.trimIndent(),
+                                assetIndexUrl to """{"objects":{}}""",
+                                loaderVersionsUrl to """[{ "loader": { "version": "0.17.2", "stable": true } }]""",
+                                loaderProfileUrl to
+                                    """
+                                    {
+                                      "id": "fabric-loader-0.17.2-1.21.6",
+                                      "mainClass": "test.fabric.Main",
+                                      "libraries": [
+                                        {
+                                          "name": "net.fabricmc:fabric-loader:0.17.2",
+                                          "url": "https://maven.fabricmc.net/"
+                                        }
+                                      ]
+                                    }
+                                    """.trimIndent(),
+                            ),
+                            binaryResponses =
+                                mapOf(
+                                    clientJarUrl to "client-jar".encodeToByteArray(),
+                                    javaExecutableUrl to serverFakeJavaBytes("21.0.11"),
+                                    fabricLoaderJarUrl to "fabric-loader-jar".encodeToByteArray(),
+                                ),
+                        ),
+                    clientRuntimeLauncher = launcher,
+                ).use { server ->
+                    server.start()
+
+                    val response =
+                        http.post(server.url("/clients")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "id": "alice",
+                                  "version": "1.21.6",
+                                  "loader": "FABRIC",
+                                  "profile": { "kind": "OFFLINE", "name": "Alice" }
+                                }
+                                """.trimIndent(),
+                            )
+                        }
+
+                    assertEquals(HttpStatusCode.Created, response.status)
+                    val client = json.decodeFromString<Client>(response.bodyAsText())
+                    assertEquals(ClientState.RUNNING, client.state)
+                    assertEquals(listOf("alice"), launcher.launches.map { it.clientId })
+                    val launch = launcher.launches.single()
+                    assertEquals("cache/prepared/1.21.6-fabric-0.17.2.json", launch.prepared.manifest)
+                    assertEquals("cache/prepared/1.21.6-fabric-0.17.2.launch.json", launch.launch.arguments)
+                    assertTrue(launch.launch.classpath.any { it.endsWith("client.jar") })
+                    assertTrue(launch.launch.javaExecutable?.endsWith("/java-runtime-gamma/image/bin/java") == true)
+                    assertTrue(Files.isRegularFile(workspace.resolve(launch.prepared.manifest)))
+                    assertTrue(Files.isRegularFile(workspace.resolve(requireNotNull(launch.launch.arguments))))
+                }
+        }
+
+    @Test
+    fun `process client runtime launcher starts prepared command`() {
+        val workspace = Files.createTempDirectory("craftless-process-client-runtime")
+        val marker = workspace.resolve("launched.txt")
+        val javaExecutable = workspace.resolve("cache/runtimes/java-runtime-gamma/image/bin/java")
+        Files.createDirectories(javaExecutable.parent)
+        Files.writeString(
+            javaExecutable,
+            """
+            #!/usr/bin/env sh
+            echo "${'$'}@" > "$marker"
+            """.trimIndent(),
+        )
+        javaExecutable.toFile().setExecutable(true, true)
+        val arguments = workspace.resolve("cache/prepared/1.21.6-fabric-0.17.2.launch.json")
+        Files.createDirectories(arguments.parent)
+        Files.writeString(
+            arguments,
+            """
+            {
+              "mainClass": "test.minecraft.Main",
+              "jvm": ["-Dcraftless.gameRoot={{gameRoot}}"],
+              "game": ["--gameDir", "{{gameRoot}}", "--username", "Alice"]
+            }
+            """.trimIndent(),
+        )
+        val launch =
+            ProcessClientRuntimeLauncher().launch(
+                request =
+                    CreateClientRequest(
+                        id = "alice",
+                        version = "1.21.6",
+                        loader = Loader.FABRIC,
+                        profile = Profile.offline("Alice"),
+                    ),
+                prepared =
+                    CachePrepareResult(
+                        minecraftVersion = "1.21.6",
+                        loader = Loader.FABRIC,
+                        loaderVersion = "0.17.2",
+                        cacheRoot = "cache",
+                        minecraftVersionRoot = "cache/minecraft/versions/1.21.6",
+                        loaderRoot = "cache/loaders/fabric/1.21.6/0.17.2",
+                        runtimeRoot = "cache/runtimes",
+                        manifest = "cache/prepared/1.21.6-fabric-0.17.2.json",
+                        status = CachePrepareStatus.PREPARED,
+                        artifacts = emptyList(),
+                        launch =
+                            CacheLaunchPlan(
+                                classpath = listOf("cache/minecraft/versions/1.21.6/client.jar"),
+                                javaExecutable = "cache/runtimes/java-runtime-gamma/image/bin/java",
+                                arguments = "cache/prepared/1.21.6-fabric-0.17.2.launch.json",
+                            ),
+                    ),
+                files = InstanceFiles.forInstance("alice-1.21.6-fabric"),
+                workspaceRoot = workspace,
+            )
+
+        assertEquals(ClientRuntimeLaunchStatus.LAUNCHED, launch.status)
+        assertTrue(launch.pid != null)
+        val process = requireNotNull(launch.process)
+        assertTrue(process.waitFor(2, TimeUnit.SECONDS))
+        assertTrue(launch.command.first().endsWith("/java-runtime-gamma/image/bin/java"))
+        assertTrue(waitForRegularFile(marker))
+        val invoked = Files.readString(marker)
+        assertTrue(invoked.contains("test.minecraft.Main"))
+        assertTrue(invoked.contains("--gameDir instances/alice-1.21.6-fabric/minecraft"))
+    }
 
     @Test
     fun `server rejects invalid client creation as bad request`() =
@@ -1500,6 +1691,77 @@ private class ServerStaticCacheMetadataFetcher(
         requireNotNull(binaryResponses[url]) {
             "missing test binary response for $url"
         }
+}
+
+private data class RecordedClientRuntimeLaunch(
+    val clientId: String,
+    val prepared: CachePrepareResult,
+    val launch: CacheLaunchPlan,
+    val files: InstanceFiles,
+)
+
+private class RecordingClientRuntimeLauncher : ClientRuntimeLauncher {
+    val launches = mutableListOf<RecordedClientRuntimeLaunch>()
+
+    override fun launch(
+        request: CreateClientRequest,
+        prepared: CachePrepareResult,
+        files: InstanceFiles,
+        workspaceRoot: Path,
+    ): ClientRuntimeLaunch {
+        launches +=
+            RecordedClientRuntimeLaunch(
+                clientId = request.id,
+                prepared = prepared,
+                launch = prepared.launch,
+                files = files,
+            )
+        return ClientRuntimeLaunch(status = ClientRuntimeLaunchStatus.LAUNCHED, pid = 1234)
+    }
+}
+
+private fun serverFakeJavaBytes(version: String): ByteArray =
+    """
+    #!/usr/bin/env sh
+    echo 'openjdk version "$version" 2026-04-21 LTS' >&2
+    echo 'Eclipse Temurin Runtime Environment' >&2
+    echo '    os.arch = aarch64' >&2
+    """.trimIndent().encodeToByteArray()
+
+private fun serverJavaRuntimeIndexJson(manifestUrl: String): String =
+    """
+    {
+      "linux": {
+        "java-runtime-gamma": [
+          { "manifest": { "url": "$manifestUrl" } }
+        ]
+      },
+      "mac-os": {
+        "java-runtime-gamma": [
+          { "manifest": { "url": "$manifestUrl" } }
+        ]
+      },
+      "mac-os-arm64": {
+        "java-runtime-gamma": [
+          { "manifest": { "url": "$manifestUrl" } }
+        ]
+      },
+      "windows-x64": {
+        "java-runtime-gamma": [
+          { "manifest": { "url": "$manifestUrl" } }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private fun waitForRegularFile(path: Path): Boolean {
+    repeat(40) {
+        if (Files.isRegularFile(path)) {
+            return true
+        }
+        Thread.sleep(50)
+    }
+    return Files.isRegularFile(path)
 }
 
 private fun writeFakeJava(

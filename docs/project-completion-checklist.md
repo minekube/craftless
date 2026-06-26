@@ -610,8 +610,10 @@ Verification:
   `CONNECTED` for an unobserved backend request, and the Fabric backend reports
   connect observation from the gateway connection state; server-side join
   remains asserted by the smoke fixture when an expected player is configured.
-- [ ] Supervisor API can prepare, install, and launch a real versioned client
-  runtime instead of failing with an unavailable driver factory.
+- [x] Supervisor API can prepare, install, and launch a real versioned client
+  runtime instead of failing with an unavailable driver factory. Evidence:
+  `mise exec -- gradle :daemon:test --tests '*LocalSessionApiServerTest.server prepares and launches workspace client runtime without injected driver factory*' --tests '*LocalSessionApiServerTest.process client runtime launcher starts prepared command*'`
+  plus `mise exec -- gradle :daemon:test :daemon:detekt :daemon:ktlintCheck`.
 - [ ] Cache preparation for large Minecraft/mod artifact sets is resumable and
   idempotent with retryable per-file failures and progress evidence.
 

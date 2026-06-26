@@ -61,6 +61,7 @@ import java.time.Instant
 class LocalSessionApiServer private constructor(
     private val service: ClientSessionService,
     private val cachePreparationService: CachePreparationService?,
+    private val workspaceRuntimeFactory: WorkspaceClientRuntimeDriverFactory?,
     private val javaRuntimeService: JavaRuntimeService?,
     private val host: String,
     requestedPort: Int,
@@ -159,6 +160,10 @@ class LocalSessionApiServer private constructor(
             post("/clients") {
                 runCatching {
                     val request = json.decodeFromString<CreateClientRequest>(call.receiveText())
+                    workspaceRuntimeFactory?.prepare(
+                        request = request,
+                        cachePreparationService = cachePreparationService ?: error("cache workspace is not configured"),
+                    )
                     val client = service.createClient(request)
                     events +=
                         SessionEvent(
@@ -498,21 +503,37 @@ class LocalSessionApiServer private constructor(
         fun inMemory(
             host: String = "127.0.0.1",
             port: Int = 0,
-            driverFactory: DriverSessionFactory = DriverSessionFactory.unavailable(),
+            driverFactory: DriverSessionFactory? = null,
             workspaceRoot: Path? = null,
             cacheMetadataFetcher: CacheMetadataFetcher = KtorCacheMetadataFetcher(),
-        ): LocalSessionApiServer =
-            LocalSessionApiServer(
+            clientRuntimeLauncher: ClientRuntimeLauncher = ProcessClientRuntimeLauncher(),
+        ): LocalSessionApiServer {
+            val workspaceRuntimeFactory =
+                if (driverFactory == null && workspaceRoot != null) {
+                    WorkspaceClientRuntimeDriverFactory(
+                        workspaceRoot = workspaceRoot,
+                        launcher = clientRuntimeLauncher,
+                    )
+                } else {
+                    null
+                }
+            val effectiveDriverFactory =
+                driverFactory
+                    ?: workspaceRuntimeFactory
+                    ?: DriverSessionFactory.unavailable()
+            return LocalSessionApiServer(
                 service =
                     ClientSessionService.inMemory(
-                        driverFactory = driverFactory,
+                        driverFactory = effectiveDriverFactory,
                         fileStore = workspaceRoot?.let(::InstanceFileStore),
                     ),
                 cachePreparationService = workspaceRoot?.let { CachePreparationService(it, cacheMetadataFetcher) },
+                workspaceRuntimeFactory = workspaceRuntimeFactory,
                 javaRuntimeService = workspaceRoot?.let { JavaRuntimeService(it, cacheMetadataFetcher) },
                 host = host,
                 requestedPort = port,
             )
+        }
     }
 
     private suspend inline fun <reified T> io.ktor.server.application.ApplicationCall.respondJson(
