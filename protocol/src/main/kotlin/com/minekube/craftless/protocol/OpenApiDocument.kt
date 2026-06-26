@@ -611,8 +611,13 @@ private fun cachePrepareResponse(): OpenApiResponse =
                                                     type = "array",
                                                     items = OpenApiSchema(type = "string"),
                                                 ),
+                                            "nativePath" to
+                                                OpenApiSchema(
+                                                    type = "array",
+                                                    items = OpenApiSchema(type = "string"),
+                                                ),
                                         ),
-                                    required = listOf("classpath"),
+                                    required = listOf("classpath", "nativePath"),
                                 ),
                         ),
                     required =

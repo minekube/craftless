@@ -22,9 +22,11 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.io.ByteArrayInputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
+import java.util.zip.ZipInputStream
 
 class CachePreparationService(
     workspaceRoot: Path,
@@ -39,6 +41,7 @@ class CachePreparationService(
         val versionManifest = metadataFetcher.fetchText(versionManifestUrl)
         val clientJarUrl = versionManifest.clientJarUrl(request.minecraftVersion)
         val minecraftLibraries = versionManifest.minecraftLibraries()
+        val minecraftNativeLibraries = versionManifest.minecraftNativeLibraries()
         val assetIndexMetadata = versionManifest.assetIndexMetadata(request.minecraftVersion)
         val assetIndex = metadataFetcher.fetchText(assetIndexMetadata.url)
         val assetObjects = assetIndex.assetObjects()
@@ -65,6 +68,7 @@ class CachePreparationService(
         val artifacts =
             coreArtifacts +
                 minecraftLibraries.map { it.artifact } +
+                minecraftNativeLibraries.flatMap { native -> listOf(native.libraryArtifact, native.directoryArtifact) } +
                 loaderMetadataArtifacts +
                 assetObjects.map { it.artifact } +
                 fabricLibraries.map { it.artifact }
@@ -114,6 +118,11 @@ class CachePreparationService(
         minecraftLibraries.forEach { library ->
             writeBytesArtifact(library.artifact, metadataFetcher.fetchBytes(library.source))
         }
+        minecraftNativeLibraries.forEach { native ->
+            val bytes = metadataFetcher.fetchBytes(native.source)
+            writeBytesArtifact(native.libraryArtifact, bytes)
+            extractNativeLibrary(native, bytes)
+        }
         fabricLibraries.forEach { library ->
             writeBytesArtifact(library.artifact, metadataFetcher.fetchBytes(library.source))
         }
@@ -160,6 +169,25 @@ class CachePreparationService(
         val target = resolveHandle(artifact.handle)
         Files.createDirectories(target.parent)
         Files.writeString(target, text)
+    }
+
+    private fun extractNativeLibrary(
+        native: MinecraftNativeLibraryArtifact,
+        bytes: ByteArray,
+    ) {
+        val targetRoot = resolveHandle(native.directoryArtifact.handle)
+        Files.createDirectories(targetRoot)
+        ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
+            generateSequence { zip.nextEntry }.forEach { entry ->
+                if (!entry.isDirectory && !entry.name.startsWith("META-INF/")) {
+                    val target = targetRoot.resolve(entry.name).normalize()
+                    require(target.startsWith(targetRoot)) { "native library entry must stay under native directory" }
+                    Files.createDirectories(target.parent)
+                    Files.copy(zip, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                }
+                zip.closeEntry()
+            }
+        }
     }
 }
 
@@ -316,6 +344,42 @@ private fun String.minecraftLibraries(): List<MinecraftLibraryArtifact> =
                 ?.let(::MinecraftLibraryArtifact)
         }
 
+private fun String.minecraftNativeLibraries(): List<MinecraftNativeLibraryArtifact> =
+    Json
+        .parseToJsonElement(this)
+        .jsonObject["libraries"]
+        ?.jsonArray
+        .orEmpty()
+        .mapNotNull { library ->
+            val item = library.jsonObject
+            val classifier =
+                item["natives"]
+                    ?.jsonObject
+                    ?.get(currentNativeClassifierKey())
+                    ?.jsonPrimitive
+                    ?.content
+                    ?: return@mapNotNull null
+            item["downloads"]
+                ?.jsonObject
+                ?.get("classifiers")
+                ?.jsonObject
+                ?.get(classifier)
+                ?.jsonObject
+                ?.get("url")
+                ?.jsonPrimitive
+                ?.content
+                ?.let(::MinecraftNativeLibraryArtifact)
+        }
+
+private fun currentNativeClassifierKey(): String {
+    val os = System.getProperty("os.name").lowercase()
+    return when {
+        "win" in os -> "windows"
+        "mac" in os || "darwin" in os -> "osx"
+        else -> "linux"
+    }
+}
+
 private fun String.assetObjects(): List<MinecraftAssetObject> =
     Json
         .parseToJsonElement(this)
@@ -355,6 +419,27 @@ private data class MinecraftLibraryArtifact(
             handle = handle,
             source = source,
             status = CachePreparedArtifactStatus.CACHED,
+        )
+}
+
+private data class MinecraftNativeLibraryArtifact(
+    val source: String,
+) {
+    private val fingerprint: String = source.sha256Hex()
+
+    val libraryArtifact: CachePreparedArtifact =
+        CachePreparedArtifact(
+            kind = CachePreparedArtifactKind.MINECRAFT_NATIVE_LIBRARY,
+            handle = "cache/libraries/native/$fingerprint.jar",
+            source = source,
+            status = CachePreparedArtifactStatus.CACHED,
+        )
+
+    val directoryArtifact: CachePreparedArtifact =
+        CachePreparedArtifact(
+            kind = CachePreparedArtifactKind.MINECRAFT_NATIVE_DIRECTORY,
+            handle = "cache/natives/$fingerprint",
+            status = CachePreparedArtifactStatus.EXTRACTED,
         )
 }
 

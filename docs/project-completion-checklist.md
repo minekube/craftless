@@ -235,10 +235,13 @@ Verification:
   resolved loader version, supports an optional loader-version pin, and stores
   the Fabric loader profile JSON through Ktor Client with offline test fakes.
 - [x] Cache preparation downloads and stores the selected Minecraft client jar,
-  Minecraft version libraries, and Fabric profile libraries under
-  Craftless-owned cache handles with offline binary-fetcher tests.
-- [x] Cache preparation emits an ordered launch classpath made only of
-  Craftless-owned artifact handles.
+  Minecraft version libraries, native classifier libraries, and Fabric profile
+  libraries under Craftless-owned cache handles with offline binary-fetcher
+  tests.
+- [x] Cache preparation extracts native classifier jars into Craftless-owned
+  native directory handles and exposes them through `launch.nativePath`.
+- [x] Cache preparation emits ordered launch classpath and native-path handles
+  made only of Craftless-owned artifact handles.
 - [x] Cache preparation resolves the Minecraft asset index and downloads listed
   asset objects into opaque Craftless-owned cache handles.
 - [x] Prism Launcher source was cloned under `/tmp/prismlauncher-source` for
@@ -248,10 +251,10 @@ Verification:
   runs. Instance directories and cache preparation are now repeatable and
   idempotent, with Minecraft metadata, Fabric loader profile metadata, the
   Minecraft client jar, Minecraft version libraries, Fabric profile libraries,
-  and Minecraft asset objects materialized into the workspace plus an ordered
-  launch classpath handle list; Java/runtime artifact resolution, native
-  extraction, JVM/game argument assembly, and explicit cleanup/export flows are
-  still roadmap.
+  native libraries, and Minecraft asset objects materialized into the
+  workspace plus ordered launch classpath and native-path handle lists;
+  Java/runtime artifact resolution, JVM/game argument assembly, and explicit
+  cleanup/export flows are still roadmap.
 - [x] Public APIs expose Craftless-owned file handles only.
 
 Verification:

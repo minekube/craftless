@@ -113,6 +113,7 @@ data class CachePreparedArtifact(
 @Serializable
 data class CacheLaunchPlan(
     val classpath: List<String>,
+    val nativePath: List<String> = emptyList(),
 ) {
     companion object {
         fun fromArtifacts(artifacts: List<CachePreparedArtifact>): CacheLaunchPlan =
@@ -131,6 +132,11 @@ data class CacheLaunchPlan(
                                 else -> 3
                             }
                         }.map { it.handle },
+                nativePath =
+                    artifacts
+                        .filter { artifact ->
+                            artifact.kind == CachePreparedArtifactKind.MINECRAFT_NATIVE_DIRECTORY
+                        }.map { it.handle },
             )
     }
 }
@@ -143,6 +149,8 @@ enum class CachePreparedArtifactKind {
     MINECRAFT_ASSET_INDEX,
     MINECRAFT_ASSET_OBJECT,
     MINECRAFT_LIBRARY,
+    MINECRAFT_NATIVE_LIBRARY,
+    MINECRAFT_NATIVE_DIRECTORY,
     FABRIC_LOADER_VERSIONS,
     FABRIC_LOADER_PROFILE,
     FABRIC_LIBRARY,
@@ -153,6 +161,7 @@ enum class CachePreparedArtifactStatus {
     RESOLVED,
     INDEXED,
     CACHED,
+    EXTRACTED,
 }
 
 @Serializable

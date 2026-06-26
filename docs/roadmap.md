@@ -19,8 +19,9 @@ Craftless currently has:
 - a Craftless-owned instance file layout in client responses, covering instance
   root, game root, mods, config, saves, resource packs, and shader packs;
 - cache preparation that resolves Minecraft metadata, the selected client jar,
-  Minecraft version libraries, Fabric loader profile libraries, and Minecraft
-  asset objects into Craftless-owned workspace handles;
+  Minecraft version libraries, native classifier libraries, Fabric loader
+  profile libraries, and Minecraft asset objects into Craftless-owned
+  workspace handles with launch classpath and native-path handles;
 - an adaptive JVM `craftless` CLI using Ktor Client;
 - a stable `DriverSession` contract with lifecycle primitives plus generic
   action discovery and invocation;
