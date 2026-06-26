@@ -38,6 +38,9 @@ class CachePreparationService(
         val versionManifestUrl = versionIndex.versionManifestUrl(request.minecraftVersion)
         val versionManifest = metadataFetcher.fetchText(versionManifestUrl)
         val clientJarUrl = versionManifest.clientJarUrl(request.minecraftVersion)
+        val assetIndexMetadata = versionManifest.assetIndexMetadata(request.minecraftVersion)
+        val assetIndex = metadataFetcher.fetchText(assetIndexMetadata.url)
+        val assetObjects = assetIndex.assetObjects()
         val fabricMetadata = resolveFabricMetadata(request)
         val fabricLibraries = fabricMetadata?.profile?.fabricLibraries().orEmpty()
         val baseResult = CachePrepareResult.forRequest(request, fabricMetadata?.loaderVersion)
@@ -47,10 +50,11 @@ class CachePreparationService(
                     when (artifact.kind) {
                         CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST -> artifact.copy(source = versionManifestUrl)
                         CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR -> artifact.copy(source = clientJarUrl)
+                        CachePreparedArtifactKind.MINECRAFT_ASSET_INDEX -> artifact.copy(source = assetIndexMetadata.url)
                         CachePreparedArtifactKind.FABRIC_LOADER_PROFILE -> artifact.copy(source = fabricMetadata?.profileUrl)
                         else -> artifact
                     }
-                } + fabricLibraries.map { it.artifact }
+                } + assetObjects.map { it.artifact } + fabricLibraries.map { it.artifact }
         val result =
             baseResult.copy(
                 artifacts = artifacts,
@@ -65,25 +69,29 @@ class CachePreparationService(
         ).forEach { handle ->
             Files.createDirectories(resolveHandle(handle))
         }
-        Files.writeString(
-            resolveHandle(result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_VERSION_INDEX }.handle),
+        writeTextArtifact(
+            result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_VERSION_INDEX },
             versionIndex,
         )
-        Files.writeString(
-            resolveHandle(result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST }.handle),
+        writeTextArtifact(
+            result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST },
             versionManifest,
         )
         writeBytesArtifact(
             result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR },
             metadataFetcher.fetchBytes(clientJarUrl),
         )
+        writeTextArtifact(
+            result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_ASSET_INDEX },
+            assetIndex,
+        )
         fabricMetadata?.let { metadata ->
-            Files.writeString(
-                resolveHandle(result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LOADER_VERSIONS }.handle),
+            writeTextArtifact(
+                result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LOADER_VERSIONS },
                 metadata.loaderVersions,
             )
-            Files.writeString(
-                resolveHandle(result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LOADER_PROFILE }.handle),
+            writeTextArtifact(
+                result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LOADER_PROFILE },
                 metadata.profile,
             )
         }
@@ -124,6 +132,15 @@ class CachePreparationService(
         val target = resolveHandle(artifact.handle)
         Files.createDirectories(target.parent)
         Files.write(target, bytes)
+    }
+
+    private fun writeTextArtifact(
+        artifact: CachePreparedArtifact,
+        text: String,
+    ) {
+        val target = resolveHandle(artifact.handle)
+        Files.createDirectories(target.parent)
+        Files.writeString(target, text)
     }
 }
 
@@ -191,6 +208,21 @@ private fun String.clientJarUrl(minecraftVersion: String): String =
         ?.content
         ?: error("minecraft version $minecraftVersion is missing client jar url")
 
+private fun String.assetIndexMetadata(minecraftVersion: String): AssetIndexMetadata {
+    val assetIndex =
+        Json
+            .parseToJsonElement(this)
+            .jsonObject["assetIndex"]
+            ?.jsonObject
+            ?: error("minecraft version $minecraftVersion is missing asset index metadata")
+    val url = assetIndex["url"]?.jsonPrimitive?.content ?: error("minecraft version $minecraftVersion is missing asset index url")
+    return AssetIndexMetadata(url)
+}
+
+private data class AssetIndexMetadata(
+    val url: String,
+)
+
 private fun String.compatibleFabricLoaderVersion(requestedLoaderVersion: String?): String {
     val versions =
         Json
@@ -246,6 +278,29 @@ private fun String.fabricLibraries(): List<FabricLibraryArtifact> =
             val path = name.mavenPath()
             FabricLibraryArtifact(baseUrl.trimEnd('/') + "/$path")
         }
+
+private fun String.assetObjects(): List<MinecraftAssetObject> =
+    Json
+        .parseToJsonElement(this)
+        .jsonObject["objects"]
+        ?.jsonObject
+        .orEmpty()
+        .values
+        .mapNotNull { asset ->
+            val hash = asset.jsonObject["hash"]?.jsonPrimitive?.content ?: return@mapNotNull null
+            MinecraftAssetObject(hash)
+        }
+
+private data class MinecraftAssetObject(
+    val hash: String,
+) {
+    val artifact: CachePreparedArtifact =
+        CachePreparedArtifact(
+            kind = CachePreparedArtifactKind.MINECRAFT_ASSET_OBJECT,
+            handle = "cache/assets/objects/${hash.sha256Hex()}.asset",
+            status = CachePreparedArtifactStatus.INDEXED,
+        )
+}
 
 private data class FabricLibraryArtifact(
     val source: String,

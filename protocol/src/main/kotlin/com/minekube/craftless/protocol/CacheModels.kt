@@ -59,6 +59,11 @@ data class CachePrepareResult(
                         handle = "cache/minecraft/versions/${request.minecraftVersion}/client.jar",
                         status = CachePreparedArtifactStatus.CACHED,
                     ),
+                    CachePreparedArtifact(
+                        kind = CachePreparedArtifactKind.MINECRAFT_ASSET_INDEX,
+                        handle = "cache/assets/indexes/${request.minecraftVersion}.json",
+                        status = CachePreparedArtifactStatus.RESOLVED,
+                    ),
                 ) +
                     if (request.loader == Loader.FABRIC) {
                         listOf(
@@ -133,6 +138,8 @@ enum class CachePreparedArtifactKind {
     MINECRAFT_VERSION_INDEX,
     MINECRAFT_VERSION_MANIFEST,
     MINECRAFT_CLIENT_JAR,
+    MINECRAFT_ASSET_INDEX,
+    MINECRAFT_ASSET_OBJECT,
     FABRIC_LOADER_VERSIONS,
     FABRIC_LOADER_PROFILE,
     FABRIC_LIBRARY,
@@ -141,6 +148,7 @@ enum class CachePreparedArtifactKind {
 @Serializable
 enum class CachePreparedArtifactStatus {
     RESOLVED,
+    INDEXED,
     CACHED,
 }
 

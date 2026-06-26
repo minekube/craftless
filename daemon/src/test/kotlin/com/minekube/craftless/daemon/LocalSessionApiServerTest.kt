@@ -197,6 +197,7 @@ class LocalSessionApiServerTest {
         withHttpClient { http ->
             val workspace = Files.createTempDirectory("craftless-server-cache")
             val clientJarUrl = "https://metadata.test/client.jar"
+            val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
             val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
             val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.17.2/profile/json"
             fakeLocalSessionApiServer(
@@ -212,7 +213,9 @@ class LocalSessionApiServerTest {
                                   ]
                                 }
                                 """.trimIndent(),
-                            "https://metadata.test/1.21.6.json" to """{"id":"1.21.6","downloads":{"client":{"url":"$clientJarUrl"}}}""",
+                            "https://metadata.test/1.21.6.json" to
+                                """{"id":"1.21.6","assetIndex":{"id":"1.21.6","url":"$assetIndexUrl"},"downloads":{"client":{"url":"$clientJarUrl"}}}""",
+                            assetIndexUrl to """{"objects":{}}""",
                             loaderVersionsUrl to
                                 """
                                 [

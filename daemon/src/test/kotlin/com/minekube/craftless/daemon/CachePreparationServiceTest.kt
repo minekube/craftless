@@ -18,6 +18,7 @@ class CachePreparationServiceTest {
             val workspace = Files.createTempDirectory("craftless-cache-resolution")
             val versionUrl = "https://metadata.test/1.21.6.json"
             val clientJarUrl = "https://metadata.test/client.jar"
+            val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
             val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
             val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.17.2/profile/json"
             val fabricLoaderJarUrl = "https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.17.2/fabric-loader-0.17.2.jar"
@@ -35,7 +36,30 @@ class CachePreparationServiceTest {
                                       ]
                                     }
                                     """.trimIndent(),
-                                versionUrl to """{"id":"1.21.6","downloads":{"client":{"url":"$clientJarUrl"}}}""",
+                                versionUrl to
+                                    """
+                                    {
+                                      "id": "1.21.6",
+                                      "assetIndex": {
+                                        "id": "1.21.6",
+                                        "url": "$assetIndexUrl"
+                                      },
+                                      "downloads": {
+                                        "client": { "url": "$clientJarUrl" }
+                                      }
+                                    }
+                                    """.trimIndent(),
+                                assetIndexUrl to
+                                    """
+                                    {
+                                      "objects": {
+                                        "minecraft/sounds/random/test.ogg": {
+                                          "hash": "abcdef0123456789abcdef0123456789abcdef01",
+                                          "size": 10
+                                        }
+                                      }
+                                    }
+                                    """.trimIndent(),
                                 loaderVersionsUrl to
                                     """
                                     [
@@ -71,8 +95,10 @@ class CachePreparationServiceTest {
                     CachePreparedArtifactKind.MINECRAFT_VERSION_INDEX,
                     CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST,
                     CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR,
+                    CachePreparedArtifactKind.MINECRAFT_ASSET_INDEX,
                     CachePreparedArtifactKind.FABRIC_LOADER_VERSIONS,
                     CachePreparedArtifactKind.FABRIC_LOADER_PROFILE,
+                    CachePreparedArtifactKind.MINECRAFT_ASSET_OBJECT,
                     CachePreparedArtifactKind.FABRIC_LIBRARY,
                 ),
                 result.artifacts.map { it.kind },
@@ -80,7 +106,12 @@ class CachePreparationServiceTest {
             assertEquals("0.17.2", result.loaderVersion)
             assertEquals(versionUrl, result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST }.source)
             assertEquals(clientJarUrl, result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR }.source)
+            assertEquals(assetIndexUrl, result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_ASSET_INDEX }.source)
             assertEquals(loaderProfileUrl, result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LOADER_PROFILE }.source)
+            val assetObject = result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_ASSET_OBJECT }
+            assertEquals(null, assetObject.source)
+            assertTrue(assetObject.handle.startsWith("cache/assets/objects/"))
+            assertEquals("INDEXED", assetObject.status.name)
             val fabricLibrary = result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LIBRARY }
             assertEquals(null, fabricLibrary.source)
             assertTrue(fabricLibrary.handle.startsWith("cache/libraries/fabric/"))
@@ -94,6 +125,8 @@ class CachePreparationServiceTest {
             assertTrue(Files.readString(workspace.resolve("cache/minecraft/version_manifest_v2.json")).contains("1.21.6"))
             assertTrue(Files.readString(workspace.resolve("cache/minecraft/versions/1.21.6/version.json")).contains("client.jar"))
             assertEquals("client-jar", Files.readString(workspace.resolve("cache/minecraft/versions/1.21.6/client.jar")))
+            assertTrue(Files.readString(workspace.resolve("cache/assets/indexes/1.21.6.json")).contains("test.ogg"))
+            assertTrue(!Files.exists(workspace.resolve(assetObject.handle)))
             assertTrue(Files.readString(workspace.resolve("cache/loaders/fabric/1.21.6/versions.json")).contains("0.17.2"))
             assertTrue(Files.readString(workspace.resolve("cache/loaders/fabric/1.21.6/0.17.2/profile.json")).contains("fabric-loader"))
             assertEquals(
@@ -110,6 +143,7 @@ class CachePreparationServiceTest {
             val workspace = Files.createTempDirectory("craftless-cache-loader-pin")
             val versionUrl = "https://metadata.test/1.21.6.json"
             val clientJarUrl = "https://metadata.test/client.jar"
+            val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
             val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
             val pinnedProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.16.14/profile/json"
             val service =
@@ -122,7 +156,20 @@ class CachePreparationServiceTest {
                                     """
                                     { "versions": [{ "id": "1.21.6", "url": "$versionUrl" }] }
                                     """.trimIndent(),
-                                versionUrl to """{"id":"1.21.6","downloads":{"client":{"url":"$clientJarUrl"}}}""",
+                                versionUrl to
+                                    """
+                                    {
+                                      "id": "1.21.6",
+                                      "assetIndex": {
+                                        "id": "1.21.6",
+                                        "url": "$assetIndexUrl"
+                                      },
+                                      "downloads": {
+                                        "client": { "url": "$clientJarUrl" }
+                                      }
+                                    }
+                                    """.trimIndent(),
+                                assetIndexUrl to """{"objects":{}}""",
                                 loaderVersionsUrl to
                                     """
                                     [

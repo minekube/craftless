@@ -160,6 +160,7 @@ class CraftlessCliTest {
         val output = StringBuilder()
         val workspace = Files.createTempDirectory("craftless-cli-cache")
         val clientJarUrl = "https://metadata.test/client.jar"
+        val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
         val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
         val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.17.2/profile/json"
 
@@ -187,7 +188,9 @@ class CraftlessCliTest {
                                   ]
                                 }
                                 """.trimIndent(),
-                            "https://metadata.test/1.21.6.json" to """{"id":"1.21.6","downloads":{"client":{"url":"$clientJarUrl"}}}""",
+                            "https://metadata.test/1.21.6.json" to
+                                """{"id":"1.21.6","assetIndex":{"id":"1.21.6","url":"$assetIndexUrl"},"downloads":{"client":{"url":"$clientJarUrl"}}}""",
+                            assetIndexUrl to """{"objects":{}}""",
                             loaderVersionsUrl to
                                 """
                                 [
@@ -218,6 +221,7 @@ class CraftlessCliTest {
         val output = StringBuilder()
         val workspace = Files.createTempDirectory("craftless-cli-cache-loader-pin")
         val clientJarUrl = "https://metadata.test/client.jar"
+        val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
         val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
         val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.16.14/profile/json"
 
@@ -247,7 +251,9 @@ class CraftlessCliTest {
                                   ]
                                 }
                                 """.trimIndent(),
-                            "https://metadata.test/1.21.6.json" to """{"id":"1.21.6","downloads":{"client":{"url":"$clientJarUrl"}}}""",
+                            "https://metadata.test/1.21.6.json" to
+                                """{"id":"1.21.6","assetIndex":{"id":"1.21.6","url":"$assetIndexUrl"},"downloads":{"client":{"url":"$clientJarUrl"}}}""",
+                            assetIndexUrl to """{"objects":{}}""",
                             loaderVersionsUrl to
                                 """
                                 [

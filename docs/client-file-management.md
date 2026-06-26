@@ -59,9 +59,10 @@ preparation manifest. The same contract is exposed by the supervisor API as
 store Mojang's version index, the selected Minecraft version manifest, Fabric's
 compatible loader-version list, the resolved Fabric loader profile JSON, the
 Minecraft client jar, Fabric profile libraries, and an ordered launch classpath
-made only of Craftless-owned handles. Java runtimes, native extraction, asset
-indexes, JVM/game argument assembly, and integrity verification are still future
-provisioning work.
+made only of Craftless-owned handles. It also resolves the Minecraft asset index
+and records listed asset objects as opaque Craftless handles. Java runtimes,
+native extraction, asset object materialization, JVM/game argument assembly, and
+integrity verification are still future provisioning work.
 
 ## Prism Source Findings
 
