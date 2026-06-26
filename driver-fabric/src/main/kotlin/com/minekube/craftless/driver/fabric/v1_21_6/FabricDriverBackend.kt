@@ -9,6 +9,7 @@ import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.runtime.DriverBackend
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import com.minekube.craftless.driver.runtime.DriverBackendResult
+import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.registry.Registries
 import net.minecraft.registry.Registry
@@ -19,6 +20,7 @@ class FabricDriverBackend private constructor(
     private val gateway: FabricClientGateway?,
     actionBindings: List<FabricActionBinding> = defaultFabricActionBindings(),
     private val actionDiscovery: FabricActionDiscovery = defaultFabricActionDiscovery(),
+    private val capabilityDiscovery: FabricCapabilityDiscovery = defaultFabricCapabilityDiscovery(),
     private val runtimeMetadataProvider: FabricRuntimeMetadataProvider = staticFabricRuntimeMetadataProvider(),
 ) : DriverBackend {
     private val events = mutableListOf<String>()
@@ -40,6 +42,16 @@ class FabricDriverBackend private constructor(
     override fun actions(clientId: String): List<DriverActionDescriptor> = discoveredActions(clientId).map { it.descriptor }
 
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata = runtimeMetadataProvider.runtimeMetadata(clientId)
+
+    override fun runtimeGraph(clientId: String): RuntimeCapabilityGraph =
+        capabilityDiscovery.discover(
+            FabricCapabilityProbeContext(
+                clientId = clientId,
+                modeId = mode.id,
+                gateway = gateway,
+                runtimeMetadata = runtimeMetadata(clientId),
+            ),
+        )
 
     override fun invoke(
         clientId: String,

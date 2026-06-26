@@ -123,6 +123,63 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric backend exposes runtime capability graph from probes`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        gateway.queryResults.add(
+            FabricClientCapabilitySnapshot(
+                connected = true,
+                player = true,
+                inventory = true,
+                camera = true,
+                interactionManager = true,
+                world = true,
+            ),
+        )
+        gateway.queryResults.add(true)
+        val backend =
+            FabricDriverBackend.real(
+                gateway = gateway,
+                runtimeMetadataProvider =
+                    FabricRuntimeMetadataProvider {
+                        DriverRuntimeMetadata(
+                            loaderVersion = "0.19.3",
+                            driver = "craftless-driver-fabric",
+                            driverVersion = "0.1.0-SNAPSHOT",
+                            mappings = "craftless-fabric-bindings",
+                            installedModsFingerprint = "mods:test-runtime",
+                            registryFingerprint = "registries:test-runtime",
+                            serverFeatureFingerprint = "server-features:test-runtime",
+                            permissionsFingerprint = "permissions:local-client",
+                        )
+                    },
+            )
+
+        val graph = backend.runtimeGraph("alice")
+
+        assertEquals("alice", graph.clientId)
+        assertTrue(graph.resources.any { it.id == "runtime" })
+        assertTrue(graph.resources.any { it.id == "player" })
+        assertTrue(graph.operations.any { it.id == "player.query" })
+        assertTrue(graph.operations.any { it.id == "world.block.interact" })
+        assertTrue(graph.fingerprint().startsWith("graph:"))
+    }
+
+    @Test
+    fun `transitional fabric binding ids are represented as runtime graph operations`() {
+        val bindingIds = defaultFabricActionBindings().map { it.descriptor.id }.sorted()
+        val graphOperationIds =
+            FabricDriverBackend
+                .metadataOnly()
+                .runtimeGraph("alice")
+                .operations
+                .map { it.id }
+                .sorted()
+
+        assertEquals(bindingIds, graphOperationIds.filter { it in bindingIds })
+    }
+
+    @Test
     fun `fabric runtime metadata fingerprints runtime registry entries`() {
         val provider =
             SnapshotFabricRuntimeMetadataProvider(

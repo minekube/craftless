@@ -76,13 +76,13 @@ Verification:
 
 ## Phase 3: Fabric Discovery Probes
 
-- [ ] Fabric probes fill graph nodes from loader/mod metadata, registries,
+- [~] Fabric probes fill graph nodes from loader/mod metadata, registries,
   callbacks, screens, handlers, world/entity/inventory/client state, and
   permissions.
-- [ ] Minecraft client state access stays on the client thread.
-- [ ] Probes emit private evidence and graph nodes, not public OpenAPI
+- [x] Minecraft client state access stays on the client thread.
+- [x] Probes emit private evidence and graph nodes, not public OpenAPI
   descriptors directly.
-- [ ] Current bootstrap gameplay affordances are represented as graph nodes.
+- [x] Current bootstrap gameplay affordances are represented as graph nodes.
 
 Verification:
 
