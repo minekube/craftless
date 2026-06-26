@@ -178,8 +178,9 @@ Verification:
   implementation evidence exists for a runner contract, JSONL artifact writer,
   process-external `:testkit:publicAgentGameplay` entrypoint, and final-harness
   artifact names `public-agent-gameplay-results.jsonl` and
-  `public-agent-state.jsonl`; wiring that external runner to the live final
-  gameplay daemon URL and completing the live survival proof is still open.
+  `public-agent-state.jsonl`. The Fabric final harness now injects its live
+  daemon URL into that external runner while the client is connected; completing
+  the live survival proof through generated primitives is still open.
 - [ ] Robin joins or observes the server session after a macOS `say` prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.

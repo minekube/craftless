@@ -295,12 +295,24 @@ mise exec -- gradle :testkit:tasks --group verification
 
 Expected: tests pass and `publicAgentGameplay` is listed.
 
-- [ ] **Step 5: Wire live final gameplay to the process-external runner**
+- [x] **Step 5: Wire live final gameplay to the process-external runner**
 
-The final harness still needs to expose or reuse the live daemon URL outside
-the Fabric smoke controller, run `:testkit:publicAgentGameplay` against that
-URL while the client is connected, and use its artifacts as the final
-public-agent evidence.
+The Fabric smoke controller now launches a configured external command while
+the in-memory daemon is alive, injecting:
+
+- `CRAFTLESS_PUBLIC_AGENT_BASE_URL`;
+- `CRAFTLESS_PUBLIC_AGENT_CLIENT_ID`;
+- `CRAFTLESS_PUBLIC_AGENT_ARTIFACTS_DIR`.
+
+`fabricFinalGameplay` defaults this command to:
+
+```sh
+mise -C <repo> exec -- gradle -p <repo> :testkit:publicAgentGameplay
+```
+
+The live survival proof is still open until this external runner completes the
+gameplay scenario through generated primitives and Robin confirms in Minecraft
+chat.
 
 ### Task 6: Live Gate And Push
 

@@ -40,8 +40,9 @@ that fetches the live per-client OpenAPI/actions/resources, subscribes to
 events, and composes gameplay through generated Craftless actions/handles and
 documented agent skills.
 
-When a live daemon URL is available, run the process-external public-agent
-helper against it:
+`fabricFinalGameplay` runs the process-external public-agent helper by default
+while its in-memory daemon is alive. For targeted debugging against an existing
+daemon URL, run the helper manually:
 
 ```sh
 CRAFTLESS_PUBLIC_AGENT_BASE_URL=http://127.0.0.1:<daemon-port> \

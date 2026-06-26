@@ -35,6 +35,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -51,11 +52,13 @@ data class FabricClientSmokeController(
     val holdAfterActions: Duration = 0.milliseconds,
     val artifactsDir: Path? = null,
     val runSurvivalTask: Boolean = false,
+    val publicAgentCommand: List<String> = emptyList(),
 ) {
     init {
         require(!startupSettleDelay.isNegative()) { "fabric smoke startup settle delay must not be negative" }
         require(!holdAfterActions.isNegative()) { "fabric smoke hold after actions delay must not be negative" }
         require(actionTimeout.isPositive()) { "fabric smoke action timeout must be positive" }
+        require(publicAgentCommand.none { it.isBlank() }) { "fabric smoke public agent command entries must not be blank" }
     }
 
     fun start(
@@ -308,6 +311,7 @@ data class FabricClientSmokeController(
                             "public-agent-state.jsonl",
                             publicAgentStateResults(connectedOpenApi),
                         )
+                        runPublicAgentCommand(api.url(""))
                         val smokeResults = generatedGameplayResults + survivalTaskResults
                         writeLinesArtifact("gameplay-results.jsonl", smokeResults)
                     }
@@ -351,6 +355,32 @@ data class FabricClientSmokeController(
         writeArtifact(name, lines.joinToString(separator = "\n", postfix = "\n"))
     }
 
+    private fun runPublicAgentCommand(baseUrl: String) {
+        if (publicAgentCommand.isEmpty()) {
+            return
+        }
+        val dir = artifactsDir ?: error("public agent command requires CRAFTLESS_SMOKE_ARTIFACTS_DIR")
+        Files.createDirectories(dir)
+        val log = dir.resolve("public-agent-command.log")
+        val process =
+            ProcessBuilder(publicAgentCommand)
+                .redirectErrorStream(true)
+                .redirectOutput(log.toFile())
+                .also { builder ->
+                    builder.environment()["CRAFTLESS_PUBLIC_AGENT_BASE_URL"] = baseUrl
+                    builder.environment()["CRAFTLESS_PUBLIC_AGENT_CLIENT_ID"] = SMOKE_CLIENT_ID
+                    builder.environment()["CRAFTLESS_PUBLIC_AGENT_ARTIFACTS_DIR"] = dir.toString()
+                }.start()
+        val exited = process.waitFor(actionTimeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
+        if (!exited) {
+            process.destroyForcibly()
+            error("public agent command timed out after ${actionTimeout.inWholeMilliseconds}ms; log=$log")
+        }
+        check(process.exitValue() == 0) {
+            "public agent command exited with ${process.exitValue()}; log=$log"
+        }
+    }
+
     companion object {
         private const val ENABLED = "CRAFTLESS_FABRIC_CLIENT_SMOKE"
         private const val HOST = "CRAFTLESS_SMOKE_SERVER_HOST"
@@ -364,6 +394,7 @@ data class FabricClientSmokeController(
         private const val HOLD_AFTER_ACTIONS = "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS"
         private const val ARTIFACTS_DIR = "CRAFTLESS_SMOKE_ARTIFACTS_DIR"
         private const val FINAL_GAMEPLAY = "CRAFTLESS_FINAL_GAMEPLAY"
+        private const val PUBLIC_AGENT_COMMAND_JSON = "CRAFTLESS_PUBLIC_AGENT_COMMAND_JSON"
         private const val SMOKE_CLIENT_ID = "fabric-smoke"
         private const val SMOKE_PROFILE = "CraftlessSmoke"
         private const val MINECRAFT_VERSION = "1.21.6"
@@ -387,6 +418,11 @@ data class FabricClientSmokeController(
                 holdAfterActions = (env[HOLD_AFTER_ACTIONS]?.toLongStrict(HOLD_AFTER_ACTIONS) ?: 0).milliseconds,
                 artifactsDir = env[ARTIFACTS_DIR]?.takeIf { it.isNotBlank() }?.let(Path::of),
                 runSurvivalTask = env.isEnabled(FINAL_GAMEPLAY),
+                publicAgentCommand =
+                    env[PUBLIC_AGENT_COMMAND_JSON]
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { smokeJson.decodeFromString<List<String>>(it) }
+                        ?: emptyList(),
             )
 
         private fun Map<String, String>.isEnabled(name: String): Boolean = this[name] == "1" || this[name].equals("true", ignoreCase = true)

@@ -1247,6 +1247,51 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric smoke controller parses process external public agent command`() {
+        val controller =
+            FabricClientSmokeController.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
+                    "CRAFTLESS_PUBLIC_AGENT_COMMAND_JSON" to """["mise","exec","--","gradle",":testkit:publicAgentGameplay"]""",
+                ),
+            )
+
+        assertEquals(
+            listOf("mise", "exec", "--", "gradle", ":testkit:publicAgentGameplay"),
+            controller.publicAgentCommand,
+        )
+    }
+
+    @Test
+    fun `fabric smoke controller runs process external public agent command with live daemon url`() {
+        val gateway = RecordingFabricClientGateway()
+        val backend = smokeBackend(gateway)
+        val artifactsDir = Files.createTempDirectory("craftless-fabric-public-agent-command")
+        val envOutput = artifactsDir.resolve("public-agent-env.txt")
+        val controller =
+            FabricClientSmokeController.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
+                    "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS" to "1000",
+                    "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS" to "0",
+                    "CRAFTLESS_SMOKE_ARTIFACTS_DIR" to artifactsDir.toString(),
+                    "CRAFTLESS_PUBLIC_AGENT_COMMAND_JSON" to
+                        """["/bin/sh","-c","printf '%s\n%s\n%s\n' \"${'$'}CRAFTLESS_PUBLIC_AGENT_BASE_URL\" \"${'$'}CRAFTLESS_PUBLIC_AGENT_CLIENT_ID\" \"${'$'}CRAFTLESS_PUBLIC_AGENT_ARTIFACTS_DIR\" > '$envOutput'"]""",
+                ),
+            )
+        enqueueBasicSmokeQueryResults(gateway)
+
+        assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
+
+        gateway.awaitActions(13)
+        val envLines = Files.readAllLines(envOutput)
+        assertTrue(envLines[0].startsWith("http://127.0.0.1:"))
+        assertEquals("fabric-smoke", envLines[1])
+        assertEquals(artifactsDir.toString(), envLines[2])
+        assertTrue(Files.exists(artifactsDir.resolve("public-agent-command.log")))
+    }
+
+    @Test
     fun `fabric smoke controller invokes generated chat and movement through daemon api and writes artifacts`() {
         val gateway = RecordingFabricClientGateway()
         val backend = smokeBackend(gateway)
@@ -1263,86 +1308,7 @@ class FabricDriverModuleTest {
                     "CRAFTLESS_SMOKE_ARTIFACTS_DIR" to artifactsDir.toString(),
                 ),
             )
-        gateway.queryResults +=
-            buildJsonObject {
-                put("ticks", 4)
-                put(
-                    "position-before",
-                    buildJsonObject {
-                        put("x", 0.0)
-                        put("y", 64.0)
-                        put("z", 0.0)
-                    },
-                )
-            }
-        gateway.queryResults +=
-            buildJsonObject {
-                put("open", false)
-            }
-        gateway.queryResults +=
-            buildJsonObject {
-                put("time", 1234)
-                put("time-of-day", 5678)
-            }
-        gateway.queryResults +=
-            buildJsonObject {
-                put(
-                    "position",
-                    buildJsonObject {
-                        put("x", 0.0)
-                        put("y", 64.0)
-                        put("z", 0.0)
-                    },
-                )
-                put("selected-slot", 0)
-            }
-        gateway.queryResults +=
-            buildJsonObject {
-                put("origin", buildJsonObject { put("x", 0.0) })
-                put("radius", 16.0)
-                put("count", 1)
-                put(
-                    "entities",
-                    buildJsonArray {
-                        add(
-                            buildJsonObject {
-                                put("handle", "entity.handle-42")
-                                put("label", "Cow")
-                                put("category", "passive")
-                            },
-                        )
-                    },
-                )
-            }
-        gateway.queryResults +=
-            buildJsonObject {
-                put("selected-slot", 0)
-                put("slot-count", 46)
-                put(
-                    "slots",
-                    buildJsonArray {
-                        add(
-                            buildJsonObject {
-                                put("slot", 1)
-                                put("empty", false)
-                                put("count", 1)
-                                put("item-name", "Iron Sword")
-                            },
-                        )
-                    },
-                )
-            }
-        gateway.queryResults +=
-            buildJsonObject {
-                put("hit", true)
-                put("target-kind", "block")
-            }
-        gateway.queryResults +=
-            buildJsonObject {
-                put("hit", true)
-                put("target-kind", "block")
-                put("accepted", true)
-            }
+        enqueueBasicSmokeQueryResults(gateway)
 
         assertEquals(0.milliseconds, controller.startupSettleDelay)
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
@@ -1730,6 +1696,89 @@ class FabricDriverModuleTest {
                     )
                 },
         )
+}
+
+private fun enqueueBasicSmokeQueryResults(gateway: RecordingFabricClientGateway) {
+    gateway.queryResults +=
+        buildJsonObject {
+            put("ticks", 4)
+            put(
+                "position-before",
+                buildJsonObject {
+                    put("x", 0.0)
+                    put("y", 64.0)
+                    put("z", 0.0)
+                },
+            )
+        }
+    gateway.queryResults +=
+        buildJsonObject {
+            put("open", false)
+        }
+    gateway.queryResults +=
+        buildJsonObject {
+            put("time", 1234)
+            put("time-of-day", 5678)
+        }
+    gateway.queryResults +=
+        buildJsonObject {
+            put(
+                "position",
+                buildJsonObject {
+                    put("x", 0.0)
+                    put("y", 64.0)
+                    put("z", 0.0)
+                },
+            )
+            put("selected-slot", 0)
+        }
+    gateway.queryResults +=
+        buildJsonObject {
+            put("origin", buildJsonObject { put("x", 0.0) })
+            put("radius", 16.0)
+            put("count", 1)
+            put(
+                "entities",
+                buildJsonArray {
+                    add(
+                        buildJsonObject {
+                            put("handle", "entity.handle-42")
+                            put("label", "Cow")
+                            put("category", "passive")
+                        },
+                    )
+                },
+            )
+        }
+    gateway.queryResults +=
+        buildJsonObject {
+            put("selected-slot", 0)
+            put("slot-count", 46)
+            put(
+                "slots",
+                buildJsonArray {
+                    add(
+                        buildJsonObject {
+                            put("slot", 1)
+                            put("empty", false)
+                            put("count", 1)
+                            put("item-name", "Iron Sword")
+                        },
+                    )
+                },
+            )
+        }
+    gateway.queryResults +=
+        buildJsonObject {
+            put("hit", true)
+            put("target-kind", "block")
+        }
+    gateway.queryResults +=
+        buildJsonObject {
+            put("hit", true)
+            put("target-kind", "block")
+            put("accepted", true)
+        }
 }
 
 private class RecordingFabricClientGateway : FabricClientGateway {

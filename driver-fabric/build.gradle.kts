@@ -209,6 +209,11 @@ tasks.register<JavaExec>("fabricFinalGameplay") {
                 ?: """["mise","-C","$rootProjectPath","exec","--","gradle","-p","$rootProjectPath",":driver-fabric:runClient"]""",
         )
         environment(
+            "CRAFTLESS_PUBLIC_AGENT_COMMAND_JSON",
+            System.getenv("CRAFTLESS_PUBLIC_AGENT_COMMAND_JSON")
+                ?: """["mise","-C","$rootProjectPath","exec","--","gradle","-p","$rootProjectPath",":testkit:publicAgentGameplay"]""",
+        )
+        environment(
             "CRAFTLESS_FABRIC_SMOKE_CHAT_MESSAGE",
             System.getenv("CRAFTLESS_FABRIC_SMOKE_CHAT_MESSAGE")
                 ?: "hello from Craftless final gameplay",
