@@ -25,6 +25,7 @@ import com.minekube.craftless.protocol.isCraftlessClientId
 
 class ClientSessionService private constructor(
     private val driverFactory: DriverSessionFactory,
+    private val fileStore: InstanceFileStore?,
 ) {
     private val clients = linkedMapOf<String, Client>()
     private val drivers = linkedMapOf<String, DriverSession>()
@@ -41,6 +42,7 @@ class ClientSessionService private constructor(
                 version = MinecraftVersion(request.version),
                 loader = request.loader,
             )
+        fileStore?.prepare(instance.files)
         val client =
             Client(
                 id = request.id,
@@ -139,8 +141,12 @@ class ClientSessionService private constructor(
     }
 
     companion object {
-        fun inMemory(driverFactory: DriverSessionFactory = DriverSessionFactory.unavailable()): ClientSessionService =
-            ClientSessionService(driverFactory)
+        fun inMemory(driverFactory: DriverSessionFactory): ClientSessionService = ClientSessionService(driverFactory, fileStore = null)
+
+        fun inMemory(
+            driverFactory: DriverSessionFactory = DriverSessionFactory.unavailable(),
+            fileStore: InstanceFileStore? = null,
+        ): ClientSessionService = ClientSessionService(driverFactory, fileStore)
     }
 
     private fun updateState(

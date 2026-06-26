@@ -29,6 +29,7 @@ import com.minekube.craftless.testkit.FakeDriverSession
 import com.minekube.craftless.testkit.fakeDriverRuntimeMetadata
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
+import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -110,6 +111,49 @@ class ClientSessionServiceTest {
         )
 
         assertEquals(listOf("alice", "bob"), service.listClients().map { it.id })
+    }
+
+    @Test
+    fun `session service prepares configured instance file directories`() {
+        val workspace = Files.createTempDirectory("craftless-client-files")
+        val fileStore = InstanceFileStore(workspace)
+        val service = fakeClientSessionService(fileStore)
+
+        val client =
+            service.createClient(
+                CreateClientRequest(
+                    id = "alice",
+                    version = "1.21.4",
+                    loader = Loader.FABRIC,
+                    profile = Profile.offline("Alice"),
+                ),
+            )
+
+        client.instance.files.directoryHandles().forEach { handle ->
+            assertTrue(Files.isDirectory(workspace.resolve(handle)))
+        }
+    }
+
+    @Test
+    fun `instance file store preparation is idempotent and preserves existing runtime files`() {
+        val workspace = Files.createTempDirectory("craftless-client-files-repeat")
+        val fileStore = InstanceFileStore(workspace)
+        val service = fakeClientSessionService(fileStore)
+        val client =
+            service.createClient(
+                CreateClientRequest(
+                    id = "alice",
+                    version = "1.21.4",
+                    loader = Loader.FABRIC,
+                    profile = Profile.offline("Alice"),
+                ),
+            )
+        val artifact = workspace.resolve(client.instance.files.artifacts).resolve("evidence.jsonl")
+        Files.writeString(artifact, "kept\n")
+
+        fileStore.prepare(client.instance.files)
+
+        assertEquals("kept\n", Files.readString(artifact))
     }
 
     @Test
@@ -712,11 +756,13 @@ private class ChangingActionsBackend(
     ): DriverActionResult = DriverActionResult(invocation.action, DriverActionStatus.ACCEPTED)
 }
 
-private fun fakeClientSessionService(): ClientSessionService =
+private fun fakeClientSessionService(fileStore: InstanceFileStore? = null): ClientSessionService =
     ClientSessionService.inMemory(
-        DriverSessionFactory { request ->
-            FakeDriverSession(request.id)
-        },
+        driverFactory =
+            DriverSessionFactory { request ->
+                FakeDriverSession(request.id)
+            },
+        fileStore = fileStore,
     )
 
 private class RecordingDriverBackend(

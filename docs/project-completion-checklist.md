@@ -211,11 +211,15 @@ Verification:
 - [x] Craftless-owned instance file layout is modeled.
 - [x] The instance file contract exposes separate game, runtime, cache, logs,
   screenshots, and artifacts handles.
+- [x] The daemon can materialize those directories under a configured workspace
+  root without clearing existing runtime files.
 - [x] Prism Launcher source was cloned under `/tmp/prismlauncher-source` for
   research, outside Minekube repos.
 - [x] Prism findings are captured as design input, not a core dependency.
-- [ ] Client runtime/file management is strong enough for repeated local and CI
-  runs.
+- [~] Client runtime/file management is strong enough for repeated local and CI
+  runs. Instance directories are now repeatable and idempotent; Java/runtime
+  provisioning, cache preparation commands, and explicit cleanup/export flows
+  are still roadmap.
 - [x] Public APIs expose Craftless-owned file handles only.
 
 Verification:

@@ -42,6 +42,11 @@ This is intentionally narrower than a launcher UI. It gives agents and generated
 clients the file handles they need without coupling the daemon, CLI, or OpenAPI
 surface to a desktop launcher's storage model.
 
+When configured with an `InstanceFileStore`, the daemon prepares these
+directories under the configured workspace root during client creation. The
+operation is idempotent and does not clear existing logs, artifacts, saves, or
+cache data; cleanup and export flows should be explicit operations.
+
 ## Prism Source Findings
 
 Prism Launcher checkout inspected:
@@ -95,5 +100,6 @@ Use these checks when changing file-management contracts:
 
 ```sh
 mise exec -- gradle :protocol:test --tests com.minekube.craftless.protocol.ClientModelsTest --tests com.minekube.craftless.protocol.NamespacePolicyTest
+mise exec -- gradle :daemon:test --tests com.minekube.craftless.daemon.ClientSessionServiceTest
 rg -n "Prism|PrismLauncher|MultiMC|MMC|instance\\.cfg|mmc-pack|patches/|ManagedPack" protocol/src/main daemon/src/main cli/src/main driver-api/src/main driver-runtime/src/main driver-fabric/src/main bridge-hmc/src/main testkit/src/main --glob '!**/build/**' --glob '!driver-fabric/run/**'
 ```
