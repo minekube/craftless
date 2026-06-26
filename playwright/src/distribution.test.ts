@@ -36,7 +36,9 @@ describe("distribution surface", () => {
     expect(workflow).toContain("mise run ci");
     expect(workflow).toContain("mise run package-cli");
     expect(workflow).toContain("softprops/action-gh-release");
+    expect(workflow).toContain("docker/setup-qemu-action");
     expect(workflow).toContain("docker/build-push-action");
+    expect(workflow).toContain("platforms: linux/amd64,linux/arm64");
     expect(workflow).toContain("ghcr.io/minekube/craftless");
   });
 

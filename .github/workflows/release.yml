@@ -52,6 +52,9 @@ jobs:
             build/release/craftless-*.tar
             build/release/SHA256SUMS
 
+      - name: Set up Docker QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -67,6 +70,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           push: ${{ github.ref_type == 'tag' }}
           tags: |
             ${{ env.REGISTRY_IMAGE }}:${{ github.ref_name }}
