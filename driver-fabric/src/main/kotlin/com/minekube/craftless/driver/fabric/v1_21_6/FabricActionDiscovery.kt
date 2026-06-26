@@ -8,6 +8,10 @@ internal fun interface FabricActionDiscovery {
     fun discover(context: FabricActionDiscoveryContext): List<FabricDiscoveredAction>
 }
 
+internal fun interface FabricActionProbe {
+    fun discover(context: FabricActionDiscoveryContext): List<FabricDiscoveredAction>
+}
+
 internal data class FabricActionDiscoveryContext(
     val clientId: String,
     val modeId: String,
@@ -41,36 +45,54 @@ internal data class FabricDiscoveredAction(
     }
 }
 
-internal fun defaultFabricActionDiscovery(): FabricActionDiscovery =
+internal fun defaultFabricActionDiscovery(probes: List<FabricActionProbe> = defaultFabricActionProbes()): FabricActionDiscovery =
     FabricActionDiscovery { context ->
-        val bindingBackedActions =
-            context.bindings.values.map { binding ->
-                FabricDiscoveredAction(
-                    descriptor =
-                        binding.descriptor.copy(
-                            source = DriverActionSource.BINDING,
-                            availability = DriverActionAvailability.AVAILABLE,
-                            availabilityReason = null,
-                        ),
-                    binding = binding,
-                )
-            }
-        bindingBackedActions + context.probeScreenActions() + context.probeUnavailableActions()
+        probes
+            .flatMap { probe -> probe.discover(context) }
+            .also { actions -> actions.requireUniqueActionIds() }
     }
 
-private fun FabricActionDiscoveryContext.probeScreenActions(): List<FabricDiscoveredAction> =
-    if (gateway == null) {
-        emptyList()
-    } else {
-        listOf(
+private fun defaultFabricActionProbes(): List<FabricActionProbe> =
+    listOf(
+        BindingBackedFabricActionProbe,
+        ScreenFabricActionProbe,
+        ConnectedClientFabricActionProbe,
+    )
+
+private object BindingBackedFabricActionProbe : FabricActionProbe {
+    override fun discover(context: FabricActionDiscoveryContext): List<FabricDiscoveredAction> =
+        context.bindings.values.map { binding ->
             FabricDiscoveredAction(
-                descriptor = FabricScreenQueryActionBinding.descriptor,
-                binding = FabricScreenQueryActionBinding,
-            ),
-        )
-    }
+                descriptor =
+                    binding.descriptor.copy(
+                        source = DriverActionSource.BINDING,
+                        availability = DriverActionAvailability.AVAILABLE,
+                        availabilityReason = null,
+                    ),
+                binding = binding,
+            )
+        }
+}
 
-private fun FabricActionDiscoveryContext.probeUnavailableActions(): List<FabricDiscoveredAction> {
+private object ScreenFabricActionProbe : FabricActionProbe {
+    override fun discover(context: FabricActionDiscoveryContext): List<FabricDiscoveredAction> =
+        if (context.gateway == null) {
+            emptyList()
+        } else {
+            listOf(
+                FabricDiscoveredAction(
+                    descriptor = FabricScreenQueryActionBinding.descriptor,
+                    binding = FabricScreenQueryActionBinding,
+                ),
+            )
+        }
+}
+
+private object ConnectedClientFabricActionProbe : FabricActionProbe {
+    override fun discover(context: FabricActionDiscoveryContext): List<FabricDiscoveredAction> = context.probeConnectedClientActions()
+}
+
+private fun FabricActionDiscoveryContext.probeConnectedClientActions(): List<FabricDiscoveredAction> {
     val gateway = gateway ?: return emptyList()
     return if (gateway.isConnected()) {
         listOf(
@@ -120,6 +142,16 @@ private fun FabricActionDiscoveryContext.probeUnavailableActions(): List<FabricD
                 descriptor = unavailableWorldBlockBreakDescriptor(),
             ),
         )
+    }
+}
+
+private fun List<FabricDiscoveredAction>.requireUniqueActionIds() {
+    val duplicateAction =
+        groupBy { it.descriptor.id }
+            .entries
+            .firstOrNull { (_, matches) -> matches.size > 1 }
+    if (duplicateAction != null) {
+        throw IllegalArgumentException("duplicate discovered Fabric action id ${duplicateAction.key}")
     }
 }
 

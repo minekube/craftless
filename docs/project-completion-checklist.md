@@ -129,14 +129,14 @@ Verification:
 - [x] Remove static placeholder action descriptors from product code and tests.
 - [x] Action descriptors and per-client OpenAPI carry action source,
   availability, and machine-readable availability reasons.
-- [~] Design the Fabric runtime discovery/projection layer. A minimal internal
-  discovery abstraction exists for binding-backed actions, connected-client
-  `player.query`, connected-client `player.look`, connected-client
-  `player.raycast`, connected-client `inventory.query`, connected-client
-  `inventory.equip`,
-  connected-client `world.block.break`, gateway-discovered `screen.query`, and
-  disconnected-client unavailable probe metadata; broader
-  client/world/inventory/screen interaction probes are still roadmap.
+- [~] Design the Fabric runtime discovery/projection layer. Internal discovery
+  is now composed from runtime probes for binding-backed actions,
+  connected-client `player.query`, connected-client `player.look`,
+  connected-client `player.raycast`, connected-client `inventory.query`,
+  connected-client `inventory.equip`, connected-client `world.block.break`,
+  gateway-discovered `screen.query`, and disconnected-client unavailable
+  metadata, with duplicate probe output rejected before descriptor projection;
+  broader client/world/inventory/screen interaction probes are still roadmap.
 - [~] Define how internal Fabric/Minecraft/mod/registry/server data becomes
   Craftless-owned actions, resources, handles, schemas, availability, and
   events. Action-derived resource projection now includes the source action
@@ -167,7 +167,8 @@ Verification:
 - [x] `player.chat` has a real Fabric binding.
 - [x] `player.move` has a real Fabric binding and driver-side event evidence.
 - [x] Fabric action listing goes through an internal discovery snapshot instead
-  of directly returning the binding map.
+  of directly returning the binding map, and that snapshot is composed from
+  runtime probes with duplicate action-id validation.
 - [~] Real look/perception/block/inventory/screen capabilities are discovered
   from the running client before they are advertised. `player.query`,
   `player.look`, `player.raycast`, `inventory.query`, `inventory.equip`, and

@@ -138,10 +138,12 @@ or static placeholder descriptors.
 - Add Fabric runtime discovery providers that inspect the running client,
   player, world, interaction manager, inventory, screen, registries, mods,
   permissions, and server features.
-- Current discovery has connected-client bindings with disconnected-client
-  unavailable probe metadata for `player.query`, `player.look`,
-  `player.raycast`, `inventory.query`, `inventory.equip`, and
-  `world.block.break`, plus gateway-discovered `screen.query`.
+- Current discovery is composed from internal runtime probes. It has
+  connected-client bindings with disconnected-client unavailable probe metadata
+  for `player.query`, `player.look`, `player.raycast`, `inventory.query`,
+  `inventory.equip`, and `world.block.break`, plus gateway-discovered
+  `screen.query`; duplicate probe output is rejected before descriptor
+  projection.
 - Current resource projection groups discovered action ids into live resources
   such as `player`, `inventory`, and `world.block`, and includes the action
   descriptor schemas that produced each resource. Richer object handles,

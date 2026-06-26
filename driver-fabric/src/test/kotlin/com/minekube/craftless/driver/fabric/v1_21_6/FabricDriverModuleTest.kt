@@ -251,6 +251,79 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric default discovery is composed from runtime probes`() {
+        val discovery =
+            defaultFabricActionDiscovery(
+                probes =
+                    listOf(
+                        FabricActionProbe { context ->
+                            assertEquals("metadata-only", context.modeId)
+                            listOf(
+                                FabricDiscoveredAction(
+                                    descriptor =
+                                        DriverActionDescriptor(
+                                            id = "player.raycast",
+                                            schemaVersion = "1",
+                                            source = DriverActionSource.RUNTIME_PROBE,
+                                            availability = DriverActionAvailability.UNAVAILABLE,
+                                            availabilityReason = "client-not-connected",
+                                        ),
+                                ),
+                            )
+                        },
+                        FabricActionProbe {
+                            listOf(
+                                FabricDiscoveredAction(
+                                    descriptor =
+                                        DriverActionDescriptor(
+                                            id = "screen.query",
+                                            schemaVersion = "1",
+                                            source = DriverActionSource.RUNTIME_PROBE,
+                                            availability = DriverActionAvailability.UNAVAILABLE,
+                                            availabilityReason = "screen-unavailable",
+                                        ),
+                                ),
+                            )
+                        },
+                    ),
+            )
+        val backend = FabricDriverBackend.metadataOnly(discovery)
+
+        assertEquals(listOf("player.raycast", "screen.query"), backend.actions("alice").map { it.id })
+    }
+
+    @Test
+    fun `fabric discovery rejects duplicate action ids from probes`() {
+        val discovery =
+            defaultFabricActionDiscovery(
+                probes =
+                    listOf(
+                        FabricActionProbe {
+                            listOf(
+                                FabricDiscoveredAction(
+                                    descriptor = FabricPlayerQueryActionBinding.descriptor,
+                                    binding = FabricPlayerQueryActionBinding,
+                                ),
+                            )
+                        },
+                        FabricActionProbe {
+                            listOf(
+                                FabricDiscoveredAction(
+                                    descriptor = FabricPlayerQueryActionBinding.descriptor,
+                                    binding = FabricPlayerQueryActionBinding,
+                                ),
+                            )
+                        },
+                    ),
+            )
+        val backend = FabricDriverBackend.metadataOnly(discovery)
+
+        val error = assertFailsWith<IllegalArgumentException> { backend.actions("alice") }
+
+        assertEquals("duplicate discovered Fabric action id player.query", error.message)
+    }
+
+    @Test
     fun `fabric runtime discovery probes client state before advertising unavailable raycast`() {
         val gateway = RecordingFabricClientGateway()
         gateway.connected = false
