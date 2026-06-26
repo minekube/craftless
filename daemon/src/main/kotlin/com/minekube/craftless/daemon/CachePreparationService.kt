@@ -95,6 +95,9 @@ class CachePreparationService(
                 metadata.profile,
             )
         }
+        assetObjects.forEach { asset ->
+            writeBytesArtifact(asset.artifact, metadataFetcher.fetchBytes(asset.source))
+        }
         fabricLibraries.forEach { library ->
             writeBytesArtifact(library.artifact, metadataFetcher.fetchBytes(library.source))
         }
@@ -294,13 +297,18 @@ private fun String.assetObjects(): List<MinecraftAssetObject> =
 private data class MinecraftAssetObject(
     val hash: String,
 ) {
+    val source: String = "$MINECRAFT_ASSET_BASE_URL/${hash.take(2)}/$hash"
+
     val artifact: CachePreparedArtifact =
         CachePreparedArtifact(
             kind = CachePreparedArtifactKind.MINECRAFT_ASSET_OBJECT,
             handle = "cache/assets/objects/${hash.sha256Hex()}.asset",
-            status = CachePreparedArtifactStatus.INDEXED,
+            source = source,
+            status = CachePreparedArtifactStatus.CACHED,
         )
 }
+
+private const val MINECRAFT_ASSET_BASE_URL = "https://resources.download.minecraft.net"
 
 private data class FabricLibraryArtifact(
     val source: String,

@@ -239,19 +239,18 @@ Verification:
   offline binary-fetcher tests.
 - [x] Cache preparation emits an ordered launch classpath made only of
   Craftless-owned artifact handles.
-- [x] Cache preparation resolves the Minecraft asset index and records listed
-  asset objects as opaque Craftless-owned cache handles.
+- [x] Cache preparation resolves the Minecraft asset index and downloads listed
+  asset objects into opaque Craftless-owned cache handles.
 - [x] Prism Launcher source was cloned under `/tmp/prismlauncher-source` for
   research, outside Minekube repos.
 - [x] Prism findings are captured as design input, not a core dependency.
 - [~] Client runtime/file management is strong enough for repeated local and CI
   runs. Instance directories and cache preparation are now repeatable and
   idempotent, with Minecraft metadata, Fabric loader profile metadata, the
-  Minecraft client jar, and Fabric profile libraries resolved into the
-  workspace plus an ordered launch classpath handle list and indexed asset
-  object handles; Java/runtime artifact resolution, native extraction, asset
-  object materialization, JVM/game argument assembly, and explicit
-  cleanup/export flows are still roadmap.
+  Minecraft client jar, Fabric profile libraries, and Minecraft asset objects
+  materialized into the workspace plus an ordered launch classpath handle list;
+  Java/runtime artifact resolution, native extraction, JVM/game argument
+  assembly, and explicit cleanup/export flows are still roadmap.
 - [x] Public APIs expose Craftless-owned file handles only.
 
 Verification:
