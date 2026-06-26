@@ -47,9 +47,9 @@ Craftless keeps public API layers separate:
   and runtime fingerprints.
 - Descriptor projections: `/clients/{id}/actions` is a convenience view of the
   per-client action metadata, not another source of truth.
-- Adaptive consumers: the `craftless` CLI, agents, and future generated
-  clients fetch the live specs/descriptors at runtime instead of mirroring
-  Minecraft actions in static source code.
+- Adaptive consumers: the `craftless` CLI, exported agent-tool manifests, and
+  future generated clients fetch the live specs/descriptors at runtime instead
+  of mirroring Minecraft actions in static source code.
 - Internal driver boundary: `DriverSession` stays lifecycle-oriented and
   invokes discovered actions generically through `actions()` and `invoke(...)`.
 - Fabric internals: discovery/projection and execution bindings stay inside
@@ -72,6 +72,8 @@ Craftless maps to Minecraft this way:
 - Craftless Client Protocol is the generated local OpenAPI/action surface.
 - Craftless runtime is the daemon, CLI, Docker image, sessions, files, logs,
   events, and driver wiring.
+- Craftless agent-tool export is a CLI-emitted manifest derived from the live
+  OpenAPI/action descriptors, not a hand-written gameplay catalog.
 - Future generated clients can provide a lightweight Playwright-style developer
   experience above the generated API without becoming the source of truth.
 

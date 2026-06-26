@@ -14,6 +14,8 @@ import com.minekube.craftless.protocol.CachePrepareRequest
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.OpenApiAction
+import com.minekube.craftless.protocol.OpenApiActionArgument
+import com.minekube.craftless.protocol.OpenApiActionAvailability
 import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.Profile
 import io.ktor.client.HttpClient
@@ -75,6 +77,7 @@ object CraftlessCli {
             "clients <id> openapi",
             "clients <id> actions",
             "clients <id> resources",
+            "clients <id> tools",
             "clients <id> run <action>",
             "clients <id> <resource...> <action>",
             "cache prepare",
@@ -126,6 +129,9 @@ object CraftlessCli {
         }
         if (args.size >= 3 && args[0] == "clients" && args[2] == "resources") {
             return getClientResources(args.drop(1), stdout, stderr, env)
+        }
+        if (args.size >= 3 && args[0] == "clients" && args[2] == "tools") {
+            return getClientTools(args.drop(1), stdout, stderr, env)
         }
         if (args.size >= 4 && args[0] == "clients" && args[2] == "run") {
             return runClientAction(args.drop(1), stdout, stderr, env)
@@ -545,6 +551,38 @@ object CraftlessCli {
         }
     }
 
+    private fun getClientTools(
+        args: List<String>,
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+        env: Map<String, String>,
+    ): Int {
+        val clientId = args.getOrNull(0).orEmpty()
+        if (clientId.isBlank()) {
+            stderr("error: usage is clients <id> tools [--api <url>]")
+            return 2
+        }
+        val api = args.apiBaseUrl(env)
+        return runCatching {
+            kotlinx.coroutines.runBlocking {
+                HttpClient(CIO).use { http ->
+                    val response = http.get("${api.trimEnd('/')}/clients/$clientId/openapi.json")
+                    val body = response.bodyAsText()
+                    if (!response.status.isSuccess()) {
+                        stderr(body)
+                        return@runBlocking 1
+                    }
+                    val openApi = json.decodeFromString<OpenApiDocument>(body)
+                    stdout(json.encodeToString(openApi.toAgentToolManifest(clientId)))
+                    0
+                }
+            }
+        }.getOrElse { error ->
+            stderr("error: ${error.message ?: "failed to export tools"}")
+            2
+        }
+    }
+
     private fun getClientOpenApi(
         args: List<String>,
         stdout: (String) -> Unit,
@@ -731,6 +769,43 @@ object CraftlessCli {
             }
         }.trimEnd()
 
+    private fun OpenApiDocument.toAgentToolManifest(clientId: String): AgentToolManifest =
+        AgentToolManifest(
+            clientId = clientId,
+            runtimeFingerprint = extensions["x-craftless-runtime-fingerprint"],
+            tools =
+                actions.map { action ->
+                    AgentToolDescriptor(
+                        name = action.toolName(),
+                        action = action.id,
+                        route = "POST ${action.toolRoute(clientId, this)}",
+                        availability = action.availability.toolValue(),
+                        inputSchema = action.arguments,
+                    )
+                },
+        )
+
+    private fun OpenApiAction.toolName(): String = "craftless_${id.replace('.', '_').replace('-', '_')}"
+
+    private fun OpenApiAction.toolRoute(
+        clientId: String,
+        openApi: OpenApiDocument,
+    ): String {
+        val aliasPath = "/clients/$clientId/${id.substringBeforeLast('.').replace('.', '/')}:${id.substringAfterLast('.')}"
+        val aliasAction =
+            openApi.paths[aliasPath]
+                ?.post
+                ?.extensions
+                ?.get("x-craftless-action")
+        return if (aliasAction == id) aliasPath else "/clients/$clientId:run"
+    }
+
+    private fun OpenApiActionAvailability.toolValue(): String =
+        when (this) {
+            OpenApiActionAvailability.AVAILABLE -> "available"
+            OpenApiActionAvailability.UNAVAILABLE -> "unavailable"
+        }
+
     private fun String.toJsonArgument(): JsonElement =
         when {
             equals("true", ignoreCase = true) -> JsonPrimitive(true)
@@ -852,6 +927,22 @@ data class ActionInvocationResponse(
     val action: String,
     val status: String,
     val message: String? = null,
+)
+
+@Serializable
+data class AgentToolManifest(
+    val clientId: String,
+    val runtimeFingerprint: String? = null,
+    val tools: List<AgentToolDescriptor>,
+)
+
+@Serializable
+data class AgentToolDescriptor(
+    val name: String,
+    val action: String,
+    val route: String,
+    val availability: String,
+    val inputSchema: Map<String, OpenApiActionArgument>,
 )
 
 data class GeneratedActionAlias(

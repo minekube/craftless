@@ -52,6 +52,7 @@ class CraftlessCliTest {
         assertTrue(commands.contains("clients <id> openapi"))
         assertTrue(commands.contains("clients <id> actions"))
         assertTrue(commands.contains("clients <id> resources"))
+        assertTrue(commands.contains("clients <id> tools"))
         assertTrue(commands.contains("clients <id> run <action>"))
         assertTrue(commands.contains("clients <id> <resource...> <action>"))
         assertTrue(commands.contains("cache prepare"))
@@ -841,6 +842,41 @@ class CraftlessCliTest {
 
         val actions = Json.parseToJsonElement(output.toString().trim()).jsonArray
         assertEquals(listOf("player.chat"), actions.map { it.jsonObject["id"]?.jsonPrimitive?.content })
+    }
+
+    @Test
+    fun `clients tools exports agent tools from live openapi actions`() {
+        val output = StringBuilder()
+
+        StaleActionsProjectionServer().use { server ->
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "tools",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { output.appendLine(it) },
+                )
+
+            assertEquals(0, exit)
+        }
+
+        val manifest = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        assertEquals("alice", manifest["clientId"]?.jsonPrimitive?.content)
+        assertEquals("fingerprint-test", manifest["runtimeFingerprint"]?.jsonPrimitive?.content)
+        val tools = manifest["tools"]?.jsonArray.orEmpty()
+        assertEquals(listOf("craftless_player_chat"), tools.map { it.jsonObject["name"]?.jsonPrimitive?.content })
+        val tool = tools.single().jsonObject
+        assertEquals("player.chat", tool["action"]?.jsonPrimitive?.content)
+        assertEquals("POST /clients/alice/player:chat", tool["route"]?.jsonPrimitive?.content)
+        assertEquals("available", tool["availability"]?.jsonPrimitive?.content)
+        val input = requireNotNull(tool["inputSchema"]?.jsonObject)
+        val message = requireNotNull(input["message"]?.jsonObject)
+        assertEquals("string", message["type"]?.jsonPrimitive?.content)
+        assertEquals("true", message["required"]?.jsonPrimitive?.content)
     }
 
     @Test
@@ -1677,7 +1713,9 @@ class CraftlessCliTest {
                                   }
                                 }
                               },
-                              "x-craftless": {},
+                              "x-craftless": {
+                                "x-craftless-runtime-fingerprint": "fingerprint-test"
+                              },
                               "x-craftless-actions": [
                                 {
                                   "id": "player.chat",

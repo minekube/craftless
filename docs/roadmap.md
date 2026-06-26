@@ -189,8 +189,12 @@ of mirroring the API by hand.
   future work.
 - Render dynamic CLI help from `/clients/{id}/openapi.json`, using
   `/clients/{id}/actions` only as a descriptor projection/availability view.
+- Export agent-tool manifests from `/clients/{id}/openapi.json` through
+  `craftless clients <id> tools`, including the runtime fingerprint, generated
+  alias route, availability, and action argument schema for each live action.
 - Keep static CLI commands limited to daemon lifecycle, client lifecycle,
-  discovery, generic action invocation, auth/config, and output modes.
+  discovery, agent-tool export, generic action invocation, auth/config, and
+  output modes.
 - Add an OpenAPI compatibility fixture that proves generated aliases, generic
   action invocation, and schema metadata stay in sync.
 - Defer any TypeScript SDK until the generated API contract is strong enough

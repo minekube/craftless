@@ -40,8 +40,9 @@ Craftless keeps the control plane deliberately split:
   Craftless-owned resource ids such as `player`, `inventory`, and
   `world.block`, including resource availability reasons and the action
   descriptor schemas that produced each resource.
-- `craftless` and future generated clients fetch those specs at runtime. They
-  do not keep a hand-written catalog of Minecraft gameplay commands.
+- `craftless`, its agent-tool export, and future generated clients fetch those
+  specs at runtime. They do not keep a hand-written catalog of Minecraft
+  gameplay commands.
 
 ## Example
 
@@ -127,7 +128,7 @@ Implemented now:
   `driver-runtime`, `driver-fabric`, `cli`, `testkit`, and Playwright helper
   modules.
 - `craftless` CLI with a small static core plus adaptive per-client action
-  aliases and help loaded from action metadata.
+  aliases, help, and agent-tool manifests loaded from action metadata.
 - Ktor local supervisor API with stable kernel OpenAPI at `/openapi.json`.
 - Per-client OpenAPI at `/clients/{id}/openapi.json` with Craftless metadata,
   action schemas, resource projections, source/availability metadata, and

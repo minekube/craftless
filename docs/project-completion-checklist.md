@@ -25,6 +25,7 @@ Legend:
   per-client OpenAPI, including resource availability reasons and the action
   descriptors that produced each resource.
 - [x] CLI binary is `craftless` and uses adaptive action metadata.
+- [x] CLI agent-tool export uses live per-client OpenAPI action metadata.
 - [x] CLI generic and generated-alias action dispatch use the live per-client
   OpenAPI action descriptor for argument schema validation, help, positional
   argument mapping, and nested generated aliases such as
@@ -131,13 +132,15 @@ Verification:
   and `/clients/{id}/resources` as authoritative. The `craftless clients <id>
   actions` and `craftless clients <id> resources` commands now read
   `x-craftless-actions` and `x-craftless-resources` from
-  `/clients/{id}/openapi.json`, and the Playwright helper has a thin OpenAPI
-  action client that fetches `/clients/{id}/openapi.json` before invoking
+  `/clients/{id}/openapi.json`, `craftless clients <id> tools` exports an
+  agent-tool manifest from the same live action descriptors and runtime
+  fingerprint, and the Playwright helper has a thin OpenAPI action client that
+  fetches `/clients/{id}/openapi.json` before invoking
   `POST /clients/{id}:run` or reading `x-craftless-resources`. The daemon
   exposes per-client OpenAPI `ETag` revalidation keyed by the live
   runtime/action fingerprint, and the Playwright helper revalidates its
-  process-local cached live spec with `If-None-Match`; generated clients and
-  agent-tool packaging remain roadmap.
+  process-local cached live spec with `If-None-Match`; durable generated
+  client cache implementations remain roadmap.
 - [x] `DriverSession` remains lifecycle/events/runtime metadata plus
   `actions()` and `invoke(...)`; no static player/world/inventory methods.
 - [x] Fabric discovery/projection and execution bindings stay internal and
