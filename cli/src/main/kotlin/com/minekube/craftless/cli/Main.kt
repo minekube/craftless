@@ -561,20 +561,20 @@ object CraftlessCli {
     ): Int {
         val clientId = args.getOrNull(0).orEmpty()
         if (clientId.isBlank()) {
-            stderr("error: usage is clients <id> resources [--api <url>]")
+            stderr("error: usage is clients <id> resources [--api <url>] [--openapi-cache <dir>]")
             return 2
         }
         val api = args.apiBaseUrl(env)
+        val openApiCache = args.optionValue("--openapi-cache")?.let(Path::of)
         return runCatching {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
-                    val response = http.get("${api.trimEnd('/')}/clients/$clientId/openapi.json")
-                    val body = response.bodyAsText()
-                    if (!response.status.isSuccess()) {
-                        stderr(body)
+                    val openApiBody = http.getClientOpenApiBody(api = api, clientId = clientId, cacheRoot = openApiCache)
+                    if (openApiBody == null) {
+                        stderr("error: live OpenAPI cache could not be revalidated for client $clientId")
                         return@runBlocking 1
                     }
-                    val openApi = json.decodeFromString<OpenApiDocument>(body)
+                    val openApi = json.decodeFromString<OpenApiDocument>(openApiBody)
                     stdout(json.encodeToString(openApi.resources))
                     0
                 }

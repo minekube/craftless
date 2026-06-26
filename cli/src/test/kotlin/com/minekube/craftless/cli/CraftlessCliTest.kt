@@ -986,6 +986,50 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `clients resources revalidates durable live openapi cache by etag`() {
+        val cacheDir = Files.createTempDirectory("craftless-cli-resource-openapi-cache")
+        val firstOutput = StringBuilder()
+        val secondOutput = StringBuilder()
+
+        RevalidatingOpenApiServer().use { server ->
+            val firstExit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "resources",
+                        "--api",
+                        server.url,
+                        "--openapi-cache",
+                        cacheDir.toString(),
+                    ),
+                    stdout = { firstOutput.appendLine(it) },
+                )
+            val secondExit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "resources",
+                        "--api",
+                        server.url,
+                        "--openapi-cache",
+                        cacheDir.toString(),
+                    ),
+                    stdout = { secondOutput.appendLine(it) },
+                )
+
+            assertEquals(0, firstExit)
+            assertEquals(0, secondExit)
+            assertEquals(listOf(null, "etag-v1"), server.ifNoneMatchValues)
+        }
+
+        assertEquals(firstOutput.toString(), secondOutput.toString())
+        val resources = Json.parseToJsonElement(secondOutput.toString().trim()).jsonArray
+        assertEquals(listOf("player"), resources.map { it.jsonObject["id"]?.jsonPrimitive?.content })
+    }
+
+    @Test
     fun `clients openapi fetches live per client spec from daemon`() {
         val output = StringBuilder()
 
@@ -1875,7 +1919,21 @@ class CraftlessCliTest {
                                       "args": { "message": { "type": "string", "required": true } }
                                     }
                                   ],
-                                  "x-craftless-resources": []
+                                  "x-craftless-resources": [
+                                    {
+                                      "id": "player",
+                                      "actions": ["player.chat"],
+                                      "availability": "available",
+                                      "availabilityReasons": [],
+                                      "actionDescriptors": [
+                                        {
+                                          "id": "player.chat",
+                                          "schemaVersion": "1",
+                                          "args": { "message": { "type": "string", "required": true } }
+                                        }
+                                      ]
+                                    }
+                                  ]
                                 }
                                 """.trimIndent(),
                                 ContentType.Application.Json,
