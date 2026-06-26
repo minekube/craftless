@@ -11,7 +11,12 @@ plugins {
 }
 
 group = "com.minekube.craftless"
-version = "0.1.0-SNAPSHOT"
+version =
+    providers
+        .gradleProperty("craftlessVersion")
+        .orElse(providers.environmentVariable("CRAFTLESS_VERSION"))
+        .orElse("0.1.0-SNAPSHOT")
+        .get()
 
 subprojects {
     group = rootProject.group

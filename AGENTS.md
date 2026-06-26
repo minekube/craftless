@@ -188,6 +188,10 @@ scenario actions.
 Phase 24 makes `world.block.interact` targetable with Craftless-owned block
 handles/positions and state-change evidence. It must not add `build.house`,
 `place.log`, or other building scenario shortcuts.
+Phase 25 adds distribution surfaces: release workflow, install script, runtime
+Docker image, reusable GitHub Action, and README quickstarts. Docker must copy
+the already-built Craftless CLI distribution and must not compile the project
+inside the image. Do not add Homebrew in this phase.
 
 ## Acceptance Scenarios Are Not Product APIs
 

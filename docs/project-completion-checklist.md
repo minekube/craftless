@@ -536,6 +536,29 @@ Verification:
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric runtime discovery exposes block interact only from client state'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 
+## Phase 25: Distribution Usability
+
+- [x] Spec and plan exist for release, install, Docker, GitHub Action, and
+  README quickstart surfaces.
+- [x] Release workflow builds the CLI distribution with mise/Gradle, uploads
+  GitHub Release artifacts and checksums, and pushes a GHCR runtime image.
+- [x] Docker image copies an already-built Craftless CLI distribution and does
+  not build the project inside Docker.
+- [x] Install script installs `craftless` from GitHub Releases without
+  requiring users to clone this repository.
+- [x] Reusable GitHub Action installs Craftless and can optionally start the
+  local daemon for downstream workflows.
+- [x] README documents install script, Docker, and GitHub Actions usage with no
+  Homebrew requirement and no legacy SDK references.
+
+Verification:
+
+- `mise exec -- bun test playwright`
+- `mise run package-cli`
+- `docker build -t craftless:local .`
+- `docker run --rm craftless:local /opt/craftless/bin/craftless server start --once --port 0 --workspace /tmp/craftless`
+- `mise run ci`
+
 Verification:
 
 - `mise exec -- gradle :protocol:test :driver-api:test :driver-fabric:test`

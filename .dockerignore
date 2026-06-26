@@ -1,0 +1,8 @@
+*
+!Dockerfile
+!docker/
+!docker/entrypoint.sh
+!build/
+!build/docker/
+!build/docker/craftless/
+!build/docker/craftless/**

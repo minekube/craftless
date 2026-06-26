@@ -1,0 +1,64 @@
+name: Setup Craftless
+description: Install the Craftless CLI and optionally start the local daemon.
+
+inputs:
+  version:
+    description: Craftless release tag to install, or latest.
+    required: false
+    default: latest
+  start:
+    description: Start `craftless server start` after installing.
+    required: false
+    default: "false"
+  port:
+    description: Port for the optional local daemon.
+    required: false
+    default: "8080"
+  workspace:
+    description: Workspace path for the optional local daemon.
+    required: false
+    default: .craftless
+  install-dir:
+    description: Directory added to PATH for the Craftless launcher symlink.
+    required: false
+    default: ~/.local/bin
+
+outputs:
+  api-url:
+    description: Craftless API URL when `start` is true.
+    value: ${{ steps.start.outputs.api-url }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install Craftless
+      shell: bash
+      env:
+        CRAFTLESS_VERSION: ${{ inputs.version }}
+      run: |
+        install_dir="${{ inputs.install-dir }}"
+        install_dir="${install_dir/#\~/$HOME}"
+        export CRAFTLESS_INSTALL_DIR="$install_dir"
+        bash "$GITHUB_ACTION_PATH/../../../install.sh"
+        echo "$install_dir" >> "$GITHUB_PATH"
+
+    - name: Start Craftless daemon
+      id: start
+      if: inputs.start == 'true'
+      shell: bash
+      run: |
+        mkdir -p "${{ inputs.workspace }}"
+        nohup craftless server start \
+          --port "${{ inputs.port }}" \
+          --workspace "${{ inputs.workspace }}" \
+          > "$RUNNER_TEMP/craftless.log" 2>&1 &
+        api_url="http://127.0.0.1:${{ inputs.port }}"
+        for _ in {1..60}; do
+          if curl -fsSL "$api_url/openapi.json" >/dev/null; then
+            echo "api-url=$api_url" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          sleep 1
+        done
+        cat "$RUNNER_TEMP/craftless.log" >&2 || true
+        exit 1

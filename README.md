@@ -20,6 +20,57 @@ Browserless turns real browsers into programmable automation infrastructure;
 Craftless does that for real Minecraft Java clients, with live API discovery
 instead of a static list of hard-coded actions.
 
+## Quickstart
+
+Install the released CLI on Linux or macOS:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/minekube/craftless/main/install.sh | sh
+craftless server start --port 8080 --workspace .craftless
+```
+
+The installer writes the launcher symlink to `$HOME/.local/bin` by default;
+set `CRAFTLESS_INSTALL_DIR` if you want another location.
+
+Install a specific release:
+
+```sh
+CRAFTLESS_VERSION=v0.1.0 \
+CRAFTLESS_INSTALL_DIR="$HOME/.local/bin" \
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/minekube/craftless/main/install.sh)"
+```
+
+Run the runtime Docker image:
+
+```sh
+docker run --rm -p 8080:8080 \
+  -v "$PWD/.craftless:/var/lib/craftless" \
+  ghcr.io/minekube/craftless:latest
+```
+
+Minecraft artifacts are downloaded into the workspace at runtime. The Docker
+image contains the Craftless CLI and runtime OS libraries, not pre-bundled
+Minecraft client files.
+
+Use Craftless from another GitHub Actions workflow:
+
+```yaml
+jobs:
+  minecraft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: minekube/craftless/.github/actions/setup-craftless@v0.1.0
+        id: craftless
+        with:
+          start: "true"
+          workspace: .craftless
+      - run: curl -fsSL "${{ steps.craftless.outputs.api-url }}/openapi.json"
+```
+
+Release archives are published from `v*` tags. The Docker image is built from
+the already-packaged CLI distribution; it does not build Craftless inside the
+image.
+
 ## How It Fits Together
 
 Minecraft already provides the client runtime. Craftless adds a thin driver,

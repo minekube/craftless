@@ -26,6 +26,16 @@ run = [
     "mise exec -- bun test playwright",
 ]
 
+[tasks.package-cli]
+description = "Build Craftless CLI release archives and Docker context"
+run = [
+    "rm -f cli/build/distributions/craftless-*.zip cli/build/distributions/craftless-*.tar",
+    "mise exec -- gradle :cli:distZip :cli:distTar",
+    "rm -rf build/docker/craftless",
+    "mkdir -p build/docker/craftless",
+    "tar -xf cli/build/distributions/craftless-*.tar -C build/docker/craftless --strip-components=1",
+]
+
 [tasks.ci]
 description = "Run all repository verification checks"
 run = [
