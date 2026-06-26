@@ -186,10 +186,16 @@ data class OpenApiResourceActionDescriptor(
     init {
         require(id.isCraftlessActionId()) { "invalid resource action id $id" }
         require(schemaVersion.isNotBlank()) { "resource action schema version is required" }
+        require(availabilityReason == null || availabilityReason.isCraftlessActionArgumentName()) {
+            "resource action availability reason must be a machine-readable Craftless code"
+        }
         if (availability == OpenApiActionAvailability.UNAVAILABLE) {
             require(!availabilityReason.isNullOrBlank()) { "unavailable resource action $id requires availability reason" }
         } else {
             require(availabilityReason == null) { "available resource action $id must not declare availability reason" }
+        }
+        arguments.keys.forEach { name ->
+            require(name.isCraftlessActionArgumentName()) { "invalid resource action argument name $name" }
         }
     }
 }

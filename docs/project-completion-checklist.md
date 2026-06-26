@@ -155,7 +155,8 @@ Verification:
 - [x] Ensure public OpenAPI does not expose Fabric/Yarn/intermediary names,
   raw Minecraft implementation names, mod package names, commands, or launcher
   internals.
-- [x] Add tests that fail if public descriptors leak implementation names.
+- [x] Add tests that fail if public action and resource descriptors leak
+  implementation names.
 
 Verification:
 

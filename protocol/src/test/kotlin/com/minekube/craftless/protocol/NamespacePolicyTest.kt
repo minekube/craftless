@@ -277,6 +277,24 @@ class NamespacePolicyTest {
                     availabilityReason = publicName,
                 )
             }
+
+            assertFailsWith<IllegalArgumentException> {
+                OpenApiResourceActionDescriptor(
+                    id = "player.inspect",
+                    schemaVersion = "1",
+                    arguments = mapOf(publicName to OpenApiActionArgument("string")),
+                )
+            }
+
+            assertFailsWith<IllegalArgumentException> {
+                OpenApiResourceActionDescriptor(
+                    id = "player.inspect",
+                    schemaVersion = "1",
+                    source = OpenApiActionSource.RUNTIME_PROBE,
+                    availability = OpenApiActionAvailability.UNAVAILABLE,
+                    availabilityReason = publicName,
+                )
+            }
         }
     }
 
