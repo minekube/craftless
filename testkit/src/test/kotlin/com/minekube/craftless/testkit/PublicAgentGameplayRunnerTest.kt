@@ -153,6 +153,48 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner invokes generic entity attack from discovered public handle when available`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
+                    entityQueryResponse =
+                        """
+                        {
+                          "action": "entity.query",
+                          "status": "ACCEPTED",
+                          "data": {
+                            "entities": [
+                              {
+                                "handle": "entity.handle-42",
+                                "label": "Cow",
+                                "category": "passive",
+                                "alive": true,
+                                "distance": 3.0,
+                                "position": {"x": 14.5, "y": 64.0, "z": -6.5}
+                              }
+                            ]
+                          }
+                        }
+                        """.trimIndent(),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(result.actionLog.map { it.action }.contains("entity.attack"))
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("entity.attack") &&
+                        it.contains(""""target":{"handle":"entity.handle-42"}""")
+                },
+            )
+            assertTrue(server.requestBodies.any { it.contains(""""max-distance":4.5""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner reports insufficient public evidence when block break does not change target state`() =
         runBlocking {
             val server =
@@ -462,6 +504,8 @@ private class RecordingCraftlessHttpServer(
                 """{"action":"player.raycast","status":"ACCEPTED","data":{"hit":true,"target-kind":"block"}}"""
             body.contains("world.block.break") -> blockBreakResponse
             body.contains("inventory.equip") -> """{"action":"inventory.equip","status":"ACCEPTED"}"""
+            body.contains("entity.attack") ->
+                """{"action":"entity.attack","status":"ACCEPTED","data":{"hit":true,"handle":"entity.handle-42"}}"""
             body.contains("entity.query") -> entityQueryResponse
             else -> """{"action":"unknown","status":"UNSUPPORTED","message":"unexpected action"}"""
         }

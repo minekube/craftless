@@ -490,6 +490,29 @@ Verification:
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=120000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 
+## Phase 23: Runtime Entity Attack
+
+- [x] Spec and plan exist for exposing generic entity attack through the
+  runtime graph and generated public action path without adding `kill.cow`,
+  combat macros, `task.survival.*`, or other scenario shortcuts.
+- [x] `entity.attack` appears only when the live runtime has player, world,
+  and interaction manager support, accepts Craftless-owned entity handles from
+  `entity.query`, and is backed by a Fabric client-thread adapter.
+- [x] Public-agent composition invokes `entity.attack` only through generated
+  `POST /clients/{id}:run` dispatch after discovering both the action and a
+  public entity handle.
+- [x] Focused driver and public-agent tests pass.
+- [x] Live gameplay evidence shows generic attack invocation. Current no-hold
+  evidence: `publicAgentState=RAN`, live actions include `entity.attack`, and
+  the public-agent log invokes `entity.attack` against queried
+  `entity.handle-18` with `hit = true`. Combat/loot proof remains incomplete
+  until entity state and inventory changes are verified after real gameplay.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricCapabilityProbeTest*' --tests '*FabricDriverModuleTest.fabric backend invokes entity attack through runtime graph adapter'`
+- `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
+
 Verification:
 
 - `mise exec -- gradle :protocol:test :driver-api:test :driver-fabric:test`

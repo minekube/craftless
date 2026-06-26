@@ -36,6 +36,7 @@ import net.minecraft.entity.passive.PassiveEntity
 import net.minecraft.registry.Registries
 import net.minecraft.registry.Registry
 import net.minecraft.registry.tag.BlockTags
+import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import java.security.MessageDigest
 import kotlin.math.sqrt
@@ -170,6 +171,7 @@ class FabricDriverBackend private constructor(
             "navigation.default" to navigationOperationAdapter(),
             "task.executor" to taskOperationAdapter(),
             "fabric.entity-query" to entityQueryOperationAdapter(),
+            "fabric.entity-attack" to entityAttackOperationAdapter(),
             "fabric.world-block-query" to blockQueryOperationAdapter(),
         )
 
@@ -204,6 +206,14 @@ class FabricDriverBackend private constructor(
                 return@DriverOperationAdapter unsupportedGraphOperation(invocation)
             }
             queryEntities(invocation)
+        }
+
+    private fun entityAttackOperationAdapter(): DriverOperationAdapter =
+        DriverOperationAdapter { invocation ->
+            if (invocation.operation.id != "entity.attack") {
+                return@DriverOperationAdapter unsupportedGraphOperation(invocation)
+            }
+            attackEntity(invocation)
         }
 
     private fun blockQueryOperationAdapter(): DriverOperationAdapter =
@@ -257,6 +267,58 @@ class FabricDriverBackend private constructor(
             action = invocation.operation.id,
             status = DriverActionStatus.ACCEPTED,
             message = "fabric ${mode.id} action ${invocation.operation.id} queried",
+            data = data,
+        )
+    }
+
+    private fun attackEntity(invocation: DriverOperationInvocation): DriverActionResult {
+        val maxDistance = invocation.arguments["max-distance"]?.jsonPrimitive?.doubleOrNull ?: DEFAULT_ENTITY_ATTACK_DISTANCE
+        require(maxDistance > 0.0) { "entity attack max-distance must be positive" }
+        val targetHandle =
+            invocation.arguments["target"]
+                ?.entityTargetHandle()
+                ?: return DriverActionResult(
+                    action = invocation.operation.id,
+                    status = DriverActionStatus.FAILED,
+                    message = "missing-target",
+                )
+        val entityId =
+            targetHandle.entityHandleId()
+                ?: return DriverActionResult(
+                    action = invocation.operation.id,
+                    status = DriverActionStatus.FAILED,
+                    message = "invalid-entity-handle",
+                )
+        val clientGateway = gateway
+        if (clientGateway == null || !clientGateway.isConnected()) {
+            return DriverActionResult(
+                action = invocation.operation.id,
+                status = DriverActionStatus.UNSUPPORTED,
+                message = "client-not-connected",
+            )
+        }
+        val data =
+            clientGateway.queryOnClient {
+                val currentPlayer = requireNotNull(player) { "client is not connected to a server" }
+                val currentWorld = requireNotNull(world) { "client world is unavailable" }
+                val currentInteractionManager =
+                    requireNotNull(interactionManager) { "client interaction manager is unavailable" }
+                val target =
+                    currentWorld
+                        .getOtherEntities(currentPlayer, currentPlayer.boundingBox.expand(maxDistance)) { entity ->
+                            entity.id == entityId && !entity.isSpectator
+                        }.firstOrNull()
+                        ?: error("entity target is not loaded or within max-distance")
+                val distance = target.distanceTo(currentPlayer).toDouble()
+                require(distance <= maxDistance) { "entity target exceeds max-distance" }
+                currentInteractionManager.attackEntity(currentPlayer, target)
+                currentPlayer.swingHand(Hand.MAIN_HAND)
+                target.toCraftlessEntityAttackData(currentPlayer, distance)
+            }
+        return DriverActionResult(
+            action = invocation.operation.id,
+            status = DriverActionStatus.ACCEPTED,
+            message = "fabric ${mode.id} action ${invocation.operation.id} accepted",
             data = data,
         )
     }
@@ -518,6 +580,23 @@ private fun Entity.toCraftlessEntityData(origin: Entity): JsonObject =
         }
     }
 
+private fun Entity.toCraftlessEntityAttackData(
+    origin: Entity,
+    distance: Double,
+): JsonObject =
+    buildJsonObject {
+        put("handle", "entity.handle-$id")
+        put("label", name.string)
+        put("category", toCraftlessEntityCategory())
+        put("distance", distance)
+        put("position", pos.toCraftlessJson())
+        put("hit", true)
+        if (this@toCraftlessEntityAttackData is LivingEntity) {
+            put("alive", isAlive)
+        }
+        put("origin", origin.pos.toCraftlessJson())
+    }
+
 private fun Entity.toCraftlessEntityCategory(): String =
     when (this) {
         is PassiveEntity -> "passive"
@@ -583,6 +662,18 @@ private fun kotlinx.serialization.json.JsonElement.navigationPlanId(): String? =
         else -> null
     }
 
+private fun kotlinx.serialization.json.JsonElement.entityTargetHandle(): String? =
+    when (this) {
+        is JsonPrimitive -> contentOrNull
+        is JsonObject -> this["handle"]?.jsonPrimitive?.contentOrNull
+        else -> null
+    }?.trim()?.takeIf { it.isNotEmpty() }
+
+private fun String.entityHandleId(): Int? =
+    removePrefix("entity.handle-")
+        .takeIf { it != this }
+        ?.toIntOrNull()
+
 private fun String.fabricOperationAdapterKey(): String = "fabric.${replace(".", "-")}"
 
 private val fabricBackendJson = Json
@@ -590,6 +681,7 @@ private val fabricBackendJson = Json
 private const val DEFAULT_ENTITY_QUERY_RADIUS = 16.0
 private const val DEFAULT_ENTITY_QUERY_LIMIT = 25
 private val ENTITY_QUERY_LIMIT_RANGE = 1..100
+private const val DEFAULT_ENTITY_ATTACK_DISTANCE = 4.5
 private const val DEFAULT_BLOCK_QUERY_RADIUS = 16.0
 private const val MAX_BLOCK_QUERY_RADIUS = 32.0
 private const val DEFAULT_BLOCK_QUERY_LIMIT = 64

@@ -181,6 +181,10 @@ not add pickup or collection shortcut actions.
 Phase 22 makes public-agent material exploration use smaller overlapping
 generated-navigation steps. It must not increase product API breadth or add
 search shortcuts such as `find.tree`.
+Phase 23 adds generic `entity.attack` through the runtime graph and generated
+per-client action path. It must consume public entity handles from
+`entity.query` and must not add `kill.cow`, combat macros, or survival
+scenario actions.
 
 ## Acceptance Scenarios Are Not Product APIs
 

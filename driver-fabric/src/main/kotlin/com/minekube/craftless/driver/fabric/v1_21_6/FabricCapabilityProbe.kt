@@ -187,6 +187,18 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                     availability = capabilities.entityAvailability(),
                 ),
                 RuntimeOperationNode(
+                    id = "entity.attack",
+                    resource = "entity",
+                    adapter = "fabric.entity-attack",
+                    arguments =
+                        mapOf(
+                            "target" to RuntimeSchema("object", required = true),
+                            "max-distance" to RuntimeSchema("number"),
+                        ),
+                    result = RuntimeSchema.objectSchema(),
+                    availability = capabilities.entityAttackAvailability(),
+                ),
+                RuntimeOperationNode(
                     id = "world.block.query",
                     resource = "world",
                     adapter = "fabric.world-block-query",
@@ -301,6 +313,8 @@ private fun FabricClientCapabilitySnapshot.worldAvailability(): RuntimeAvailabil
 
 private fun FabricClientCapabilitySnapshot.entityAvailability(): RuntimeAvailability = availability(entityReason())
 
+private fun FabricClientCapabilitySnapshot.entityAttackAvailability(): RuntimeAvailability = availability(entityAttackReason())
+
 private fun FabricClientCapabilitySnapshot.blockQueryAvailability(): RuntimeAvailability = availability(blockQueryReason())
 
 private fun FabricClientCapabilitySnapshot.blockBreakAvailability(): RuntimeAvailability = availability(blockBreakReason())
@@ -355,6 +369,14 @@ private fun FabricClientCapabilitySnapshot.worldReason(): String? =
 private fun FabricClientCapabilitySnapshot.entityReason(): String? =
     playerReason()
         ?: worldReason()
+
+private fun FabricClientCapabilitySnapshot.entityAttackReason(): String? =
+    playerReason()
+        ?: worldReason()
+        ?: when {
+            !interactionManager -> "interaction-unavailable"
+            else -> null
+        }
 
 private fun FabricClientCapabilitySnapshot.blockQueryReason(): String? =
     playerReason()

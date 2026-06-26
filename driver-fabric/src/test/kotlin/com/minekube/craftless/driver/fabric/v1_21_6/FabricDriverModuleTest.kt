@@ -555,6 +555,79 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric backend invokes entity attack through runtime graph adapter`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = false
+        val backend = smokeBackend(gateway)
+
+        val unavailableAttack = backend.runtimeGraph("alice").operations.single { it.id == "entity.attack" }
+        val unavailableResult =
+            backend
+                .operationAdapters("alice")
+                .invoke(
+                    DriverOperationInvocation(
+                        clientId = "alice",
+                        operation = unavailableAttack,
+                        arguments =
+                            mapOf(
+                                "target" to
+                                    buildJsonObject {
+                                        put("handle", "entity.handle-42")
+                                    },
+                            ),
+                    ),
+                )
+
+        assertEquals("fabric.entity-attack", unavailableAttack.adapter)
+        assertEquals(RuntimeAvailabilityState.UNAVAILABLE, unavailableAttack.availability.state)
+        assertEquals("client-not-connected", unavailableAttack.availability.reason)
+        assertEquals("object", unavailableAttack.arguments["target"]?.type)
+        assertEquals(true, unavailableAttack.arguments["target"]?.required)
+        assertEquals("number", unavailableAttack.arguments["max-distance"]?.type)
+        assertEquals("object", unavailableAttack.result.type)
+        assertEquals(DriverActionStatus.UNSUPPORTED, unavailableResult.status)
+        assertEquals("client-not-connected", unavailableResult.message)
+
+        gateway.connected = true
+        gateway.queryResult =
+            buildJsonObject {
+                put("handle", "entity.handle-42")
+                put("label", "Cow")
+                put("category", "passive")
+                put("distance", 2.5)
+                put("hit", true)
+            }
+
+        val attack = backend.runtimeGraph("alice").operations.single { it.id == "entity.attack" }
+        gateway.actions.clear()
+        gateway.scheduled = 0
+        val result =
+            backend
+                .operationAdapters("alice")
+                .invoke(
+                    DriverOperationInvocation(
+                        clientId = "alice",
+                        operation = attack,
+                        arguments =
+                            mapOf(
+                                "target" to
+                                    buildJsonObject {
+                                        put("handle", "entity.handle-42")
+                                    },
+                                "max-distance" to JsonPrimitive(4.5),
+                            ),
+                    ),
+                )
+
+        assertEquals("entity.attack", result.action)
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        assertEquals(true, result.data["hit"]?.jsonPrimitive?.boolean)
+        assertEquals("entity.handle-42", result.data["handle"]?.jsonPrimitive?.content)
+        assertEquals(listOf("client-query"), gateway.actions)
+        assertEquals(1, gateway.scheduled)
+    }
+
+    @Test
     fun `fabric backend does not advertise static placeholder gameplay actions`() {
         val backend = FabricDriverBackend.metadataOnly()
 

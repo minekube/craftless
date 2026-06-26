@@ -242,7 +242,49 @@ class PublicAgentGameplayRunner(
             if (equippedInventory.responseObject()?.selectedSlot() != logSlot) {
                 return blockedAndWrite("insufficient-public-evidence:inventory.equip.selected-slot")
             }
-            invokeGenerated("entity.query")
+            val finalEntityQuery = invokeGenerated("entity.query")
+            if ("entity.attack" in actionIds) {
+                val attackTarget = finalEntityQuery.responseObject()?.attackTarget()
+                if (attackTarget != null) {
+                    attackTarget.position?.let { position ->
+                        navigateTo(position = position, radius = 2.5)
+                            ?.let { blocker -> return blockedAndWrite(blocker) }
+                        val combatPlayer =
+                            invokeGenerated("player.query")
+                        val combatPlayerPosition =
+                            combatPlayer.responseObject()?.playerPosition()
+                                ?: return blockedAndWrite("insufficient-public-evidence:player.query.position")
+                        position.toCraftlessPoint()?.let { targetPoint ->
+                            val combatLook = combatPlayerPosition.lookAt(targetPoint)
+                            invokeGenerated(
+                                action = "player.look",
+                                args =
+                                    buildJsonObject {
+                                        put("yaw", JsonPrimitive(combatLook.yaw))
+                                        put("pitch", JsonPrimitive(combatLook.pitch))
+                                    },
+                            )
+                        }
+                    }
+                    val attackResult =
+                        invokeGenerated(
+                            action = "entity.attack",
+                            args =
+                                buildJsonObject {
+                                    put(
+                                        "target",
+                                        buildJsonObject {
+                                            put("handle", JsonPrimitive(attackTarget.handle))
+                                        },
+                                    )
+                                    put("max-distance", JsonPrimitive(4.5))
+                                },
+                        )
+                    if (attackResult.responseObject()?.dataBoolean("hit") == false) {
+                        return blockedAndWrite("insufficient-public-evidence:entity.attack.hit")
+                    }
+                }
+            }
             val result =
                 PublicAgentGameplayResult(
                     state = PublicAgentGameplayState.RAN,
@@ -481,6 +523,39 @@ private fun JsonObject.materialDropPosition(): JsonObject? {
         ?.second
 }
 
+private fun JsonObject.attackTarget(): PublicEntityTarget? {
+    val data = this["data"] as? JsonObject ?: return null
+    val entities = data["entities"]?.jsonArray ?: return null
+    return entities
+        .mapNotNull { element ->
+            val entity = element as? JsonObject ?: return@mapNotNull null
+            val handle =
+                entity["handle"]
+                    ?.jsonPrimitive
+                    ?.contentOrNull
+                    ?.takeIf { it.isNotBlank() }
+                    ?: return@mapNotNull null
+            val category = entity["category"]?.jsonPrimitive?.contentOrNull.orEmpty()
+            if (category !in attackableEntityCategories) {
+                return@mapNotNull null
+            }
+            val alive =
+                entity["alive"]
+                    ?.jsonPrimitive
+                    ?.contentOrNull
+                    ?.toBooleanStrictOrNull()
+                    ?: true
+            if (!alive) {
+                return@mapNotNull null
+            }
+            PublicEntityTarget(
+                handle = handle,
+                position = entity["position"] as? JsonObject,
+                distance = entity.doubleField("distance"),
+            )
+        }.minByOrNull { target -> target.distance ?: Double.MAX_VALUE }
+}
+
 private fun JsonObject.toCraftlessPoint(): CraftlessPoint? {
     val x = doubleField("x") ?: return null
     val y = doubleField("y") ?: return null
@@ -611,6 +686,14 @@ private data class PublicBlockTarget(
             put("position", position)
         }
 }
+
+private data class PublicEntityTarget(
+    val handle: String,
+    val position: JsonObject?,
+    val distance: Double?,
+)
+
+private val attackableEntityCategories = setOf("passive", "hostile", "living")
 
 fun main() {
     val config = PublicAgentGameplayRunnerConfig.fromEnvironment()
