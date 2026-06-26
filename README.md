@@ -101,7 +101,7 @@ Legend: 🟢 yes, 🟡 partial or limited, 🔵 planned, 🔴 no.
 
 | Area | Craftless | [Mineflayer](https://github.com/PrismarineJS/mineflayer) | [Baritone](https://github.com/cabaletta/baritone) |
 | --- | --- | --- | --- |
-| Real Minecraft Java client | 🟢 Fabric smoke proven for join/chat plus driver-side movement event | 🔴 protocol bot | 🟢 |
+| Real Minecraft Java client | 🟢 Fabric smoke proven for join/chat, target item acquisition/equip, block action, and driver-side movement event | 🔴 protocol bot | 🟢 |
 | Headless and visible operation | 🟡 supervisor API now; visible Fabric smoke proven | 🔴 | 🟡 visible client |
 | Live per-client OpenAPI/action schema | 🟢 | 🔴 | 🔴 |
 | Runtime discovery from version, mods, server features, and permissions | 🟢 | 🟡 protocol data | 🟡 in-client state |
@@ -152,9 +152,11 @@ Implemented now:
   alive, starts the in-client daemon API, fetches per-client OpenAPI/action
   metadata and resource projections, invokes generated `player.chat`,
   `player.move`, `player.query`, `inventory.query`, `inventory.equip`, and
-  `world.block.break` through `POST /clients/{id}:run`, and verifies
-  server-side join, chat, and disconnect evidence plus driver-side movement and
-  gameplay result artifacts.
+  `world.block.break` through `POST /clients/{id}:run`, provisions an
+  `Iron Sword` through the server fixture as smoke setup, waits until the live
+  inventory action observes it, equips the discovered slot, and verifies
+  server-side join, target-item provisioning, chat, and disconnect evidence
+  plus driver-side movement and gameplay result artifacts.
 
 Still roadmap:
 
@@ -222,7 +224,9 @@ Fabric smoke controller reads `CRAFTLESS_SMOKE_SERVER_HOST`,
 `CRAFTLESS_SMOKE_SERVER_PORT`, `CRAFTLESS_FABRIC_SMOKE_CHAT_MESSAGE`, and
 `CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS`. Evidence checks can be overridden
 with `CRAFTLESS_SMOKE_EXPECT_PLAYER`, `CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE`,
-and `CRAFTLESS_SMOKE_EXPECT_DISCONNECT`.
+`CRAFTLESS_SMOKE_EXPECT_DISCONNECT`, `CRAFTLESS_SMOKE_PROVISION_ITEM_ID`,
+`CRAFTLESS_SMOKE_PROVISION_ITEM_NAME`, `CRAFTLESS_SMOKE_PROVISION_ITEM_COUNT`,
+and `CRAFTLESS_FABRIC_SMOKE_REQUIRE_EQUIP_ITEM`.
 
 That task is opt-in and not part of default CI because it launches real
 Minecraft processes and may download server/client artifacts.

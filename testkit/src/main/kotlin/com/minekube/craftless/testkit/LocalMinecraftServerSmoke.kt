@@ -52,7 +52,12 @@ object LocalMinecraftServerSmoke {
                 val processResult =
                     runCatching {
                         action(layout, server)
-                        commandResult = runConfiguredActionCommand(config, layout)
+                        commandResult =
+                            if (config.provisionedItem == null) {
+                                runConfiguredActionCommand(config, layout)
+                            } else {
+                                runConfiguredActionCommandWithProvisioning(config, layout, server)
+                            }
                         server.stopAndCollect()
                     }.getOrElse { failure ->
                         if (server.isRunning()) {
@@ -97,6 +102,7 @@ data class LocalMinecraftServerSmokeResult(
 data class LocalMinecraftSmokeEvidenceSummary(
     val playerJoined: Boolean = false,
     val chatObserved: Boolean = false,
+    val targetItemProvisioned: Boolean = false,
     val playerDisconnected: Boolean = false,
 )
 
@@ -124,6 +130,7 @@ data class LocalMinecraftServerSmokeConfig(
     val expectedPlayer: String? = null,
     val expectedChatMessage: String? = null,
     val expectDisconnect: Boolean = false,
+    val provisionedItem: LocalMinecraftSmokeProvisionedItem? = null,
     val readinessTimeoutMillis: Long = 120_000,
     val shutdownTimeoutMillis: Long = 10_000,
     val minHeap: String = "512M",
@@ -153,6 +160,9 @@ data class LocalMinecraftServerSmokeConfig(
         private const val EXPECT_PLAYER = "CRAFTLESS_SMOKE_EXPECT_PLAYER"
         private const val EXPECT_CHAT_MESSAGE = "CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE"
         private const val EXPECT_DISCONNECT = "CRAFTLESS_SMOKE_EXPECT_DISCONNECT"
+        private const val PROVISION_ITEM_ID = "CRAFTLESS_SMOKE_PROVISION_ITEM_ID"
+        private const val PROVISION_ITEM_NAME = "CRAFTLESS_SMOKE_PROVISION_ITEM_NAME"
+        private const val PROVISION_ITEM_COUNT = "CRAFTLESS_SMOKE_PROVISION_ITEM_COUNT"
         private const val READINESS_TIMEOUT = "CRAFTLESS_SMOKE_READINESS_TIMEOUT_MS"
         private const val SHUTDOWN_TIMEOUT = "CRAFTLESS_SMOKE_SHUTDOWN_TIMEOUT_MS"
         private const val MIN_HEAP = "CRAFTLESS_SMOKE_MIN_HEAP"
@@ -185,6 +195,7 @@ data class LocalMinecraftServerSmokeConfig(
                 expectedPlayer = env[EXPECT_PLAYER]?.takeIf { it.isNotBlank() },
                 expectedChatMessage = env[EXPECT_CHAT_MESSAGE]?.takeIf { it.isNotBlank() },
                 expectDisconnect = env.isEnabled(EXPECT_DISCONNECT),
+                provisionedItem = env.provisionedItem(),
                 readinessTimeoutMillis = env[READINESS_TIMEOUT]?.toLongStrict(READINESS_TIMEOUT) ?: 120_000,
                 shutdownTimeoutMillis = env[SHUTDOWN_TIMEOUT]?.toLongStrict(SHUTDOWN_TIMEOUT) ?: 10_000,
                 minHeap = env[MIN_HEAP]?.takeIf { it.isNotBlank() } ?: "512M",
@@ -197,6 +208,15 @@ data class LocalMinecraftServerSmokeConfig(
         private fun String.toLongStrict(name: String): Long = toLongOrNull() ?: error("$name must be a long integer")
 
         private fun Map<String, String>.isEnabled(name: String): Boolean = this[name] == "1" || this[name].equals("true", ignoreCase = true)
+
+        private fun Map<String, String>.provisionedItem(): LocalMinecraftSmokeProvisionedItem? {
+            val itemId = this[PROVISION_ITEM_ID]?.takeIf { it.isNotBlank() } ?: return null
+            return LocalMinecraftSmokeProvisionedItem(
+                itemId = itemId,
+                itemName = this[PROVISION_ITEM_NAME]?.takeIf { it.isNotBlank() } ?: itemId,
+                count = this[PROVISION_ITEM_COUNT]?.toIntStrict(PROVISION_ITEM_COUNT) ?: 1,
+            )
+        }
 
         private fun findAvailableSmokePort(): Int {
             repeat(16) {
@@ -212,6 +232,21 @@ data class LocalMinecraftServerSmokeConfig(
     }
 }
 
+data class LocalMinecraftSmokeProvisionedItem(
+    val itemId: String,
+    val itemName: String,
+    val count: Int = 1,
+) {
+    init {
+        require(itemId.isNotBlank()) { "minecraft smoke provisioned item id is required" }
+        require(itemId.none { it.isWhitespace() || it == '\n' || it == '\r' }) {
+            "minecraft smoke provisioned item id must be a single command token"
+        }
+        require(itemName.isNotBlank()) { "minecraft smoke provisioned item name is required" }
+        require(count > 0) { "minecraft smoke provisioned item count must be positive" }
+    }
+}
+
 data class LocalMinecraftSmokeCommandResult(
     val log: Path,
     val exitCode: Int,
@@ -220,7 +255,37 @@ data class LocalMinecraftSmokeCommandResult(
 private fun runConfiguredActionCommand(
     config: LocalMinecraftServerSmokeConfig,
     layout: LocalServerLayout,
+): LocalMinecraftSmokeCommandResult? = startConfiguredActionCommand(config, layout)?.await(config.actionTimeoutMillis)
+
+private fun runConfiguredActionCommandWithProvisioning(
+    config: LocalMinecraftServerSmokeConfig,
+    layout: LocalServerLayout,
+    server: LocalMinecraftServerHandle,
 ): LocalMinecraftSmokeCommandResult? {
+    val runningCommand = startConfiguredActionCommand(config, layout) ?: return null
+    val item = config.provisionedItem
+    if (item != null) {
+        val joined =
+            server.awaitEvidence(config.actionTimeoutMillis) { evidence ->
+                evidence.type == LocalServerEvidenceType.PLAYER_JOINED &&
+                    (config.expectedPlayer == null || evidence.player == config.expectedPlayer)
+            }
+        if (joined == null) {
+            val actionLog = runningCommand.stopAndWriteLog()
+            error(
+                "minecraft smoke did not observe player ${config.expectedPlayer ?: "<any>"} before provisioning ${item.itemId}; " +
+                    "evidenceLog=${layout.evidenceLog}; actionLog=$actionLog",
+            )
+        }
+        server.provisionItem(joined.player, item)
+    }
+    return runningCommand.await(config.actionTimeoutMillis)
+}
+
+private fun startConfiguredActionCommand(
+    config: LocalMinecraftServerSmokeConfig,
+    layout: LocalServerLayout,
+): RunningLocalMinecraftSmokeCommand? {
     if (config.actionCommand.isEmpty()) {
         return null
     }
@@ -244,20 +309,45 @@ private fun runConfiguredActionCommand(
                 lines.forEach { line -> output += line }
             }
         }
+    return RunningLocalMinecraftSmokeCommand(
+        layout = layout,
+        process = process,
+        outputReader = outputReader,
+        output = output,
+    )
+}
 
-    val exited = process.waitFor(config.actionTimeoutMillis, TimeUnit.MILLISECONDS)
-    if (!exited) {
-        process.destroyForcibly()
+private data class RunningLocalMinecraftSmokeCommand(
+    val layout: LocalServerLayout,
+    val process: Process,
+    val outputReader: Thread,
+    val output: MutableList<String>,
+) {
+    fun stopAndWriteLog(): Path {
+        if (process.isAlive) {
+            process.destroyForcibly()
+        }
         outputReader.join(1_000)
-        val log = layout.writeSmokeActionOutput(output.snapshot())
-        error("minecraft smoke action command timed out after ${config.actionTimeoutMillis}ms; log=$log")
+        return layout.writeSmokeActionOutput(output.snapshot())
     }
 
-    outputReader.join()
-    val log = layout.writeSmokeActionOutput(output.snapshot())
-    val exitCode = process.exitValue()
-    check(exitCode == 0) { "minecraft smoke action command exited with $exitCode; log=$log" }
-    return LocalMinecraftSmokeCommandResult(log = log, exitCode = exitCode)
+    fun await(timeoutMillis: Long): LocalMinecraftSmokeCommandResult {
+        require(timeoutMillis > 0) { "minecraft smoke action timeout must be positive" }
+
+        val exited = process.waitFor(timeoutMillis, TimeUnit.MILLISECONDS)
+        if (!exited) {
+            process.destroyForcibly()
+            outputReader.join(1_000)
+            val log = layout.writeSmokeActionOutput(output.snapshot())
+            error("minecraft smoke action command timed out after ${timeoutMillis}ms; log=$log")
+        }
+
+        outputReader.join()
+        val log = layout.writeSmokeActionOutput(output.snapshot())
+        val exitCode = process.exitValue()
+        check(exitCode == 0) { "minecraft smoke action command exited with $exitCode; log=$log" }
+        return LocalMinecraftSmokeCommandResult(log = log, exitCode = exitCode)
+    }
 }
 
 private fun LocalServerLayout.assertExpectedEvidence(config: LocalMinecraftServerSmokeConfig): LocalMinecraftSmokeEvidenceSummary {
@@ -272,6 +362,16 @@ private fun LocalServerLayout.assertExpectedEvidence(config: LocalMinecraftServe
                 it.type == LocalServerEvidenceType.CHAT &&
                     (config.expectedPlayer == null || it.player == config.expectedPlayer) &&
                     it.message == message
+            }
+        } ?: false
+    val targetItemProvisioned =
+        config.provisionedItem?.let { item ->
+            evidence.any {
+                it.type == LocalServerEvidenceType.ITEM_PROVISIONED &&
+                    (config.expectedPlayer == null || it.player == config.expectedPlayer) &&
+                    it.itemId == item.itemId &&
+                    it.itemName == item.itemName &&
+                    it.count == item.count
             }
         } ?: false
     val playerDisconnected =
@@ -294,6 +394,11 @@ private fun LocalServerLayout.assertExpectedEvidence(config: LocalMinecraftServe
             "expected chat evidence ${config.expectedChatMessage}; evidenceLog=$evidenceLog"
         }
     }
+    config.provisionedItem?.let { item ->
+        check(targetItemProvisioned) {
+            "expected provisioned item evidence ${item.itemId} for ${config.expectedPlayer}; evidenceLog=$evidenceLog"
+        }
+    }
     if (config.expectDisconnect) {
         check(playerDisconnected) {
             "expected player disconnect evidence for ${config.expectedPlayer ?: "any player"}; evidenceLog=$evidenceLog"
@@ -303,6 +408,7 @@ private fun LocalServerLayout.assertExpectedEvidence(config: LocalMinecraftServe
     return LocalMinecraftSmokeEvidenceSummary(
         playerJoined = playerJoined,
         chatObserved = chatObserved,
+        targetItemProvisioned = targetItemProvisioned,
         playerDisconnected = playerDisconnected,
     )
 }

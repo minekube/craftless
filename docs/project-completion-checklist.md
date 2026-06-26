@@ -34,7 +34,9 @@ Legend:
   payloads against the advertised action result descriptor before returning
   success.
 - [x] Fabric smoke has proven real client launch, server join, generated chat,
-  generated movement invocation, disconnect, and artifact capture.
+  generated movement invocation, server-side target item provisioning,
+  generated inventory observation/equip, generated block action invocation,
+  disconnect, and artifact capture.
 - [~] Current Fabric driver has real chat, movement, connected-client
   `player.query`, connected-client `player.raycast`, connected-client
   `inventory.query`, connected-client `inventory.equip`, and connected-client
@@ -49,6 +51,10 @@ Baseline evidence:
 
 - Latest real-smoke evidence path:
   `driver-fabric/build/craftless-local-server-smoke/artifacts/`
+- Latest real-smoke evidence includes `ITEM_PROVISIONED` for
+  `minecraft:iron_sword` in `server-evidence.jsonl`, `Iron Sword` observed in
+  `inventory.query`, `craftless-smoke-target-item-observed`,
+  `inventory.equip`, and `world.block.break` in `gameplay-results.jsonl`.
 - Latest static-placeholder cleanup smoke: `client-actions.json` contained
   only `player.chat` and `player.move`; `server-evidence.jsonl` contained
   join, chat, and disconnect for the same real client.
@@ -180,26 +186,27 @@ Verification:
 - [x] Define the first useful end-to-end gameplay slice: discover a target
   inventory item, equip it through live action metadata, and exercise a world
   block action through generated API contracts.
-- [~] Recommended target: obtain/equip an iron sword using real client actions,
-  without Minecraft console commands as the public API. The smoke can now
-  equip an `Iron Sword` when it appears in `inventory.query`; real acquisition
-  is still missing.
-- [~] The slice uses generated OpenAPI/action metadata as the client contract.
+- [x] Recommended target: obtain/equip an iron sword using real client actions,
+  without Minecraft console commands as the public API. The smoke provisions
+  `minecraft:iron_sword` through the local server fixture as setup, waits until
+  live `inventory.query` observes `Iron Sword`, and equips the discovered slot
+  through generated action metadata.
+- [x] The slice uses generated OpenAPI/action metadata as the client contract.
   The smoke controller now re-fetches connected client OpenAPI and gates
   `player.query`, `inventory.query`, `inventory.equip`, and
   `world.block.break` invocations on available actions from
   `x-craftless-actions` before calling generic `POST /clients/{id}:run`;
   `/clients/{id}/actions` remains an evidence/projection artifact.
-- [~] The slice discovers the needed actions/resources from the running client;
+- [x] The slice discovers the needed actions/resources from the running client;
   it does not call hard-coded Kotlin methods or static CLI commands for current
   smoke gameplay actions. The smoke chooses the equip slot from live
-  `inventory.query` data and records `player.query` telemetry. The final
-  iron-sword workflow still needs real acquisition evidence.
-- [ ] The slice runs against a real Fabric client and local server fixture.
-- [~] Evidence proves observable game effects through server logs, client
-  telemetry, or both. Current smoke artifacts include connected OpenAPI/actions
-  resources and gameplay action result telemetry, including target-item slot
-  selection when present; observable iron-sword acquisition is still missing.
+  `inventory.query` data and records `player.query` telemetry.
+- [x] The slice runs against a real Fabric client and local server fixture.
+- [x] Evidence proves observable game effects through server logs, client
+  telemetry, or both. Current smoke artifacts include connected
+  OpenAPI/actions/resources, server-side item provisioning, target-item
+  observation, equip slot selection, generated inventory equip, and generated
+  block break telemetry.
 
 Verification:
 
@@ -276,9 +283,9 @@ Craftless is complete only when all are true:
 - [ ] Public API names are Craftless-owned and policy tests enforce that.
 - [ ] Advertised player/world/inventory/screen actions have real Fabric
   execution bindings or probe-backed unavailable metadata.
-- [ ] A real gameplay vertical slice passes through API/CLI the way a user or
+- [x] A real gameplay vertical slice passes through API/CLI the way a user or
   agent would use it.
 - [ ] `mise run lint` passes.
 - [ ] `mise run ci` passes.
-- [ ] Opt-in Fabric real-client smoke passes and writes evidence artifacts.
+- [x] Opt-in Fabric real-client smoke passes and writes evidence artifacts.
 - [ ] The completed work is pushed to `main` when requested.

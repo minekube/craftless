@@ -254,17 +254,57 @@ class LocalMinecraftServerHandle internal constructor(
     private val shutdownTimeoutMillis: Long,
 ) {
     private var collected = false
+    private val commandLock = Any()
 
     fun isRunning(): Boolean = process.isAlive
+
+    fun sendCommand(command: String) {
+        require(command.isNotBlank()) { "minecraft server command must not be blank" }
+        require('\n' !in command && '\r' !in command) { "minecraft server command must be a single line" }
+        check(!collected) { "minecraft server output has already been collected" }
+        check(process.isAlive) { "minecraft server is not running" }
+        synchronized(commandLock) {
+            process.outputStream.write((command + "\n").toByteArray(Charsets.UTF_8))
+            process.outputStream.flush()
+        }
+    }
+
+    fun provisionItem(
+        player: String,
+        item: LocalMinecraftSmokeProvisionedItem,
+    ) {
+        require(player.matches(PLAYER_NAME_PATTERN.toRegex())) { "minecraft provision target player is invalid: $player" }
+        sendCommand("give $player ${item.itemId} ${item.count}")
+        layout.recordEvidence(LocalServerEvidence.itemProvisioned(player, item.itemId, item.itemName, item.count))
+    }
+
+    fun awaitEvidence(
+        timeoutMillis: Long,
+        predicate: (LocalServerEvidence) -> Boolean,
+    ): LocalServerEvidence? {
+        require(timeoutMillis > 0) { "minecraft server evidence timeout must be positive" }
+        val deadline = System.nanoTime() + timeoutMillis * 1_000_000
+        while (System.nanoTime() < deadline) {
+            output
+                .snapshot()
+                .asSequence()
+                .mapNotNull { it.toLocalServerEvidence() }
+                .firstOrNull(predicate)
+                ?.let { return it }
+            Thread.sleep(25)
+        }
+        return output
+            .snapshot()
+            .asSequence()
+            .mapNotNull { it.toLocalServerEvidence() }
+            .firstOrNull(predicate)
+    }
 
     fun stopAndCollect(): LocalServerProcessResult {
         check(!collected) { "minecraft server output has already been collected" }
 
         if (process.isAlive) {
-            process.outputStream.bufferedWriter().use { writer ->
-                writer.write("stop\n")
-                writer.flush()
-            }
+            sendCommand("stop")
             val exited = process.waitFor(shutdownTimeoutMillis, TimeUnit.MILLISECONDS)
             if (!exited) {
                 process.destroyForcibly()
@@ -297,6 +337,9 @@ data class LocalServerEvidence(
     val message: String? = null,
     val from: LocalServerPosition? = null,
     val to: LocalServerPosition? = null,
+    val itemId: String? = null,
+    val itemName: String? = null,
+    val count: Int? = null,
 ) {
     init {
         require(player.isNotBlank()) { "evidence player is required" }
@@ -332,6 +375,20 @@ data class LocalServerEvidence(
 
         fun playerDisconnected(player: String): LocalServerEvidence =
             LocalServerEvidence(type = LocalServerEvidenceType.PLAYER_DISCONNECTED, player = player)
+
+        fun itemProvisioned(
+            player: String,
+            itemId: String,
+            itemName: String,
+            count: Int,
+        ): LocalServerEvidence =
+            LocalServerEvidence(
+                type = LocalServerEvidenceType.ITEM_PROVISIONED,
+                player = player,
+                itemId = itemId,
+                itemName = itemName,
+                count = count,
+            )
     }
 }
 
@@ -340,6 +397,7 @@ enum class LocalServerEvidenceType {
     PLAYER_JOINED,
     CHAT,
     MOVEMENT,
+    ITEM_PROVISIONED,
     PLAYER_DISCONNECTED,
 }
 

@@ -633,6 +633,78 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric smoke controller waits for target inventory item before equip`() {
+        val gateway = RecordingFabricClientGateway()
+        val backend = FabricDriverBackend.real(gateway)
+        val artifactsDir = Files.createTempDirectory("craftless-fabric-smoke-target-item")
+        val controller =
+            FabricClientSmokeController.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
+                    "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS" to "1000",
+                    "CRAFTLESS_FABRIC_SMOKE_REQUIRE_EQUIP_ITEM" to "1",
+                    "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS" to "0",
+                    "CRAFTLESS_SMOKE_ARTIFACTS_DIR" to artifactsDir.toString(),
+                ),
+            )
+        gateway.queryResults +=
+            buildJsonObject {
+                put("selected-slot", 0)
+            }
+        gateway.queryResults +=
+            buildJsonObject {
+                put("selected-slot", 0)
+                put("slot-count", 46)
+                put("slots", buildJsonArray {})
+            }
+        gateway.queryResults +=
+            buildJsonObject {
+                put("selected-slot", 0)
+                put("slot-count", 46)
+                put(
+                    "slots",
+                    buildJsonArray {
+                        add(
+                            buildJsonObject {
+                                put("slot", 2)
+                                put("empty", false)
+                                put("count", 1)
+                                put("item-name", "Iron Sword")
+                            },
+                        )
+                    },
+                )
+            }
+        gateway.queryResults +=
+            buildJsonObject {
+                put("hit", true)
+                put("target-kind", "block")
+            }
+
+        assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
+
+        gateway.awaitActions(9)
+        assertEquals(
+            listOf(
+                "connect 127.0.0.1:25565",
+                "client-action",
+                "client-action",
+                "client-query",
+                "client-query",
+                "client-query",
+                "client-action",
+                "client-query",
+                "stop",
+            ),
+            gateway.actions,
+        )
+        val gameplay = Files.readString(artifactsDir.resolve("gameplay-results.jsonl"))
+        assertTrue(gameplay.contains("craftless-smoke-target-item-observed"))
+        assertTrue(gameplay.contains("slot 2"))
+        assertTrue(gameplay.contains("Iron Sword"))
+    }
+
+    @Test
     fun `fabric smoke action availability comes from live openapi metadata`() {
         val openApi =
             """

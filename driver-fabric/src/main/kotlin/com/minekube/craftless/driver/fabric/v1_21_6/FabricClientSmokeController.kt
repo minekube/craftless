@@ -21,6 +21,7 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -40,6 +41,7 @@ data class FabricClientSmokeController(
     val target: ConnectionTarget = ConnectionTarget("127.0.0.1", 25565),
     val chatMessage: String = "hello from Craftless Fabric smoke",
     val equipItemName: String = "Iron Sword",
+    val requireEquipItem: Boolean = false,
     val connectTimeout: Duration = 30_000.milliseconds,
     val startupSettleDelay: Duration = 0.milliseconds,
     val artifactsDir: Path? = null,
@@ -142,16 +144,17 @@ data class FabricClientSmokeController(
                                 action = "player.query",
                             )
                         val inventoryResult =
-                            http.runAvailableAction(
+                            http.runInventoryQuery(
                                 api = api,
                                 clientId = SMOKE_CLIENT_ID,
                                 openApi = connectedOpenApi,
-                                action = "inventory.query",
+                                itemName = equipItemName,
+                                requireItem = requireEquipItem,
+                                timeout = connectTimeout,
+                                pollInterval = pollInterval,
                             )
-                        val equipSlot =
-                            inventoryResult.findHotbarSlotForItem(equipItemName)
-                                ?: inventoryResult.selectedInventorySlot()
-                                ?: 0
+                        val targetItemSlot = inventoryResult.findHotbarSlotForItem(equipItemName)
+                        val equipSlot = targetItemSlot ?: inventoryResult.selectedInventorySlot() ?: 0
                         val equipResult =
                             http.runAvailableAction(
                                 api = api,
@@ -169,11 +172,14 @@ data class FabricClientSmokeController(
                                 args = mapOf("max-distance" to JsonPrimitive(4.0)),
                             )
                         val smokeResults =
-                            listOf(
+                            listOfNotNull(
                                 chatResult,
                                 moveResult,
                                 playerResult,
                                 inventoryResult,
+                                targetItemSlot?.let {
+                                    """{"event":"craftless-smoke-target-item-observed","message":"observed $equipItemName in slot $it"}"""
+                                },
                                 """{"event":"craftless-smoke-inventory-select","message":"selected slot $equipSlot for $equipItemName"}""",
                                 equipResult,
                                 blockBreakResult,
@@ -221,6 +227,7 @@ data class FabricClientSmokeController(
         private const val PORT = "CRAFTLESS_SMOKE_SERVER_PORT"
         private const val CHAT_MESSAGE = "CRAFTLESS_FABRIC_SMOKE_CHAT_MESSAGE"
         private const val EQUIP_ITEM = "CRAFTLESS_FABRIC_SMOKE_EQUIP_ITEM"
+        private const val REQUIRE_EQUIP_ITEM = "CRAFTLESS_FABRIC_SMOKE_REQUIRE_EQUIP_ITEM"
         private const val CONNECT_TIMEOUT = "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS"
         private const val STARTUP_SETTLE = "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS"
         private const val ARTIFACTS_DIR = "CRAFTLESS_SMOKE_ARTIFACTS_DIR"
@@ -240,6 +247,7 @@ data class FabricClientSmokeController(
                     env[CHAT_MESSAGE]?.takeIf { it.isNotBlank() }
                         ?: "hello from Craftless Fabric smoke",
                 equipItemName = env[EQUIP_ITEM]?.takeIf { it.isNotBlank() } ?: "Iron Sword",
+                requireEquipItem = env.isEnabled(REQUIRE_EQUIP_ITEM),
                 connectTimeout = (env[CONNECT_TIMEOUT]?.toLongStrict(CONNECT_TIMEOUT) ?: 30_000).milliseconds,
                 startupSettleDelay = (env[STARTUP_SETTLE]?.toLongStrict(STARTUP_SETTLE) ?: 0).milliseconds,
                 artifactsDir = env[ARTIFACTS_DIR]?.takeIf { it.isNotBlank() }?.let(Path::of),
@@ -287,6 +295,39 @@ private suspend fun HttpClient.runAvailableAction(
             args = args,
         ),
     )
+}
+
+private suspend fun HttpClient.runInventoryQuery(
+    api: LocalSessionApiServer,
+    clientId: String,
+    openApi: String,
+    itemName: String,
+    requireItem: Boolean,
+    timeout: Duration,
+    pollInterval: Duration,
+): String {
+    require(timeout.isPositive()) { "fabric smoke inventory wait timeout must be positive" }
+    require(pollInterval.isPositive()) { "fabric smoke inventory wait poll interval must be positive" }
+    val deadline = System.nanoTime() + timeout.inWholeNanoseconds
+    var inventoryResult = ""
+    do {
+        inventoryResult =
+            runAvailableAction(
+                api = api,
+                clientId = clientId,
+                openApi = openApi,
+                action = "inventory.query",
+            )
+        if (!requireItem || inventoryResult.findHotbarSlotForItem(itemName) != null) {
+            return inventoryResult
+        }
+        delay(pollInterval)
+    } while (System.nanoTime() < deadline)
+
+    check(inventoryResult.findHotbarSlotForItem(itemName) != null) {
+        "fabric smoke did not observe $itemName in inventory before timeout"
+    }
+    return inventoryResult
 }
 
 internal fun String.requireAvailableSmokeAction(action: String) {

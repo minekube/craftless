@@ -62,15 +62,17 @@ Craftless currently has:
 - an opt-in `:driver-fabric:fabricClientSmoke` entrypoint and smoke plan behind
   `CRAFTLESS_FABRIC_CLIENT_SMOKE`; when enabled it runs the testkit server
   lifecycle and a bounded client command, defaulting to
-  `mise exec -- gradle :driver-fabric:runClient`, whose in-client Fabric smoke
+  `mise -C <repo> exec -- gradle :driver-fabric:runClient`, whose in-client Fabric smoke
   controller starts a local daemon API backed by the Fabric driver, fetches
   per-client OpenAPI/action metadata and resource projections, connects to the
   smoke server, invokes generated `player.chat`, `player.move`,
   `player.query`, `inventory.query`, `inventory.equip`, and
   `world.block.break` through `POST /clients/{id}:run` after connection,
-  writes client artifacts next to server artifacts, and verifies server-side
-  join/chat/disconnect evidence plus driver-side movement and gameplay result
-  telemetry;
+  provisions `minecraft:iron_sword` through the server fixture as setup,
+  waits until live `inventory.query` observes `Iron Sword`, equips the
+  discovered slot, writes client artifacts next to server artifacts, and
+  verifies server-side join/item-provision/chat/disconnect evidence plus
+  driver-side movement and gameplay result telemetry;
 - repo-local Kotlin/JVM agent skills scoped to this codebase.
 
 ## Completion Definition
@@ -98,14 +100,16 @@ Craftless is not complete until the repository can prove all of the following:
 Goal: prove that Craftless can automate a real Minecraft Java client through
 the durable Fabric direction.
 
-- Keep the opt-in Fabric smoke green: the 2026-06-25 run launched
+- Keep the opt-in Fabric smoke green: the 2026-06-26 run launched
   `:driver-fabric:runClient`, joined the provisioned Minecraft `1.21.6`
   server, fetched generated OpenAPI/actions/resources through the in-client
   daemon API,
   invoked generated `player.chat`, `player.move`, `player.query`,
   `inventory.query`, `inventory.equip`, and `world.block.break` through
-  `POST /clients/{id}:run`, captured server-side join/chat/disconnect evidence,
-  and recorded driver-side movement plus gameplay result telemetry.
+  `POST /clients/{id}:run`, captured server-side
+  item-provision/join/chat/disconnect evidence, observed and equipped
+  `Iron Sword` through live inventory metadata, and recorded driver-side
+  movement plus gameplay result telemetry.
 - Strengthen generated `player.move` proof from accepted driver telemetry to
   measured server-side position deltas or richer in-client position telemetry.
 - Keep bridge evidence tests separate from Fabric smoke tests so the bridge

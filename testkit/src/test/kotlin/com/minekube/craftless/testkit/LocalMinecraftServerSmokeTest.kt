@@ -34,6 +34,9 @@ class LocalMinecraftServerSmokeTest {
                     "CRAFTLESS_SMOKE_EXPECT_PLAYER" to "Alice",
                     "CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE" to "hello from configured smoke command",
                     "CRAFTLESS_SMOKE_EXPECT_DISCONNECT" to "1",
+                    "CRAFTLESS_SMOKE_PROVISION_ITEM_ID" to "minecraft:iron_sword",
+                    "CRAFTLESS_SMOKE_PROVISION_ITEM_NAME" to "Iron Sword",
+                    "CRAFTLESS_SMOKE_PROVISION_ITEM_COUNT" to "1",
                     "CRAFTLESS_SMOKE_READINESS_TIMEOUT_MS" to "90000",
                     "CRAFTLESS_SMOKE_SHUTDOWN_TIMEOUT_MS" to "15000",
                     "CRAFTLESS_SMOKE_MIN_HEAP" to "256M",
@@ -51,6 +54,14 @@ class LocalMinecraftServerSmokeTest {
         assertEquals("Alice", config.expectedPlayer)
         assertEquals("hello from configured smoke command", config.expectedChatMessage)
         assertTrue(config.expectDisconnect)
+        assertEquals(
+            LocalMinecraftSmokeProvisionedItem(
+                itemId = "minecraft:iron_sword",
+                itemName = "Iron Sword",
+                count = 1,
+            ),
+            config.provisionedItem,
+        )
         assertEquals(90_000, config.readinessTimeoutMillis)
         assertEquals(15_000, config.shutdownTimeoutMillis)
         assertEquals("256M", config.minHeap)
@@ -214,6 +225,187 @@ class LocalMinecraftServerSmokeTest {
             ),
             result.evidenceSummary,
         )
+    }
+
+    @Test
+    fun `local server smoke provisions configured target item while action command runs`() {
+        val root = createTempDirectory("craftless-local-server-smoke-provision-item")
+        val fakeJava = root.resolve("fake-java")
+        val fakeServerJar = root.resolve("server.jar")
+        val actionCommand = root.resolve("smoke-action")
+        Files.writeString(fakeServerJar, "fake")
+        Files.writeString(
+            fakeJava,
+            """
+            #!/bin/sh
+            echo '[12:00:00] [Server thread/INFO]: Done (1.000s)! For help, type "help"'
+            touch server-is-ready
+            echo '[12:00:01] [Server thread/INFO]: Alice joined the game'
+            read give_command
+            printf '%s\n' "${'$'}give_command" > minecraft-server-give-stdin.txt
+            echo '[12:00:02] [Server thread/INFO]: Gave 1 [Iron Sword] to Alice'
+            read stop_command
+            printf '%s\n' "${'$'}stop_command" > minecraft-server-stop-stdin.txt
+            echo '[12:00:03] [Server thread/INFO]: Alice left the game'
+            """.trimIndent() + "\n",
+        )
+        Files.writeString(
+            actionCommand,
+            """
+            #!/bin/sh
+            test -f server-is-ready
+            echo 'configured smoke action ran while item was provisioned'
+            """.trimIndent() + "\n",
+        )
+        assertTrue(fakeJava.toFile().setExecutable(true))
+        assertTrue(actionCommand.toFile().setExecutable(true))
+        val config =
+            LocalMinecraftServerSmokeConfig(
+                enabled = true,
+                root = root,
+                port = 25567,
+                javaExecutable = fakeJava,
+                actionCommand = listOf(actionCommand.toString()),
+                actionTimeoutMillis = 5_000,
+                expectedPlayer = "Alice",
+                expectDisconnect = true,
+                provisionedItem =
+                    LocalMinecraftSmokeProvisionedItem(
+                        itemId = "minecraft:iron_sword",
+                        itemName = "Iron Sword",
+                        count = 1,
+                    ),
+                readinessTimeoutMillis = 5_000,
+                shutdownTimeoutMillis = 5_000,
+            )
+
+        val result =
+            LocalMinecraftServerSmoke.runWithServer(
+                config = config,
+                provisionServerJar = { _, _ -> fakeServerJar },
+            )
+
+        assertEquals(LocalMinecraftServerSmokeStatus.RAN, result.status)
+        assertEquals("give Alice minecraft:iron_sword 1\n", Files.readString(root.resolve("minecraft-server-give-stdin.txt")))
+        assertEquals("stop\n", Files.readString(root.resolve("minecraft-server-stop-stdin.txt")))
+        assertEquals(
+            LocalMinecraftSmokeEvidenceSummary(
+                playerJoined = true,
+                playerDisconnected = true,
+                targetItemProvisioned = true,
+            ),
+            result.evidenceSummary,
+        )
+        assertTrue(Files.readString(requireNotNull(result.evidenceLog)).contains("ITEM_PROVISIONED"))
+        assertTrue(Files.readString(requireNotNull(result.actionLog)).contains("configured smoke action ran"))
+    }
+
+    @Test
+    fun `local server smoke provisions configured target item for first observed player`() {
+        val root = createTempDirectory("craftless-local-server-smoke-provision-first-player")
+        val fakeJava = root.resolve("fake-java")
+        val fakeServerJar = root.resolve("server.jar")
+        val actionCommand = root.resolve("smoke-action")
+        Files.writeString(fakeServerJar, "fake")
+        Files.writeString(
+            fakeJava,
+            """
+            #!/bin/sh
+            echo '[12:00:00] [Server thread/INFO]: Done (1.000s)! For help, type "help"'
+            echo '[12:00:01] [Server thread/INFO]: Player840 joined the game'
+            read give_command
+            printf '%s\n' "${'$'}give_command" > minecraft-server-give-stdin.txt
+            read stop_command
+            printf '%s\n' "${'$'}stop_command" > minecraft-server-stop-stdin.txt
+            """.trimIndent() + "\n",
+        )
+        Files.writeString(
+            actionCommand,
+            """
+            #!/bin/sh
+            echo 'configured smoke action ran'
+            """.trimIndent() + "\n",
+        )
+        assertTrue(fakeJava.toFile().setExecutable(true))
+        assertTrue(actionCommand.toFile().setExecutable(true))
+        val config =
+            LocalMinecraftServerSmokeConfig(
+                enabled = true,
+                root = root,
+                javaExecutable = fakeJava,
+                actionCommand = listOf(actionCommand.toString()),
+                actionTimeoutMillis = 5_000,
+                provisionedItem =
+                    LocalMinecraftSmokeProvisionedItem(
+                        itemId = "minecraft:iron_sword",
+                        itemName = "Iron Sword",
+                    ),
+                readinessTimeoutMillis = 5_000,
+                shutdownTimeoutMillis = 5_000,
+            )
+
+        val result =
+            LocalMinecraftServerSmoke.runWithServer(
+                config = config,
+                provisionServerJar = { _, _ -> fakeServerJar },
+            )
+
+        assertEquals("give Player840 minecraft:iron_sword 1\n", Files.readString(root.resolve("minecraft-server-give-stdin.txt")))
+        assertTrue(result.evidenceSummary.targetItemProvisioned)
+        assertTrue(Files.readString(requireNotNull(result.evidenceLog)).contains("\"player\":\"Player840\""))
+    }
+
+    @Test
+    fun `local server smoke writes action log when provisioning cannot observe a joined player`() {
+        val root = createTempDirectory("craftless-local-server-smoke-provision-missing-join")
+        val fakeJava = root.resolve("fake-java")
+        val fakeServerJar = root.resolve("server.jar")
+        val actionCommand = root.resolve("smoke-action")
+        Files.writeString(fakeServerJar, "fake")
+        Files.writeString(
+            fakeJava,
+            """
+            #!/bin/sh
+            echo '[12:00:00] [Server thread/INFO]: Done (1.000s)! For help, type "help"'
+            read stop_command
+            printf '%s\n' "${'$'}stop_command" > minecraft-server-stop-stdin.txt
+            """.trimIndent() + "\n",
+        )
+        Files.writeString(
+            actionCommand,
+            """
+            #!/bin/sh
+            echo 'action started before join timeout'
+            """.trimIndent() + "\n",
+        )
+        assertTrue(fakeJava.toFile().setExecutable(true))
+        assertTrue(actionCommand.toFile().setExecutable(true))
+        val config =
+            LocalMinecraftServerSmokeConfig(
+                enabled = true,
+                root = root,
+                javaExecutable = fakeJava,
+                actionCommand = listOf(actionCommand.toString()),
+                actionTimeoutMillis = 250,
+                provisionedItem =
+                    LocalMinecraftSmokeProvisionedItem(
+                        itemId = "minecraft:iron_sword",
+                        itemName = "Iron Sword",
+                    ),
+                readinessTimeoutMillis = 5_000,
+                shutdownTimeoutMillis = 5_000,
+            )
+
+        val error =
+            assertFailsWith<IllegalStateException> {
+                LocalMinecraftServerSmoke.runWithServer(
+                    config = config,
+                    provisionServerJar = { _, _ -> fakeServerJar },
+                )
+            }
+
+        assertTrue(error.message?.contains("actionLog=") == true)
+        assertTrue(Files.readString(root.resolve("artifacts").resolve("smoke-action.log")).contains("action started"))
     }
 
     @Test

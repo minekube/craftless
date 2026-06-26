@@ -47,7 +47,7 @@ tasks.register<JavaExec>("fabricClientSmoke") {
                 .replace("\"", "\\\"")
         environment(
             "CRAFTLESS_SMOKE_ACTION_COMMAND_JSON",
-            """["mise","exec","--","gradle","-p","$rootProjectPath",":driver-fabric:runClient"]""",
+            """["mise","-C","$rootProjectPath","exec","--","gradle","-p","$rootProjectPath",":driver-fabric:runClient"]""",
         )
     }
     if (fabricSmokeEnabled && System.getenv("CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE").isNullOrBlank()) {
@@ -59,6 +59,21 @@ tasks.register<JavaExec>("fabricClientSmoke") {
     }
     if (fabricSmokeEnabled && System.getenv("CRAFTLESS_SMOKE_EXPECT_DISCONNECT").isNullOrBlank()) {
         environment("CRAFTLESS_SMOKE_EXPECT_DISCONNECT", "1")
+    }
+    if (fabricSmokeEnabled && System.getenv("CRAFTLESS_SMOKE_PROVISION_ITEM_ID").isNullOrBlank()) {
+        environment("CRAFTLESS_SMOKE_PROVISION_ITEM_ID", "minecraft:iron_sword")
+    }
+    if (fabricSmokeEnabled && System.getenv("CRAFTLESS_SMOKE_PROVISION_ITEM_NAME").isNullOrBlank()) {
+        environment(
+            "CRAFTLESS_SMOKE_PROVISION_ITEM_NAME",
+            System.getenv("CRAFTLESS_FABRIC_SMOKE_EQUIP_ITEM") ?: "Iron Sword",
+        )
+    }
+    if (fabricSmokeEnabled && System.getenv("CRAFTLESS_SMOKE_PROVISION_ITEM_COUNT").isNullOrBlank()) {
+        environment("CRAFTLESS_SMOKE_PROVISION_ITEM_COUNT", "1")
+    }
+    if (fabricSmokeEnabled && System.getenv("CRAFTLESS_FABRIC_SMOKE_REQUIRE_EQUIP_ITEM").isNullOrBlank()) {
+        environment("CRAFTLESS_FABRIC_SMOKE_REQUIRE_EQUIP_ITEM", "1")
     }
     if (fabricSmokeEnabled && System.getenv("CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS").isNullOrBlank()) {
         environment("CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS", "3000")
