@@ -380,6 +380,110 @@ class PublicAgentGameplayRunner(
                 return blockedAndWrite("insufficient-public-evidence:inventory.equip.selected-slot")
             }
             var combatReadySlot: Int? = null
+            var latestInventoryObject = equippedInventory.responseObject()
+            val openedStationLabels = mutableSetOf<String>()
+
+            suspend fun openStationFromInventory(
+                stationLabel: String,
+                inventory: JsonObject?,
+            ): String? {
+                if ("screen.query" !in actionIds) {
+                    return "missing-generic-primitive:screen.query"
+                }
+                val currentScreen = invokeGenerated("screen.query")
+                if (currentScreen.responseObject()?.screenMatchesStation(stationLabel) == true) {
+                    openedStationLabels += stationLabel
+                    return null
+                }
+                val stationSlot =
+                    inventory?.hotbarSlotContaining(stationLabel)
+                        ?: return "insufficient-public-evidence:inventory.query.station-item"
+                invokeGenerated(
+                    action = "inventory.equip",
+                    args =
+                        buildJsonObject {
+                            put("slot", JsonPrimitive(stationSlot))
+                        },
+                )
+                val equippedStationInventory = invokeGenerated("inventory.query")
+                if (equippedStationInventory.responseObject()?.selectedSlot() != stationSlot) {
+                    return "insufficient-public-evidence:inventory.equip.selected-slot"
+                }
+                latestInventoryObject = equippedStationInventory.responseObject()
+                val supportTarget =
+                    invokeGenerated(
+                        action = "world.block.query",
+                        args =
+                            buildJsonObject {
+                                put("radius", JsonPrimitive(8.0))
+                                put("limit", JsonPrimitive(16))
+                                put("category", JsonPrimitive("block"))
+                            },
+                    ).responseObject()?.supportBlockTarget()
+                        ?: return "insufficient-public-evidence:world.block.query.station-support"
+                navigateTo(position = supportTarget.position, radius = 2.5)?.let { blocker -> return blocker }
+                val stationPlayer =
+                    invokeGenerated("player.query")
+                        .responseObject()
+                        ?.playerPosition()
+                        ?: return "insufficient-public-evidence:player.query.position"
+                supportTarget.position.toCraftlessPoint()?.let { targetPoint ->
+                    val look = stationPlayer.lookAt(targetPoint.centered())
+                    invokeGenerated(
+                        action = "player.look",
+                        args =
+                            buildJsonObject {
+                                put("yaw", JsonPrimitive(look.yaw))
+                                put("pitch", JsonPrimitive(look.pitch))
+                            },
+                    )
+                }
+                invokeGenerated(
+                    action = "inventory.equip",
+                    args =
+                        buildJsonObject {
+                            put("slot", JsonPrimitive(stationSlot))
+                        },
+                )
+                val refreshedStationInventory = invokeGenerated("inventory.query")
+                if (refreshedStationInventory.responseObject()?.selectedSlot() != stationSlot) {
+                    return "insufficient-public-evidence:inventory.equip.selected-slot"
+                }
+                latestInventoryObject = refreshedStationInventory.responseObject()
+                val placeResult =
+                    invokeGenerated(
+                        action = "world.block.interact",
+                        args =
+                            buildJsonObject {
+                                put("max-distance", JsonPrimitive(6.0))
+                                put("side", JsonPrimitive(supportTarget.side))
+                                put("target", supportTarget.toJsonObject())
+                            },
+                    )
+                if (placeResult.responseObject()?.dataBoolean("accepted") == false) {
+                    return "insufficient-public-evidence:world.block.interact.station-placed"
+                }
+                val stationTarget =
+                    placeResult.responseObject()?.placedBlockTarget()
+                        ?: return "insufficient-public-evidence:world.block.interact.station-target"
+                navigateTo(position = stationTarget.position, radius = 2.5)?.let { blocker -> return blocker }
+                invokeGenerated(
+                    action = "world.block.interact",
+                    args =
+                        buildJsonObject {
+                            put("max-distance", JsonPrimitive(6.0))
+                            put("side", JsonPrimitive(stationTarget.side))
+                            put("target", stationTarget.toJsonObject())
+                        },
+                )
+                val openedScreen = invokeGenerated("screen.query")
+                if (openedScreen.responseObject()?.screenMatchesStation(stationLabel) != true) {
+                    return "insufficient-public-evidence:screen.query.station-open"
+                }
+                openedStationLabels += stationLabel
+                return null
+            }
+
             if ("recipe.query" in actionIds && "recipe.craft" in actionIds) {
                 val craftedRecipeHandles = mutableSetOf<String>()
                 repeat(MAX_RECIPE_COMPOSITION_STEPS) {
@@ -398,9 +502,19 @@ class PublicAgentGameplayRunner(
                     val recipe =
                         recipeQuery
                             .responseObject()
-                            ?.usefulCraftableRecipe(excludingHandles = craftedRecipeHandles)
+                            ?.usefulCraftableRecipe(
+                                excludingHandles = craftedRecipeHandles,
+                                inventory = latestInventoryObject,
+                                openedStationLabels = openedStationLabels,
+                            )
                             ?: return@repeat
                     craftedRecipeHandles += recipe.handle
+                    if (recipe.priority == COMBAT_RECIPE_PRIORITY) {
+                        recipe.stationLabel?.let { station ->
+                            openStationFromInventory(stationLabel = station, inventory = latestInventoryObject)
+                                ?.let { blocker -> return blockedAndWrite(blocker) }
+                        }
+                    }
                     val craftResult =
                         invokeGenerated(
                             action = "recipe.craft",
@@ -420,17 +534,26 @@ class PublicAgentGameplayRunner(
                     }
                     val craftedInventory = invokeGenerated("inventory.query")
                     val craftedInventoryObject = craftedInventory.responseObject()
-                    if (recipe.priority == COMBAT_RECIPE_PRIORITY) {
-                        combatReadySlot =
-                            craftedInventoryObject?.combatReadyHotbarSlot()
-                                ?: return blockedAndWrite("insufficient-public-evidence:inventory.query.combat-item")
-                    } else if (craftedInventoryObject?.hasUsefulCraftedItem() != true) {
-                        return blockedAndWrite("insufficient-public-evidence:inventory.query.crafted-output")
+                    when {
+                        recipe.priority == COMBAT_RECIPE_PRIORITY ->
+                            combatReadySlot =
+                                craftedInventoryObject?.combatReadyHotbarSlot()
+                                    ?: return blockedAndWrite("insufficient-public-evidence:inventory.query.combat-item")
+                        recipe.priority == STATION_RECIPE_PRIORITY -> Unit
+                        craftedInventoryObject?.hasUsefulCraftedItem() != true ->
+                            return blockedAndWrite("insufficient-public-evidence:inventory.query.crafted-output")
                     }
-                    combatReadySlot = combatReadySlot ?: craftedInventoryObject.combatReadyHotbarSlot()
+                    if (recipe.priority == STATION_RECIPE_PRIORITY) {
+                        recipe.outputLabel
+                            ?.let { station -> openStationFromInventory(stationLabel = station, inventory = craftedInventoryObject) }
+                            ?.let { blocker -> return blockedAndWrite(blocker) }
+                    }
+                    latestInventoryObject = craftedInventoryObject
+                    combatReadySlot = combatReadySlot ?: craftedInventoryObject?.combatReadyHotbarSlot()
                 }
             }
-            if (actions.actionSupportsArgument("world.block.interact", "target")) {
+            val placementSlot = latestInventoryObject?.logHotbarSlot()
+            if (placementSlot != null && actions.actionSupportsArgument("world.block.interact", "target")) {
                 val supportTargets =
                     invokeGenerated(
                         action = "world.block.query",
@@ -460,11 +583,11 @@ class PublicAgentGameplayRunner(
                             action = "inventory.equip",
                             args =
                                 buildJsonObject {
-                                    put("slot", JsonPrimitive(logSlot))
+                                    put("slot", JsonPrimitive(placementSlot))
                                 },
                         )
                         val placementInventory = invokeGenerated("inventory.query")
-                        if (placementInventory.responseObject()?.selectedSlot() != logSlot) {
+                        if (placementInventory.responseObject()?.selectedSlot() != placementSlot) {
                             return blockedAndWrite("insufficient-public-evidence:inventory.equip.selected-slot")
                         }
                         val placementPlayer = invokeGenerated("player.query")
@@ -979,12 +1102,17 @@ private fun JsonObject.hasCombatLootItem(): Boolean {
     }
 }
 
-private fun JsonObject.usefulCraftableRecipe(excludingHandles: Set<String> = emptySet()): PublicRecipeTarget? {
+private fun JsonObject.usefulCraftableRecipe(
+    excludingHandles: Set<String> = emptySet(),
+    inventory: JsonObject? = null,
+    openedStationLabels: Set<String> = emptySet(),
+): PublicRecipeTarget? {
     val data = this["data"] as? JsonObject ?: return null
     val recipes = data["recipes"]?.jsonArray ?: return null
-    return recipes
-        .mapNotNull { element ->
-            val recipe = element as? JsonObject ?: return@mapNotNull null
+    val recipeObjects = recipes.mapNotNull { element -> element as? JsonObject }
+    val stationLabels = recipeObjects.mapNotNull { recipe -> recipe.stationLabel() }.toSet()
+    return recipeObjects
+        .mapNotNull { recipe ->
             val craftable =
                 recipe["craftable"]
                     ?.jsonPrimitive
@@ -1009,15 +1137,20 @@ private fun JsonObject.usefulCraftableRecipe(excludingHandles: Set<String> = emp
                     ?.jsonArray
                     .orEmpty()
                     .mapNotNull { produced -> produced as? JsonObject }
-            if (category !in usefulRecipeCategories && produces.none { it.hasUsefulRecipeOutput() }) {
+            if (category !in usefulRecipeCategories && produces.none { it.hasUsefulRecipeOutput(stationLabels) }) {
                 return@mapNotNull null
             }
+            val outputLabel = produces.firstNotNullOfOrNull { output -> output.recipeLabel() }
+            val stationLabel = recipe.stationLabel()
+            val basePriority =
+                listOf(recipe.recipePriority(stationLabels))
+                    .plus(produces.map { output -> output.recipePriority(stationLabels) })
+                    .min()
             PublicRecipeTarget(
                 handle = handle,
-                priority =
-                    listOf(recipe.recipePriority())
-                        .plus(produces.map { output -> output.recipePriority() })
-                        .min(),
+                outputLabel = outputLabel,
+                stationLabel = stationLabel,
+                priority = recipePriorityWithStationReadiness(basePriority, stationLabel, inventory, openedStationLabels),
             )
         }.minWithOrNull(
             compareBy<PublicRecipeTarget> { recipe -> recipe.priority }
@@ -1025,26 +1158,55 @@ private fun JsonObject.usefulCraftableRecipe(excludingHandles: Set<String> = emp
         )
 }
 
-private fun JsonObject.hasUsefulRecipeOutput(): Boolean {
+private fun recipePriorityWithStationReadiness(
+    basePriority: Int,
+    stationLabel: String?,
+    inventory: JsonObject?,
+    openedStationLabels: Set<String>,
+): Int =
+    if (
+        stationLabel != null &&
+        basePriority < STATION_RECIPE_PRIORITY &&
+        stationLabel !in openedStationLabels &&
+        inventory?.hotbarSlotContaining(stationLabel) == null
+    ) {
+        MISSING_STATION_RECIPE_PRIORITY
+    } else {
+        basePriority
+    }
+
+private fun JsonObject.hasUsefulRecipeOutput(stationLabels: Set<String> = emptySet()): Boolean {
     val category = this["category"]?.jsonPrimitive?.contentOrNull.orEmpty()
-    val label = this["label"]?.jsonPrimitive?.contentOrNull.orEmpty()
+    val label = recipeLabel().orEmpty()
     return category in usefulRecipeCategories ||
+        label in stationLabels ||
         usefulCraftedItemNameParts.any { part -> label.contains(part, ignoreCase = true) }
 }
 
-private fun JsonObject.recipePriority(): Int {
+private fun JsonObject.recipePriority(stationLabels: Set<String> = emptySet()): Int {
     val category = this["category"]?.jsonPrimitive?.contentOrNull.orEmpty()
-    val label = this["label"]?.jsonPrimitive?.contentOrNull.orEmpty()
+    val label = recipeLabel().orEmpty()
     return when {
-        category == "weapon" -> 0
-        combatReadyItemNameParts.any { part -> label.contains(part, ignoreCase = true) } -> 0
-        category == "tool" -> 1
-        category == "utility" -> 2
-        category == "material" -> 3
-        usefulCraftedItemNameParts.any { part -> label.contains(part, ignoreCase = true) } -> 3
-        else -> 4
+        category == "weapon" -> COMBAT_RECIPE_PRIORITY
+        combatReadyItemNameParts.any { part -> label.contains(part, ignoreCase = true) } -> COMBAT_RECIPE_PRIORITY
+        category == "tool" -> TOOL_RECIPE_PRIORITY
+        label in stationLabels -> STATION_RECIPE_PRIORITY
+        category == "utility" -> UTILITY_RECIPE_PRIORITY
+        category == "material" -> MATERIAL_RECIPE_PRIORITY
+        usefulCraftedItemNameParts.any { part -> label.contains(part, ignoreCase = true) } -> MATERIAL_RECIPE_PRIORITY
+        else -> OTHER_RECIPE_PRIORITY
     }
 }
+
+private fun JsonObject.recipeLabel(): String? =
+    this["label"]
+        ?.jsonPrimitive
+        ?.contentOrNull
+        ?.takeIf { label -> label.isNotBlank() }
+
+private fun JsonObject.stationLabel(): String? =
+    (this["station"] as? JsonObject)
+        ?.recipeLabel()
 
 private fun JsonObject.hasUsefulCraftedItem(): Boolean {
     val data = this["data"] as? JsonObject ?: return false
@@ -1060,24 +1222,72 @@ private fun JsonObject.combatReadyHotbarSlot(): Int? {
     val slots = data["slots"]?.jsonArray ?: return null
     return slots.firstNotNullOfOrNull { element ->
         val slot = element as? JsonObject ?: return@firstNotNullOfOrNull null
-        val slotNumber =
-            slot["slot"]
-                ?.jsonPrimitive
-                ?.contentOrNull
-                ?.toIntOrNull()
-                ?: return@firstNotNullOfOrNull null
-        val empty =
-            slot["empty"]
-                ?.jsonPrimitive
-                ?.contentOrNull
-                ?.toBooleanStrictOrNull()
-                ?: true
-        if (slotNumber in 0..8 && !empty && combatReadyItemNameParts.any(slot::containsItemName)) {
+        val slotNumber = slot.hotbarSlotNumber() ?: return@firstNotNullOfOrNull null
+        if (combatReadyItemNameParts.any(slot::containsItemName)) {
             slotNumber
         } else {
             null
         }
     }
+}
+
+private fun JsonObject.hotbarSlotContaining(label: String): Int? {
+    val data = this["data"] as? JsonObject ?: return null
+    val slots = data["slots"]?.jsonArray ?: return null
+    return slots.firstNotNullOfOrNull { element ->
+        val slot = element as? JsonObject ?: return@firstNotNullOfOrNull null
+        val slotNumber = slot.hotbarSlotNumber() ?: return@firstNotNullOfOrNull null
+        if (slot.containsItemName(label)) {
+            slotNumber
+        } else {
+            null
+        }
+    }
+}
+
+private fun JsonObject.hotbarSlotNumber(): Int? {
+    val slotNumber =
+        this["slot"]
+            ?.jsonPrimitive
+            ?.contentOrNull
+            ?.toIntOrNull()
+            ?: return null
+    val empty =
+        this["empty"]
+            ?.jsonPrimitive
+            ?.contentOrNull
+            ?.toBooleanStrictOrNull()
+            ?: true
+    return slotNumber.takeIf { slot -> slot in 0..8 && !empty }
+}
+
+private fun JsonObject.screenMatchesStation(stationLabel: String): Boolean {
+    val data = this["data"] as? JsonObject ?: return false
+    val open =
+        data["open"]
+            ?.jsonPrimitive
+            ?.contentOrNull
+            ?.toBooleanStrictOrNull()
+            ?: false
+    if (!open) {
+        return false
+    }
+    val title = data["title"]?.jsonPrimitive?.contentOrNull.orEmpty()
+    return title.contains(stationLabel, ignoreCase = true) ||
+        stationLabel.contains(title, ignoreCase = true)
+}
+
+private fun JsonObject.placedBlockTarget(): PublicBlockTarget? {
+    val data = this["data"] as? JsonObject ?: return null
+    val handle =
+        data["adjacent-handle"]
+            ?.jsonPrimitive
+            ?.contentOrNull
+            ?.takeIf { value -> value.isNotBlank() }
+            ?: return null
+    val position = data["adjacent-position"] as? JsonObject ?: return null
+    val side = data["side"]?.jsonPrimitive?.contentOrNull ?: DEFAULT_PLACEMENT_SIDE
+    return PublicBlockTarget(handle = handle, position = position, distance = null, side = side)
 }
 
 private fun JsonObject.entityNotAlive(handle: String): Boolean {
@@ -1207,8 +1417,7 @@ private const val DEFAULT_ACTION_REQUEST_TIMEOUT_MS = 300_000L
 private const val DEFAULT_CONNECT_TIMEOUT_MS = 30_000L
 private const val DEFAULT_COMBAT_RETRY_DELAY_MS = 700L
 private const val PLACEMENT_TARGET_ATTEMPTS = 6
-private const val MAX_RECIPE_COMPOSITION_STEPS = 3
-private const val COMBAT_RECIPE_PRIORITY = 0
+private const val MAX_RECIPE_COMPOSITION_STEPS = 4
 private const val ATTACK_MAX_DISTANCE = 4.5
 private const val ATTACK_VERTICAL_REACH = 4.5
 
@@ -1269,6 +1478,8 @@ private data class PublicEntityTarget(
 
 private data class PublicRecipeTarget(
     val handle: String,
+    val outputLabel: String?,
+    val stationLabel: String?,
     val priority: Int,
 )
 
@@ -1286,6 +1497,14 @@ private val usefulRecipeCategories = setOf("weapon", "tool", "utility", "materia
 
 private val combatReadyItemNameParts = listOf("sword", "axe")
 private val usefulCraftedItemNameParts = listOf("sword", "axe", "pickaxe", "shovel", "plank", "stick")
+
+private const val COMBAT_RECIPE_PRIORITY = 0
+private const val TOOL_RECIPE_PRIORITY = 1
+private const val STATION_RECIPE_PRIORITY = 2
+private const val MISSING_STATION_RECIPE_PRIORITY = 3
+private const val UTILITY_RECIPE_PRIORITY = 3
+private const val MATERIAL_RECIPE_PRIORITY = 4
+private const val OTHER_RECIPE_PRIORITY = 5
 
 private const val DEFAULT_PLACEMENT_SIDE = "up"
 

@@ -209,13 +209,13 @@ Verification:
   shows the public agent used generated `world.block.query`,
   `navigation.plan`, `navigation.follow`, `world.block.break`, `entity.query`,
   `inventory.query`, `inventory.equip`, `world.block.interact`,
-  `player.look`, `recipe.query`, `recipe.craft`, and `entity.attack`; it
-  mined a log, recovered material into public inventory state, crafted Oak
-  Planks through a public recipe handle, equipped material, placed/interacted
-  with a block, continued bounded generated-navigation exploration after a
-  waypoint miss, followed a moving cow with generated navigation, attacked
-  through generated `entity.attack`, and finally observed `entity.handle-25`
-  with `alive:false` plus `Raw Beef`, `Leather`, and `Experience Orb` drops.
+  `player.look`, `recipe.query`, `recipe.craft`, and `screen.query`; it can
+  craft planks, recognize station-backed recipe requirements, prefer a
+  station-producing recipe before a station-backed weapon when the station is
+  missing, and re-equip the station before generated block interaction. The
+  latest no-hold run now blocks earlier on
+  `insufficient-public-evidence:navigation.follow.succeeded` while trying to
+  recover a dropped log through public material pickup/navigation evidence.
   Held multiplayer observation and Robin's Minecraft chat confirmation remain
   open.
 - [ ] Robin joins or observes the server session after a macOS `say` prompt.
@@ -257,10 +257,10 @@ Verification:
   generic combat outcome evidence without static scenario APIs, including the
   exact cow/beef/leather acceptance variant; it still has not proven a
   legitimately crafted/obtained weapon or Robin's in-game completion
-  confirmation. Latest weapon-composition evidence reaches a generated
-  `Wooden Sword` recipe handle through public `recipe.query`, but
-  `recipe.craft` now correctly rejects the attempt with
-  `crafting-output-mismatch` because the actual output slot contains `Stick`.
+  confirmation. Latest weapon-composition work fixes public-agent station
+  ordering and station re-equip composition in focused evidence; the current
+  live no-hold blocker has moved back to material pickup navigation:
+  `insufficient-public-evidence:navigation.follow.succeeded`.
 - [!] The final survival proof is reproduced by an external public-agent runner
   over generated OpenAPI/SSE/CLI/skills, not by hard-coding the scenario as a
   durable public `task.survival.*` API. The previous
@@ -466,12 +466,14 @@ Verification:
   `world.block.query` data. Focused tests cover lower-target selection.
 - [x] Public-agent runner composes pickup movement with `navigation.plan` and
   `navigation.follow` after `world.block.break` reports `changed = true`.
-- [x] Live no-hold evidence reaches inventory material proof after pickup
-  movement/drop perception, including `inventory.query` with collected log
-  material, followed by generated `inventory.equip`, selected-slot
-  verification, placement, and combat progression. Focused regression evidence
-  now covers continuing bounded material exploration when navigation to an
-  initially discovered material target fails.
+- [!] Live no-hold evidence can reach inventory material proof after pickup
+  movement/drop perception in prior runs, but the latest no-hold run blocked
+  at `insufficient-public-evidence:navigation.follow.succeeded` while trying
+  to recover a dropped log through public navigation/drop evidence. Focused
+  regression evidence covers continuing bounded material exploration when
+  navigation to an initially discovered material target fails; remaining work
+  is to make public material pickup navigation more resilient without adding a
+  pickup shortcut.
 
 Verification:
 
@@ -487,9 +489,11 @@ Verification:
   movement, optionally navigates to observed material drop positions, and still
   verifies pickup through `inventory.query`. Focused tests cover public material
   drop navigation.
-- [x] Live no-hold evidence runs `entity.query` after material break, uses
-  public drop perception when block-target pickup navigation is insufficient,
-  and reaches inventory material proof without a pickup shortcut.
+- [~] Live no-hold evidence runs `entity.query` after material break and uses
+  public drop perception when block-target pickup navigation is insufficient.
+  Prior runs reached inventory material proof without a pickup shortcut; the
+  latest run still blocks on generated navigation follow while recovering the
+  dropped material.
 
 Verification:
 
@@ -504,13 +508,11 @@ Verification:
 - [x] Public-agent runner uses shorter overlapping generated-navigation
   waypoints after an empty local `world.block.query`. Focused tests verify the
   first exploration waypoint is 24 blocks rather than the previous 48.
-- [x] Live no-hold evidence progressed through the material path without the
-  previous exploration timeout, with `world.block.query`,
-  `navigation.plan/follow`, `world.block.break`, `entity.query`,
-  `inventory.query`, `inventory.equip`, selected-slot verification,
-  `world.block.interact`, and generic combat progression. Focused regression
-  evidence covers retrying material exploration when a discovered target is not
-  navigable.
+- [~] Live no-hold evidence progressed through bounded material exploration in
+  prior runs. The latest run found and broke material but blocks during public
+  pickup recovery with `insufficient-public-evidence:navigation.follow.succeeded`.
+  Focused regression evidence covers retrying material exploration when a
+  discovered target is not navigable.
 
 Verification:
 
@@ -747,11 +749,15 @@ Verification:
 - [x] Public-agent composition can chain generated material and combat recipes
   in focused fake-server evidence, and it requires combat-ready inventory
   proof before treating a generated weapon recipe as successful.
-- [!] Latest live no-hold evidence reaches a generated `Wooden Sword` recipe
-  after crafting planks and sticks, but `recipe.craft` returns
-  `crafting-output-mismatch` with expected `Wooden Sword` and actual `Stick`.
-  Remaining work is generic station/screen handling for crafting-table recipes,
-  not a `craft.sword` shortcut.
+- [~] Public-agent composition now has focused evidence for station-backed
+  recipe ordering and opening: when a mixed generated `recipe.query` contains a
+  station-backed weapon and a recipe that produces the missing station, the
+  agent crafts the station first, verifies it through public inventory,
+  re-equips it before generated `world.block.interact`, verifies `screen.query`
+  opened the station, then continues through stick and weapon recipes. Latest
+  live no-hold evidence has not re-reached the weapon craft because material
+  pickup navigation currently blocks first with
+  `insufficient-public-evidence:navigation.follow.succeeded`.
 
 Verification:
 
@@ -778,15 +784,14 @@ Verification:
   `task.survival.honest-cow-hunt` or writes `survival-task-results.jsonl`.
 - [ ] Final live gameplay still must prove the scenario through generated
   public actions, SSE events, adaptive consumers, and Robin's Minecraft chat
-  confirmation. Latest live no-hold runs prove recipe/crafting, placement,
-  bounded attack-target exploration past a failed generated navigation
-  waypoint, and cow combat outcome evidence through generated public actions.
-  The current live blocker is `crafting-output-mismatch` when a generated
-  `Wooden Sword` recipe is attempted from the wrong crafting output context.
-  Remaining completion gates are generic crafting-station/screen handling,
-  honest weapon acquisition/composition as required by the survival scenario,
-  held multiplayer observation, any fixes found there, and Robin's explicit
-  Minecraft chat confirmation.
+  confirmation. Focused evidence now covers generated station-backed recipe
+  composition without `craft.sword` or station shortcuts. The current live
+  blocker is public material pickup navigation:
+  `insufficient-public-evidence:navigation.follow.succeeded` after breaking a
+  log and observing dropped material. Remaining completion gates are resilient
+  generic pickup/navigation, honest weapon acquisition/composition as required
+  by the survival scenario, held multiplayer observation, any fixes found
+  there, and Robin's explicit Minecraft chat confirmation.
 
 Verification:
 

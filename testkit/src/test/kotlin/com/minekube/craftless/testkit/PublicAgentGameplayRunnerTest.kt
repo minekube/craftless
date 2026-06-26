@@ -775,7 +775,7 @@ class PublicAgentGameplayRunnerTest {
             val actions = result.actionLog.map { it.action }
             assertTrue(actions.contains("recipe.query"))
             assertTrue(actions.contains("recipe.craft"))
-            assertTrue(actions.indexOf("recipe.craft") < actions.indexOf("world.block.interact"))
+            assertFalse(actions.contains("world.block.interact"))
             assertTrue(server.requestBodies.any { it.contains(""""target":{"handle":"recipe.handle:tool-1"}""") })
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
@@ -854,7 +854,7 @@ class PublicAgentGameplayRunnerTest {
                     recipeQueryResponses =
                         listOf(
                             materialRecipeQueryResponse,
-                            weaponRecipeQueryResponse,
+                            stationlessWeaponRecipeQueryResponse,
                         ),
                     recipeCraftResponses =
                         listOf(
@@ -899,7 +899,7 @@ class PublicAgentGameplayRunnerTest {
                             logInSlotOneInventoryQueryResponse(selectedSlot = 1),
                             craftedMaterialInventoryResponse,
                         ),
-                    recipeQueryResponse = weaponRecipeQueryResponse,
+                    recipeQueryResponse = stationlessWeaponRecipeQueryResponse,
                     recipeCraftResponse = WEAPON_RECIPE_CRAFT_RESPONSE,
                 )
             val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
@@ -909,6 +909,99 @@ class PublicAgentGameplayRunnerTest {
             assertEquals(PublicAgentGameplayState.BLOCKED, result.state)
             assertEquals("insufficient-public-evidence:inventory.query.combat-item", result.blocker)
             assertTrue(server.requestBodies.any { it.contains(""""target":{"handle":"recipe.handle:weapon-1"}""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner opens generated crafting station before station backed combat recipe`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions =
+                        completeActionCatalog() +
+                            listOf(
+                                "recipe.query",
+                                "recipe.craft",
+                                "world.block.interact",
+                                "screen.query",
+                                "entity.attack",
+                            ),
+                    actionArguments =
+                        mapOf(
+                            "world.block.interact" to listOf("target", "side", "max-distance"),
+                        ),
+                    blockQueryResponses =
+                        listOf(
+                            logBlockQueryResponse,
+                            placementSupportBlockQueryResponse,
+                        ),
+                    inventoryResponses =
+                        listOf(
+                            EMPTY_INVENTORY_QUERY_RESPONSE,
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            craftedMaterialInventoryResponse,
+                            craftedStationOnlyInventoryResponse(selectedSlot = 1),
+                            craftedStationOnlyInventoryResponse(selectedSlot = 8),
+                            craftedStationOnlyInventoryResponse(selectedSlot = 8),
+                            craftedStickInventoryResponse,
+                            craftedWeaponInventoryResponse(selectedSlot = 2),
+                            craftedWeaponInventoryResponse(selectedSlot = 2),
+                        ),
+                    recipeQueryResponses =
+                        listOf(
+                            materialRecipeQueryResponse,
+                            stationAndWeaponRecipeQueryResponse,
+                            stickRecipeQueryResponse,
+                            weaponRecipeQueryResponse,
+                        ),
+                    recipeCraftResponses =
+                        listOf(
+                            MATERIAL_RECIPE_CRAFT_RESPONSE,
+                            STATION_RECIPE_CRAFT_RESPONSE,
+                            STICK_RECIPE_CRAFT_RESPONSE,
+                            WEAPON_RECIPE_CRAFT_RESPONSE,
+                        ),
+                    blockInteractResponses =
+                        listOf(
+                            stationPlaceInteractResponse,
+                            stationOpenInteractResponse,
+                        ),
+                    screenQueryResponses =
+                        listOf(
+                            SCREEN_CLOSED_RESPONSE,
+                            SCREEN_OPEN_CRAFTING_TABLE_RESPONSE,
+                        ),
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            deadCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            assertEquals(4, result.actionLog.map { it.action }.count { it == "recipe.craft" })
+            assertTrue(result.actionLog.map { it.action }.contains("screen.query"))
+            assertTrue(result.actionLog.map { it.action }.count { it == "world.block.interact" } >= 2)
+            assertTrue(server.requestBodies.any { it.contains(""""target":{"handle":"recipe.handle:station-1"}""") })
+            assertTrue(server.requestBodies.any { it.contains(""""target":{"handle":"recipe.handle:weapon-1"}""") })
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("inventory.equip") &&
+                        it.contains(""""slot":8""")
+                },
+            )
+            assertTrue(
+                server.requestBodies.count {
+                    it.contains("inventory.equip") &&
+                        it.contains(""""slot":8""")
+                } >= 2,
+            )
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 
@@ -1540,6 +1633,8 @@ private class RecordingCraftlessHttpServer(
     private val recipeCraftResponse: String =
         """{"action":"recipe.craft","status":"ACCEPTED","data":{"accepted":false,"changed":false,"crafted-count":0}}""",
     private val recipeCraftResponses: List<String>? = null,
+    private val screenQueryResponse: String = SCREEN_CLOSED_RESPONSE,
+    private val screenQueryResponses: List<String>? = null,
     private val finalInventoryResponse: String =
         """
         {
@@ -1565,6 +1660,7 @@ private class RecordingCraftlessHttpServer(
     private var navigationFollowCount = 0
     private var recipeQueryCount = 0
     private var recipeCraftCount = 0
+    private var screenQueryCount = 0
     val http =
         HttpClient(
             MockEngine { request ->
@@ -1610,6 +1706,7 @@ private class RecordingCraftlessHttpServer(
             body.contains("inventory.equip") -> """{"action":"inventory.equip","status":"ACCEPTED"}"""
             body.contains("recipe.query") -> recipeQueryResponse()
             body.contains("recipe.craft") -> recipeCraftResponse()
+            body.contains("screen.query") -> screenQueryResponse()
             body.contains("entity.attack") ->
                 """{"action":"entity.attack","status":"ACCEPTED","data":{"hit":true,"handle":"entity.handle-42"}}"""
             body.contains("entity.query") -> entityQueryResponse()
@@ -1664,6 +1761,12 @@ private class RecordingCraftlessHttpServer(
             ?: recipeCraftResponse
     }
 
+    private fun screenQueryResponse(): String {
+        screenQueryCount += 1
+        return screenQueryResponses?.getOrElse(screenQueryCount - 1) { screenQueryResponses.last() }
+            ?: screenQueryResponse
+    }
+
     private fun actionsJson(): String =
         actions.joinToString(prefix = "[", postfix = "]") { action ->
             val args =
@@ -1697,6 +1800,12 @@ private const val NAVIGATION_SUCCEEDED_RESPONSE =
 
 private const val NAVIGATION_FAILED_RESPONSE =
     """{"action":"navigation.follow","status":"FAILED","data":{"task-id":"task:navigation:public-agent","state":"failed"}}"""
+
+private const val SCREEN_CLOSED_RESPONSE =
+    """{"action":"screen.query","status":"ACCEPTED","data":{"open":false}}"""
+
+private const val SCREEN_OPEN_CRAFTING_TABLE_RESPONSE =
+    """{"action":"screen.query","status":"ACCEPTED","data":{"open":true,"title":"Crafting Table"}}"""
 
 private fun logInSlotOneInventoryQueryResponse(selectedSlot: Int): String =
     """
@@ -1743,6 +1852,35 @@ private val craftedMaterialInventoryResponse =
     }
     """.trimIndent()
 
+private fun craftedStationOnlyInventoryResponse(selectedSlot: Int): String =
+    """
+    {
+      "action": "inventory.query",
+      "status": "ACCEPTED",
+      "data": {
+        "selected-slot": $selectedSlot,
+        "slots": [
+          {"slot": 8, "empty": false, "count": 1, "item-name": "Crafting Table"}
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val craftedStickInventoryResponse =
+    """
+    {
+      "action": "inventory.query",
+      "status": "ACCEPTED",
+      "data": {
+        "selected-slot": 2,
+        "slots": [
+          {"slot": 7, "empty": false, "count": 4, "item-name": "Stick"},
+          {"slot": 8, "empty": false, "count": 2, "item-name": "Oak Planks"}
+        ]
+      }
+    }
+    """.trimIndent()
+
 private fun craftedWeaponInventoryResponse(selectedSlot: Int): String =
     """
     {
@@ -1779,7 +1917,57 @@ private val materialRecipeQueryResponse =
     }
     """.trimIndent()
 
-private val weaponRecipeQueryResponse =
+private val stationAndWeaponRecipeQueryResponse =
+    """
+    {
+      "action": "recipe.query",
+      "status": "ACCEPTED",
+      "data": {
+        "count": 2,
+        "recipes": [
+          {
+            "handle": "recipe.handle:weapon-1",
+            "craftable": true,
+            "station": {"label": "Crafting Table", "category": "item", "count": 1},
+            "outputs": [
+              {"label": "Wooden Sword", "category": "weapon", "count": 1}
+            ]
+          },
+          {
+            "handle": "recipe.handle:station-1",
+            "craftable": true,
+            "outputs": [
+              {"label": "Crafting Table", "category": "item", "count": 1}
+            ],
+            "station": {"label": "Crafting Table", "category": "item", "count": 1}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val stickRecipeQueryResponse =
+    """
+    {
+      "action": "recipe.query",
+      "status": "ACCEPTED",
+      "data": {
+        "count": 1,
+        "recipes": [
+          {
+            "handle": "recipe.handle:stick-1",
+            "craftable": true,
+            "outputs": [
+              {"label": "Stick", "category": "material", "count": 4}
+            ],
+            "station": {"label": "Crafting Table", "category": "item", "count": 1}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val stationlessWeaponRecipeQueryResponse =
     """
     {
       "action": "recipe.query",
@@ -1799,11 +1987,67 @@ private val weaponRecipeQueryResponse =
     }
     """.trimIndent()
 
+private val weaponRecipeQueryResponse =
+    """
+    {
+      "action": "recipe.query",
+      "status": "ACCEPTED",
+      "data": {
+        "count": 1,
+        "recipes": [
+          {
+            "handle": "recipe.handle:weapon-1",
+            "craftable": true,
+            "station": {"label": "Crafting Table", "category": "item", "count": 1},
+            "outputs": [
+              {"label": "Wooden Sword", "category": "weapon", "count": 1}
+            ]
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
 private const val MATERIAL_RECIPE_CRAFT_RESPONSE =
     """{"action":"recipe.craft","status":"ACCEPTED","data":{"handle":"recipe.handle:material-1","accepted":true,"changed":true,"crafted-count":1}}"""
 
+private const val STATION_RECIPE_CRAFT_RESPONSE =
+    """{"action":"recipe.craft","status":"ACCEPTED","data":{"handle":"recipe.handle:station-1","accepted":true,"changed":true,"crafted-count":1}}"""
+
+private const val STICK_RECIPE_CRAFT_RESPONSE =
+    """{"action":"recipe.craft","status":"ACCEPTED","data":{"handle":"recipe.handle:stick-1","accepted":true,"changed":true,"crafted-count":1}}"""
+
 private const val WEAPON_RECIPE_CRAFT_RESPONSE =
     """{"action":"recipe.craft","status":"ACCEPTED","data":{"handle":"recipe.handle:weapon-1","accepted":true,"changed":true,"crafted-count":1}}"""
+
+private val stationPlaceInteractResponse =
+    """
+    {
+      "action": "world.block.interact",
+      "status": "ACCEPTED",
+      "data": {
+        "accepted": true,
+        "changed": true,
+        "handle": "world.block:11:64:-4",
+        "adjacent-handle": "world.block:11:65:-4",
+        "adjacent-position": {"x": 11, "y": 65, "z": -4},
+        "side": "up"
+      }
+    }
+    """.trimIndent()
+
+private val stationOpenInteractResponse =
+    """
+    {
+      "action": "world.block.interact",
+      "status": "ACCEPTED",
+      "data": {
+        "accepted": true,
+        "changed": false,
+        "handle": "world.block:11:65:-4"
+      }
+    }
+    """.trimIndent()
 
 private val aliveCowEntityQueryResponse =
     """
