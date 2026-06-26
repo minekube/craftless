@@ -49,6 +49,7 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -69,6 +70,8 @@ class LocalSessionApiServer private constructor(
             ignoreUnknownKeys = true
         }
     private val events = mutableListOf<SessionEvent>()
+    private val eventSubscriptions = linkedMapOf<String, EventSubscription>()
+    private var eventSubscriptionSequence = 0
     private val port = if (requestedPort == 0) allocateLoopbackPort() else requestedPort
     private val server =
         embeddedServer(CIO, host = host, port = port) {
@@ -173,7 +176,7 @@ class LocalSessionApiServer private constructor(
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {
                     service.routesFor(clientId)
-                    val filter = call.liveEventFilter(clientId = clientId)
+                    val filter = call.subscriptionFilter(clientId) ?: call.liveEventFilter(clientId = clientId)
                     call.respondSse(
                         events
                             .filter { it.client == clientId }
@@ -181,7 +184,10 @@ class LocalSessionApiServer private constructor(
                             .filter { event -> filter.matches(event) },
                     )
                 }.getOrElse { error ->
-                    call.respondMissingClient(error)
+                    when (error) {
+                        is RouteFailure -> call.respondRouteFailure(error)
+                        else -> call.respondMissingClient(error)
+                    }
                 }
             }
             post("/clients/{id}:connect") {
@@ -306,17 +312,9 @@ class LocalSessionApiServer private constructor(
                                 JsonRpcResponse.result(id = request.id, result = result.toJson())
                             }
 
-                            JsonRpcMethod.SUBSCRIBE,
-                            JsonRpcMethod.UNSUBSCRIBE,
-                            ->
-                                JsonRpcResponse.result(
-                                    id = request.id,
-                                    result =
-                                        buildJsonObject {
-                                            put("accepted", true)
-                                            put("method", request.method)
-                                        },
-                                )
+                            JsonRpcMethod.SUBSCRIBE -> subscribeJsonRpc(clientId, request)
+
+                            JsonRpcMethod.UNSUBSCRIBE -> unsubscribeJsonRpc(clientId, request)
 
                             JsonRpcMethod.QUERY -> queryJsonRpc(clientId, request)
 
@@ -391,6 +389,55 @@ class LocalSessionApiServer private constructor(
         }
     }
 
+    private fun subscribeJsonRpc(
+        clientId: String,
+        request: JsonRpcRequest,
+    ): JsonRpcResponse {
+        service.requireActiveClient(clientId)
+        val subscription =
+            EventSubscription(
+                id = nextSubscriptionId(clientId),
+                clientId = clientId,
+                filter = request.params.toLiveEventFilter(clientId),
+            )
+        eventSubscriptions[subscription.id] = subscription
+        return JsonRpcResponse.result(
+            id = request.id,
+            result =
+                buildJsonObject {
+                    put("subscriptionId", subscription.id)
+                    put("filter", jsonElement(subscription.filter))
+                    put("createdAt", subscription.createdAt)
+                },
+        )
+    }
+
+    private fun unsubscribeJsonRpc(
+        clientId: String,
+        request: JsonRpcRequest,
+    ): JsonRpcResponse {
+        service.requireActiveClient(clientId)
+        val subscriptionId =
+            requireNotNull(request.params["subscriptionId"]?.jsonPrimitive?.content) {
+                "json rpc unsubscribe requires subscriptionId"
+            }
+        val subscription =
+            eventSubscriptions[subscriptionId]
+                ?: throw InvalidActionInput("subscription $subscriptionId is not active for client $clientId")
+        if (subscription.clientId != clientId) {
+            throw InvalidActionInput("subscription $subscriptionId is not active for client $clientId")
+        }
+        eventSubscriptions.remove(subscriptionId)
+        return JsonRpcResponse.result(
+            id = request.id,
+            result =
+                buildJsonObject {
+                    put("subscriptionId", subscriptionId)
+                    put("unsubscribed", true)
+                },
+        )
+    }
+
     private fun queryJsonRpc(
         clientId: String,
         request: JsonRpcRequest,
@@ -404,12 +451,29 @@ class LocalSessionApiServer private constructor(
                 "resources" -> jsonElement(openApi.resources)
                 "handles" -> jsonElement(openApi.handles)
                 "events" -> jsonElement(events.filter { event -> event.client == clientId }.toLiveEvents())
+                "subscriptions" -> jsonElement(eventSubscriptions.values.filter { subscription -> subscription.clientId == clientId })
                 else -> error("unsupported json rpc query target $target")
             }
         return JsonRpcResponse.result(id = request.id, result = result)
     }
 
     private inline fun <reified T> jsonElement(value: T): JsonElement = json.parseToJsonElement(json.encodeToString(value))
+
+    private fun nextSubscriptionId(clientId: String): String {
+        eventSubscriptionSequence += 1
+        return "subscription:$clientId:${eventSubscriptionSequence.toString().padStart(4, '0')}"
+    }
+
+    private fun ApplicationCall.subscriptionFilter(clientId: String): LiveEventFilter? {
+        val subscriptionId = request.queryParameters["subscriptionId"] ?: return null
+        val subscription =
+            eventSubscriptions[subscriptionId]
+                ?: throw InvalidActionInput("subscription $subscriptionId is not active for client $clientId")
+        if (subscription.clientId != clientId) {
+            throw InvalidActionInput("subscription $subscriptionId is not active for client $clientId")
+        }
+        return subscription.filter
+    }
 
     companion object {
         fun inMemory(
@@ -759,6 +823,14 @@ data class SessionEvent(
 )
 
 @Serializable
+data class EventSubscription(
+    val id: String,
+    val clientId: String,
+    val filter: LiveEventFilter,
+    val createdAt: String = Instant.now().toString(),
+)
+
+@Serializable
 data class ErrorResponse(
     val code: String,
     val message: String,
@@ -792,6 +864,25 @@ private fun ApplicationCall.liveEventFilter(clientId: String? = null): LiveEvent
         operationId = request.queryParameters["operationId"],
         correlationId = request.queryParameters["correlationId"],
     )
+
+private fun JsonObject.toLiveEventFilter(clientId: String): LiveEventFilter =
+    LiveEventFilter(
+        types = eventTypes(),
+        clientId = clientId,
+        resourceId = stringParam("resourceId"),
+        operationId = stringParam("operationId"),
+        correlationId = stringParam("correlationId"),
+    )
+
+private fun JsonObject.eventTypes(): List<String> =
+    buildList {
+        stringParam("type")?.let(::add)
+        this@eventTypes["types"]?.jsonArray?.forEach { type ->
+            add(type.jsonPrimitive.content)
+        }
+    }.distinct()
+
+private fun JsonObject.stringParam(name: String): String? = this[name]?.jsonPrimitive?.content
 
 private fun LiveEventFilter.matches(event: LiveEvent): Boolean =
     matches(

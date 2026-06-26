@@ -542,6 +542,131 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `server persists json rpc subscriptions as sse filters`() =
+        withHttpClient { http ->
+            fakeLocalSessionApiServer().use { server ->
+                server.start()
+                createAlice(http, server)
+
+                val subscriptionId =
+                    http
+                        .post(server.url("/clients/alice:rpc")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "jsonrpc": "2.0",
+                                  "id": "rpc:alice:subscribe-chat",
+                                  "method": "subscribe",
+                                  "params": {
+                                    "type": "player.chat"
+                                  }
+                                }
+                                """.trimIndent(),
+                            )
+                        }.let { response ->
+                            val body = json.decodeFromString<JsonRpcResponse>(response.bodyAsText())
+                            val result = requireNotNull(body.result?.jsonObject)
+                            assertEquals(HttpStatusCode.OK, response.status)
+                            assertEquals("rpc:alice:subscribe-chat", body.id)
+                            val filter = requireNotNull(result["filter"]?.jsonObject)
+                            assertEquals(listOf("player.chat"), filter["types"]?.jsonArray?.map { it.jsonPrimitive.content })
+                            requireNotNull(result["subscriptionId"]?.jsonPrimitive?.content)
+                        }
+
+                http
+                    .post(server.url("/clients/alice:run")) {
+                        contentType(ContentType.Application.Json)
+                        setBody("""{"action":"player.chat","args":{"message":"subscribed chat"}}""")
+                    }.let { response ->
+                        assertEquals(HttpStatusCode.OK, response.status)
+                    }
+                http
+                    .post(server.url("/clients/alice:run")) {
+                        contentType(ContentType.Application.Json)
+                        setBody("""{"action":"player.move","args":{"forward":true,"ticks":1}}""")
+                    }.let { response ->
+                        assertEquals(HttpStatusCode.OK, response.status)
+                    }
+
+                http.get(server.url("/clients/alice/events:stream?subscriptionId=$subscriptionId")).let { response ->
+                    val body = response.bodyAsText()
+                    assertEquals(HttpStatusCode.OK, response.status)
+                    assertTrue(body.contains("event: player.chat"), body)
+                    assertTrue(body.contains("subscribed chat"), body)
+                    assertTrue(!body.contains("event: player.move"), body)
+                }
+
+                http
+                    .post(server.url("/clients/alice:rpc")) {
+                        contentType(ContentType.Application.Json)
+                        setBody(
+                            """
+                            {
+                              "jsonrpc": "2.0",
+                              "id": "rpc:alice:query-subscriptions",
+                              "method": "query",
+                              "params": {
+                                "target": "subscriptions"
+                              }
+                            }
+                            """.trimIndent(),
+                        )
+                    }.let { response ->
+                        val body = json.decodeFromString<JsonRpcResponse>(response.bodyAsText())
+                        val subscriptions = requireNotNull(body.result?.jsonArray)
+                        assertEquals(HttpStatusCode.OK, response.status)
+                        assertEquals(listOf(subscriptionId), subscriptions.map { it.jsonObject["id"]?.jsonPrimitive?.content })
+                    }
+
+                http
+                    .post(server.url("/clients/alice:rpc")) {
+                        contentType(ContentType.Application.Json)
+                        setBody(
+                            """
+                            {
+                              "jsonrpc": "2.0",
+                              "id": "rpc:alice:unsubscribe-chat",
+                              "method": "unsubscribe",
+                              "params": {
+                                "subscriptionId": "$subscriptionId"
+                              }
+                            }
+                            """.trimIndent(),
+                        )
+                    }.let { response ->
+                        val body = json.decodeFromString<JsonRpcResponse>(response.bodyAsText())
+                        val result = requireNotNull(body.result?.jsonObject)
+                        assertEquals(HttpStatusCode.OK, response.status)
+                        assertEquals(subscriptionId, result["subscriptionId"]?.jsonPrimitive?.content)
+                        assertEquals(true, result["unsubscribed"]?.jsonPrimitive?.boolean)
+                    }
+
+                http
+                    .post(server.url("/clients/alice:rpc")) {
+                        contentType(ContentType.Application.Json)
+                        setBody(
+                            """
+                            {
+                              "jsonrpc": "2.0",
+                              "id": "rpc:alice:query-subscriptions-after-unsubscribe",
+                              "method": "query",
+                              "params": {
+                                "target": "subscriptions"
+                              }
+                            }
+                            """.trimIndent(),
+                        )
+                    }.let { response ->
+                        val body = json.decodeFromString<JsonRpcResponse>(response.bodyAsText())
+                        val subscriptions = requireNotNull(body.result?.jsonArray)
+                        assertEquals(HttpStatusCode.OK, response.status)
+                        assertEquals(emptyList(), subscriptions.map { it.jsonObject["id"]?.jsonPrimitive?.content })
+                    }
+            }
+        }
+
+    @Test
     fun `server answers json rpc query from live per client openapi projections`() =
         withHttpClient { http ->
             LocalSessionApiServer

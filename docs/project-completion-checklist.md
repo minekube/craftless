@@ -132,10 +132,10 @@ Verification:
 ## Phase 6: SSE, JSON-RPC, And Adaptive Consumers
 
 - [x] Daemon exposes SSE streams for supervisor and per-client live events.
-- [~] Daemon exposes HTTP POST JSON-RPC-style control for invoke, subscribe,
-  unsubscribe, and query. Current evidence covers invoke correlation and live
-  projection query for OpenAPI/actions/resources/handles/events; persistent
-  subscription state remains future hardening.
+- [x] Daemon exposes HTTP POST JSON-RPC-style control for invoke, subscribe,
+  unsubscribe, and query. Current evidence covers invoke correlation, live
+  projection query for OpenAPI/actions/resources/handles/events/subscriptions,
+  and server-side subscription filters that SSE can apply by subscription id.
 - [x] Event filters work server-side and client-side.
 - [x] CLI can watch live events and invoke/query using live OpenAPI/stream
   metadata. Current evidence covers live event watching, invocation, and

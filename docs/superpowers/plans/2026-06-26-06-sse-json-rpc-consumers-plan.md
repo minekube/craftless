@@ -38,11 +38,11 @@ Expected: pass.
 
 - [x] **Step 1: Add failing daemon tests**
 
-Assert `GET /clients/{id}/events:stream` streams filtered events and `POST /clients/{id}:rpc` returns JSON-RPC acknowledgements with correlation ids.
+Assert `GET /clients/{id}/events:stream` streams filtered events and `POST /clients/{id}:rpc` invokes with correlation ids, answers live projection queries, and persists subscribe/unsubscribe filters that SSE can apply by subscription id.
 
 - [x] **Step 2: Implement Ktor SSE response**
 
-Use Ktor response streaming with `text/event-stream`; do not introduce WebSocket unless later evidence requires it.
+Use Ktor response streaming with `text/event-stream`; keep JSON-RPC control on HTTP POST; do not introduce WebSocket unless later evidence requires it.
 
 - [x] **Step 3: Verify**
 
