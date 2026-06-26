@@ -53,6 +53,11 @@ data class CachePrepareResult(
                         handle = versionManifest,
                         status = CachePreparedArtifactStatus.RESOLVED,
                     ),
+                    CachePreparedArtifact(
+                        kind = CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR,
+                        handle = "cache/minecraft/versions/${request.minecraftVersion}/client.jar",
+                        status = CachePreparedArtifactStatus.CACHED,
+                    ),
                 ) +
                     if (request.loader == Loader.FABRIC) {
                         listOf(
@@ -102,13 +107,16 @@ data class CachePreparedArtifact(
 enum class CachePreparedArtifactKind {
     MINECRAFT_VERSION_INDEX,
     MINECRAFT_VERSION_MANIFEST,
+    MINECRAFT_CLIENT_JAR,
     FABRIC_LOADER_VERSIONS,
     FABRIC_LOADER_PROFILE,
+    FABRIC_LIBRARY,
 }
 
 @Serializable
 enum class CachePreparedArtifactStatus {
     RESOLVED,
+    CACHED,
 }
 
 @Serializable

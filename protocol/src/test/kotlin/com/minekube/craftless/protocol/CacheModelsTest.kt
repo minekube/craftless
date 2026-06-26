@@ -50,6 +50,11 @@ class CacheModelsTest {
                     status = CachePreparedArtifactStatus.RESOLVED,
                 ),
                 CachePreparedArtifact(
+                    kind = CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR,
+                    handle = "cache/minecraft/versions/1.21.6/client.jar",
+                    status = CachePreparedArtifactStatus.CACHED,
+                ),
+                CachePreparedArtifact(
                     kind = CachePreparedArtifactKind.FABRIC_LOADER_VERSIONS,
                     handle = "cache/loaders/fabric/1.21.6/versions.json",
                     source = "https://meta.fabricmc.net/v2/versions/loader/1.21.6",
@@ -83,6 +88,7 @@ class CacheModelsTest {
             listOf(
                 CachePreparedArtifactKind.MINECRAFT_VERSION_INDEX,
                 CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST,
+                CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR,
                 CachePreparedArtifactKind.FABRIC_LOADER_VERSIONS,
                 CachePreparedArtifactKind.FABRIC_LOADER_PROFILE,
             ),

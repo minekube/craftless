@@ -224,15 +224,19 @@ Verification:
 - [x] Cache preparation resolves Fabric compatible loader versions, records the
   resolved loader version, supports an optional loader-version pin, and stores
   the Fabric loader profile JSON through Ktor Client with offline test fakes.
+- [x] Cache preparation downloads and stores the selected Minecraft client jar
+  plus Fabric profile libraries under Craftless-owned cache handles with
+  offline binary-fetcher tests.
 - [x] Prism Launcher source was cloned under `/tmp/prismlauncher-source` for
   research, outside Minekube repos.
 - [x] Prism findings are captured as design input, not a core dependency.
 - [~] Client runtime/file management is strong enough for repeated local and CI
   runs. Instance directories and cache preparation are now repeatable and
-  idempotent, with Minecraft version metadata and Fabric loader profile
-  metadata resolved into the workspace; Java/runtime artifact resolution,
-  Minecraft client jar/Fabric artifact downloads, and explicit cleanup/export
-  flows are still roadmap.
+  idempotent, with Minecraft metadata, Fabric loader profile metadata, the
+  Minecraft client jar, and Fabric profile libraries resolved into the
+  workspace; Java/runtime artifact resolution, asset indexes, native
+  extraction, full launch classpath assembly, and explicit cleanup/export flows
+  are still roadmap.
 - [x] Public APIs expose Craftless-owned file handles only.
 
 Verification:

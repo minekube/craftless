@@ -17,8 +17,10 @@ class CachePreparationServiceTest {
         runBlocking {
             val workspace = Files.createTempDirectory("craftless-cache-resolution")
             val versionUrl = "https://metadata.test/1.21.6.json"
+            val clientJarUrl = "https://metadata.test/client.jar"
             val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
             val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.17.2/profile/json"
+            val fabricLoaderJarUrl = "https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.17.2/fabric-loader-0.17.2.jar"
             val service =
                 CachePreparationService(
                     workspaceRoot = workspace,
@@ -33,7 +35,7 @@ class CachePreparationServiceTest {
                                       ]
                                     }
                                     """.trimIndent(),
-                                versionUrl to """{"id":"1.21.6","downloads":{"client":{"url":"https://metadata.test/client.jar"}}}""",
+                                versionUrl to """{"id":"1.21.6","downloads":{"client":{"url":"$clientJarUrl"}}}""",
                                 loaderVersionsUrl to
                                     """
                                     [
@@ -41,8 +43,24 @@ class CachePreparationServiceTest {
                                       { "loader": { "version": "0.17.2", "stable": true } }
                                     ]
                                     """.trimIndent(),
-                                loaderProfileUrl to """{"id":"fabric-loader-0.17.2-1.21.6"}""",
+                                loaderProfileUrl to
+                                    """
+                                    {
+                                      "id": "fabric-loader-0.17.2-1.21.6",
+                                      "libraries": [
+                                        {
+                                          "name": "net.fabricmc:fabric-loader:0.17.2",
+                                          "url": "https://maven.fabricmc.net/"
+                                        }
+                                      ]
+                                    }
+                                    """.trimIndent(),
                             ),
+                            binaryResponses =
+                                mapOf(
+                                    clientJarUrl to "client-jar".encodeToByteArray(),
+                                    fabricLoaderJarUrl to "fabric-loader-jar".encodeToByteArray(),
+                                ),
                         ),
                 )
 
@@ -52,19 +70,31 @@ class CachePreparationServiceTest {
                 listOf(
                     CachePreparedArtifactKind.MINECRAFT_VERSION_INDEX,
                     CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST,
+                    CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR,
                     CachePreparedArtifactKind.FABRIC_LOADER_VERSIONS,
                     CachePreparedArtifactKind.FABRIC_LOADER_PROFILE,
+                    CachePreparedArtifactKind.FABRIC_LIBRARY,
                 ),
                 result.artifacts.map { it.kind },
             )
             assertEquals("0.17.2", result.loaderVersion)
             assertEquals(versionUrl, result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST }.source)
+            assertEquals(clientJarUrl, result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR }.source)
             assertEquals(loaderProfileUrl, result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LOADER_PROFILE }.source)
+            val fabricLibrary = result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LIBRARY }
+            assertEquals(null, fabricLibrary.source)
+            assertTrue(fabricLibrary.handle.startsWith("cache/libraries/fabric/"))
             assertTrue(Files.readString(workspace.resolve("cache/minecraft/version_manifest_v2.json")).contains("1.21.6"))
             assertTrue(Files.readString(workspace.resolve("cache/minecraft/versions/1.21.6/version.json")).contains("client.jar"))
+            assertEquals("client-jar", Files.readString(workspace.resolve("cache/minecraft/versions/1.21.6/client.jar")))
             assertTrue(Files.readString(workspace.resolve("cache/loaders/fabric/1.21.6/versions.json")).contains("0.17.2"))
             assertTrue(Files.readString(workspace.resolve("cache/loaders/fabric/1.21.6/0.17.2/profile.json")).contains("fabric-loader"))
+            assertEquals(
+                "fabric-loader-jar",
+                Files.readString(workspace.resolve(fabricLibrary.handle)),
+            )
             assertTrue(Files.readString(workspace.resolve(result.manifest)).contains("MINECRAFT_VERSION_MANIFEST"))
+            assertTrue(Files.readString(workspace.resolve(result.manifest)).contains("FABRIC_LIBRARY"))
         }
 
     @Test
@@ -72,6 +102,7 @@ class CachePreparationServiceTest {
         runBlocking {
             val workspace = Files.createTempDirectory("craftless-cache-loader-pin")
             val versionUrl = "https://metadata.test/1.21.6.json"
+            val clientJarUrl = "https://metadata.test/client.jar"
             val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
             val pinnedProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.16.14/profile/json"
             val service =
@@ -84,7 +115,7 @@ class CachePreparationServiceTest {
                                     """
                                     { "versions": [{ "id": "1.21.6", "url": "$versionUrl" }] }
                                     """.trimIndent(),
-                                versionUrl to """{"id":"1.21.6"}""",
+                                versionUrl to """{"id":"1.21.6","downloads":{"client":{"url":"$clientJarUrl"}}}""",
                                 loaderVersionsUrl to
                                     """
                                     [
@@ -94,6 +125,7 @@ class CachePreparationServiceTest {
                                     """.trimIndent(),
                                 pinnedProfileUrl to """{"id":"fabric-loader-0.16.14-1.21.6"}""",
                             ),
+                            binaryResponses = mapOf(clientJarUrl to "client-jar".encodeToByteArray()),
                         ),
                 )
 
@@ -115,6 +147,12 @@ class CachePreparationServiceTest {
 
 private class StaticCacheMetadataFetcher(
     private val responses: Map<String, String>,
+    private val binaryResponses: Map<String, ByteArray> = emptyMap(),
 ) : CacheMetadataFetcher {
     override suspend fun fetchText(url: String): String = requireNotNull(responses[url]) { "missing test response for $url" }
+
+    override suspend fun fetchBytes(url: String): ByteArray =
+        requireNotNull(binaryResponses[url]) {
+            "missing test binary response for $url"
+        }
 }

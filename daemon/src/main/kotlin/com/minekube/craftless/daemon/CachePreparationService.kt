@@ -2,13 +2,17 @@ package com.minekube.craftless.daemon
 
 import com.minekube.craftless.protocol.CachePrepareRequest
 import com.minekube.craftless.protocol.CachePrepareResult
+import com.minekube.craftless.protocol.CachePreparedArtifact
 import com.minekube.craftless.protocol.CachePreparedArtifactKind
+import com.minekube.craftless.protocol.CachePreparedArtifactStatus
 import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsBytes
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
 import kotlinx.serialization.encodeToString
@@ -19,6 +23,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.nio.file.Files
 import java.nio.file.Path
+import java.security.MessageDigest
 
 class CachePreparationService(
     workspaceRoot: Path,
@@ -31,18 +36,22 @@ class CachePreparationService(
         val versionIndex = metadataFetcher.fetchText(MINECRAFT_VERSION_INDEX_URL)
         val versionManifestUrl = versionIndex.versionManifestUrl(request.minecraftVersion)
         val versionManifest = metadataFetcher.fetchText(versionManifestUrl)
+        val clientJarUrl = versionManifest.clientJarUrl(request.minecraftVersion)
         val fabricMetadata = resolveFabricMetadata(request)
+        val fabricLibraries = fabricMetadata?.profile?.fabricLibraries().orEmpty()
         val baseResult = CachePrepareResult.forRequest(request, fabricMetadata?.loaderVersion)
         val result =
             baseResult.copy(
                 artifacts =
-                    baseResult.artifacts.map { artifact ->
-                        when (artifact.kind) {
-                            CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST -> artifact.copy(source = versionManifestUrl)
-                            CachePreparedArtifactKind.FABRIC_LOADER_PROFILE -> artifact.copy(source = fabricMetadata?.profileUrl)
-                            else -> artifact
-                        }
-                    },
+                    baseResult.artifacts
+                        .map { artifact ->
+                            when (artifact.kind) {
+                                CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST -> artifact.copy(source = versionManifestUrl)
+                                CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR -> artifact.copy(source = clientJarUrl)
+                                CachePreparedArtifactKind.FABRIC_LOADER_PROFILE -> artifact.copy(source = fabricMetadata?.profileUrl)
+                                else -> artifact
+                            }
+                        } + fabricLibraries.map { it.artifact },
             )
         Files.createDirectories(root)
         listOf(
@@ -61,6 +70,10 @@ class CachePreparationService(
             resolveHandle(result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST }.handle),
             versionManifest,
         )
+        writeBytesArtifact(
+            result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR },
+            metadataFetcher.fetchBytes(clientJarUrl),
+        )
         fabricMetadata?.let { metadata ->
             Files.writeString(
                 resolveHandle(result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LOADER_VERSIONS }.handle),
@@ -70,6 +83,9 @@ class CachePreparationService(
                 resolveHandle(result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LOADER_PROFILE }.handle),
                 metadata.profile,
             )
+        }
+        fabricLibraries.forEach { library ->
+            writeBytesArtifact(library.artifact, metadataFetcher.fetchBytes(library.source))
         }
         val manifest = resolveHandle(result.manifest)
         Files.createDirectories(manifest.parent)
@@ -97,6 +113,15 @@ class CachePreparationService(
         require(resolved.startsWith(root)) { "cache handle must stay under the workspace root" }
         return resolved
     }
+
+    private fun writeBytesArtifact(
+        artifact: CachePreparedArtifact,
+        bytes: ByteArray,
+    ) {
+        val target = resolveHandle(artifact.handle)
+        Files.createDirectories(target.parent)
+        Files.write(target, bytes)
+    }
 }
 
 private data class FabricCacheMetadata(
@@ -108,14 +133,32 @@ private data class FabricCacheMetadata(
 
 interface CacheMetadataFetcher {
     suspend fun fetchText(url: String): String
+
+    suspend fun fetchBytes(url: String): ByteArray = fetchText(url).encodeToByteArray()
 }
 
 class KtorCacheMetadataFetcher : CacheMetadataFetcher {
     override suspend fun fetchText(url: String): String =
-        HttpClient(CIO).use { http ->
+        httpClient().use { http ->
             val response = http.get(url)
             require(response.status.isSuccess()) { "metadata fetch failed for $url: ${response.status.value}" }
             response.bodyAsText()
+        }
+
+    override suspend fun fetchBytes(url: String): ByteArray =
+        httpClient().use { http ->
+            val response = http.get(url)
+            require(response.status.isSuccess()) { "artifact fetch failed for $url: ${response.status.value}" }
+            response.bodyAsBytes()
+        }
+
+    private fun httpClient(): HttpClient =
+        HttpClient(CIO) {
+            install(HttpTimeout) {
+                connectTimeoutMillis = 15_000
+                socketTimeoutMillis = 60_000
+                requestTimeoutMillis = 120_000
+            }
         }
 }
 
@@ -132,6 +175,18 @@ private fun String.versionManifestUrl(minecraftVersion: String): String {
         } ?: error("minecraft version $minecraftVersion was not found in version index")
     return version.jsonObject["url"]?.jsonPrimitive?.content ?: error("minecraft version $minecraftVersion is missing metadata url")
 }
+
+private fun String.clientJarUrl(minecraftVersion: String): String =
+    Json
+        .parseToJsonElement(this)
+        .jsonObject["downloads"]
+        ?.jsonObject
+        ?.get("client")
+        ?.jsonObject
+        ?.get("url")
+        ?.jsonPrimitive
+        ?.content
+        ?: error("minecraft version $minecraftVersion is missing client jar url")
 
 private fun String.compatibleFabricLoaderVersion(requestedLoaderVersion: String?): String {
     val versions =
@@ -166,3 +221,59 @@ private fun fabricLoaderProfileUrl(
     minecraftVersion: String,
     loaderVersion: String,
 ): String = "$FABRIC_META_BASE_URL/versions/loader/$minecraftVersion/$loaderVersion/profile/json"
+
+private fun String.fabricLibraries(): List<FabricLibraryArtifact> =
+    Json
+        .parseToJsonElement(this)
+        .jsonObject["libraries"]
+        ?.jsonArray
+        .orEmpty()
+        .mapNotNull { library ->
+            val item = library.jsonObject
+            item["downloads"]
+                ?.jsonObject
+                ?.get("artifact")
+                ?.jsonObject
+                ?.let { artifact ->
+                    val url = artifact["url"]?.jsonPrimitive?.content ?: return@let null
+                    return@mapNotNull FabricLibraryArtifact(url)
+                }
+            val name = item["name"]?.jsonPrimitive?.content ?: return@mapNotNull null
+            val baseUrl = item["url"]?.jsonPrimitive?.content ?: return@mapNotNull null
+            val path = name.mavenPath()
+            FabricLibraryArtifact(baseUrl.trimEnd('/') + "/$path")
+        }
+
+private data class FabricLibraryArtifact(
+    val source: String,
+) {
+    private val handle: String = "cache/libraries/fabric/${source.sha256Hex()}.jar"
+
+    val artifact: CachePreparedArtifact =
+        CachePreparedArtifact(
+            kind = CachePreparedArtifactKind.FABRIC_LIBRARY,
+            handle = handle,
+            status = CachePreparedArtifactStatus.CACHED,
+        )
+}
+
+private fun String.sha256Hex(): String =
+    MessageDigest
+        .getInstance("SHA-256")
+        .digest(encodeToByteArray())
+        .joinToString("") { byte -> "%02x".format(byte) }
+
+private fun String.mavenPath(): String {
+    val parts = split(':')
+    require(parts.size >= 3) { "maven coordinate $this must include group, artifact, and version" }
+    val group = parts[0].replace('.', '/')
+    val artifact = parts[1]
+    val version = parts[2]
+    val classifier =
+        parts
+            .getOrNull(3)
+            ?.takeUnless { it.isBlank() }
+            ?.let { "-$it" }
+            .orEmpty()
+    return "$group/$artifact/$version/$artifact-$version$classifier.jar"
+}

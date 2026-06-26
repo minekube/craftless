@@ -196,6 +196,7 @@ class LocalSessionApiServerTest {
     fun `server prepares cache handles under configured workspace`() =
         withHttpClient { http ->
             val workspace = Files.createTempDirectory("craftless-server-cache")
+            val clientJarUrl = "https://metadata.test/client.jar"
             val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
             val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.17.2/profile/json"
             fakeLocalSessionApiServer(
@@ -211,7 +212,7 @@ class LocalSessionApiServerTest {
                                   ]
                                 }
                                 """.trimIndent(),
-                            "https://metadata.test/1.21.6.json" to """{"id":"1.21.6"}""",
+                            "https://metadata.test/1.21.6.json" to """{"id":"1.21.6","downloads":{"client":{"url":"$clientJarUrl"}}}""",
                             loaderVersionsUrl to
                                 """
                                 [
@@ -220,6 +221,7 @@ class LocalSessionApiServerTest {
                                 """.trimIndent(),
                             loaderProfileUrl to """{"id":"fabric-loader-0.17.2-1.21.6"}""",
                         ),
+                        binaryResponses = mapOf(clientJarUrl to "client-jar".encodeToByteArray()),
                     ),
             ).use { server ->
                 server.start()
@@ -247,6 +249,7 @@ class LocalSessionApiServerTest {
                 assertTrue(Files.isDirectory(workspace.resolve(result.loaderRoot)))
                 assertTrue(Files.isDirectory(workspace.resolve(result.runtimeRoot)))
                 assertTrue(Files.isRegularFile(workspace.resolve(result.manifest)))
+                assertTrue(Files.isRegularFile(workspace.resolve("cache/minecraft/versions/1.21.6/client.jar")))
                 assertTrue(Files.isRegularFile(workspace.resolve("cache/loaders/fabric/1.21.6/0.17.2/profile.json")))
             }
         }
@@ -829,8 +832,14 @@ private fun fakeLocalSessionApiServer(
 
 private class ServerStaticCacheMetadataFetcher(
     private val responses: Map<String, String>,
+    private val binaryResponses: Map<String, ByteArray> = emptyMap(),
 ) : CacheMetadataFetcher {
     override suspend fun fetchText(url: String): String = requireNotNull(responses[url]) { "missing test response for $url" }
+
+    override suspend fun fetchBytes(url: String): ByteArray =
+        requireNotNull(binaryResponses[url]) {
+            "missing test binary response for $url"
+        }
 }
 
 private class EventMetadataDriverSession(

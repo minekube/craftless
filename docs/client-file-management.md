@@ -57,8 +57,9 @@ setup cache handles for a Minecraft version, loader, runtime cache, and
 preparation manifest. The same contract is exposed by the supervisor API as
 `POST /cache:prepare`. Current implementation uses Ktor Client to resolve and
 store Mojang's version index, the selected Minecraft version manifest, Fabric's
-compatible loader-version list, and the resolved Fabric loader profile JSON.
-Client jars, Fabric runtime artifacts, Java runtimes, and integrity
+compatible loader-version list, the resolved Fabric loader profile JSON, the
+Minecraft client jar, and Fabric profile libraries. Java runtimes, full launch
+classpath assembly, native extraction, asset indexes, and integrity
 verification are still future provisioning work.
 
 ## Prism Source Findings

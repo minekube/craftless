@@ -159,6 +159,7 @@ class CraftlessCliTest {
     fun `cache prepare creates cache handles in workspace`() {
         val output = StringBuilder()
         val workspace = Files.createTempDirectory("craftless-cli-cache")
+        val clientJarUrl = "https://metadata.test/client.jar"
         val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
         val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.17.2/profile/json"
 
@@ -186,7 +187,7 @@ class CraftlessCliTest {
                                   ]
                                 }
                                 """.trimIndent(),
-                            "https://metadata.test/1.21.6.json" to """{"id":"1.21.6"}""",
+                            "https://metadata.test/1.21.6.json" to """{"id":"1.21.6","downloads":{"client":{"url":"$clientJarUrl"}}}""",
                             loaderVersionsUrl to
                                 """
                                 [
@@ -195,6 +196,7 @@ class CraftlessCliTest {
                                 """.trimIndent(),
                             loaderProfileUrl to """{"id":"fabric-loader-0.17.2-1.21.6"}""",
                         ),
+                        binaryResponses = mapOf(clientJarUrl to "client-jar".encodeToByteArray()),
                     ),
             )
 
@@ -207,6 +209,7 @@ class CraftlessCliTest {
         assertTrue(Files.isDirectory(workspace.resolve(result.runtimeRoot)))
         assertTrue(Files.isRegularFile(workspace.resolve(result.manifest)))
         assertEquals("0.17.2", result.loaderVersion)
+        assertTrue(Files.isRegularFile(workspace.resolve("cache/minecraft/versions/1.21.6/client.jar")))
         assertTrue(Files.isRegularFile(workspace.resolve("cache/loaders/fabric/1.21.6/0.17.2/profile.json")))
     }
 
@@ -214,6 +217,7 @@ class CraftlessCliTest {
     fun `cache prepare accepts pinned loader version`() {
         val output = StringBuilder()
         val workspace = Files.createTempDirectory("craftless-cli-cache-loader-pin")
+        val clientJarUrl = "https://metadata.test/client.jar"
         val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
         val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.16.14/profile/json"
 
@@ -243,7 +247,7 @@ class CraftlessCliTest {
                                   ]
                                 }
                                 """.trimIndent(),
-                            "https://metadata.test/1.21.6.json" to """{"id":"1.21.6"}""",
+                            "https://metadata.test/1.21.6.json" to """{"id":"1.21.6","downloads":{"client":{"url":"$clientJarUrl"}}}""",
                             loaderVersionsUrl to
                                 """
                                 [
@@ -253,6 +257,7 @@ class CraftlessCliTest {
                                 """.trimIndent(),
                             loaderProfileUrl to """{"id":"fabric-loader-0.16.14-1.21.6"}""",
                         ),
+                        binaryResponses = mapOf(clientJarUrl to "client-jar".encodeToByteArray()),
                     ),
             )
 
@@ -1661,6 +1666,12 @@ class CraftlessCliTest {
 
 private class StaticCacheMetadataFetcher(
     private val responses: Map<String, String>,
+    private val binaryResponses: Map<String, ByteArray> = emptyMap(),
 ) : CacheMetadataFetcher {
     override suspend fun fetchText(url: String): String = requireNotNull(responses[url]) { "missing test response for $url" }
+
+    override suspend fun fetchBytes(url: String): ByteArray =
+        requireNotNull(binaryResponses[url]) {
+            "missing test binary response for $url"
+        }
 }
