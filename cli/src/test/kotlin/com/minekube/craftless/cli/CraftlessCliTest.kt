@@ -876,6 +876,32 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `clients resources uses live openapi as resource authority`() {
+        val output = StringBuilder()
+
+        StaleActionsProjectionServer().use { server ->
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "resources",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { output.appendLine(it) },
+                )
+
+            assertEquals(0, exit)
+        }
+
+        val resources = Json.parseToJsonElement(output.toString().trim()).jsonArray
+        assertEquals(listOf("player"), resources.map { it.jsonObject["id"]?.jsonPrimitive?.content })
+        val player = resources.single().jsonObject
+        assertEquals(listOf("player.chat"), player["actions"]?.jsonArray?.map { it.jsonPrimitive.content })
+    }
+
+    @Test
     fun `clients openapi fetches live per client spec from daemon`() {
         val output = StringBuilder()
 
@@ -1606,6 +1632,14 @@ class CraftlessCliTest {
                             ContentType.Application.Json,
                         )
                     }
+                    get("/clients/alice/resources") {
+                        call.respondText(
+                            """
+                            []
+                            """.trimIndent(),
+                            ContentType.Application.Json,
+                        )
+                    }
                     get("/clients/alice/openapi.json") {
                         call.respondText(
                             """
@@ -1649,6 +1683,21 @@ class CraftlessCliTest {
                                   "id": "player.chat",
                                   "schemaVersion": "1",
                                   "args": { "message": { "type": "string", "required": true } }
+                                }
+                              ],
+                              "x-craftless-resources": [
+                                {
+                                  "id": "player",
+                                  "actions": ["player.chat"],
+                                  "availability": "available",
+                                  "availabilityReasons": [],
+                                  "actionDescriptors": [
+                                    {
+                                      "id": "player.chat",
+                                      "schemaVersion": "1",
+                                      "args": { "message": { "type": "string", "required": true } }
+                                    }
+                                  ]
                                 }
                               ]
                             }

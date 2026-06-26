@@ -528,7 +528,15 @@ object CraftlessCli {
         return runCatching {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
-                    http.get("${api.trimEnd('/')}/clients/$clientId/resources").forwardBody(stdout, stderr)
+                    val response = http.get("${api.trimEnd('/')}/clients/$clientId/openapi.json")
+                    val body = response.bodyAsText()
+                    if (!response.status.isSuccess()) {
+                        stderr(body)
+                        return@runBlocking 1
+                    }
+                    val openApi = json.decodeFromString<OpenApiDocument>(body)
+                    stdout(json.encodeToString(openApi.resources))
+                    0
                 }
             }
         }.getOrElse { error ->

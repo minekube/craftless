@@ -29,8 +29,9 @@ Legend:
   OpenAPI action descriptor for argument schema validation, help, positional
   argument mapping, and nested generated aliases such as
   `/clients/{id}/world/block:break`, with `/clients/{id}/actions` treated as
-  an availability projection. Invocation and `craftless clients <id> actions`
-  no longer gate on `/actions`; live OpenAPI is the action existence and schema
+  an availability projection. Invocation, `craftless clients <id> actions`,
+  and `craftless clients <id> resources` no longer gate on projection
+  endpoints; live OpenAPI is the action/resource existence and schema
   authority.
 - [x] Daemon generic and generated-alias action dispatch validate driver result
   payloads against the advertised action result descriptor before returning
@@ -116,11 +117,13 @@ Verification:
   `/clients/{id}/actions` as an invocation precondition.
 - [~] CLI and external helper consumers use OpenAPI/descriptors at runtime
   instead of hard-coding gameplay commands or treating `/clients/{id}/actions`
-  as authoritative. The `craftless clients <id> actions` command now reads
-  `x-craftless-actions` from `/clients/{id}/openapi.json`, and the Playwright
-  helper has a thin OpenAPI action client that fetches
-  `/clients/{id}/openapi.json` before invoking `POST /clients/{id}:run`;
-  generated clients and agent-tool packaging remain roadmap.
+  and `/clients/{id}/resources` as authoritative. The `craftless clients <id>
+  actions` and `craftless clients <id> resources` commands now read
+  `x-craftless-actions` and `x-craftless-resources` from
+  `/clients/{id}/openapi.json`, and the Playwright helper has a thin OpenAPI
+  action client that fetches `/clients/{id}/openapi.json` before invoking
+  `POST /clients/{id}:run`; generated clients and agent-tool packaging remain
+  roadmap.
 - [x] `DriverSession` remains lifecycle/events/runtime metadata plus
   `actions()` and `invoke(...)`; no static player/world/inventory methods.
 - [x] Fabric discovery/projection and execution bindings stay internal and
