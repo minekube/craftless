@@ -1,0 +1,16 @@
+# Transitional hand-written Fabric gameplay action ids.
+# These are bootstrap/evidence affordances only. Do not add new ids here unless
+# Robin explicitly accepts a temporary exception and the runtime capability
+# graph path is tracked in docs/project-completion-checklist.md.
+inventory.equip
+inventory.query
+player.chat
+player.look
+player.move
+player.query
+player.raycast
+screen.close
+screen.query
+world.block.break
+world.block.interact
+world.time.query

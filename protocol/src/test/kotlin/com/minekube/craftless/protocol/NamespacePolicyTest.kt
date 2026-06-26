@@ -149,6 +149,37 @@ class NamespacePolicyTest {
     }
 
     @Test
+    fun `hand written fabric gameplay descriptors are limited to transitional bootstrap allowlist`() {
+        val root = repositoryRoot()
+        val allowlistPath = root.resolve("docs/architecture/transitional-fabric-action-allowlist.txt")
+        val allowlist =
+            Files.readAllLines(allowlistPath)
+                .map { line -> line.substringBefore("#").trim() }
+                .filter { line -> line.isNotBlank() }
+                .sorted()
+        val actionBindings =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricActionBindings.kt",
+                ),
+            )
+        val handWrittenActionIds =
+            Regex("""id = "([a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)*)"""")
+                .findAll(actionBindings)
+                .map { match -> match.groupValues[1] }
+                .distinct()
+                .sorted()
+                .toList()
+
+        assertTrue(
+            handWrittenActionIds == allowlist,
+            "Hand-written Fabric gameplay descriptors are transitional only.\n" +
+                "If a new public gameplay action is needed, add it through the runtime capability graph first.\n" +
+                "handWritten=$handWrittenActionIds\nallowlist=$allowlist",
+        )
+    }
+
+    @Test
     fun `driver runtime public errors do not expose bridge internals`() {
         val forbiddenMessage = "bridge" + " returned"
         val root = repositoryRoot()

@@ -49,7 +49,7 @@ Legend:
 ## Phase 1: Truth And Guardrails
 
 - [x] `AGENTS.md`, roadmap, and this checklist define the real completion path.
-- [ ] Architecture checks fail if new public gameplay breadth appears only as a
+- [x] Architecture checks fail if new public gameplay breadth appears only as a
   hand-written descriptor/binding pair.
 - [x] README and docs no longer imply Craftless is complete before runtime
   graph, SSE stream, and final gameplay evidence are done.
