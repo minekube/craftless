@@ -123,7 +123,10 @@ class PublicAgentGameplayRunner(
                     },
             ).responseObject()?.materialBlockTarget()
 
-        suspend fun queryAttackTarget(radius: Double = 24.0): PublicEntityTarget? =
+        suspend fun queryAttackTarget(
+            radius: Double = 24.0,
+            preferredHandle: String? = null,
+        ): PublicEntityTarget? =
             invokeGenerated(
                 action = "entity.query",
                 args =
@@ -131,7 +134,7 @@ class PublicAgentGameplayRunner(
                         put("radius", JsonPrimitive(radius))
                         put("limit", JsonPrimitive(32))
                     },
-            ).responseObject()?.attackTarget()
+            ).responseObject()?.attackTarget(preferredHandle = preferredHandle)
 
         suspend fun navigateTo(
             position: JsonObject,
@@ -197,16 +200,22 @@ class PublicAgentGameplayRunner(
 
         suspend fun focusAttackTarget(target: PublicEntityTarget): FocusedAttackTarget {
             var focusedTarget = target
-            target.position?.let { position ->
-                navigateTo(position = position, radius = 2.5)
-                    ?.let { blocker -> return FocusedAttackTarget(blocker = blocker) }
-            }
             var combatPlayerPosition =
                 invokeGenerated("player.query")
                     .responseObject()
                     ?.playerPosition()
                     ?: return FocusedAttackTarget(blocker = "insufficient-public-evidence:player.query.position")
-            queryAttackTarget(radius = ATTACK_MAX_DISTANCE)?.let { closeTarget ->
+            if (!focusedTarget.isReachableForAttack(combatPlayerPosition)) {
+                focusedTarget.position
+                    ?.let { position -> navigateTo(position = position, radius = 2.5) }
+                    ?.let { blocker -> return FocusedAttackTarget(blocker = blocker) }
+                combatPlayerPosition =
+                    invokeGenerated("player.query")
+                        .responseObject()
+                        ?.playerPosition()
+                        ?: return FocusedAttackTarget(blocker = "insufficient-public-evidence:player.query.position")
+            }
+            queryAttackTarget(radius = ATTACK_MAX_DISTANCE, preferredHandle = focusedTarget.handle)?.let { closeTarget ->
                 if (!closeTarget.isReachableForAttack(combatPlayerPosition)) {
                     closeTarget.position
                         ?.let { position -> navigateTo(position = position, radius = 2.5) }
@@ -216,7 +225,11 @@ class PublicAgentGameplayRunner(
                             .responseObject()
                             ?.playerPosition()
                             ?: return FocusedAttackTarget(blocker = "insufficient-public-evidence:player.query.position")
-                    val repositionedTarget = queryAttackTarget(radius = ATTACK_MAX_DISTANCE) ?: closeTarget
+                    val repositionedTarget =
+                        queryAttackTarget(
+                            radius = ATTACK_MAX_DISTANCE,
+                            preferredHandle = focusedTarget.handle,
+                        ) ?: closeTarget
                     if (!repositionedTarget.isReachableForAttack(combatPlayerPosition)) {
                         return FocusedAttackTarget(blocker = "insufficient-public-evidence:entity.query.attack-target.reachable")
                     }
@@ -514,7 +527,8 @@ class PublicAgentGameplayRunner(
                     if (combatAttempts < combatEvidenceAttempts) {
                         combatPause()
                         val refreshedAttackTarget =
-                            queryAttackTarget(radius = 16.0)
+                            combatEntityState.responseObject()?.attackTarget(preferredHandle = currentAttackTarget.handle)
+                                ?: queryAttackTarget(radius = 16.0, preferredHandle = currentAttackTarget.handle)
                                 ?: combatEntityState.responseObject()?.attackTarget()
                         if (refreshedAttackTarget != null) {
                             val focusedAttackTarget = focusAttackTarget(refreshedAttackTarget)
@@ -871,7 +885,7 @@ private fun JsonObject.materialDropPosition(): JsonObject? {
         ?.second
 }
 
-private fun JsonObject.attackTarget(): PublicEntityTarget? {
+private fun JsonObject.attackTarget(preferredHandle: String? = null): PublicEntityTarget? {
     val data = this["data"] as? JsonObject ?: return null
     val entities = data["entities"]?.jsonArray ?: return null
     return entities
@@ -899,10 +913,15 @@ private fun JsonObject.attackTarget(): PublicEntityTarget? {
             val position = entity["position"] as? JsonObject
             PublicEntityTarget(
                 handle = handle,
+                label = entity["label"]?.jsonPrimitive?.contentOrNull,
                 position = position,
                 distance = entity.doubleField("distance"),
             )
-        }.minByOrNull { target -> target.distance ?: Double.MAX_VALUE }
+        }.minWithOrNull(
+            compareBy<PublicEntityTarget> { target -> target.preferredHandlePriority(preferredHandle) }
+                .thenBy { target -> target.combatEvidencePriority() }
+                .thenBy { target -> target.distance ?: Double.MAX_VALUE },
+        )
 }
 
 private fun JsonObject.toCraftlessPoint(): CraftlessPoint? {
@@ -951,7 +970,11 @@ private fun JsonObject.usefulCraftableRecipe(): PublicRecipeTarget? {
                 ?.takeIf { it.startsWith("recipe.handle:") }
                 ?: return@firstNotNullOfOrNull null
         val category = recipe["category"]?.jsonPrimitive?.contentOrNull.orEmpty()
-        val produces = recipe["produces"]?.jsonArray.orEmpty().mapNotNull { produced -> produced as? JsonObject }
+        val produces =
+            (recipe["outputs"] ?: recipe["produces"])
+                ?.jsonArray
+                .orEmpty()
+                .mapNotNull { produced -> produced as? JsonObject }
         if (category !in usefulRecipeCategories && produces.none { it.hasUsefulRecipeOutput() }) {
             return@firstNotNullOfOrNull null
         }
@@ -1130,9 +1153,24 @@ private data class FocusedBlockTarget(
 
 private data class PublicEntityTarget(
     val handle: String,
+    val label: String?,
     val position: JsonObject?,
     val distance: Double?,
 ) {
+    fun preferredHandlePriority(preferredHandle: String?): Int =
+        if (preferredHandle != null && handle == preferredHandle) {
+            0
+        } else {
+            1
+        }
+
+    fun combatEvidencePriority(): Int =
+        if (combatEvidenceTargetNameParts.any { part -> label.orEmpty().contains(part, ignoreCase = true) }) {
+            0
+        } else {
+            1
+        }
+
     fun isReachableForAttack(playerPosition: CraftlessPoint): Boolean {
         val reportedReachable = distance?.let { it <= ATTACK_MAX_DISTANCE } ?: false
         val positionPoint = position?.toCraftlessPoint()
@@ -1157,6 +1195,7 @@ private data class FocusedAttackTarget(
 private val attackableEntityCategories = setOf("passive", "hostile", "living")
 
 private val combatLootNameParts = listOf("beef", "leather", "pork", "mutton", "chicken", "rotten flesh")
+private val combatEvidenceTargetNameParts = listOf("cow", "pig", "sheep", "chicken", "zombie")
 
 private val usefulRecipeCategories = setOf("weapon", "tool", "utility", "material")
 

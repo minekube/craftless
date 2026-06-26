@@ -1627,8 +1627,30 @@ class FabricDriverModuleTest {
                 ?.jsonPrimitive
                 ?.content,
         )
-        assertEquals(listOf("client-query"), gateway.actions)
-        assertEquals(1, gateway.scheduled)
+        assertEquals(listOf("client-query", "client-query"), gateway.actions)
+        assertEquals(2, gateway.scheduled)
+    }
+
+    @Test
+    fun `fabric recipe craft execution takes generic crafting output after recipe fill`() {
+        val root = repositoryRoot()
+        val source =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverBackend.kt",
+                ),
+            )
+        val craftRecipeSource =
+            source
+                .substringAfter("private fun craftRecipe(")
+                .substringBefore("private fun queryEntities(")
+
+        assertTrue(craftRecipeSource.contains("clickRecipe("))
+        assertTrue(craftRecipeSource.contains("AbstractCraftingScreenHandler"))
+        assertTrue(craftRecipeSource.contains("getOutputSlot()"))
+        assertTrue(craftRecipeSource.contains("clickSlot("))
+        assertTrue(craftRecipeSource.contains("SlotActionType.QUICK_MOVE"))
+        assertTrue(craftRecipeSource.indexOf("clickRecipe(") < craftRecipeSource.indexOf("clickSlot("))
     }
 
     @Test

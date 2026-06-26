@@ -43,10 +43,12 @@ import net.minecraft.item.ItemStack
 import net.minecraft.recipe.NetworkRecipeId
 import net.minecraft.recipe.RecipeDisplayEntry
 import net.minecraft.recipe.RecipeFinder
-import net.minecraft.resource.featuretoggle.FeatureSet
 import net.minecraft.registry.Registries
 import net.minecraft.registry.Registry
 import net.minecraft.registry.tag.BlockTags
+import net.minecraft.resource.featuretoggle.FeatureSet
+import net.minecraft.screen.AbstractCraftingScreenHandler
+import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -356,7 +358,7 @@ class FabricDriverBackend private constructor(
                 message = "client-not-connected",
             )
         }
-        val data =
+        val fillRequest =
             clientGateway.queryOnClient {
                 val currentPlayer = requireNotNull(player) { "client is not connected to a server" }
                 val currentInteractionManager =
@@ -391,18 +393,32 @@ class FabricDriverBackend private constructor(
                 currentInteractionManager.clickRecipe(currentScreenHandler.syncId, recipeId, count > 1)
                 currentPlayer.onRecipeDisplayed(recipeId)
                 currentScreenHandler.sendContentUpdates()
-                val after = currentScreenHandler.stacks.toCraftlessInventoryFingerprint()
-                val changed = before != after
                 buildJsonObject {
                     put("handle", handle)
                     put("accepted", true)
-                    put("changed", changed)
+                    put("changed", false)
                     put("requested-count", count)
-                    put("crafted-count", if (changed && count == 1) 1 else 0)
+                    put("crafted-count", 0)
                     put("inventory-before", before)
-                    put("inventory-after", after)
+                    put("inventory-after", before)
                     put("sync-id", currentScreenHandler.syncId)
+                    put("phase", "recipe-fill-requested")
                 }
+            }
+        val data =
+            if (fillRequest.jsonObject["accepted"]?.jsonPrimitive?.booleanOrNull == true) {
+                clientGateway.takeCraftingOutputAfterRecipeFill(
+                    handle = handle,
+                    count = count,
+                    before =
+                        fillRequest.jsonObject["inventory-before"]
+                            ?.jsonPrimitive
+                            ?.contentOrNull
+                            .orEmpty(),
+                    expectedSyncId = fillRequest.jsonObject["sync-id"]?.jsonPrimitive?.intOrNull,
+                )
+            } else {
+                fillRequest
             }
         val accepted = data.jsonObject["accepted"]?.jsonPrimitive?.booleanOrNull == true
         return DriverActionResult(
@@ -413,6 +429,97 @@ class FabricDriverBackend private constructor(
                     ?: "fabric ${mode.id} action ${invocation.operation.id} accepted",
             data = data,
         )
+    }
+
+    private fun FabricClientGateway.takeCraftingOutputAfterRecipeFill(
+        handle: String,
+        count: Int,
+        before: String,
+        expectedSyncId: Int?,
+    ): JsonObject {
+        var latest =
+            recipeCraftPending(
+                handle = handle,
+                reason = "crafting-output-pending",
+                before = before,
+                syncId = expectedSyncId,
+                attempt = 0,
+            )
+        repeat(CRAFTING_OUTPUT_WAIT_ATTEMPTS) { attempt ->
+            if (attempt > 0) {
+                Thread.sleep(CRAFTING_OUTPUT_WAIT_INTERVAL_MS)
+            }
+            latest =
+                queryOnClient {
+                    val currentPlayer =
+                        player
+                            ?: return@queryOnClient recipeCraftFailure(
+                                handle = handle,
+                                reason = "client-not-connected",
+                            )
+                    val currentInteractionManager =
+                        interactionManager
+                            ?: return@queryOnClient recipeCraftFailure(
+                                handle = handle,
+                                reason = "interaction-manager-unavailable",
+                            )
+                    val currentScreenHandler =
+                        currentPlayer.currentScreenHandler
+                            ?: return@queryOnClient recipeCraftFailure(
+                                handle = handle,
+                                reason = "screen-handler-unavailable",
+                            )
+                    if (expectedSyncId != null && currentScreenHandler.syncId != expectedSyncId) {
+                        return@queryOnClient recipeCraftFailure(
+                            handle = handle,
+                            reason = "screen-handler-changed",
+                        )
+                    }
+                    val craftingHandler =
+                        currentScreenHandler as? AbstractCraftingScreenHandler
+                            ?: return@queryOnClient recipeCraftFailure(
+                                handle = handle,
+                                reason = "crafting-handler-unavailable",
+                            )
+                    val outputSlot = craftingHandler.getOutputSlot()
+                    if (!outputSlot.hasStack()) {
+                        return@queryOnClient recipeCraftPending(
+                            handle = handle,
+                            reason = "crafting-output-pending",
+                            before = before,
+                            syncId = currentScreenHandler.syncId,
+                            attempt = attempt + 1,
+                        )
+                    }
+                    currentInteractionManager.clickSlot(
+                        currentScreenHandler.syncId,
+                        outputSlot.id,
+                        0,
+                        SlotActionType.QUICK_MOVE,
+                        currentPlayer,
+                    )
+                    currentScreenHandler.sendContentUpdates()
+                    val after = currentScreenHandler.stacks.toCraftlessInventoryFingerprint()
+                    val changed = before != after
+                    buildJsonObject {
+                        put("handle", handle)
+                        put("accepted", true)
+                        put("changed", changed)
+                        put("requested-count", count)
+                        put("crafted-count", if (changed && count == 1) 1 else 0)
+                        put("inventory-before", before)
+                        put("inventory-after", after)
+                        put("sync-id", currentScreenHandler.syncId)
+                        put("output-slot", outputSlot.id)
+                        put("phase", "crafting-output-taken")
+                    }
+                }
+            val reason = latest["reason"]?.jsonPrimitive?.contentOrNull
+            if (reason != "crafting-output-pending") {
+                return latest
+            }
+        }
+        return latest
     }
 
     private fun queryEntities(invocation: DriverOperationInvocation): DriverActionResult {
@@ -988,6 +1095,25 @@ private fun recipeCraftFailure(
         put("reason", reason)
     }
 
+private fun recipeCraftPending(
+    handle: String,
+    reason: String,
+    before: String,
+    syncId: Int?,
+    attempt: Int,
+): JsonObject =
+    buildJsonObject {
+        put("handle", handle)
+        put("accepted", true)
+        put("changed", false)
+        put("crafted-count", 0)
+        put("inventory-before", before)
+        put("inventory-after", before)
+        syncId?.let { value -> put("sync-id", value) }
+        put("attempt", attempt)
+        put("reason", reason)
+    }
+
 private fun Iterable<ItemStack>.toCraftlessInventoryFingerprint(): String {
     val entries =
         mapIndexedNotNull { index, stack ->
@@ -1009,6 +1135,8 @@ private const val DEFAULT_ENTITY_ATTACK_DISTANCE = 4.5
 private const val DEFAULT_RECIPE_QUERY_LIMIT = 64
 private val RECIPE_QUERY_LIMIT_RANGE = 1..256
 private val RECIPE_CRAFT_COUNT_RANGE = 1..64
+private const val CRAFTING_OUTPUT_WAIT_ATTEMPTS = 20
+private const val CRAFTING_OUTPUT_WAIT_INTERVAL_MS = 50L
 private const val DEFAULT_BLOCK_QUERY_RADIUS = 16.0
 private const val MAX_BLOCK_QUERY_RADIUS = 32.0
 private const val DEFAULT_BLOCK_QUERY_LIMIT = 64

@@ -730,9 +730,13 @@ Verification:
 - [x] Public-agent composition uses generated recipe actions when available to
   craft useful outputs, then verifies inventory state through `inventory.query`
   in focused fake-server evidence.
-- [ ] Live no-hold final gameplay evidence shows generic recipe/crafting
+- [x] Live no-hold final gameplay evidence shows generic recipe/crafting
   progress without `craft.sword`, `craft.planks`, `craft.table`,
-  `make.weapon`, `kill.cow`, or `task.survival.*`.
+  `make.weapon`, `kill.cow`, or `task.survival.*`. Evidence:
+  `driver-fabric/build/craftless-final-gameplay/artifacts/public-agent-gameplay-results.jsonl`
+  shows `recipe.query` returning `recipe.handle:805` for Oak Planks,
+  `recipe.craft` with `changed=true`, `phase=crafting-output-taken`, and
+  follow-up `inventory.query` showing 4 Oak Planks.
 
 Verification:
 
@@ -759,7 +763,11 @@ Verification:
   `task.survival.honest-cow-hunt` or writes `survival-task-results.jsonl`.
 - [ ] Final live gameplay still must prove the scenario through generated
   public actions, SSE events, adaptive consumers, and Robin's Minecraft chat
-  confirmation.
+  confirmation. Latest live no-hold runs prove recipe/crafting and placement
+  through generated public actions, and combat-policy tests now keep the same
+  public entity handle while avoiding unnecessary re-navigation. The current
+  live blocker remains `insufficient-public-evidence:entity.query.attack-target`
+  when bounded exploration finds no attackable public entity.
 
 Verification:
 

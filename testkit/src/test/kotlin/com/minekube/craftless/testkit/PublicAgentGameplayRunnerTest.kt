@@ -385,8 +385,73 @@ class PublicAgentGameplayRunnerTest {
 
             assertEquals(PublicAgentGameplayState.RAN, result.state)
             assertTrue(result.actionLog.map { it.action }.count { it == "entity.attack" } >= 2)
-            assertTrue(result.actionLog.map { it.action }.count { it == "navigation.plan" } >= 4)
             assertTrue(server.requestBodies.any { it.contains(""""x":24.0""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner keeps same public attack target while outcome is unproven`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            aliveCowAndCloserChickenEntityQueryResponse,
+                            closeChickenAndCowEntityQueryResponse,
+                            deadCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(result.actionLog.map { it.action }.count { it == "entity.attack" } >= 2)
+            assertFalse(
+                server.requestBodies.any {
+                    it.contains("entity.attack") &&
+                        it.contains(""""target":{"handle":"entity.handle-7"}""")
+                },
+            )
+            assertTrue(
+                server.requestBodies.count {
+                    it.contains("entity.attack") &&
+                        it.contains(""""target":{"handle":"entity.handle-42"}""")
+                } >= 2,
+            )
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner does not renavigate to same public attack target while it remains reachable`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            deadCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(result.actionLog.map { it.action }.count { it == "entity.attack" } >= 2)
+            assertEquals(
+                0,
+                server.requestBodies.count { it.contains(""""position":{"x":14.5,"y":64.0,"z":-6.5}""") },
+            )
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 
@@ -410,7 +475,6 @@ class PublicAgentGameplayRunnerTest {
             val result = runner.runOnce()
 
             assertEquals(PublicAgentGameplayState.RAN, result.state)
-            assertTrue(result.actionLog.map { it.action }.count { it == "navigation.plan" } >= 4)
             assertTrue(server.requestBodies.any { it.contains(""""x":24.0""") })
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
@@ -513,6 +577,35 @@ class PublicAgentGameplayRunnerTest {
                 server.requestBodies.any {
                     it.contains("entity.attack") &&
                         it.contains(""""target":{"handle":"entity.handle-2"}""")
+                },
+            )
+            assertFalse(server.requestBodies.any { it.contains(""""target":{"handle":"entity.handle-6"}""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner prefers public attack targets with configured loot evidence`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            closeSquidAndReachableCowEntityQueryResponse,
+                            closeSquidAndReachableCowEntityQueryResponse,
+                            deadCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("entity.attack") &&
+                        it.contains(""""target":{"handle":"entity.handle-42"}""")
                 },
             )
             assertFalse(server.requestBodies.any { it.contains(""""target":{"handle":"entity.handle-6"}""") })
@@ -670,9 +763,8 @@ class PublicAgentGameplayRunnerTest {
                             "recipes": [
                               {
                                 "handle": "recipe.handle:material-1",
-                                "category": "material",
                                 "craftable": true,
-                                "produces": [
+                                "outputs": [
                                   {"label": "Oak Planks", "category": "material", "count": 4}
                                 ]
                               }
@@ -1574,6 +1666,64 @@ private val movedCowEntityQueryResponse =
     }
     """.trimIndent()
 
+private val aliveCowAndCloserChickenEntityQueryResponse =
+    """
+    {
+      "action": "entity.query",
+      "status": "ACCEPTED",
+      "data": {
+        "origin": {"x": 14.0, "y": 64.0, "z": -6.0},
+        "entities": [
+          {
+            "handle": "entity.handle-7",
+            "label": "Chicken",
+            "category": "passive",
+            "alive": true,
+            "distance": 1.0,
+            "position": {"x": 14.2, "y": 64.0, "z": -5.5}
+          },
+          {
+            "handle": "entity.handle-42",
+            "label": "Cow",
+            "category": "passive",
+            "alive": true,
+            "distance": 3.0,
+            "position": {"x": 14.5, "y": 64.0, "z": -6.5}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val closeChickenAndCowEntityQueryResponse =
+    """
+    {
+      "action": "entity.query",
+      "status": "ACCEPTED",
+      "data": {
+        "origin": {"x": 14.0, "y": 64.0, "z": -6.0},
+        "entities": [
+          {
+            "handle": "entity.handle-7",
+            "label": "Chicken",
+            "category": "passive",
+            "alive": true,
+            "distance": 1.0,
+            "position": {"x": 14.2, "y": 64.0, "z": -5.5}
+          },
+          {
+            "handle": "entity.handle-42",
+            "label": "Cow",
+            "category": "passive",
+            "alive": true,
+            "distance": 3.0,
+            "position": {"x": 14.5, "y": 64.0, "z": -6.5}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
 private val verticallyOffsetCowEntityQueryResponse =
     """
     {
@@ -1702,6 +1852,35 @@ private val aliveFarSheepEntityQueryResponse =
             "alive": true,
             "distance": 15.0,
             "position": {"x": 20.0, "y": 67.0, "z": -269.0}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val closeSquidAndReachableCowEntityQueryResponse =
+    """
+    {
+      "action": "entity.query",
+      "status": "ACCEPTED",
+      "data": {
+        "origin": {"x": 12.0, "y": 64.0, "z": -6.0},
+        "entities": [
+          {
+            "handle": "entity.handle-6",
+            "label": "Squid",
+            "category": "passive",
+            "alive": true,
+            "distance": 2.0,
+            "position": {"x": 12.5, "y": 64.0, "z": -5.5}
+          },
+          {
+            "handle": "entity.handle-42",
+            "label": "Cow",
+            "category": "passive",
+            "alive": true,
+            "distance": 3.0,
+            "position": {"x": 14.5, "y": 64.0, "z": -6.5}
           }
         ]
       }
