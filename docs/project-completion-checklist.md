@@ -213,6 +213,8 @@ Verification:
   screenshots, and artifacts handles.
 - [x] The daemon can materialize those directories under a configured workspace
   root without clearing existing runtime files.
+- [x] `craftless server start --workspace <path>` wires that workspace into the
+  local daemon startup path and reports it in startup metadata.
 - [x] Prism Launcher source was cloned under `/tmp/prismlauncher-source` for
   research, outside Minekube repos.
 - [x] Prism findings are captured as design input, not a core dependency.

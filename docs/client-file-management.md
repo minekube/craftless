@@ -47,6 +47,10 @@ directories under the configured workspace root during client creation. The
 operation is idempotent and does not clear existing logs, artifacts, saves, or
 cache data; cleanup and export flows should be explicit operations.
 
+The CLI wires this store through `craftless server start --workspace <path>`.
+Startup metadata reports the configured workspace path so scripts can record the
+runtime file root alongside the daemon URL and OpenAPI path.
+
 ## Prism Source Findings
 
 Prism Launcher checkout inspected:

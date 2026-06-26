@@ -26,6 +26,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
+import java.nio.file.Path
 import java.util.concurrent.CountDownLatch
 
 fun main(args: Array<String>) {
@@ -452,8 +453,9 @@ object CraftlessCli {
             stderr("error: --port must be a non-negative integer")
             return 2
         }
+        val workspaceRoot = args.optionValue("--workspace")?.let(Path::of)
 
-        LocalSessionApiServer.inMemory(port = port).use { server ->
+        LocalSessionApiServer.inMemory(port = port, workspaceRoot = workspaceRoot).use { server ->
             server.start()
             val metadata =
                 ApiServerMetadata(
@@ -461,6 +463,7 @@ object CraftlessCli {
                     url = server.url(""),
                     openapi = "/openapi.json",
                     events = "/events",
+                    workspace = workspaceRoot?.toString(),
                 )
             stdout(json.encodeToString(metadata))
             afterStart(metadata)
@@ -707,6 +710,7 @@ data class ApiServerMetadata(
     val url: String,
     val openapi: String,
     val events: String,
+    val workspace: String? = null,
 )
 
 @Serializable

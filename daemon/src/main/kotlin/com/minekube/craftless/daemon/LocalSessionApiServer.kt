@@ -39,6 +39,7 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import java.net.ServerSocket
+import java.nio.file.Path
 import java.time.Instant
 
 class LocalSessionApiServer private constructor(
@@ -282,9 +283,14 @@ class LocalSessionApiServer private constructor(
         fun inMemory(
             port: Int = 0,
             driverFactory: DriverSessionFactory = DriverSessionFactory.unavailable(),
+            workspaceRoot: Path? = null,
         ): LocalSessionApiServer =
             LocalSessionApiServer(
-                service = ClientSessionService.inMemory(driverFactory),
+                service =
+                    ClientSessionService.inMemory(
+                        driverFactory = driverFactory,
+                        fileStore = workspaceRoot?.let(::InstanceFileStore),
+                    ),
                 host = "127.0.0.1",
                 requestedPort = port,
             )

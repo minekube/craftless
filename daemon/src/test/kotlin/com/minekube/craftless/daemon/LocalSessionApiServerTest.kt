@@ -39,6 +39,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -154,6 +155,36 @@ class LocalSessionApiServerTest {
                     assertTrue(!body.contains("/clients/alice/player\""))
                     assertTrue(!body.contains("/clients/alice/player/position"))
                     assertTrue(!body.contains("/actions/move"))
+                }
+            }
+        }
+
+    @Test
+    fun `server prepares instance file directories under configured workspace`() =
+        withHttpClient { http ->
+            val workspace = Files.createTempDirectory("craftless-server-client-files")
+            fakeLocalSessionApiServer(workspaceRoot = workspace).use { server ->
+                server.start()
+
+                val created =
+                    http.post(server.url("/clients")) {
+                        contentType(ContentType.Application.Json)
+                        setBody(
+                            """
+                            {
+                              "id": "alice",
+                              "version": "1.21.4",
+                              "loader": "FABRIC",
+                              "profile": { "kind": "OFFLINE", "name": "Alice" }
+                            }
+                            """.trimIndent(),
+                        )
+                    }
+
+                assertEquals(HttpStatusCode.Created, created.status)
+                val client = json.decodeFromString<Client>(created.bodyAsText())
+                client.instance.files.directoryHandles().forEach { handle ->
+                    assertTrue(Files.isDirectory(workspace.resolve(handle)))
                 }
             }
         }
@@ -721,12 +752,13 @@ class LocalSessionApiServerTest {
     }
 }
 
-private fun fakeLocalSessionApiServer(): LocalSessionApiServer =
+private fun fakeLocalSessionApiServer(workspaceRoot: java.nio.file.Path? = null): LocalSessionApiServer =
     LocalSessionApiServer.inMemory(
         driverFactory =
             DriverSessionFactory { request ->
                 FakeDriverSession(request.id)
             },
+        workspaceRoot = workspaceRoot,
     )
 
 private class EventMetadataDriverSession(

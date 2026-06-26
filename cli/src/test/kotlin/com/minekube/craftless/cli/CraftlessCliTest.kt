@@ -26,6 +26,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.net.ServerSocket
+import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -125,6 +126,28 @@ class CraftlessCliTest {
         assertTrue(json["url"]?.jsonPrimitive?.content?.startsWith("http://127.0.0.1:") == true)
         assertEquals("/openapi.json", json["openapi"]?.jsonPrimitive?.content)
         assertEquals("/events", json["events"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `server start once reports configured workspace`() {
+        val output = StringBuilder()
+        val workspace = Files.createTempDirectory("craftless-cli-client-files")
+        var reportedWorkspace: String? = null
+
+        val exit =
+            CraftlessCli.run(
+                listOf("server", "start", "--once", "--workspace", workspace.toString()),
+                stdout = { output.appendLine(it) },
+                afterStart = { metadata ->
+                    reportedWorkspace = metadata.workspace
+                },
+            )
+
+        assertEquals(0, exit)
+        assertEquals(workspace.toString(), reportedWorkspace)
+
+        val json = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        assertEquals(workspace.toString(), json["workspace"]?.jsonPrimitive?.content)
     }
 
     @Test
