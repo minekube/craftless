@@ -49,6 +49,8 @@ Legend:
 - [x] Plan exists: `docs/superpowers/plans/2026-06-26-07-final-gameplay-completion-plan.md`.
 - [x] Spec exists: `docs/superpowers/specs/2026-06-26-08-honest-survival-navigation-design.md`.
 - [x] Plan exists: `docs/superpowers/plans/2026-06-26-08-honest-survival-navigation-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-26-09-pathfinder-backed-execution-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-26-09-pathfinder-backed-execution-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -187,6 +189,22 @@ Verification:
 - [ ] Craftless obtains weapon materials through ordinary survival gameplay,
   crafts or obtains a weapon legitimately, finds a cow, navigates to it without
   manual movement, kills it, writes chat, and records SSE/artifact evidence.
+
+## Phase 9: Pathfinder-Backed Execution
+
+- [ ] Internal pathfinder backend contract and task progress registry exist.
+- [ ] Generic navigation operation adapters invoke the pathfinder backend
+  instead of placeholder unsupported adapters when execution is available.
+- [ ] Reflection backend probes optional pathfinder runtime classes privately
+  and never leaks backend names into OpenAPI or SSE payloads.
+- [ ] Final gameplay can opt into a pinned pathfinder runtime mod without
+  server-side item provisioning.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test`
+- `mise run lint`
+- `mise run architecture-check`
 
 Verification:
 
