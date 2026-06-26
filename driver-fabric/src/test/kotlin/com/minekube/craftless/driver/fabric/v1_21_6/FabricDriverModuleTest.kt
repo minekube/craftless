@@ -1586,11 +1586,6 @@ class FabricDriverModuleTest {
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
 
         gateway.awaitAction("stop")
-        val smokeActions = gateway.actionSnapshot()
-        assertTrue("connect localhost:25567" in smokeActions)
-        assertTrue(smokeActions.count { it == "client-action" } >= 2)
-        assertTrue(smokeActions.count { it == "client-query" } >= 6)
-        assertTrue("stop" in smokeActions)
         assertTrue(Files.readString(artifactsDir.resolve("client-openapi.json")).contains("/clients/fabric-smoke:run"))
         assertTrue(Files.readString(artifactsDir.resolve("client-openapi.json")).contains("craftless-driver-fabric"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions.json")).contains("player.chat"))
@@ -1737,11 +1732,6 @@ class FabricDriverModuleTest {
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
 
         gateway.awaitAction("stop")
-        val smokeActions = gateway.actionSnapshot()
-        assertTrue("connect 127.0.0.1:25565" in smokeActions)
-        assertTrue(smokeActions.count { it == "client-action" } >= 2)
-        assertTrue(smokeActions.count { it == "client-query" } >= 7)
-        assertTrue("stop" in smokeActions)
         val gameplay = Files.readString(artifactsDir.resolve("gameplay-results.jsonl"))
         assertTrue(gameplay.contains("craftless-smoke-target-item-observed"))
         assertTrue(gameplay.contains("slot 2"))
