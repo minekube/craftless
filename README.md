@@ -38,8 +38,8 @@ Craftless keeps the control plane deliberately split:
   metadata for discovery and filtering, not a separate source of truth.
 - `GET /clients/{id}/resources` is a projection of the same live actions into
   Craftless-owned resource ids such as `player`, `inventory`, and
-  `world.block`, including the action descriptor schemas that produced each
-  resource.
+  `world.block`, including resource availability reasons and the action
+  descriptor schemas that produced each resource.
 - `craftless` and future generated clients fetch those specs at runtime. They
   do not keep a hand-written catalog of Minecraft gameplay commands.
 

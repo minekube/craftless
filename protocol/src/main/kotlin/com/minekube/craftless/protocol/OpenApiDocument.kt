@@ -149,12 +149,19 @@ data class OpenApiResource(
     val id: String,
     val actions: List<String>,
     val availability: OpenApiResourceAvailability,
+    val availabilityReasons: List<String>,
     val actionDescriptors: List<OpenApiResourceActionDescriptor>,
 ) {
     init {
         require(id.isCraftlessResourceId()) { "invalid resource id $id" }
         require(actions.isNotEmpty()) { "resource $id requires at least one action" }
         require(actions.distinct() == actions) { "resource $id declares duplicate actions" }
+        require(availabilityReasons.distinct() == availabilityReasons) {
+            "resource $id declares duplicate availability reasons"
+        }
+        availabilityReasons.forEach { reason ->
+            require(reason.isCraftlessActionArgumentName()) { "invalid resource availability reason $reason" }
+        }
         actions.forEach { actionId ->
             require(actionId.isCraftlessActionId()) { "invalid resource action id $actionId" }
             require(actionId.startsWith("$id.")) { "resource $id cannot reference action $actionId" }
@@ -295,6 +302,7 @@ fun List<OpenApiAction>.toOpenApiResources(): List<OpenApiResource> =
                 id = resourceId,
                 actions = sortedActions.map { it.id },
                 availability = sortedActions.toResourceAvailability(),
+                availabilityReasons = sortedActions.toResourceAvailabilityReasons(),
                 actionDescriptors = sortedActions.map { it.toOpenApiResourceActionDescriptor() },
             )
         }
@@ -318,6 +326,11 @@ private fun List<OpenApiAction>.toResourceAvailability(): OpenApiResourceAvailab
         all { it.availability == OpenApiActionAvailability.UNAVAILABLE } -> OpenApiResourceAvailability.UNAVAILABLE
         else -> OpenApiResourceAvailability.PARTIAL
     }
+
+private fun List<OpenApiAction>.toResourceAvailabilityReasons(): List<String> =
+    mapNotNull { it.availabilityReason }
+        .distinct()
+        .sorted()
 
 private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenApiOperation {
     val route = this
@@ -579,13 +592,14 @@ private fun resourceDescriptorSchema(): OpenApiSchema =
                 "id" to OpenApiSchema(type = "string"),
                 "actions" to OpenApiSchema(type = "array", items = OpenApiSchema(type = "string")),
                 "availability" to OpenApiSchema(type = "string"),
+                "availabilityReasons" to OpenApiSchema(type = "array", items = OpenApiSchema(type = "string")),
                 "actionDescriptors" to
                     OpenApiSchema(
                         type = "array",
                         items = actionDescriptorSchema(),
                     ),
             ),
-        required = listOf("id", "actions", "availability", "actionDescriptors"),
+        required = listOf("id", "actions", "availability", "availabilityReasons", "actionDescriptors"),
     )
 
 private fun genericActionRequestBody(): OpenApiRequestBody =

@@ -230,6 +230,7 @@ class OpenApiGenerationTest {
         val player = document.resources.single { it.id == "player" }
         assertEquals(listOf("player.query", "player.raycast"), player.actions)
         assertEquals(OpenApiResourceAvailability.PARTIAL, player.availability)
+        assertEquals(listOf("client-not-connected"), player.availabilityReasons)
         assertEquals(listOf("player.query", "player.raycast"), player.actionDescriptors.map { it.id })
         val raycast = player.actionDescriptors.single { it.id == "player.raycast" }
         assertEquals("1", raycast.schemaVersion)
@@ -239,6 +240,7 @@ class OpenApiGenerationTest {
         val block = document.resources.single { it.id == "world.block" }
         assertEquals(listOf("world.block.break"), block.actions)
         assertEquals(OpenApiResourceAvailability.AVAILABLE, block.availability)
+        assertEquals(emptyList(), block.availabilityReasons)
         assertEquals(listOf("world.block.break"), block.actionDescriptors.map { it.id })
     }
 
