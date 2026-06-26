@@ -1648,6 +1648,8 @@ class FabricDriverModuleTest {
         assertTrue(craftRecipeSource.contains("clickRecipe("))
         assertTrue(craftRecipeSource.contains("AbstractCraftingScreenHandler"))
         assertTrue(craftRecipeSource.contains("getOutputSlot()"))
+        assertTrue(craftRecipeSource.contains("expectedOutput"))
+        assertTrue(craftRecipeSource.contains("crafting-output-mismatch"))
         assertTrue(craftRecipeSource.contains("clickSlot("))
         assertTrue(craftRecipeSource.contains("SlotActionType.QUICK_MOVE"))
         assertTrue(craftRecipeSource.indexOf("clickRecipe(") < craftRecipeSource.indexOf("clickSlot("))

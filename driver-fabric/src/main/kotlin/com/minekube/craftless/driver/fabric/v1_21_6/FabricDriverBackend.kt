@@ -390,6 +390,11 @@ class FabricDriverBackend private constructor(
                     )
                 }
                 val before = currentScreenHandler.stacks.toCraftlessInventoryFingerprint()
+                val expectedOutput =
+                    matchingRecipe.entry
+                        .craftlessOutputItems()
+                        .firstOrNull()
+                        ?.toCraftlessRecipeItem()
                 currentInteractionManager.clickRecipe(currentScreenHandler.syncId, recipeId, count > 1)
                 currentPlayer.onRecipeDisplayed(recipeId)
                 currentScreenHandler.sendContentUpdates()
@@ -402,6 +407,7 @@ class FabricDriverBackend private constructor(
                     put("inventory-before", before)
                     put("inventory-after", before)
                     put("sync-id", currentScreenHandler.syncId)
+                    expectedOutput?.let { output -> put("expected-output", output) }
                     put("phase", "recipe-fill-requested")
                 }
             }
@@ -416,6 +422,7 @@ class FabricDriverBackend private constructor(
                             ?.contentOrNull
                             .orEmpty(),
                     expectedSyncId = fillRequest.jsonObject["sync-id"]?.jsonPrimitive?.intOrNull,
+                    expectedOutput = fillRequest.jsonObject["expected-output"] as? JsonObject,
                 )
             } else {
                 fillRequest
@@ -436,6 +443,7 @@ class FabricDriverBackend private constructor(
         count: Int,
         before: String,
         expectedSyncId: Int?,
+        expectedOutput: JsonObject?,
     ): JsonObject {
         var latest =
             recipeCraftPending(
@@ -489,6 +497,18 @@ class FabricDriverBackend private constructor(
                             before = before,
                             syncId = currentScreenHandler.syncId,
                             attempt = attempt + 1,
+                        )
+                    }
+                    val actualOutput = outputSlot.stack.toCraftlessRecipeItem().toCraftlessRecipeItem()
+                    if (expectedOutput != null && !actualOutput.matchesCraftlessRecipeOutput(expectedOutput)) {
+                        return@queryOnClient recipeCraftFailure(
+                            handle = handle,
+                            reason = "crafting-output-mismatch",
+                            extra =
+                                buildJsonObject {
+                                    put("expected-output", expectedOutput)
+                                    put("actual-output", actualOutput)
+                                },
                         )
                     }
                     currentInteractionManager.clickSlot(
@@ -1086,6 +1106,7 @@ private fun DriverOperationInvocation.unavailableRecipeOperationResult(): Driver
 private fun recipeCraftFailure(
     handle: String,
     reason: String,
+    extra: JsonObject? = null,
 ): JsonObject =
     buildJsonObject {
         put("handle", handle)
@@ -1093,7 +1114,16 @@ private fun recipeCraftFailure(
         put("changed", false)
         put("crafted-count", 0)
         put("reason", reason)
+        extra?.forEach { (key, value) -> put(key, value) }
     }
+
+private fun JsonObject.matchesCraftlessRecipeOutput(expected: JsonObject): Boolean {
+    val actualLabel = this["label"]?.jsonPrimitive?.contentOrNull.orEmpty()
+    val expectedLabel = expected["label"]?.jsonPrimitive?.contentOrNull.orEmpty()
+    val actualCategory = this["category"]?.jsonPrimitive?.contentOrNull.orEmpty()
+    val expectedCategory = expected["category"]?.jsonPrimitive?.contentOrNull.orEmpty()
+    return actualLabel == expectedLabel && actualCategory == expectedCategory
+}
 
 private fun recipeCraftPending(
     handle: String,

@@ -837,6 +837,82 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner composes generated material and combat recipes before combat`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + listOf("recipe.query", "recipe.craft", "entity.attack"),
+                    inventoryResponses =
+                        listOf(
+                            EMPTY_INVENTORY_QUERY_RESPONSE,
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            craftedMaterialInventoryResponse,
+                            craftedWeaponInventoryResponse(selectedSlot = 1),
+                            craftedWeaponInventoryResponse(selectedSlot = 2),
+                        ),
+                    recipeQueryResponses =
+                        listOf(
+                            materialRecipeQueryResponse,
+                            weaponRecipeQueryResponse,
+                        ),
+                    recipeCraftResponses =
+                        listOf(
+                            MATERIAL_RECIPE_CRAFT_RESPONSE,
+                            WEAPON_RECIPE_CRAFT_RESPONSE,
+                        ),
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            deadCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertEquals(2, result.actionLog.map { it.action }.count { it == "recipe.craft" })
+            assertTrue(server.requestBodies.any { it.contains(""""target":{"handle":"recipe.handle:material-1"}""") })
+            assertTrue(server.requestBodies.any { it.contains(""""target":{"handle":"recipe.handle:weapon-1"}""") })
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("inventory.equip") &&
+                        it.contains(""""slot":2""")
+                },
+            )
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner blocks when generated combat recipe lacks combat inventory proof`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + listOf("recipe.query", "recipe.craft"),
+                    inventoryResponses =
+                        listOf(
+                            EMPTY_INVENTORY_QUERY_RESPONSE,
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            craftedMaterialInventoryResponse,
+                        ),
+                    recipeQueryResponse = weaponRecipeQueryResponse,
+                    recipeCraftResponse = WEAPON_RECIPE_CRAFT_RESPONSE,
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.BLOCKED, result.state)
+            assertEquals("insufficient-public-evidence:inventory.query.combat-item", result.blocker)
+            assertTrue(server.requestBodies.any { it.contains(""""target":{"handle":"recipe.handle:weapon-1"}""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner invokes targetable block interact when generated descriptor supports target`() =
         runBlocking {
             val server =
@@ -1460,8 +1536,10 @@ private class RecordingCraftlessHttpServer(
     private val entityQueryResponses: List<String>? = null,
     private val recipeQueryResponse: String =
         """{"action":"recipe.query","status":"ACCEPTED","data":{"count":0,"recipes":[]}}""",
+    private val recipeQueryResponses: List<String>? = null,
     private val recipeCraftResponse: String =
         """{"action":"recipe.craft","status":"ACCEPTED","data":{"accepted":false,"changed":false,"crafted-count":0}}""",
+    private val recipeCraftResponses: List<String>? = null,
     private val finalInventoryResponse: String =
         """
         {
@@ -1485,6 +1563,8 @@ private class RecordingCraftlessHttpServer(
     private var entityQueryCount = 0
     private var blockInteractCount = 0
     private var navigationFollowCount = 0
+    private var recipeQueryCount = 0
+    private var recipeCraftCount = 0
     val http =
         HttpClient(
             MockEngine { request ->
@@ -1528,8 +1608,8 @@ private class RecordingCraftlessHttpServer(
             body.contains("world.block.break") -> blockBreakResponse
             body.contains("world.block.interact") -> blockInteractResponse()
             body.contains("inventory.equip") -> """{"action":"inventory.equip","status":"ACCEPTED"}"""
-            body.contains("recipe.query") -> recipeQueryResponse
-            body.contains("recipe.craft") -> recipeCraftResponse
+            body.contains("recipe.query") -> recipeQueryResponse()
+            body.contains("recipe.craft") -> recipeCraftResponse()
             body.contains("entity.attack") ->
                 """{"action":"entity.attack","status":"ACCEPTED","data":{"hit":true,"handle":"entity.handle-42"}}"""
             body.contains("entity.query") -> entityQueryResponse()
@@ -1570,6 +1650,18 @@ private class RecordingCraftlessHttpServer(
         navigationFollowCount += 1
         return navigationFollowResponses?.getOrElse(navigationFollowCount - 1) { navigationFollowResponses.last() }
             ?: navigationFollowResponse
+    }
+
+    private fun recipeQueryResponse(): String {
+        recipeQueryCount += 1
+        return recipeQueryResponses?.getOrElse(recipeQueryCount - 1) { recipeQueryResponses.last() }
+            ?: recipeQueryResponse
+    }
+
+    private fun recipeCraftResponse(): String {
+        recipeCraftCount += 1
+        return recipeCraftResponses?.getOrElse(recipeCraftCount - 1) { recipeCraftResponses.last() }
+            ?: recipeCraftResponse
     }
 
     private fun actionsJson(): String =
@@ -1650,6 +1742,68 @@ private val craftedMaterialInventoryResponse =
       }
     }
     """.trimIndent()
+
+private fun craftedWeaponInventoryResponse(selectedSlot: Int): String =
+    """
+    {
+      "action": "inventory.query",
+      "status": "ACCEPTED",
+      "data": {
+        "selected-slot": $selectedSlot,
+        "slots": [
+          {"slot": 0, "empty": false, "count": 1, "item-name": "Oak Sapling"},
+          {"slot": 1, "empty": false, "count": 2, "item-name": "Oak Planks"},
+          {"slot": 2, "empty": false, "count": 1, "item-name": "Wooden Sword"}
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val materialRecipeQueryResponse =
+    """
+    {
+      "action": "recipe.query",
+      "status": "ACCEPTED",
+      "data": {
+        "count": 1,
+        "recipes": [
+          {
+            "handle": "recipe.handle:material-1",
+            "craftable": true,
+            "outputs": [
+              {"label": "Oak Planks", "category": "material", "count": 4}
+            ]
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val weaponRecipeQueryResponse =
+    """
+    {
+      "action": "recipe.query",
+      "status": "ACCEPTED",
+      "data": {
+        "count": 1,
+        "recipes": [
+          {
+            "handle": "recipe.handle:weapon-1",
+            "craftable": true,
+            "outputs": [
+              {"label": "Wooden Sword", "category": "weapon", "count": 1}
+            ]
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private const val MATERIAL_RECIPE_CRAFT_RESPONSE =
+    """{"action":"recipe.craft","status":"ACCEPTED","data":{"handle":"recipe.handle:material-1","accepted":true,"changed":true,"crafted-count":1}}"""
+
+private const val WEAPON_RECIPE_CRAFT_RESPONSE =
+    """{"action":"recipe.craft","status":"ACCEPTED","data":{"handle":"recipe.handle:weapon-1","accepted":true,"changed":true,"crafted-count":1}}"""
 
 private val aliveCowEntityQueryResponse =
     """

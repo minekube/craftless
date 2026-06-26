@@ -257,7 +257,10 @@ Verification:
   generic combat outcome evidence without static scenario APIs, including the
   exact cow/beef/leather acceptance variant; it still has not proven a
   legitimately crafted/obtained weapon or Robin's in-game completion
-  confirmation.
+  confirmation. Latest weapon-composition evidence reaches a generated
+  `Wooden Sword` recipe handle through public `recipe.query`, but
+  `recipe.craft` now correctly rejects the attempt with
+  `crafting-output-mismatch` because the actual output slot contains `Stick`.
 - [!] The final survival proof is reproduced by an external public-agent runner
   over generated OpenAPI/SSE/CLI/skills, not by hard-coding the scenario as a
   durable public `task.survival.*` API. The previous
@@ -727,9 +730,10 @@ Verification:
   handle validation, and real craft execution remain open.
 - [~] `recipe.craft` has public handle/count validation, stale-handle
   validation, live craftability checks, guarded Fabric client-thread execution
-  through `clickRecipe`, and before/after inventory fingerprints. Broader
-  screen/handler coverage, asynchronous post-server inventory confirmation,
-  and live survival evidence remain open.
+  through `clickRecipe`, before/after inventory fingerprints, and expected
+  versus actual output-slot validation. Broader screen/handler coverage,
+  crafting-station interaction/opening, asynchronous post-server inventory
+  confirmation, and live survival evidence remain open.
 - [x] Public-agent composition uses generated recipe actions when available to
   craft useful outputs, then verifies inventory state through `inventory.query`
   in focused fake-server evidence.
@@ -740,6 +744,14 @@ Verification:
   shows `recipe.query` returning `recipe.handle:805` for Oak Planks,
   `recipe.craft` with `changed=true`, `phase=crafting-output-taken`, and
   follow-up `inventory.query` showing 4 Oak Planks.
+- [x] Public-agent composition can chain generated material and combat recipes
+  in focused fake-server evidence, and it requires combat-ready inventory
+  proof before treating a generated weapon recipe as successful.
+- [!] Latest live no-hold evidence reaches a generated `Wooden Sword` recipe
+  after crafting planks and sticks, but `recipe.craft` returns
+  `crafting-output-mismatch` with expected `Wooden Sword` and actual `Stick`.
+  Remaining work is generic station/screen handling for crafting-table recipes,
+  not a `craft.sword` shortcut.
 
 Verification:
 
@@ -769,9 +781,12 @@ Verification:
   confirmation. Latest live no-hold runs prove recipe/crafting, placement,
   bounded attack-target exploration past a failed generated navigation
   waypoint, and cow combat outcome evidence through generated public actions.
-  Remaining completion gates are honest weapon acquisition/composition as
-  required by the survival scenario, held multiplayer observation, any fixes
-  found there, and Robin's explicit Minecraft chat confirmation.
+  The current live blocker is `crafting-output-mismatch` when a generated
+  `Wooden Sword` recipe is attempted from the wrong crafting output context.
+  Remaining completion gates are generic crafting-station/screen handling,
+  honest weapon acquisition/composition as required by the survival scenario,
+  held multiplayer observation, any fixes found there, and Robin's explicit
+  Minecraft chat confirmation.
 
 Verification:
 

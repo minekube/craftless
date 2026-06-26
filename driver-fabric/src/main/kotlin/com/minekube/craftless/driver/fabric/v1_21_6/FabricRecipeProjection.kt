@@ -35,6 +35,8 @@ internal fun craftlessRecipeRecord(
     )
 }
 
+internal fun RecipeDisplayEntry.craftlessOutputItems(): List<CraftlessRecipeItem> = display().result().toCraftlessRecipeItems()
+
 internal fun craftlessRecipeRecord(
     recipe: CraftlessRecipeProjection,
     craftable: Boolean,
@@ -149,7 +151,7 @@ internal data class CraftlessRecipeItem(
         }
 }
 
-private fun ItemStack.toCraftlessRecipeItem(): CraftlessRecipeItem =
+internal fun ItemStack.toCraftlessRecipeItem(): CraftlessRecipeItem =
     craftlessRecipeItem(
         rawName = name.string,
         translationKey = item.translationKey,
