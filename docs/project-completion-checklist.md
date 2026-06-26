@@ -583,8 +583,10 @@ Verification:
   Evidence:
   `mise exec -- gradle :driver-fabric:test --tests '*FabricCompatibilityMatrixTest*' --tests '*FabricCurrentLaneRuntimeProviderTest*'`
   and `mise exec -- gradle :testkit:test --tests '*LocalMinecraftServerSmokeTest*'`.
-- [ ] Runtime probe metadata records version/provider support and unavailable
+- [x] Runtime probe metadata records version/provider support and unavailable
   reasons without leaking Fabric/Yarn/Minecraft names into public API.
+  Evidence:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricCapabilityProbeTest.runtime metadata probe emits sanitized compatibility lane evidence*' --tests '*FabricDriverModuleTest.fabric backend runtime graph includes sanitized compatibility lane evidence*'`.
 - [ ] Java runtime selection is version-aware; Minecraft `26.2` requires Java
   25 and must not be launched through the repository's Java 21 default.
 - [ ] Fabric client launch selects a compiled/runtime-compatible lane for the

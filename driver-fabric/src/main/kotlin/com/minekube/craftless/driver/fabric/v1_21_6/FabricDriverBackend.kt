@@ -9,6 +9,8 @@ import com.minekube.craftless.driver.api.DriverOperationAdapter
 import com.minekube.craftless.driver.api.DriverOperationAdapters
 import com.minekube.craftless.driver.api.DriverOperationInvocation
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
+import com.minekube.craftless.driver.fabric.runtime.FabricRuntimeIdentity
+import com.minekube.craftless.driver.fabric.runtime.defaultFabricCompatibilityMatrix
 import com.minekube.craftless.driver.runtime.DriverBackend
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import com.minekube.craftless.driver.runtime.DriverBackendResult
@@ -71,16 +73,20 @@ class FabricDriverBackend private constructor(
 
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata = runtimeMetadataProvider.runtimeMetadata(clientId)
 
-    override fun runtimeGraph(clientId: String): RuntimeCapabilityGraph =
-        capabilityDiscovery.discover(
+    override fun runtimeGraph(clientId: String): RuntimeCapabilityGraph {
+        val metadata = runtimeMetadata(clientId)
+        val identity = metadata.toCurrentLaneRuntimeIdentity()
+        return capabilityDiscovery.discover(
             FabricCapabilityProbeContext(
                 clientId = clientId,
                 modeId = mode.id,
                 gateway = gateway,
-                runtimeMetadata = runtimeMetadata(clientId),
+                runtimeMetadata = metadata,
+                compatibilityLane = defaultFabricCompatibilityMatrix().resolve(identity),
                 bindings = actionBindingsById,
             ),
         )
+    }
 
     override fun operationAdapters(clientId: String): DriverOperationAdapters {
         val adapters =
@@ -698,6 +704,18 @@ private fun String.toDriverActionStatus(): DriverActionStatus =
         else -> DriverActionStatus.FAILED
     }
 
+private fun DriverRuntimeMetadata.toCurrentLaneRuntimeIdentity(): FabricRuntimeIdentity =
+    FabricRuntimeIdentity(
+        gameVersion = FABRIC_COMPILED_MINECRAFT_VERSION,
+        loaderVersion = loaderVersion,
+        fabricApiVersion = FABRIC_COMPILED_API_VERSION,
+        mappingsFingerprint = mappings,
+        installedModsFingerprint = installedModsFingerprint,
+        registryFingerprint = registryFingerprint,
+        serverFeatureFingerprint = serverFeatureFingerprint,
+        permissionsFingerprint = permissionsFingerprint,
+    )
+
 internal fun interface FabricRuntimeMetadataProvider {
     fun runtimeMetadata(clientId: String): DriverRuntimeMetadata
 }
@@ -824,5 +842,7 @@ private fun fingerprint(
 private const val FABRIC_DRIVER_ID = "craftless-driver-fabric"
 private const val FABRIC_DRIVER_VERSION = "0.1.0-SNAPSHOT"
 private const val FABRIC_LOADER_ID = "fabricloader"
+private const val FABRIC_COMPILED_MINECRAFT_VERSION = "1.21.6"
+private const val FABRIC_COMPILED_API_VERSION = "0.128.2+1.21.6"
 private const val FABRIC_MAPPINGS_FINGERPRINT = "craftless-fabric-bindings"
 private const val FINGERPRINT_LENGTH = 16

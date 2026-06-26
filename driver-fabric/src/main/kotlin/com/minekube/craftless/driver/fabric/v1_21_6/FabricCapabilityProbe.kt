@@ -1,6 +1,7 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
+import com.minekube.craftless.driver.fabric.runtime.FabricCompatibilityLane
 import com.minekube.craftless.protocol.RuntimeAvailability
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import com.minekube.craftless.protocol.RuntimeEventNode
@@ -23,6 +24,7 @@ internal data class FabricCapabilityProbeContext(
     val modeId: String,
     val gateway: FabricClientGateway?,
     val runtimeMetadata: DriverRuntimeMetadata = DriverRuntimeMetadata.runtimeAdapter(),
+    val compatibilityLane: FabricCompatibilityLane? = null,
     val bindings: Map<String, FabricActionBinding> = emptyMap(),
 )
 
@@ -70,11 +72,13 @@ internal object FabricRuntimeMetadataCapabilityProbe : FabricCapabilityProbe {
                                 RuntimeSourceEvidence("registry", context.runtimeMetadata.registryFingerprint),
                                 RuntimeSourceEvidence("server-features", context.runtimeMetadata.serverFeatureFingerprint),
                                 RuntimeSourceEvidence("permissions", context.runtimeMetadata.permissionsFingerprint),
-                            ),
+                            ) + context.compatibilityLane.sourceEvidence(),
                     ),
                 ),
         )
 }
+
+private fun FabricCompatibilityLane?.sourceEvidence(): List<RuntimeSourceEvidence> = this?.sourceEvidence().orEmpty()
 
 internal object FabricRegistrySummaryCapabilityProbe : FabricCapabilityProbe {
     override fun discover(context: FabricCapabilityProbeContext): FabricCapabilityGraphFragment {

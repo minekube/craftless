@@ -1,5 +1,7 @@
 package com.minekube.craftless.driver.fabric.runtime
 
+import com.minekube.craftless.protocol.RuntimeSourceEvidence
+
 internal data class FabricCompatibilityMatrix(
     private val lanes: List<FabricCompatibilityLane>,
 ) {
@@ -64,6 +66,14 @@ internal data class FabricCompatibilityLane(
 
     fun matches(identity: FabricRuntimeIdentity): Boolean = identity.gameVersion == gameVersion
 
+    fun sourceEvidence(): List<RuntimeSourceEvidence> =
+        listOfNotNull(
+            RuntimeSourceEvidence("runtime-lane", id.sanitizedEvidenceCode()),
+            RuntimeSourceEvidence("runtime-provider", providerId.sanitizedEvidenceCode()),
+            RuntimeSourceEvidence("runtime-java", "java:$javaMajorVersion"),
+            unsupportedReason?.let { reason -> RuntimeSourceEvidence("runtime-support", reason) },
+        )
+
     companion object {
         fun unsupported(gameVersion: String): FabricCompatibilityLane =
             FabricCompatibilityLane(
@@ -119,5 +129,14 @@ private fun String.machineSuffix(): String =
         .replace(Regex("[^a-z0-9]+"), "-")
         .trim('-')
         .ifBlank { "unknown" }
+
+private fun String.sanitizedEvidenceCode(): String =
+    machineSuffix()
+        .replace(Regex("\\bfabric-?"), "")
+        .replace(Regex("\\bminecraft-?"), "")
+        .replace(Regex("\\byarn-?"), "")
+        .replace(Regex("\\bintermediary-?"), "")
+        .trim('-')
+        .ifBlank { "runtime" }
 
 private val machineCode = Regex("[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)*")

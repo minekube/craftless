@@ -182,6 +182,19 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric backend runtime graph includes sanitized compatibility lane evidence`() {
+        val backend = FabricDriverBackend.metadataOnly()
+
+        val runtime = backend.runtimeGraph("alice").resources.single { it.id == "runtime" }
+        val evidence = runtime.sourceEvidence.associate { it.kind to it.fingerprint }
+
+        assertEquals("current-lane", evidence["runtime-lane"])
+        assertEquals("current-lane", evidence["runtime-provider"])
+        assertEquals("java:21", evidence["runtime-java"])
+        assertTrue(evidence.values.none { value -> "fabric" in value || "minecraft" in value || "yarn" in value })
+    }
+
+    @Test
     fun `fabric real backend runtime metadata comes from runtime provider`() {
         val backend =
             FabricDriverBackend.real(

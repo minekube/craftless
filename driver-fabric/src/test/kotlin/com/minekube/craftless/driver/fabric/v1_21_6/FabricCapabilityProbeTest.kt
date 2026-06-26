@@ -2,6 +2,8 @@ package com.minekube.craftless.driver.fabric.v1_21_6
 
 import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
+import com.minekube.craftless.driver.fabric.runtime.FabricRuntimeIdentity
+import com.minekube.craftless.driver.fabric.runtime.defaultFabricCompatibilityMatrix
 import com.minekube.craftless.protocol.RuntimeAvailability
 import com.minekube.craftless.protocol.RuntimeAvailabilityState
 import com.minekube.craftless.protocol.RuntimeOperationNode
@@ -125,6 +127,58 @@ class FabricCapabilityProbeTest {
             runtime.sourceEvidence.map { it.kind }.toSet(),
         )
         assertTrue(runtime.sourceEvidence.none { it.fingerprint.contains("minecraft:") })
+    }
+
+    @Test
+    fun `runtime metadata probe emits sanitized compatibility lane evidence`() {
+        val lane =
+            defaultFabricCompatibilityMatrix()
+                .resolve(
+                    FabricRuntimeIdentity(
+                        gameVersion = "26.2",
+                        loaderVersion = "unverified",
+                        fabricApiVersion = "unverified",
+                        mappingsFingerprint = "unverified",
+                        installedModsFingerprint = "mods:test",
+                        registryFingerprint = "registries:test",
+                        serverFeatureFingerprint = "server-features:test",
+                        permissionsFingerprint = "permissions:test",
+                    ),
+                )
+        val graph =
+            defaultFabricCapabilityDiscovery(probes = listOf(FabricRuntimeMetadataCapabilityProbe))
+                .discover(
+                    FabricCapabilityProbeContext(
+                        clientId = "alice",
+                        modeId = "real-client",
+                        gateway = null,
+                        compatibilityLane = lane,
+                    ),
+                )
+
+        val evidence = graph.resources.single { it.id == "runtime" }.sourceEvidence
+
+        assertEquals(
+            setOf(
+                "installed-mods",
+                "registry",
+                "server-features",
+                "permissions",
+                "runtime-lane",
+                "runtime-provider",
+                "runtime-support",
+                "runtime-java",
+            ),
+            evidence.map { it.kind }.toSet(),
+        )
+        assertTrue(evidence.any { it.kind == "runtime-lane" && it.fingerprint == "simulated-26" })
+        assertTrue(evidence.any { it.kind == "runtime-provider" && it.fingerprint == "simulated-provider" })
+        assertTrue(evidence.any { it.kind == "runtime-support" && it.fingerprint == "runtime-lane-missing" })
+        assertTrue(
+            evidence.none { item ->
+                listOf("fabric", "minecraft", "yarn", "intermediary").any { token -> token in item.fingerprint }
+            },
+        )
     }
 
     @Test
