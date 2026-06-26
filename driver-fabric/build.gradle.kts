@@ -88,3 +88,78 @@ tasks.register<JavaExec>("fabricClientSmoke") {
         }
     }
 }
+
+tasks.register<JavaExec>("fabricFinalGameplay") {
+    group = "verification"
+    description = "Opt-in final Craftless gameplay run. Set CRAFTLESS_FINAL_GAMEPLAY=1 to launch the local server and Fabric client."
+    dependsOn(":testkit:classes")
+    classpath = testkitSourceSets.named("main").get().runtimeClasspath
+    mainClass.set("com.minekube.craftless.testkit.LocalMinecraftServerSmokeKt")
+
+    val finalGameplayEnabled =
+        System.getenv("CRAFTLESS_FINAL_GAMEPLAY") == "1" ||
+            System.getenv("CRAFTLESS_FINAL_GAMEPLAY").equals("true", ignoreCase = true)
+    environment("CRAFTLESS_FINAL_GAMEPLAY", System.getenv("CRAFTLESS_FINAL_GAMEPLAY").orEmpty())
+
+    if (finalGameplayEnabled) {
+        val rootProjectPath =
+            rootProject.projectDir.absolutePath
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+        environment("CRAFTLESS_FABRIC_CLIENT_SMOKE", "1")
+        environment(
+            "CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT",
+            layout.buildDirectory
+                .dir("craftless-final-gameplay")
+                .get()
+                .asFile
+                .absolutePath,
+        )
+        environment(
+            "CRAFTLESS_SMOKE_ACTION_COMMAND_JSON",
+            System.getenv("CRAFTLESS_SMOKE_ACTION_COMMAND_JSON")
+                ?: """["mise","-C","$rootProjectPath","exec","--","gradle","-p","$rootProjectPath",":driver-fabric:runClient"]""",
+        )
+        environment(
+            "CRAFTLESS_FABRIC_SMOKE_CHAT_MESSAGE",
+            System.getenv("CRAFTLESS_FABRIC_SMOKE_CHAT_MESSAGE")
+                ?: "hello from Craftless final gameplay",
+        )
+        environment(
+            "CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE",
+            System.getenv("CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE")
+                ?: "hello from Craftless final gameplay",
+        )
+        environment(
+            "CRAFTLESS_SMOKE_PROVISION_ITEM_ID",
+            System.getenv("CRAFTLESS_SMOKE_PROVISION_ITEM_ID") ?: "minecraft:iron_sword",
+        )
+        environment(
+            "CRAFTLESS_SMOKE_PROVISION_ITEM_NAME",
+            System.getenv("CRAFTLESS_SMOKE_PROVISION_ITEM_NAME") ?: "Iron Sword",
+        )
+        environment(
+            "CRAFTLESS_SMOKE_PROVISION_ITEM_COUNT",
+            System.getenv("CRAFTLESS_SMOKE_PROVISION_ITEM_COUNT") ?: "1",
+        )
+        environment(
+            "CRAFTLESS_FABRIC_SMOKE_REQUIRE_EQUIP_ITEM",
+            System.getenv("CRAFTLESS_FABRIC_SMOKE_REQUIRE_EQUIP_ITEM") ?: "1",
+        )
+        environment(
+            "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS",
+            System.getenv("CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS") ?: "3000",
+        )
+        environment(
+            "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS",
+            System.getenv("CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS") ?: "600000",
+        )
+    }
+
+    doFirst {
+        if (finalGameplayEnabled) {
+            println("Final gameplay requested; artifacts will be written under driver-fabric/build/craftless-final-gameplay/artifacts")
+            println("Use macOS say when the automated sequence is ready for Robin to join and confirm in Minecraft chat.")
+        }
+    }
+}

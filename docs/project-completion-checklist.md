@@ -141,9 +141,11 @@ Verification:
 
 ## Phase 7: Final Gameplay Completion
 
-- [ ] Final gameplay runbook exists in `docs/final-gameplay-runbook.md`.
-- [ ] Final gameplay Gradle task or run command launches/attaches a real
-  Craftless-controlled Fabric client and records artifacts.
+- [x] Final gameplay runbook exists in `docs/final-gameplay-runbook.md`.
+- [x] Final gameplay Gradle task or run command exists for launching/attaching
+  a real Craftless-controlled Fabric client and recording artifacts. Task
+  registration evidence: `mise exec -- gradle :driver-fabric:tasks --group
+  verification` lists `fabricFinalGameplay`.
 - [ ] Craftless joins a server, fetches graph-backed OpenAPI, subscribes to SSE,
   writes chat, observes world/inventory state, equips a tool, mines, places or
   builds a small structure, and records evidence.

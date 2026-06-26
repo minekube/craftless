@@ -239,6 +239,32 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric final gameplay plan gates completion on graph streams artifacts and robin chat`() {
+        val plan = FabricFinalGameplayPlan.default()
+
+        assertEquals("CRAFTLESS_FINAL_GAMEPLAY", plan.environmentGate)
+        assertEquals("1.21.6", plan.minecraftVersion)
+        assertEquals(listOf(":driver-fabric:fabricFinalGameplay"), plan.gradleTasks)
+        assertEquals("driver-fabric/build/craftless-final-gameplay/artifacts", plan.artifactsDirectory)
+        assertTrue(plan.steps.any { it.kind == FabricFinalGameplayStepKind.START_LOCAL_SERVER })
+        assertTrue(plan.steps.any { it.kind == FabricFinalGameplayStepKind.LAUNCH_VISIBLE_FABRIC_CLIENT })
+        assertTrue(plan.steps.any { it.kind == FabricFinalGameplayStepKind.FETCH_GRAPH_OPENAPI })
+        assertTrue(plan.steps.any { it.kind == FabricFinalGameplayStepKind.SUBSCRIBE_SSE })
+        assertTrue(plan.steps.any { it.kind == FabricFinalGameplayStepKind.INVOKE_DISCOVERED_GAMEPLAY })
+        assertTrue(plan.steps.any { it.kind == FabricFinalGameplayStepKind.INVITE_ROBIN })
+        assertTrue(plan.steps.any { it.kind == FabricFinalGameplayStepKind.WAIT_FOR_ROBIN_CHAT_CONFIRMATION })
+        assertTrue(plan.artifacts.contains("client-openapi-connected.json"))
+        assertTrue(plan.artifacts.contains("client-actions-connected.json"))
+        assertTrue(plan.artifacts.contains("client-resources-connected.json"))
+        assertTrue(plan.artifacts.contains("client-events.jsonl"))
+        assertTrue(plan.artifacts.contains("gameplay-results.jsonl"))
+        assertTrue(plan.artifacts.contains("server-evidence.jsonl"))
+        assertTrue(plan.completionGates.any { it.contains("Robin", ignoreCase = true) && it.contains("Minecraft chat", ignoreCase = true) })
+        assertTrue(plan.completionGates.any { it.contains("SSE", ignoreCase = true) })
+        assertTrue(plan.completionGates.none { it.contains("static fallback", ignoreCase = true) && !it.contains("no", ignoreCase = true) })
+    }
+
+    @Test
     fun `fabric backend schedules generated actions through generic client execution`() {
         val gateway = RecordingFabricClientGateway()
         val backend = FabricDriverBackend.real(gateway)
@@ -1031,6 +1057,19 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric smoke controller can hold the final gameplay session open`() {
+        val controller =
+            FabricClientSmokeController.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
+                    "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS" to "60000",
+                ),
+            )
+
+        assertEquals(60_000.milliseconds, controller.holdAfterActions)
+    }
+
+    @Test
     fun `fabric smoke controller invokes generated chat and movement through daemon api and writes artifacts`() {
         val gateway = RecordingFabricClientGateway()
         val backend = smokeBackend(gateway)
@@ -1173,6 +1212,10 @@ class FabricDriverModuleTest {
         assertTrue(Files.readString(artifactsDir.resolve("runtime-metadata.json")).contains("craftless-driver-fabric"))
         assertTrue(Files.readString(artifactsDir.resolve("client-events.jsonl")).contains("hello from fabric smoke"))
         assertTrue(Files.readString(artifactsDir.resolve("client-events.jsonl")).contains("player.move"))
+        val eventStream = Files.readString(artifactsDir.resolve("client-events-stream.sse"))
+        assertTrue(eventStream.contains("event: player.chat"))
+        assertTrue(eventStream.contains("event: player.move"))
+        assertTrue(eventStream.contains("data:"))
     }
 
     @Test

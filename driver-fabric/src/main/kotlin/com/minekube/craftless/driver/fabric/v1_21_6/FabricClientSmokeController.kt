@@ -44,10 +44,12 @@ data class FabricClientSmokeController(
     val requireEquipItem: Boolean = false,
     val connectTimeout: Duration = 30_000.milliseconds,
     val startupSettleDelay: Duration = 0.milliseconds,
+    val holdAfterActions: Duration = 0.milliseconds,
     val artifactsDir: Path? = null,
 ) {
     init {
         require(!startupSettleDelay.isNegative()) { "fabric smoke startup settle delay must not be negative" }
+        require(!holdAfterActions.isNegative()) { "fabric smoke hold after actions delay must not be negative" }
     }
 
     fun start(
@@ -224,6 +226,11 @@ data class FabricClientSmokeController(
                     }
                     val events = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/events"))
                     writeJsonArrayLinesArtifact("client-events.jsonl", events)
+                    val eventStream = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/events:stream"))
+                    writeArtifact("client-events-stream.sse", eventStream)
+                    if (holdAfterActions.isPositive()) {
+                        delay(holdAfterActions)
+                    }
                     http.post(api.url("/clients/$SMOKE_CLIENT_ID:stop")).expectSuccess()
                 }
             }
@@ -266,6 +273,7 @@ data class FabricClientSmokeController(
         private const val REQUIRE_EQUIP_ITEM = "CRAFTLESS_FABRIC_SMOKE_REQUIRE_EQUIP_ITEM"
         private const val CONNECT_TIMEOUT = "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS"
         private const val STARTUP_SETTLE = "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS"
+        private const val HOLD_AFTER_ACTIONS = "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS"
         private const val ARTIFACTS_DIR = "CRAFTLESS_SMOKE_ARTIFACTS_DIR"
         private const val SMOKE_CLIENT_ID = "fabric-smoke"
         private const val SMOKE_PROFILE = "CraftlessSmoke"
@@ -286,6 +294,7 @@ data class FabricClientSmokeController(
                 requireEquipItem = env.isEnabled(REQUIRE_EQUIP_ITEM),
                 connectTimeout = (env[CONNECT_TIMEOUT]?.toLongStrict(CONNECT_TIMEOUT) ?: 30_000).milliseconds,
                 startupSettleDelay = (env[STARTUP_SETTLE]?.toLongStrict(STARTUP_SETTLE) ?: 0).milliseconds,
+                holdAfterActions = (env[HOLD_AFTER_ACTIONS]?.toLongStrict(HOLD_AFTER_ACTIONS) ?: 0).milliseconds,
                 artifactsDir = env[ARTIFACTS_DIR]?.takeIf { it.isNotBlank() }?.let(Path::of),
             )
 
