@@ -610,10 +610,13 @@ Verification:
 - [x] Java runtime requirements are derived from Minecraft version metadata,
   including Java 25 for Minecraft `26.2`. Evidence:
   `mise exec -- gradle :daemon:test --tests '*JavaRuntimeRequirementResolverTest*'`.
-- [ ] A Craftless-owned resolver validates and selects explicit, managed,
+- [x] A Craftless-owned resolver validates and selects explicit, managed,
   mise-discovered, and system Java candidates through one internal interface.
-- [ ] `mise` is an optional Java provider for product runtime selection, not
-  the only way users can run compatible Minecraft clients.
+  Evidence: `mise exec -- gradle :daemon:test --tests '*JavaRuntimeResolverTest*'`.
+- [x] `mise` is an optional Java provider for product runtime selection, not
+  the only way users can run compatible Minecraft clients. Evidence:
+  `JavaRuntimeResolverTest` covers configured, managed-cache, mise, and system
+  candidate paths without requiring `mise` on `PATH`.
 - [ ] Cache manifests and launch plans record selected Java runtime evidence
   and use the selected executable.
 - [ ] Supervisor API and CLI can list or resolve Java runtimes without adding
