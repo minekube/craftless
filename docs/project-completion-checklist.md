@@ -175,6 +175,8 @@ Verification:
   Baritone/SwarmBot leakage.
 - [x] Runtime graph discovery can expose navigation/task affordances from the
   running client without static gameplay shortcut descriptors.
+- [x] Generic navigation/task graph adapter keys are wired through
+  `DriverOperationAdapters` without adding static driver gameplay methods.
 - [ ] Optional Baritone integration is internal backend evidence only; public
   OpenAPI remains Craftless-owned.
 - [ ] A no-cheat final gameplay harness rejects server-side item provisioning

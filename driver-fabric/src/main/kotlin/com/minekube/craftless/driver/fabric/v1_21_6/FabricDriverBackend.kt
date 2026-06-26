@@ -58,27 +58,28 @@ class FabricDriverBackend private constructor(
 
     override fun operationAdapters(clientId: String): DriverOperationAdapters {
         val adapters =
-            discoveredActions(clientId)
-                .mapNotNull { discoveredAction ->
-                    val binding = discoveredAction.binding ?: return@mapNotNull null
-                    discoveredAction.descriptor.id.fabricOperationAdapterKey() to
-                        DriverOperationAdapter { invocation ->
-                            binding.invoke(
-                                clientId = invocation.clientId,
-                                invocation =
-                                    DriverActionInvocation(
-                                        action = invocation.operation.id,
-                                        arguments = invocation.arguments,
-                                    ),
-                                context =
-                                    FabricActionContext(
-                                        modeId = mode.id,
-                                        gateway = gateway,
-                                        record = ::record,
-                                    ),
-                            )
-                        }
-                }.toMap()
+            navigationTaskOperationAdapters() +
+                discoveredActions(clientId)
+                    .mapNotNull { discoveredAction ->
+                        val binding = discoveredAction.binding ?: return@mapNotNull null
+                        discoveredAction.descriptor.id.fabricOperationAdapterKey() to
+                            DriverOperationAdapter { invocation ->
+                                binding.invoke(
+                                    clientId = invocation.clientId,
+                                    invocation =
+                                        DriverActionInvocation(
+                                            action = invocation.operation.id,
+                                            arguments = invocation.arguments,
+                                        ),
+                                    context =
+                                        FabricActionContext(
+                                            modeId = mode.id,
+                                            gateway = gateway,
+                                            record = ::record,
+                                        ),
+                                )
+                            }
+                    }.toMap()
         return DriverOperationAdapters(adapters)
     }
 
@@ -138,6 +139,21 @@ class FabricDriverBackend private constructor(
     private fun record(event: String) {
         events += event
     }
+
+    private fun navigationTaskOperationAdapters(): Map<String, DriverOperationAdapter> =
+        mapOf(
+            "navigation.default" to unsupportedGraphOperationAdapter(),
+            "task.executor" to unsupportedGraphOperationAdapter(),
+        )
+
+    private fun unsupportedGraphOperationAdapter(): DriverOperationAdapter =
+        DriverOperationAdapter { invocation ->
+            DriverActionResult(
+                action = invocation.operation.id,
+                status = DriverActionStatus.UNSUPPORTED,
+                message = invocation.operation.availability.reason ?: "adapter-unavailable",
+            )
+        }
 
     private enum class Mode(
         val id: String,

@@ -232,7 +232,7 @@ Expected: PASS.
 - Modify: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverBackend.kt`
 - Test: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricNavigationDiscoveryTest.kt`
 
-- [ ] **Step 1: Write failing adapter wiring tests**
+- [x] **Step 1: Write failing adapter wiring tests**
 
 Assert navigation operations are wired through existing
 `DriverOperationAdapter` instances and that no action-specific driver methods
@@ -246,7 +246,7 @@ assertFalse("killCow" in methodNames)
 assertTrue(backend.operationAdapters("alice").contains("navigation.plan"))
 ```
 
-- [ ] **Step 2: Run focused test and verify RED**
+- [x] **Step 2: Run focused test and verify RED**
 
 Run:
 
@@ -256,7 +256,7 @@ mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.f
 
 Expected: FAIL until navigation operation adapters are registered.
 
-- [ ] **Step 3: Implement adapter wiring**
+- [x] **Step 3: Implement adapter wiring**
 
 Use the existing generic adapter shape:
 
@@ -272,7 +272,7 @@ DriverOperationAdapters(
 
 Return `DriverActionResult` values and keep the public invocation path generic.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run:
 

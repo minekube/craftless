@@ -1,9 +1,13 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
+import com.minekube.craftless.driver.api.DriverActionStatus
+import com.minekube.craftless.driver.api.DriverOperationInvocation
+import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.RuntimeAvailabilityState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class FabricNavigationDiscoveryTest {
@@ -58,6 +62,34 @@ class FabricNavigationDiscoveryTest {
         assertEquals("pathfinder-unavailable", navigation.availability.reason)
         assertEquals(RuntimeAvailabilityState.UNAVAILABLE, operation.availability.state)
         assertEquals("pathfinder-unavailable", operation.availability.reason)
+    }
+
+    @Test
+    fun `fabric backend wires navigation task graph adapter keys without static gameplay methods`() {
+        val backend = FabricDriverBackend.metadataOnly()
+        val graph = backend.runtimeGraph("alice")
+        val adapters = backend.operationAdapters("alice")
+        val navigationPlan = assertNotNull(graph.operations.singleOrNull { it.id == "navigation.plan" })
+        val driverMethodNames =
+            DriverSession::class.java.methods
+                .map { it.name }
+                .toSet()
+        val result =
+            adapters.invoke(
+                DriverOperationInvocation(
+                    clientId = "alice",
+                    operation = navigationPlan,
+                ),
+            )
+
+        assertEquals("navigation.plan", result.action)
+        assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
+        assertEquals("pathfinder-unavailable", result.message)
+        assertTrue("navigation.default" in adapters.adapterKeys())
+        assertTrue("task.executor" in adapters.adapterKeys())
+        assertFalse("goto" in driverMethodNames)
+        assertFalse("mine" in driverMethodNames)
+        assertFalse("killCow" in driverMethodNames)
     }
 }
 
