@@ -197,14 +197,17 @@ Verification:
   process-external `:testkit:publicAgentGameplay` entrypoint, and final-harness
   artifact names `public-agent-gameplay-results.jsonl` and
   `public-agent-state.jsonl`. The Fabric final harness now injects its live
-  daemon URL into that external runner while the client is connected; completing
-  the live survival proof through generated primitives is still open. Latest
-  recent no-hold live evidence shows the public agent can mine, recover
-  material into public inventory state, equip it, place/interact with a block
-  through generated `world.block.interact`, and reach generated
-  `entity.attack`. The latest no-hold run is still seed-sensitive and blocked
-  earlier at `insufficient-public-evidence:navigation.follow.succeeded` while
-  navigating to a discovered material target after bounded exploration.
+  daemon URL into that external runner while the client is connected. Latest
+  no-hold live evidence from
+  `driver-fabric/build/craftless-final-gameplay/artifacts/public-agent-gameplay-results.jsonl`
+  shows the public agent used generated `world.block.query`,
+  `navigation.plan`, `navigation.follow`, `world.block.break`, `entity.query`,
+  `inventory.query`, `inventory.equip`, `world.block.interact`,
+  `player.look`, and `entity.attack`; it mined a log, recovered material into
+  public inventory state, equipped it, placed/interacted with a block, attacked
+  passive entities, and finally observed `entity.handle-11` with `alive:false`
+  plus `Feather` and `Raw Chicken` drops. The final Robin-observed gameplay
+  gate is still open.
 - [ ] Robin joins or observes the server session after a macOS `say` prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.
@@ -239,10 +242,12 @@ Verification:
 - [!] Craftless obtains weapon materials through ordinary survival gameplay,
   crafts or obtains a weapon legitimately, finds a cow, navigates to it without
   manual movement, kills it, writes chat, and records SSE/artifact evidence.
-  Current evidence rejects the earlier false success: stricter live runs now
-  require inventory proof and currently fail at `material-collect-timeout`, with
-  post-task `inventory.query` showing no collected logs, weapon, beef, or
-  leather.
+  Current evidence rejects the earlier false success and server-provisioned
+  item path. The external public-agent no-hold smoke now proves ordinary
+  material collection, placement, chat evidence, generated navigation, and
+  generic combat outcome evidence without static scenario APIs; it still has
+  not proven a legitimately crafted/obtained weapon, the exact cow/beef/leather
+  acceptance variant, or Robin's in-game completion confirmation.
 - [!] The final survival proof is reproduced by an external public-agent runner
   over generated OpenAPI/SSE/CLI/skills, not by hard-coding the scenario as a
   durable public `task.survival.*` API. The previous
@@ -288,9 +293,10 @@ Verification:
 - [x] A higher-level public agent policy starts using these generic primitives
   to query log material sources and derive navigation goals without adding
   scenario actions.
-- [ ] Public-agent policy continues from navigation into mining/collection,
-  inventory/crafting/equip, combat, chat, and final survival evidence with
-  Robin.
+- [~] Public-agent policy continues from navigation into mining/collection,
+  inventory/equip, placement, chat, and generic combat evidence. Crafting,
+  exact final survival acceptance, and Robin's in-game confirmation remain
+  open.
 
 Verification:
 
@@ -406,10 +412,10 @@ Verification:
   hotbar slot from public `inventory.query` state, invokes `inventory.equip`,
   and verifies `selected-slot` with a follow-up `inventory.query`. Focused
   public-agent tests cover success and selected-slot failure paths.
-- [!] Live no-hold evidence is blocked before equip by
-  later survival primitives, not by material equip. Current live no-hold
-  evidence reaches `inventory.equip` for collected `Oak Log` in slot 1 and
-  verifies follow-up `inventory.query` with `selected-slot = 1`.
+- [x] Live no-hold evidence reaches `inventory.equip` for collected material
+  and verifies follow-up `inventory.query` selected-slot state before
+  placement. The final project still remains open on broader survival
+  acceptance and Robin confirmation, not on material equip.
 
 Verification:
 
@@ -428,10 +434,9 @@ Verification:
 - [x] Live no-hold evidence shows sustained block break can change an ordinary
   survival block. Current evidence: `world.block.break` returned
   `changed = true` with `ticks = 61` for `world.block:64:81:-287`.
-- [!] Inventory proof after the changed block is still blocked by public pickup
-  and later survival breadth in some seeds; the generic block break primitive
-  itself is no longer the current blocker. Current live no-hold evidence shows
-  material proof and equip after a changed block path.
+- [x] Current live no-hold evidence shows material proof and equip after a
+  changed block path. The generic block break primitive is no longer the
+  current blocker.
 
 Verification:
 
@@ -448,13 +453,12 @@ Verification:
   `world.block.query` data. Focused tests cover lower-target selection.
 - [x] Public-agent runner composes pickup movement with `navigation.plan` and
   `navigation.follow` after `world.block.break` reports `changed = true`.
-- [~] Live no-hold evidence is seed-sensitive. Recent evidence reaches
-  inventory material proof after pickup movement/drop perception, including
-  `inventory.query` with an `Oak Log`, followed by generated `inventory.equip`
-  and selected-slot verification before placement. The latest run blocked
-  earlier at `insufficient-public-evidence:navigation.follow.succeeded` while
-  navigating to a discovered material target, so material target reselection or
-  stronger reachability evidence remains open.
+- [x] Live no-hold evidence reaches inventory material proof after pickup
+  movement/drop perception, including `inventory.query` with collected log
+  material, followed by generated `inventory.equip`, selected-slot
+  verification, placement, and combat progression. Focused regression evidence
+  now covers continuing bounded material exploration when navigation to an
+  initially discovered material target fails.
 
 Verification:
 
@@ -470,11 +474,9 @@ Verification:
   movement, optionally navigates to observed material drop positions, and still
   verifies pickup through `inventory.query`. Focused tests cover public material
   drop navigation.
-- [~] Live no-hold evidence runs `entity.query` after material break, uses
+- [x] Live no-hold evidence runs `entity.query` after material break, uses
   public drop perception when block-target pickup navigation is insufficient,
-  and can reach inventory material proof without a pickup shortcut. The latest
-  run did not reach drop perception because it blocked earlier at material
-  target navigation.
+  and reaches inventory material proof without a pickup shortcut.
 
 Verification:
 
@@ -489,12 +491,13 @@ Verification:
 - [x] Public-agent runner uses shorter overlapping generated-navigation
   waypoints after an empty local `world.block.query`. Focused tests verify the
   first exploration waypoint is 24 blocks rather than the previous 48.
-- [~] Live no-hold evidence progressed through the material path in prior runs
-  without the previous exploration timeout, with `world.block.query`,
+- [x] Live no-hold evidence progressed through the material path without the
+  previous exploration timeout, with `world.block.query`,
   `navigation.plan/follow`, `world.block.break`, `entity.query`,
-  `inventory.query`, `inventory.equip`, and selected-slot verification. The
-  latest overall public-agent state is blocked earlier at material target
-  navigation after bounded exploration.
+  `inventory.query`, `inventory.equip`, selected-slot verification,
+  `world.block.interact`, and generic combat progression. Focused regression
+  evidence covers retrying material exploration when a discovered target is not
+  navigable.
 
 Verification:
 
@@ -518,15 +521,18 @@ Verification:
   without that evidence it blocks with
   `insufficient-public-evidence:entity.attack.outcome`.
 - [x] Focused driver and public-agent tests pass.
-- [~] Recent live no-hold evidence reaches generic attack invocation through
+- [x] Recent live no-hold evidence reaches generic attack invocation through
   generated `entity.attack` after material pickup and placement. Focused
   public-agent tests require post-attack entity or inventory proof, bounded
   generated-navigation exploration when no target is visible, vertically
   reachable target preference, fresh close-range target revalidation before
   attack, a bounded pause between unproven attacks, and target refresh between
-  unproven attacks. Combat/loot proof remains incomplete; the latest live run
-  blocked earlier at material target navigation before combat refresh behavior
-  could be re-exercised.
+  unproven attacks. Latest live no-hold evidence records generated combat
+  outcome proof: `entity.attack` hit a passive entity, a follow-up
+  `entity.query` reported `entity.handle-11` with `alive:false`, and public
+  entity perception showed `Feather` and `Raw Chicken` drops. The final
+  project remains open on exact final survival acceptance and Robin
+  confirmation.
 
 Verification:
 
@@ -552,9 +558,8 @@ Verification:
   `world.block.interact` path accepts a public block handle plus side and
   reports `accepted = true` and `changed = true`. This clears the previous
   `insufficient-public-evidence:world.block.interact.changed` blocker, but it
-  is not final project completion because the latest overall public-agent run
-  blocks earlier at material target navigation and Robin-confirmed multiplayer
-  gameplay is still outstanding.
+  is not final project completion because Robin-confirmed multiplayer gameplay
+  is still outstanding.
 
 Verification:
 

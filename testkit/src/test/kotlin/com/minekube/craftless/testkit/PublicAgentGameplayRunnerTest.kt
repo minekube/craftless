@@ -474,6 +474,39 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner does not attack public entity target that remains outside generated attack range`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            unreachableCloseCowEntityQueryResponse,
+                        ),
+                    playerQueryResponse =
+                        """
+                        {
+                          "action": "player.query",
+                          "status": "ACCEPTED",
+                          "data": {
+                            "position": {"x": 25.5, "y": 70.0, "z": -300.8}
+                          }
+                        }
+                        """.trimIndent(),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.BLOCKED, result.state)
+            assertEquals("insufficient-public-evidence:entity.query.attack-target.reachable", result.blocker)
+            assertFalse(result.actionLog.map { it.action }.contains("entity.attack"))
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner invokes targetable block interact when generated descriptor supports target`() =
         runBlocking {
             val server =
@@ -851,6 +884,50 @@ class PublicAgentGameplayRunnerTest {
             assertTrue(server.requestBodies.count { it.contains(""""category":"log"""") } >= 2)
             assertTrue(server.requestBodies.any { it.contains(""""x":35.0""") })
             assertFalse(server.requestBodies.any { it.contains(""""x":59.0""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner continues material exploration when discovered material target navigation fails`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog(),
+                    blockQueryResponses =
+                        listOf(
+                            EMPTY_BLOCK_QUERY_RESPONSE,
+                            unreachableLogBlockQueryResponse,
+                            reachableExplorationLogBlockQueryResponse,
+                        ),
+                    navigationFollowResponses =
+                        listOf(
+                            """{"action":"navigation.follow","status":"ACCEPTED","data":{"task-id":"task:navigation:public-agent","state":"succeeded"}}""",
+                            """
+                            {
+                              "action": "navigation.follow",
+                              "status": "FAILED",
+                              "message": "navigation-did-not-start",
+                              "data": {
+                                "task-id": "task:navigation:public-agent",
+                                "state": "failed"
+                              }
+                            }
+                            """.trimIndent(),
+                            """{"action":"navigation.follow","status":"ACCEPTED","data":{"task-id":"task:navigation:public-agent","state":"succeeded"}}""",
+                            """{"action":"navigation.follow","status":"ACCEPTED","data":{"task-id":"task:navigation:public-agent","state":"succeeded"}}""",
+                            """{"action":"navigation.follow","status":"ACCEPTED","data":{"task-id":"task:navigation:public-agent","state":"succeeded"}}""",
+                        ),
+                    playerQueryResponse =
+                        """{"action":"player.query","status":"ACCEPTED","data":{"position":{"x":80.0,"y":65.0,"z":-80.0}}}""",
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(server.requestBodies.any { it.contains(""""handle":"world.block:24:64:-12"""") })
+            assertFalse(server.requestBodies.any { it.contains(""""target":{"handle":"world.block:62:77:-286"""") })
+            assertTrue(result.actionLog.map { it.action }.count { it == "world.block.query" } >= 3)
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 
@@ -1267,6 +1344,27 @@ private val reachableMovedCowEntityQueryResponse =
     }
     """.trimIndent()
 
+private val unreachableCloseCowEntityQueryResponse =
+    """
+    {
+      "action": "entity.query",
+      "status": "ACCEPTED",
+      "data": {
+        "origin": {"x": 25.5, "y": 70.0, "z": -300.8},
+        "entities": [
+          {
+            "handle": "entity.handle-42",
+            "label": "Cow",
+            "category": "passive",
+            "alive": true,
+            "distance": 6.0,
+            "position": {"x": 22.5, "y": 73.0, "z": -296.5}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
 private val deadMovedCowEntityQueryResponse =
     """
     {
@@ -1417,6 +1515,46 @@ private val layeredLogBlockQueryResponse =
             "category": "log",
             "distance": 6.0,
             "position": {"x": 13, "y": 63, "z": -5}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val unreachableLogBlockQueryResponse =
+    """
+    {
+      "action": "world.block.query",
+      "status": "ACCEPTED",
+      "data": {
+        "count": 1,
+        "blocks": [
+          {
+            "handle": "world.block:62:77:-286",
+            "category": "log",
+            "replaceable": false,
+            "distance": 29.8,
+            "position": {"x": 62, "y": 77, "z": -286}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val reachableExplorationLogBlockQueryResponse =
+    """
+    {
+      "action": "world.block.query",
+      "status": "ACCEPTED",
+      "data": {
+        "count": 1,
+        "blocks": [
+          {
+            "handle": "world.block:24:64:-12",
+            "category": "log",
+            "replaceable": false,
+            "distance": 4.0,
+            "position": {"x": 24, "y": 64, "z": -12}
           }
         ]
       }

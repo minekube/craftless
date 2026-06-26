@@ -194,18 +194,24 @@ class PublicAgentGameplayRunner(
             target.position?.let { position ->
                 navigateTo(position = position, radius = 2.5)
                     ?.let { blocker -> return FocusedAttackTarget(blocker = blocker) }
-                queryAttackTarget(radius = 4.5)?.let { closeTarget ->
-                    focusedTarget = closeTarget
-                }
             }
-            val focusedPosition =
-                focusedTarget.position
-                    ?: return FocusedAttackTarget(blocker = "insufficient-public-evidence:entity.query.attack-target")
             val combatPlayer =
                 invokeGenerated("player.query")
             val combatPlayerPosition =
                 combatPlayer.responseObject()?.playerPosition()
                     ?: return FocusedAttackTarget(blocker = "insufficient-public-evidence:player.query.position")
+            queryAttackTarget(radius = ATTACK_MAX_DISTANCE)?.let { closeTarget ->
+                if (!closeTarget.isReachableForAttack(combatPlayerPosition)) {
+                    return FocusedAttackTarget(blocker = "insufficient-public-evidence:entity.query.attack-target.reachable")
+                }
+                focusedTarget = closeTarget
+            }
+            if (!focusedTarget.isReachableForAttack(combatPlayerPosition)) {
+                return FocusedAttackTarget(blocker = "insufficient-public-evidence:entity.query.attack-target.reachable")
+            }
+            val focusedPosition =
+                focusedTarget.position
+                    ?: return FocusedAttackTarget(blocker = "insufficient-public-evidence:entity.query.attack-target")
             focusedPosition.toCraftlessPoint()?.let { targetPoint ->
                 val combatLook = combatPlayerPosition.lookAt(targetPoint)
                 invokeGenerated(
@@ -220,30 +226,48 @@ class PublicAgentGameplayRunner(
             return FocusedAttackTarget(target = focusedTarget)
         }
 
+        suspend fun reachableMaterialTarget(): FocusedBlockTarget {
+            var blocker: String? = null
+
+            suspend fun tryMaterialTarget(target: PublicBlockTarget?): FocusedBlockTarget? {
+                target ?: return null
+                val navigationBlocker = navigateTo(position = target.position, radius = 2.0)
+                if (navigationBlocker == null) {
+                    return FocusedBlockTarget(target = target)
+                }
+                blocker = navigationBlocker
+                return null
+            }
+
+            tryMaterialTarget(queryMaterialTarget())?.let { target -> return target }
+
+            val player = invokeGenerated("player.query")
+            val origin =
+                player.responseObject()?.playerPosition()
+                    ?: return FocusedBlockTarget(blocker = "insufficient-public-evidence:player.query.position")
+            for (waypoint in origin.explorationWaypoints()) {
+                val explorationBlocker = navigateTo(position = waypoint.toJsonObject(), radius = 4.0)
+                if (explorationBlocker != null) {
+                    blocker = explorationBlocker
+                    continue
+                }
+                tryMaterialTarget(queryMaterialTarget())?.let { target -> return target }
+            }
+
+            return FocusedBlockTarget(blocker = blocker ?: "insufficient-public-evidence:world.block.query.log")
+        }
+
         try {
             invokeGenerated("inventory.query")
-            var materialTarget = queryMaterialTarget()
-            if (materialTarget == null) {
-                val player = invokeGenerated("player.query")
-                val origin =
-                    player.responseObject()?.playerPosition()
-                        ?: return blockedAndWrite("insufficient-public-evidence:player.query.position")
-                for (waypoint in origin.explorationWaypoints()) {
-                    navigateTo(position = waypoint.toJsonObject(), radius = 4.0)
-                        ?.let { blocker -> return blockedAndWrite(blocker) }
-                    materialTarget = queryMaterialTarget()
-                    if (materialTarget != null) break
-                }
-            }
+            val materialTarget = reachableMaterialTarget()
+            materialTarget.blocker?.let { blocker -> return blockedAndWrite(blocker) }
             val discoveredMaterialTarget =
-                materialTarget
+                materialTarget.target
                     ?: return blockedAndWrite("insufficient-public-evidence:world.block.query.log")
             val discoveredMaterialPosition = discoveredMaterialTarget.position
             val materialPoint =
                 discoveredMaterialPosition.toCraftlessPoint()
                     ?: return blockedAndWrite("insufficient-public-evidence:world.block.query.position")
-            navigateTo(position = discoveredMaterialPosition, radius = 2.0)
-                ?.let { blocker -> return blockedAndWrite(blocker) }
             val player =
                 invokeGenerated("player.query")
             val playerPosition =
@@ -419,7 +443,7 @@ class PublicAgentGameplayRunner(
                                             put("handle", JsonPrimitive(currentAttackTarget.handle))
                                         },
                                     )
-                                    put("max-distance", JsonPrimitive(4.5))
+                                    put("max-distance", JsonPrimitive(ATTACK_MAX_DISTANCE))
                                 },
                         )
                     if (attackResult.responseObject()?.dataBoolean("hit") == false) {
@@ -948,6 +972,7 @@ private const val PICKUP_EVIDENCE_ATTEMPTS = 4
 private const val COMBAT_EVIDENCE_ATTEMPTS = 4
 private const val DEFAULT_COMBAT_RETRY_DELAY_MS = 700L
 private const val PLACEMENT_TARGET_ATTEMPTS = 6
+private const val ATTACK_MAX_DISTANCE = 4.5
 private const val ATTACK_VERTICAL_REACH = 4.5
 
 private data class CraftlessLook(
@@ -968,11 +993,27 @@ private data class PublicBlockTarget(
         }
 }
 
+private data class FocusedBlockTarget(
+    val target: PublicBlockTarget? = null,
+    val blocker: String? = null,
+)
+
 private data class PublicEntityTarget(
     val handle: String,
     val position: JsonObject?,
     val distance: Double?,
-)
+) {
+    fun isReachableForAttack(playerPosition: CraftlessPoint): Boolean {
+        val reportedReachable = distance?.let { it <= ATTACK_MAX_DISTANCE } ?: false
+        val positionPoint = position?.toCraftlessPoint()
+        val positionedReachable =
+            positionPoint?.let { point ->
+                abs(point.y - playerPosition.y) <= ATTACK_VERTICAL_REACH &&
+                    playerPosition.distanceTo(point) <= ATTACK_MAX_DISTANCE
+            } ?: false
+        return reportedReachable || positionedReachable
+    }
+}
 
 private data class FocusedAttackTarget(
     val target: PublicEntityTarget? = null,
