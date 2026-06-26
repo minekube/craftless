@@ -117,16 +117,13 @@ the durable Fabric direction.
 - Keep the opt-in Fabric smoke green: the 2026-06-26 run launched
   `:driver-fabric:runClient`, joined the provisioned Minecraft `1.21.6`
   server, fetched generated OpenAPI/actions/resources through the in-client
-  daemon API,
-  invoked generated `player.chat`, `player.move`, `player.query`,
-  `player.look`, `inventory.query`, `inventory.equip`, and
-  `world.block.break` through `POST /clients/{id}:run`, captured server-side
+  daemon API, invoked generated `player.chat`, `player.move`, `screen.query`,
+  `world.time.query`, `player.query`, `player.look`, `inventory.query`,
+  `inventory.equip`, `world.block.break`, and `world.block.interact` through
+  `POST /clients/{id}:run`, captured server-side
   item-provision/join/chat/disconnect evidence, observed and equipped
   `Iron Sword` through live inventory metadata, and recorded driver-side
-  movement plus gameplay result telemetry. The current smoke controller also
-  records generated `player.move` before-position telemetry and invokes
-  generated `screen.query`, `world.time.query`, and `world.block.interact`;
-  the next opt-in real smoke refresh should capture those artifacts.
+  movement before-position telemetry plus gameplay result artifacts.
 - Strengthen generated `player.move` proof further with measured server-side
   position deltas.
 - Keep bridge evidence tests separate from Fabric smoke tests so the bridge

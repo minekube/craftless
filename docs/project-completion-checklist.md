@@ -66,8 +66,9 @@ Baseline evidence:
 - Latest real-smoke evidence includes `ITEM_PROVISIONED` for
   `minecraft:iron_sword` in `server-evidence.jsonl`, `Iron Sword` observed in
   `inventory.query`, `craftless-smoke-target-item-observed`,
-  `inventory.equip`, `player.look`, and `world.block.break` in
-  `gameplay-results.jsonl`.
+  `inventory.equip`, `player.look`, generated `player.move`
+  before-position telemetry, `screen.query`, `world.time.query`,
+  `world.block.break`, and `world.block.interact` in `gameplay-results.jsonl`.
 - Latest static-placeholder cleanup smoke: disconnected `client-actions.json`
   contains binding-backed chat/move plus unavailable runtime-probe metadata for
   connected-only gameplay actions; `server-evidence.jsonl` contained item
@@ -245,10 +246,9 @@ Verification:
   telemetry, or both. Current smoke artifacts include connected
   OpenAPI/actions/resources, server-side item provisioning, target-item
   observation, equip slot selection, generated inventory equip, generated look,
-  and generated block break telemetry. Generated `player.move`
-  before-position telemetry, `screen.query`, and generated `world.time.query`
-  are covered by the daemon-backed smoke controller test and should appear in
-  the next opt-in real smoke artifact refresh.
+  generated `player.move` before-position telemetry, `screen.query`,
+  generated `world.time.query`, generated block break telemetry, and generated
+  block interact telemetry.
 
 Verification:
 
