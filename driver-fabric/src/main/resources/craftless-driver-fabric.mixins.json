@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_21",
   "environment": "client",
   "mixins": [
+    "ClientRecipeBookAccessor",
     "MinecraftClientMixin"
   ],
   "injectors": {

@@ -170,6 +170,11 @@ private fun String.toCraftlessItemCategory(): String {
         key.contains("sword") || key.contains("bow") || key.contains("trident") || key.contains("mace") -> "weapon"
         key.contains("pickaxe") || key.contains("shovel") || key.contains("axe") || key.contains("hoe") -> "tool"
         key.contains("helmet") || key.contains("chestplate") || key.contains("leggings") || key.contains("boots") -> "armor"
+        key.contains("planks") ||
+            key.contains("log") ||
+            key.contains("stick") ||
+            key.contains("ingot") ||
+            key.contains("gem") -> "material"
         key.contains("bread") ||
             key.contains("apple") ||
             key.contains("carrot") ||

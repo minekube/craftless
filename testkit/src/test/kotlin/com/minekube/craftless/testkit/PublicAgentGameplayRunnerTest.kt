@@ -586,7 +586,12 @@ class PublicAgentGameplayRunnerTest {
         runBlocking {
             val server =
                 RecordingCraftlessHttpServer(
-                    actions = completeActionCatalog() + listOf("recipe.query", "recipe.craft"),
+                    actions = completeActionCatalog() + listOf("recipe.query", "recipe.craft", "world.block.interact"),
+                    actionArguments =
+                        mapOf(
+                            "world.block.interact" to listOf("target", "side", "max-distance"),
+                        ),
+                    blockQueryResponses = listOf(logBlockQueryResponse, placementSupportBlockQueryResponse),
                     inventoryResponses =
                         listOf(
                             """{"action":"inventory.query","status":"ACCEPTED","data":{"selected-slot":0,"slots":[]}}""",
@@ -634,9 +639,68 @@ class PublicAgentGameplayRunnerTest {
             val result = runner.runOnce()
 
             assertEquals(PublicAgentGameplayState.RAN, result.state)
-            assertTrue(result.actionLog.map { it.action }.contains("recipe.query"))
-            assertTrue(result.actionLog.map { it.action }.contains("recipe.craft"))
+            val actions = result.actionLog.map { it.action }
+            assertTrue(actions.contains("recipe.query"))
+            assertTrue(actions.contains("recipe.craft"))
+            assertTrue(actions.indexOf("recipe.craft") < actions.indexOf("world.block.interact"))
             assertTrue(server.requestBodies.any { it.contains(""""target":{"handle":"recipe.handle:tool-1"}""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner treats generated material recipes as useful crafting progress`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + listOf("recipe.query", "recipe.craft"),
+                    inventoryResponses =
+                        listOf(
+                            """{"action":"inventory.query","status":"ACCEPTED","data":{"selected-slot":0,"slots":[]}}""",
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            craftedMaterialInventoryResponse,
+                        ),
+                    recipeQueryResponse =
+                        """
+                        {
+                          "action": "recipe.query",
+                          "status": "ACCEPTED",
+                          "data": {
+                            "count": 1,
+                            "recipes": [
+                              {
+                                "handle": "recipe.handle:material-1",
+                                "category": "material",
+                                "craftable": true,
+                                "produces": [
+                                  {"label": "Oak Planks", "category": "material", "count": 4}
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                        """.trimIndent(),
+                    recipeCraftResponse =
+                        """
+                        {
+                          "action": "recipe.craft",
+                          "status": "ACCEPTED",
+                          "data": {
+                            "handle": "recipe.handle:material-1",
+                            "accepted": true,
+                            "changed": true,
+                            "crafted-count": 1
+                          }
+                        }
+                        """.trimIndent(),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(result.actionLog.map { it.action }.contains("recipe.craft"))
+            assertTrue(server.requestBodies.any { it.contains(""""target":{"handle":"recipe.handle:material-1"}""") })
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 
@@ -1429,6 +1493,21 @@ private val craftedToolInventoryResponse =
         "slots": [
           {"slot": 0, "empty": false, "count": 1, "item-name": "Oak Sapling"},
           {"slot": 1, "empty": false, "count": 1, "item-name": "Wooden Sword"}
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val craftedMaterialInventoryResponse =
+    """
+    {
+      "action": "inventory.query",
+      "status": "ACCEPTED",
+      "data": {
+        "selected-slot": 1,
+        "slots": [
+          {"slot": 0, "empty": false, "count": 1, "item-name": "Oak Sapling"},
+          {"slot": 1, "empty": false, "count": 4, "item-name": "Oak Planks"}
         ]
       }
     }

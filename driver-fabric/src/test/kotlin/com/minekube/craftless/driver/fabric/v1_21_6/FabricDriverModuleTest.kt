@@ -110,7 +110,7 @@ class FabricDriverModuleTest {
         assertEquals("com.minekube.craftless.driver.fabric.v1_21_6.mixin", mixins["package"]?.jsonPrimitive?.content)
         assertEquals("client", mixins["environment"]?.jsonPrimitive?.content)
         assertEquals(
-            listOf("MinecraftClientMixin"),
+            listOf("ClientRecipeBookAccessor", "MinecraftClientMixin"),
             mixins["mixins"]?.jsonArray?.map { it.jsonPrimitive.content },
         )
     }
@@ -1337,6 +1337,8 @@ class FabricDriverModuleTest {
         val output = recipe["outputs"]?.jsonArray?.single()?.jsonObject ?: error("missing recipe output")
         assertEquals("Wooden Sword", output["label"]?.jsonPrimitive?.content)
         assertEquals("weapon", output["category"]?.jsonPrimitive?.content)
+        val ingredients = recipe["ingredients"]?.jsonArray?.map { it.jsonObject }.orEmpty()
+        assertEquals(listOf("material", "material"), ingredients.map { it["category"]?.jsonPrimitive?.content })
         val publicPayload = recipe.toString().lowercase()
         assertFalse(publicPayload.contains("minecraft"))
         assertFalse(publicPayload.contains("fabric"))
