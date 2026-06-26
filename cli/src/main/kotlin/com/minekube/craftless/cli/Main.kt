@@ -17,6 +17,7 @@ import com.minekube.craftless.protocol.OpenApiAction
 import com.minekube.craftless.protocol.OpenApiActionArgument
 import com.minekube.craftless.protocol.OpenApiActionAvailability
 import com.minekube.craftless.protocol.OpenApiDocument
+import com.minekube.craftless.protocol.OpenApiResource
 import com.minekube.craftless.protocol.Profile
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -462,6 +463,13 @@ object CraftlessCli {
                     val openApi = json.decodeFromString<OpenApiDocument>(openApiBody)
                     val alias = args.generatedActionAlias(openApi.actions.mapTo(mutableSetOf()) { it.id })
                     if (alias == null) {
+                        if (args.contains("--help")) {
+                            val resource = args.generatedResource(openApi.resources)
+                            if (resource != null) {
+                                stdout(resource.generatedResourceHelp(clientId, args.generatedCommandTokens()))
+                                return@runBlocking 0
+                            }
+                        }
                         stderr("error: usage is clients <id> <resource...> <action> [--api <url>] [--arg key=value] [--<arg> value]")
                         return@runBlocking 2
                     }
@@ -803,6 +811,20 @@ object CraftlessCli {
             }
         }.trimEnd()
 
+    private fun OpenApiResource.generatedResourceHelp(
+        clientId: String,
+        segments: List<String>,
+    ): String =
+        buildString {
+            appendLine("Resource: $id")
+            appendLine("Usage: craftless clients $clientId ${segments.joinToString(" ")} <action> [--api <url>]")
+            appendLine("Actions:")
+            actionDescriptors.forEach { action ->
+                val name = action.id.removePrefix("$id.")
+                appendLine("  $name ${action.availability.name.lowercase()}")
+            }
+        }.trimEnd()
+
     private fun OpenApiDocument.toAgentToolManifest(clientId: String): AgentToolManifest =
         AgentToolManifest(
             clientId = clientId,
@@ -850,10 +872,7 @@ object CraftlessCli {
 
     private fun List<String>.generatedActionAlias(actionIds: Set<String>): GeneratedActionAlias? {
         val clientId = getOrNull(0)?.takeIf { it.isNotBlank() } ?: return null
-        val commandTokens =
-            drop(1)
-                .takeWhile { !it.startsWith("--") }
-                .filter { it.isNotBlank() }
+        val commandTokens = generatedCommandTokens()
         val segmentCount =
             commandTokens.size
                 .downTo(2)
@@ -873,6 +892,16 @@ object CraftlessCli {
             argumentStartIndex = 1 + segments.size,
         )
     }
+
+    private fun List<String>.generatedResource(resources: List<OpenApiResource>): OpenApiResource? {
+        val resourceId = generatedCommandTokens().joinToString(".")
+        return resources.firstOrNull { it.id == resourceId }
+    }
+
+    private fun List<String>.generatedCommandTokens(): List<String> =
+        drop(1)
+            .takeWhile { !it.startsWith("--") }
+            .filter { it.isNotBlank() }
 
     private fun String.toJsonArgument(type: String?): JsonElement =
         when (type) {

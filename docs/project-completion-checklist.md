@@ -139,8 +139,10 @@ Verification:
   `x-craftless-actions` and `x-craftless-resources` from
   `/clients/{id}/openapi.json`, `craftless clients <id> tools` exports an
   agent-tool manifest from the same live action descriptors and runtime
-  fingerprint, and the Playwright helper has a thin OpenAPI action client that
-  fetches `/clients/{id}/openapi.json` before invoking
+  fingerprint, generated action alias help and generated resource help are
+  rendered from live per-client OpenAPI metadata, and the Playwright helper has
+  a thin OpenAPI action client that fetches `/clients/{id}/openapi.json`
+  before invoking
   `POST /clients/{id}:run` or reading `x-craftless-resources`. The daemon
   exposes per-client OpenAPI `ETag` revalidation keyed by the live
   runtime/action fingerprint, and the Playwright helper revalidates its

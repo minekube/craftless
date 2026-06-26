@@ -201,6 +201,8 @@ of mirroring the API by hand.
   durable generated-client and CLI cache coverage remains future work.
 - Render dynamic CLI help from `/clients/{id}/openapi.json`, using
   `/clients/{id}/actions` only as a descriptor projection/availability view.
+  Generated action alias help and generated resource help now use live
+  per-client OpenAPI metadata.
 - Export agent-tool manifests from `/clients/{id}/openapi.json` through
   `craftless clients <id> tools`, including the runtime fingerprint, generated
   alias route, availability, and action argument schema for each live action.

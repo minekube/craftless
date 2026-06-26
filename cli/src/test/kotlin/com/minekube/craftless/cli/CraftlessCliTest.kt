@@ -1429,6 +1429,39 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `generated client resource help is loaded from live openapi resource metadata`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        StaleActionsProjectionServer().use { server ->
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "player",
+                        "--help",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
+
+            assertEquals(0, exit)
+            assertFalse(server.runCalled)
+            assertFalse(server.aliasCalled)
+        }
+
+        assertEquals("", errors.toString())
+        val help = output.toString()
+        assertTrue(help.contains("Resource: player"))
+        assertTrue(help.contains("Usage: craftless clients alice player <action>"))
+        assertTrue(help.contains("Actions:"))
+        assertTrue(help.contains("  chat available"))
+    }
+
+    @Test
     fun `generated client action alias help rejects actions missing from live openapi action metadata`() {
         val output = StringBuilder()
         val errors = StringBuilder()
