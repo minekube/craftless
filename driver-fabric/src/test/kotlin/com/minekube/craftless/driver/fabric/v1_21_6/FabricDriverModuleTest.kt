@@ -6,6 +6,7 @@ import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionSource
 import com.minekube.craftless.driver.api.DriverActionStatus
+import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
@@ -90,6 +91,35 @@ class FabricDriverModuleTest {
         assertEquals(DriverBackendAction.STOP, stop.action)
         assertTrue(stop.message?.contains("metadata-only") == true)
         assertTrue(backend.events().any { it.contains("connect alice 127.0.0.1:25565") })
+    }
+
+    @Test
+    fun `fabric real backend runtime metadata comes from runtime provider`() {
+        val backend =
+            FabricDriverBackend.real(
+                gateway = RecordingFabricClientGateway(),
+                runtimeMetadataProvider =
+                    FabricRuntimeMetadataProvider {
+                        DriverRuntimeMetadata(
+                            loaderVersion = "0.19.3",
+                            driver = "craftless-driver-fabric",
+                            driverVersion = "0.1.0-SNAPSHOT",
+                            mappings = "craftless-fabric-bindings",
+                            installedModsFingerprint = "mods:test-runtime",
+                            registryFingerprint = "registries:client-boundary",
+                            serverFeatureFingerprint = "server-features:disconnected",
+                            permissionsFingerprint = "permissions:local-client",
+                        )
+                    },
+            )
+
+        val metadata = backend.runtimeMetadata("alice")
+
+        assertEquals("0.19.3", metadata.loaderVersion)
+        assertEquals("mods:test-runtime", metadata.installedModsFingerprint)
+        assertEquals("registries:client-boundary", metadata.registryFingerprint)
+        assertEquals("server-features:disconnected", metadata.serverFeatureFingerprint)
+        assertEquals("permissions:local-client", metadata.permissionsFingerprint)
     }
 
     @Test
@@ -849,7 +879,7 @@ class FabricDriverModuleTest {
     @Test
     fun `fabric smoke controller invokes generated chat and movement through daemon api and writes artifacts`() {
         val gateway = RecordingFabricClientGateway()
-        val backend = FabricDriverBackend.real(gateway)
+        val backend = smokeBackend(gateway)
         val artifactsDir = Files.createTempDirectory("craftless-fabric-smoke-artifacts")
         val controller =
             FabricClientSmokeController.fromEnvironment(
@@ -994,7 +1024,7 @@ class FabricDriverModuleTest {
     @Test
     fun `fabric smoke controller waits for target inventory item before equip`() {
         val gateway = RecordingFabricClientGateway()
-        val backend = FabricDriverBackend.real(gateway)
+        val backend = smokeBackend(gateway)
         val artifactsDir = Files.createTempDirectory("craftless-fabric-smoke-target-item")
         val controller =
             FabricClientSmokeController.fromEnvironment(
@@ -1161,7 +1191,7 @@ class FabricDriverModuleTest {
     fun `fabric smoke controller waits for client readiness before connecting`() {
         val gateway = RecordingFabricClientGateway()
         gateway.ready = false
-        val backend = FabricDriverBackend.real(gateway)
+        val backend = smokeBackend(gateway)
         val controller =
             FabricClientSmokeController.fromEnvironment(
                 mapOf(
@@ -1203,6 +1233,24 @@ class FabricDriverModuleTest {
             .parseToJsonElement(
                 requireNotNull(javaClass.classLoader.getResource(path)) { "missing resource $path" }.readText(),
             ).jsonObject
+
+    private fun smokeBackend(gateway: RecordingFabricClientGateway): FabricDriverBackend =
+        FabricDriverBackend.real(
+            gateway = gateway,
+            runtimeMetadataProvider =
+                FabricRuntimeMetadataProvider {
+                    DriverRuntimeMetadata(
+                        loaderVersion = "test-loader",
+                        driver = "craftless-driver-fabric",
+                        driverVersion = "0.1.0-SNAPSHOT",
+                        mappings = "craftless-fabric-bindings",
+                        installedModsFingerprint = "mods:test-runtime",
+                        registryFingerprint = "registries:test-runtime",
+                        serverFeatureFingerprint = "server-features:test-runtime",
+                        permissionsFingerprint = "permissions:local-client",
+                    )
+                },
+        )
 }
 
 private class RecordingFabricClientGateway : FabricClientGateway {

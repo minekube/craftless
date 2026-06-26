@@ -155,6 +155,10 @@ or static placeholder descriptors.
   resource-level availability reasons plus the action descriptor schemas that
   produced each resource. Richer object handles, registry/server-feature
   resources, and event relationships are still roadmap.
+- Fabric runtime metadata now uses a provider boundary. In the real Fabric
+  backend, loader version, driver version, and installed-mod fingerprint come
+  from Fabric Loader state instead of static placeholders; registry and
+  server-feature fingerprints remain coarse until richer runtime probes exist.
 - Project discovered runtime affordances into Craftless-owned actions,
   resources, handles, schemas, availability metadata, and events.
 - Add real execution bindings before treating an action as supported.
@@ -162,9 +166,10 @@ or static placeholder descriptors.
   machine-readable reasons; add concrete probes beyond the current scaffold.
 - Add typed argument schemas and result schemas where the current OpenAPI model
   needs more than primitive request arguments.
-- Add runtime fingerprints that include Minecraft version, loader, mappings,
-  installed mods, registries, server features, permissions, action schema
-  versions, action provenance, and action availability.
+- Continue expanding runtime fingerprints so they include Minecraft version,
+  mappings, registries, server features, permissions, action schema versions,
+  action provenance, and action availability with the same rigor now used for
+  Fabric Loader and installed-mod metadata.
 - Extend daemon validation for mismatched result schemas before dispatch.
 - Keep generated aliases derived from OpenAPI metadata only.
 

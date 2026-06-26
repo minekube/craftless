@@ -9,12 +9,15 @@ import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.runtime.DriverBackend
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import com.minekube.craftless.driver.runtime.DriverBackendResult
+import net.fabricmc.loader.api.FabricLoader
+import java.security.MessageDigest
 
 class FabricDriverBackend private constructor(
     private val mode: Mode,
     private val gateway: FabricClientGateway?,
     actionBindings: List<FabricActionBinding> = defaultFabricActionBindings(),
     private val actionDiscovery: FabricActionDiscovery = defaultFabricActionDiscovery(),
+    private val runtimeMetadataProvider: FabricRuntimeMetadataProvider = staticFabricRuntimeMetadataProvider(),
 ) : DriverBackend {
     private val events = mutableListOf<String>()
     private val actionBindingsById = actionBindings.associateBy { it.descriptor.id }
@@ -34,17 +37,7 @@ class FabricDriverBackend private constructor(
 
     override fun actions(clientId: String): List<DriverActionDescriptor> = discoveredActions(clientId).map { it.descriptor }
 
-    override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
-        DriverRuntimeMetadata(
-            loaderVersion = "unknown",
-            driver = "craftless-driver-fabric",
-            driverVersion = "0.1.0-SNAPSHOT",
-            mappings = "craftless-fabric-bindings",
-            installedModsFingerprint = "fabric-driver",
-            registryFingerprint = "unknown",
-            serverFeatureFingerprint = "unknown",
-            permissionsFingerprint = "local-client",
-        )
+    override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata = runtimeMetadataProvider.runtimeMetadata(clientId)
 
     override fun invoke(
         clientId: String,
@@ -130,10 +123,22 @@ class FabricDriverBackend private constructor(
             gateway: FabricClientGateway,
             actionDiscovery: FabricActionDiscovery,
         ): FabricDriverBackend =
+            real(
+                gateway = gateway,
+                actionDiscovery = actionDiscovery,
+                runtimeMetadataProvider = FabricLoaderRuntimeMetadataProvider,
+            )
+
+        internal fun real(
+            gateway: FabricClientGateway,
+            actionDiscovery: FabricActionDiscovery = defaultFabricActionDiscovery(),
+            runtimeMetadataProvider: FabricRuntimeMetadataProvider,
+        ): FabricDriverBackend =
             FabricDriverBackend(
                 mode = Mode.REAL_CLIENT,
                 gateway = gateway,
                 actionDiscovery = actionDiscovery,
+                runtimeMetadataProvider = runtimeMetadataProvider,
             )
 
         fun install(backend: FabricDriverBackend) {
@@ -143,3 +148,69 @@ class FabricDriverBackend private constructor(
         fun current(): FabricDriverBackend = installed ?: metadataOnly().also(::install)
     }
 }
+
+internal fun interface FabricRuntimeMetadataProvider {
+    fun runtimeMetadata(clientId: String): DriverRuntimeMetadata
+}
+
+private fun staticFabricRuntimeMetadataProvider(): FabricRuntimeMetadataProvider =
+    FabricRuntimeMetadataProvider {
+        DriverRuntimeMetadata(
+            loaderVersion = "unknown",
+            driver = FABRIC_DRIVER_ID,
+            driverVersion = FABRIC_DRIVER_VERSION,
+            mappings = FABRIC_MAPPINGS_FINGERPRINT,
+            installedModsFingerprint = "mods:metadata-only",
+            registryFingerprint = "registries:metadata-only",
+            serverFeatureFingerprint = "server-features:metadata-only",
+            permissionsFingerprint = "permissions:local-client",
+        )
+    }
+
+private object FabricLoaderRuntimeMetadataProvider : FabricRuntimeMetadataProvider {
+    override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata {
+        val loader = FabricLoader.getInstance()
+        return DriverRuntimeMetadata(
+            loaderVersion = loader.versionFor(FABRIC_LOADER_ID) ?: "unknown",
+            driver = FABRIC_DRIVER_ID,
+            driverVersion = loader.versionFor(FABRIC_DRIVER_ID) ?: FABRIC_DRIVER_VERSION,
+            mappings = FABRIC_MAPPINGS_FINGERPRINT,
+            installedModsFingerprint = loader.installedModsFingerprint(),
+            registryFingerprint = "registries:client-boundary",
+            serverFeatureFingerprint = "server-features:${if (loader.isDevelopmentEnvironment) "dev" else "runtime"}",
+            permissionsFingerprint = "permissions:local-client",
+        )
+    }
+}
+
+private fun FabricLoader.versionFor(modId: String): String? =
+    getModContainer(modId)
+        .map { it.metadata.version.friendlyString }
+        .orElse(null)
+
+private fun FabricLoader.installedModsFingerprint(): String =
+    fingerprint(
+        label = "mods",
+        values =
+            allMods
+                .map { "${it.metadata.id}@${it.metadata.version.friendlyString}" }
+                .sorted(),
+    )
+
+private fun fingerprint(
+    label: String,
+    values: List<String>,
+): String {
+    val digest = MessageDigest.getInstance("SHA-256")
+    values.forEach { value ->
+        digest.update(value.encodeToByteArray())
+        digest.update(0)
+    }
+    return "$label:" + digest.digest().joinToString("") { byte -> "%02x".format(byte) }.take(FINGERPRINT_LENGTH)
+}
+
+private const val FABRIC_DRIVER_ID = "craftless-driver-fabric"
+private const val FABRIC_DRIVER_VERSION = "0.1.0-SNAPSHOT"
+private const val FABRIC_LOADER_ID = "fabricloader"
+private const val FABRIC_MAPPINGS_FINGERPRINT = "craftless-fabric-bindings"
+private const val FINGERPRINT_LENGTH = 16
