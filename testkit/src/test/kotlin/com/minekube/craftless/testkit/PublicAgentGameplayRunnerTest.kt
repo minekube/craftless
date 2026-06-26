@@ -10,6 +10,7 @@ import io.ktor.http.content.OutgoingContent
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import kotlinx.coroutines.runBlocking
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
@@ -69,6 +70,13 @@ class PublicAgentGameplayRunnerTest {
             assertTrue(server.requestBodies.any { it.contains(""""pitch"""") })
             assertTrue(server.requestBodies.any { it.contains("player.raycast") })
             assertTrue(server.requestBodies.any { it.contains("world.block.break") })
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains(
+                        """"target":{"handle":"world.block:12:65:-4","position":{"x":12,"y":65,"z":-4}}""",
+                    )
+                },
+            )
             assertTrue(server.requestBodies.none { it.contains("task.survival") })
         }
 
@@ -150,6 +158,28 @@ class PublicAgentGameplayRunnerTest {
             )
             assertTrue(server.requestBodies.count { it.contains(""""category":"log"""") } >= 2)
             assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner records blocked artifacts when generated action request fails`() =
+        runBlocking {
+            val artifactsDir = createTempDirectory(prefix = "craftless-public-agent-action-failure")
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog(),
+                    failingActionRequest = "navigation.follow",
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce(artifactsDir = artifactsDir)
+
+            assertEquals(PublicAgentGameplayState.BLOCKED, result.state)
+            assertEquals("action-request-failed:navigation.follow", result.blocker)
+            assertTrue(result.actionLog.map { it.action }.contains("navigation.follow"))
+            val gameplay = Files.readString(artifactsDir.resolve("public-agent-gameplay-results.jsonl"))
+            assertTrue(gameplay.contains("navigation.follow"))
+            assertTrue(gameplay.contains("action-request-failed:navigation.follow"))
+            assertFalse(gameplay.contains("task.survival"))
         }
 
     @Test
@@ -245,6 +275,7 @@ private class RecordingCraftlessHttpServer(
           }
         }
         """.trimIndent(),
+    private val failingActionRequest: String? = null,
 ) {
     val url = "http://craftless.test"
     val requests = mutableListOf<String>()
@@ -275,6 +306,11 @@ private class RecordingCraftlessHttpServer(
 
     private fun actionResponse(): String {
         val body = requestBodies.lastOrNull().orEmpty()
+        failingActionRequest?.let { failingAction ->
+            if (body.contains(failingAction)) {
+                throw IOException("simulated generated action request failure for $failingAction")
+            }
+        }
         return when {
             body.contains("inventory.query") -> inventoryQueryResponse()
             body.contains("world.block.query") -> blockQueryResponse()

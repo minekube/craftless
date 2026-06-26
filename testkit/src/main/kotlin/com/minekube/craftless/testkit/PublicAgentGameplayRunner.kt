@@ -19,6 +19,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption.CREATE
@@ -76,16 +77,33 @@ class PublicAgentGameplayRunner(
             args: JsonObject = JsonObject(emptyMap()),
         ): PublicAgentActionLog {
             val invocationResult =
-                http
-                    .post("$baseUrl/clients/$clientId:run") {
-                        contentType(ContentType.Application.Json)
-                        setBody(publicAgentInvocation(action, args))
-                    }.bodyAsText()
+                try {
+                    http
+                        .post("$baseUrl/clients/$clientId:run") {
+                            contentType(ContentType.Application.Json)
+                            setBody(publicAgentInvocation(action, args))
+                        }.bodyAsText()
+                } catch (failure: IOException) {
+                    val blocker = "action-request-failed:$action"
+                    val failedResponse =
+                        publicAgentJson.encodeToString(
+                            JsonObject.serializer(),
+                            buildJsonObject {
+                                put("action", JsonPrimitive(action))
+                                put("status", JsonPrimitive("FAILED"))
+                                put("message", JsonPrimitive(failure.message ?: failure::class.simpleName.orEmpty()))
+                                put("blocker", JsonPrimitive(blocker))
+                            },
+                        )
+                    PublicAgentActionLog(action = action, response = failedResponse)
+                        .also(actionLog::add)
+                    throw PublicAgentActionRequestFailure(blocker, failure)
+                }
             return PublicAgentActionLog(action = action, response = invocationResult)
                 .also(actionLog::add)
         }
 
-        suspend fun queryMaterialPosition(): JsonObject? =
+        suspend fun queryMaterialTarget(): PublicBlockTarget? =
             invokeGenerated(
                 action = "world.block.query",
                 args =
@@ -94,7 +112,7 @@ class PublicAgentGameplayRunner(
                         put("limit", JsonPrimitive(16))
                         put("category", JsonPrimitive("log"))
                     },
-            ).responseObject()?.firstBlockPosition()
+            ).responseObject()?.firstBlockTarget()
 
         suspend fun navigateTo(
             position: JsonObject,
@@ -131,75 +149,81 @@ class PublicAgentGameplayRunner(
             return null
         }
 
-        invokeGenerated("inventory.query")
-        var materialPosition = queryMaterialPosition()
-        if (materialPosition == null) {
-            val player = invokeGenerated("player.query")
-            val origin =
+        try {
+            invokeGenerated("inventory.query")
+            var materialTarget = queryMaterialTarget()
+            if (materialTarget == null) {
+                val player = invokeGenerated("player.query")
+                val origin =
+                    player.responseObject()?.playerPosition()
+                        ?: return blockedAndWrite("insufficient-public-evidence:player.query.position")
+                for (waypoint in origin.explorationWaypoints()) {
+                    navigateTo(position = waypoint.toJsonObject(), radius = 4.0)
+                        ?.let { blocker -> return blockedAndWrite(blocker) }
+                    materialTarget = queryMaterialTarget()
+                    if (materialTarget != null) break
+                }
+            }
+            val discoveredMaterialTarget =
+                materialTarget
+                    ?: return blockedAndWrite("insufficient-public-evidence:world.block.query.log")
+            val discoveredMaterialPosition = discoveredMaterialTarget.position
+            val materialPoint =
+                discoveredMaterialPosition.toCraftlessPoint()
+                    ?: return blockedAndWrite("insufficient-public-evidence:world.block.query.position")
+            navigateTo(position = discoveredMaterialPosition, radius = 2.0)
+                ?.let { blocker -> return blockedAndWrite(blocker) }
+            val player =
+                invokeGenerated("player.query")
+            val playerPosition =
                 player.responseObject()?.playerPosition()
                     ?: return blockedAndWrite("insufficient-public-evidence:player.query.position")
-            for (waypoint in origin.explorationWaypoints()) {
-                navigateTo(position = waypoint.toJsonObject(), radius = 4.0)
-                    ?.let { blocker -> return blockedAndWrite(blocker) }
-                materialPosition = queryMaterialPosition()
-                if (materialPosition != null) break
-            }
-        }
-        val discoveredMaterialPosition =
-            materialPosition
-                ?: return blockedAndWrite("insufficient-public-evidence:world.block.query.log")
-        val materialPoint =
-            discoveredMaterialPosition.toCraftlessPoint()
-                ?: return blockedAndWrite("insufficient-public-evidence:world.block.query.position")
-        navigateTo(position = discoveredMaterialPosition, radius = 2.0)
-            ?.let { blocker -> return blockedAndWrite(blocker) }
-        val player =
-            invokeGenerated("player.query")
-        val playerPosition =
-            player.responseObject()?.playerPosition()
-                ?: return blockedAndWrite("insufficient-public-evidence:player.query.position")
-        val look = playerPosition.lookAt(materialPoint.centered())
-        invokeGenerated(
-            action = "player.look",
-            args =
-                buildJsonObject {
-                    put("yaw", JsonPrimitive(look.yaw))
-                    put("pitch", JsonPrimitive(look.pitch))
-                },
-        )
-        invokeGenerated(
-            action = "player.raycast",
-            args =
-                buildJsonObject {
-                    put("max-distance", JsonPrimitive(6.0))
-                    put("include-fluids", JsonPrimitive(false))
-                },
-        )
-        invokeGenerated(
-            action = "world.block.break",
-            args =
-                buildJsonObject {
-                    put("max-distance", JsonPrimitive(6.0))
-                    put("include-fluids", JsonPrimitive(false))
-                },
-        )
-        val finalInventory = invokeGenerated("inventory.query")
-        if (finalInventory.responseObject()?.hasLogItem() != true) {
-            return blockedAndWrite("insufficient-public-evidence:inventory.query.log")
-        }
-        invokeGenerated("entity.query")
-        val result =
-            PublicAgentGameplayResult(
-                state = PublicAgentGameplayState.RAN,
-                supervisorSpec = supervisorSpec,
-                clientSpec = clientSpec,
-                actions = actions,
-                eventStream = eventStream,
-                actionLog = actionLog,
-                availableActions = actionIds.sorted(),
+            val look = playerPosition.lookAt(materialPoint.centered())
+            invokeGenerated(
+                action = "player.look",
+                args =
+                    buildJsonObject {
+                        put("yaw", JsonPrimitive(look.yaw))
+                        put("pitch", JsonPrimitive(look.pitch))
+                    },
             )
-        artifactsDir?.let { writeArtifacts(it, result) }
-        return result
+            invokeGenerated(
+                action = "player.raycast",
+                args =
+                    buildJsonObject {
+                        put("max-distance", JsonPrimitive(6.0))
+                        put("include-fluids", JsonPrimitive(false))
+                    },
+            )
+            invokeGenerated(
+                action = "world.block.break",
+                args =
+                    buildJsonObject {
+                        put("max-distance", JsonPrimitive(6.0))
+                        put("include-fluids", JsonPrimitive(false))
+                        put("target", discoveredMaterialTarget.toJsonObject())
+                    },
+            )
+            val finalInventory = invokeGenerated("inventory.query")
+            if (finalInventory.responseObject()?.hasLogItem() != true) {
+                return blockedAndWrite("insufficient-public-evidence:inventory.query.log")
+            }
+            invokeGenerated("entity.query")
+            val result =
+                PublicAgentGameplayResult(
+                    state = PublicAgentGameplayState.RAN,
+                    supervisorSpec = supervisorSpec,
+                    clientSpec = clientSpec,
+                    actions = actions,
+                    eventStream = eventStream,
+                    actionLog = actionLog,
+                    availableActions = actionIds.sorted(),
+                )
+            artifactsDir?.let { writeArtifacts(it, result) }
+            return result
+        } catch (failure: PublicAgentActionRequestFailure) {
+            return blockedAndWrite(failure.blocker)
+        }
     }
 
     private fun writeArtifacts(
@@ -337,6 +361,11 @@ data class PublicAgentActionLog(
     val response: String,
 )
 
+private class PublicAgentActionRequestFailure(
+    val blocker: String,
+    cause: Throwable,
+) : RuntimeException(blocker, cause)
+
 enum class PublicAgentGameplayState {
     RAN,
     BLOCKED,
@@ -373,11 +402,13 @@ private val publicAgentJson =
 private fun PublicAgentActionLog.responseObject(): JsonObject? =
     runCatching { publicAgentJson.parseToJsonElement(response).jsonObject }.getOrNull()
 
-private fun JsonObject.firstBlockPosition(): JsonObject? {
+private fun JsonObject.firstBlockTarget(): PublicBlockTarget? {
     val data = this["data"] as? JsonObject ?: return null
     val blocks = data["blocks"]?.jsonArray ?: return null
     val block = blocks.firstOrNull() as? JsonObject ?: return null
-    return block["position"] as? JsonObject
+    val position = block["position"] as? JsonObject ?: return null
+    val handle = block["handle"]?.jsonPrimitive?.contentOrNull
+    return PublicBlockTarget(handle = handle, position = position)
 }
 
 private fun JsonObject.playerPosition(): CraftlessPoint? {
@@ -454,6 +485,17 @@ private data class CraftlessLook(
     val yaw: Double,
     val pitch: Double,
 )
+
+private data class PublicBlockTarget(
+    val handle: String?,
+    val position: JsonObject,
+) {
+    fun toJsonObject(): JsonObject =
+        buildJsonObject {
+            handle?.let { put("handle", JsonPrimitive(it)) }
+            put("position", position)
+        }
+}
 
 fun main() {
     val config = PublicAgentGameplayRunnerConfig.fromEnvironment()

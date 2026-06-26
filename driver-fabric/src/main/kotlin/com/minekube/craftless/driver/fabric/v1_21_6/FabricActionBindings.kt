@@ -12,6 +12,7 @@ import com.minekube.craftless.driver.api.booleanArgument
 import com.minekube.craftless.driver.api.intArgument
 import com.minekube.craftless.driver.api.requireChatMessage
 import com.minekube.craftless.driver.api.stringArgument
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
@@ -29,6 +30,8 @@ import net.minecraft.util.PlayerInput
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.hit.HitResult
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec2f
 import net.minecraft.util.math.Vec3d
 
@@ -220,17 +223,29 @@ internal object FabricWorldBlockBreakActionBinding : FabricActionBinding {
         val maxDistance = invocation.arguments["max-distance"]?.jsonPrimitive?.doubleOrNull ?: DEFAULT_MAX_DISTANCE
         require(maxDistance > 0.0) { "block break max-distance must be positive" }
         val includeFluids = invocation.arguments.booleanArgument("include-fluids")
+        val requestedTarget = invocation.arguments.blockBreakTarget()
         val data =
             context.queryOnClient {
+                val player = requireNotNull(player) { "client is not connected to a server" }
+                val interactionManager =
+                    requireNotNull(interactionManager) { "client interaction manager is unavailable" }
+                if (requestedTarget != null) {
+                    val distance = player.eyePos.distanceTo(Vec3d.ofCenter(requestedTarget.position))
+                    require(distance <= maxDistance) { "block target exceeds max-distance" }
+                    val side = Direction.UP
+                    val started = interactionManager.attackBlock(requestedTarget.position, side)
+                    if (started) {
+                        player.swingHand(Hand.MAIN_HAND)
+                    }
+                    return@queryOnClient requestedTarget.toCraftlessBlockBreakData(started, side)
+                }
                 val camera = requireNotNull(cameraEntity ?: player) { "client is not connected to a server" }
                 val target =
                     camera.raycast(maxDistance, 1.0f, includeFluids) as? BlockHitResult
                         ?: error("no block target")
-                val interactionManager =
-                    requireNotNull(interactionManager) { "client interaction manager is unavailable" }
                 val started = interactionManager.attackBlock(target.blockPos, target.side)
                 if (started) {
-                    player?.swingHand(Hand.MAIN_HAND)
+                    player.swingHand(Hand.MAIN_HAND)
                 }
                 target.toCraftlessBlockBreakData(started)
             }
@@ -251,6 +266,7 @@ internal fun fabricWorldBlockBreakDescriptor(): DriverActionDescriptor =
             mapOf(
                 "max-distance" to DriverActionArgument("number"),
                 "include-fluids" to DriverActionArgument("boolean"),
+                "target" to DriverActionArgument("object"),
             ),
         result =
             fabricObjectDataResultDescriptor(),
@@ -368,6 +384,44 @@ private fun Map<String, kotlinx.serialization.json.JsonElement>.numberArgument(n
     this[name]?.jsonPrimitive?.let { primitive ->
         primitive.doubleOrNull ?: primitive.contentOrNull?.toDoubleOrNull()
     }
+
+private fun Map<String, JsonElement>.blockBreakTarget(): CraftlessBlockBreakTarget? {
+    val target = this["target"] as? JsonObject ?: return null
+    target["handle"]?.jsonPrimitive?.contentOrNull?.let { handle ->
+        return CraftlessBlockBreakTarget(parseCraftlessBlockHandle(handle), handle)
+    }
+    val position = target["position"]
+    require(position is JsonObject) { "block target requires handle or position" }
+    return CraftlessBlockBreakTarget(position.toBlockPos(), null)
+}
+
+private fun parseCraftlessBlockHandle(handle: String): BlockPos {
+    val parts = handle.split(":")
+    require(parts.size == 4 && parts[0] == "world.block") { "block target handle must use world.block:x:y:z" }
+    val x = requireNotNull(parts[1].toIntOrNull()) { "block target handle must use world.block:x:y:z" }
+    val y = requireNotNull(parts[2].toIntOrNull()) { "block target handle must use world.block:x:y:z" }
+    val z = requireNotNull(parts[3].toIntOrNull()) { "block target handle must use world.block:x:y:z" }
+    return BlockPos(x, y, z)
+}
+
+private fun JsonObject.toBlockPos(): BlockPos {
+    val x = blockCoordinate("x")
+    val y = blockCoordinate("y")
+    val z = blockCoordinate("z")
+    require(x != null && y != null && z != null) { "block target position requires x, y, and z" }
+    return BlockPos(x, y, z)
+}
+
+private fun JsonObject.blockCoordinate(name: String): Int? =
+    this[name]
+        ?.jsonPrimitive
+        ?.contentOrNull
+        ?.toIntOrNull()
+
+private data class CraftlessBlockBreakTarget(
+    val position: BlockPos,
+    val handle: String?,
+)
 
 internal fun fabricRaycastDescriptor(): DriverActionDescriptor =
     DriverActionDescriptor(
@@ -654,8 +708,23 @@ private fun BlockHitResult.toCraftlessBlockBreakData(started: Boolean): JsonObje
         put("target-kind", "block")
         put("started", started)
         put("block", blockPos.toShortString())
+        put("handle", blockPos.toCraftlessBlockHandle())
         put("side", side.name.lowercase())
         put("position", pos.toCraftlessJson())
+    }
+
+private fun CraftlessBlockBreakTarget.toCraftlessBlockBreakData(
+    started: Boolean,
+    side: Direction,
+): JsonObject =
+    buildJsonObject {
+        put("hit", true)
+        put("target-kind", "block")
+        put("started", started)
+        put("block", position.toShortString())
+        put("handle", handle ?: position.toCraftlessBlockHandle())
+        put("side", side.name.lowercase())
+        put("position", position.toCraftlessJson())
     }
 
 private fun BlockHitResult.toCraftlessBlockInteractData(accepted: Boolean): JsonObject =
@@ -698,3 +767,12 @@ internal fun Vec3d.toCraftlessJson(): JsonObject =
         put("y", y)
         put("z", z)
     }
+
+private fun BlockPos.toCraftlessJson(): JsonObject =
+    buildJsonObject {
+        put("x", x)
+        put("y", y)
+        put("z", z)
+    }
+
+private fun BlockPos.toCraftlessBlockHandle(): String = "world.block:$x:$y:$z"

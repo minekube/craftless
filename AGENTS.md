@@ -127,6 +127,8 @@ Follow them in order:
 13. public-agent material navigation.
 14. public-agent material collection.
 15. public-agent material exploration.
+16. targetable generic block break.
+17. public-agent action timeout blockers.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -152,6 +154,12 @@ Phase 15 adds bounded generic exploration when the local material query is
 empty. It must use generated player, navigation, and block-query actions only;
 it must not introduce a survival macro or product actions such as `find.tree`,
 `mine.log`, `collect.wood`, `craft.sword`, or `kill.cow`.
+Phase 16 lets `world.block.break` target Craftless-owned block handles or
+positions discovered from `world.block.query`. It must keep the generic action
+id and must not add log/mining/survival-specific public actions.
+Phase 17 makes public-agent generated-action request failures explicit
+blockers with artifacts. It must not retry non-idempotent actions by default
+because a timeout may leave action outcome ambiguous.
 
 ## Acceptance Scenarios Are Not Product APIs
 

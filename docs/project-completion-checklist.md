@@ -61,6 +61,10 @@ Legend:
   `docs/superpowers/plans/2026-06-26-11-public-agent-gameplay-plan.md`.
 - [x] Spec exists: `docs/superpowers/specs/2026-06-26-15-public-agent-material-exploration-design.md`.
 - [x] Plan exists: `docs/superpowers/plans/2026-06-26-15-public-agent-material-exploration-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-26-16-targetable-block-break-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-26-16-targetable-block-break-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-26-17-public-agent-action-timeout-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-26-17-public-agent-action-timeout-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -317,9 +321,8 @@ Verification:
   explicit blocker that identifies the next generic block-breaking/pickup
   primitive needed. Current evidence found log blocks through
   `world.block.query`, planned/followed navigation, invoked `player.look`,
-  `player.raycast`, and `world.block.break`, then blocked at
-  `insufficient-public-evidence:inventory.query.log` because public inventory
-  state did not prove collection.
+  `player.raycast`, and targeted `world.block.break`, then proved collection
+  with final `inventory.query` showing `Oak Log`.
 
 Verification:
 
@@ -336,13 +339,48 @@ Verification:
   `world.block.query` actions when the first local material query is empty.
 - [~] Focused test evidence covers the empty-local-query exploration path. The
   latest live no-hold run did not need exploration because local
-  `world.block.query` returned log targets; it continued to collection and
-  blocked at `insufficient-public-evidence:inventory.query.log`.
+  `world.block.query` returned log targets; it continued through targeted
+  collection and final inventory proof.
 
 Verification:
 
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
+
+## Phase 16: Targetable Generic Block Break
+
+- [x] Spec and plan exist for targeting discovered block handles/positions
+  through generic `world.block.break` without adding `mine.log`, `collect.wood`,
+  `find.tree`, `craft.sword`, `kill.cow`, or `task.survival.*`.
+- [x] `world.block.break` accepts public target evidence from
+  `world.block.query` so public agents can break the block they discovered
+  instead of relying only on current camera raycast.
+- [x] Live no-hold evidence shows targeted break data and collected inventory
+  state. Current evidence: `world.block.query` selected
+  `world.block:57:77:-292`; `world.block.break` returned the same handle and
+  `inventory.query` showed `Oak Log`.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest*'`
+- `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
+- `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
+
+## Phase 17: Public-Agent Action Timeout Blockers
+
+- [x] Spec and plan exist for controlled public-agent generated-action request
+  failures without retrying non-idempotent action calls by default.
+- [x] Public-agent runner records `action-request-failed:<action-id>` blockers
+  with action artifacts when a generated `POST /clients/{id}:run` call fails or
+  times out.
+- [x] Live no-hold evidence shows targeted block-break progress and the
+  external public-agent command exits normally. Focused test evidence covers
+  the controlled `action-request-failed:<action-id>` blocker path.
+
+Verification:
+
+- `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
+- `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=120000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 
 Verification:
 
