@@ -66,6 +66,14 @@ class FabricDriverModuleTest {
                 ?.jsonPrimitive
                 ?.content,
         )
+        assertEquals(
+            ">=0.128.2+1.21.6",
+            metadata["depends"]
+                ?.jsonObject
+                ?.get("fabric-api")
+                ?.jsonPrimitive
+                ?.content,
+        )
 
         val mixins = resourceJson("craftless-driver-fabric.mixins.json")
         assertEquals("com.minekube.craftless.driver.fabric.v1_21_6.mixin", mixins["package"]?.jsonPrimitive?.content)
@@ -104,6 +112,28 @@ class FabricDriverModuleTest {
         assertEquals("mixin", sourceEvidence.kind)
         assertEquals("craftless-client-tick", sourceEvidence.fingerprint)
         assertFalse(sourceEvidence.fingerprint.contains("minecraft"))
+    }
+
+    @Test
+    fun `fabric api callback event sources use generic craftless evidence`() {
+        val sourceEvidence = FabricEventCallbacks.sourceEvidence()
+
+        assertEquals(setOf("callback"), sourceEvidence.map { it.kind }.toSet())
+        assertTrue(
+            sourceEvidence.map { it.fingerprint }.containsAll(
+                setOf(
+                    "craftless-callback-client-tick-start",
+                    "craftless-callback-client-tick-end",
+                    "craftless-callback-client-world-change",
+                    "craftless-callback-client-entity-load",
+                    "craftless-callback-client-entity-unload",
+                    "craftless-callback-play-join",
+                    "craftless-callback-play-disconnect",
+                ),
+            ),
+        )
+        assertTrue(sourceEvidence.none { it.fingerprint.contains("minecraft") })
+        assertTrue(sourceEvidence.none { it.fingerprint.contains("fabric") })
     }
 
     @Test

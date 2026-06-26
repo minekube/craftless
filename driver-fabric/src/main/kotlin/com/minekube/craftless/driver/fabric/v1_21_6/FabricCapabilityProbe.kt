@@ -106,7 +106,8 @@ internal object FabricEventSourceCapabilityProbe : FabricCapabilityProbe {
     override fun discover(context: FabricCapabilityProbeContext): FabricCapabilityGraphFragment {
         val eventSourceEvidence =
             listOf(RuntimeSourceEvidence("event-source", "driver:${context.runtimeMetadata.driverVersion}")) +
-                FabricEventHooks.sourceEvidence()
+                FabricEventHooks.sourceEvidence() +
+                FabricEventCallbacks.sourceEvidence()
         return FabricCapabilityGraphFragment(
             resources =
                 listOf(

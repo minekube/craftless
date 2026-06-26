@@ -10,6 +10,7 @@ dependencies {
     "minecraft"("com.mojang:minecraft:1.21.6")
     "mappings"("net.fabricmc:yarn:1.21.6+build.1:v2")
     "modImplementation"("net.fabricmc:fabric-loader:0.19.3")
+    "modImplementation"("net.fabricmc.fabric-api:fabric-api:0.128.2+1.21.6")
 
     implementation(project(":driver-api"))
     implementation(project(":driver-runtime"))

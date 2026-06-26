@@ -188,12 +188,18 @@ class FabricCapabilityProbeTest {
         val events = graph.events.associateBy { it.id }
 
         assertEquals(RuntimeAvailabilityState.AVAILABLE, event.availability.state)
-        assertEquals(setOf("event-source", "mixin"), event.sourceEvidence.map { it.kind }.toSet())
+        assertEquals(setOf("event-source", "mixin", "callback"), event.sourceEvidence.map { it.kind }.toSet())
         assertTrue(
             event.sourceEvidence
                 .single { it.kind == "mixin" }
                 .fingerprint
                 .startsWith("craftless-client-tick"),
+        )
+        assertTrue(
+            event.sourceEvidence
+                .filter { it.kind == "callback" }
+                .map { it.fingerprint }
+                .contains("craftless-callback-play-join"),
         )
         assertEquals(
             setOf("event.lifecycle", "event.action", "event.capability"),
@@ -201,7 +207,11 @@ class FabricCapabilityProbeTest {
         )
         assertTrue(events.values.all { node -> node.resource == "event" })
         assertTrue(events.values.all { node -> node.payload.type == "object" })
-        assertTrue(events.values.all { node -> node.sourceEvidence.map { it.kind }.toSet() == setOf("event-source", "mixin") })
+        assertTrue(
+            events.values.all { node ->
+                node.sourceEvidence.map { it.kind }.toSet() == setOf("event-source", "mixin", "callback")
+            },
+        )
         assertEquals(emptyList(), graph.operations)
     }
 

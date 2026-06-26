@@ -4,6 +4,7 @@ import net.fabricmc.api.ClientModInitializer
 
 class CraftlessFabricClientEntrypoint : ClientModInitializer {
     override fun onInitializeClient() {
+        FabricEventCallbacks.register()
         val gateway = MinecraftFabricClientGateway()
         val backend = FabricDriverBackend.real(gateway)
         FabricDriverBackend.install(backend)
