@@ -21,6 +21,8 @@ class LocalServerFixtureTest {
         assertTrue(Files.readString(layout.serverProperties).contains("online-mode=false"))
         assertTrue(Files.readString(layout.serverProperties).contains("enforce-secure-profile=false"))
         assertTrue(Files.readString(layout.serverProperties).contains("server-port=25567"))
+        assertTrue(Files.readString(layout.serverProperties).contains("difficulty=peaceful"))
+        assertTrue(Files.readString(layout.serverProperties).contains("spawn-monsters=false"))
         assertTrue(Files.isDirectory(layout.logsDir))
         assertTrue(Files.isDirectory(layout.artifactsDir))
     }

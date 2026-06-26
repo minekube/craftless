@@ -39,6 +39,8 @@ data class LocalServerFixture(
             server-port=$port
             enable-command-block=true
             spawn-protection=0
+            difficulty=peaceful
+            spawn-monsters=false
             """.trimIndent() + "\n",
         )
 
