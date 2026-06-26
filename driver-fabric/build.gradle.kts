@@ -173,7 +173,15 @@ if (pathfinderRuntimeEnabled) {
     }
 }
 
+val fabricClientJavaExecutable =
+    System
+        .getenv("CRAFTLESS_SMOKE_JAVA_EXECUTABLE")
+        ?.takeIf { it.isNotBlank() }
+
 tasks.named<JavaExec>("runClient") {
+    if (fabricClientJavaExecutable != null) {
+        setExecutable(fabricClientJavaExecutable)
+    }
     if (pathfinderRuntimeEnabled) {
         dependsOn(preparePathfinderRuntime)
     }

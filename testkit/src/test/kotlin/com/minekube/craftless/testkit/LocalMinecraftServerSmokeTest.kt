@@ -154,6 +154,66 @@ class LocalMinecraftServerSmokeTest {
     }
 
     @Test
+    fun `local server smoke action command receives resolved Java runtime executable`() {
+        val root = createTempDirectory("craftless-local-server-smoke-action-java-selection")
+        val selectedJava = root.resolve("cache/runtimes/mac-os-arm64/java-runtime-gamma/image/bin/java")
+        val fakeServerJar = root.resolve("server.jar")
+        val actionCommand = root.resolve("smoke-action")
+        Files.writeString(fakeServerJar, "fake")
+        writeFakeJava(selectedJava)
+        Files.writeString(
+            actionCommand,
+            """
+            #!/bin/sh
+            printf '%s\n' "${'$'}CRAFTLESS_SMOKE_JAVA_EXECUTABLE" > action-java-executable.txt
+            echo 'configured smoke action saw selected Java'
+            """.trimIndent() + "\n",
+        )
+        assertTrue(actionCommand.toFile().setExecutable(true))
+        val config =
+            LocalMinecraftServerSmokeConfig.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_LOCAL_SERVER_SMOKE" to "1",
+                    "CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT" to root.toString(),
+                    "CRAFTLESS_SMOKE_ACTION_COMMAND_JSON" to """["$actionCommand"]""",
+                    "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS" to "5000",
+                    "CRAFTLESS_SMOKE_READINESS_TIMEOUT_MS" to "5000",
+                    "CRAFTLESS_SMOKE_SHUTDOWN_TIMEOUT_MS" to "5000",
+                    "CRAFTLESS_SMOKE_JAVA_SELECTION_JSON" to
+                        """
+                        {
+                          "requirement": {
+                            "majorVersion": 25,
+                            "component": "java-runtime-gamma",
+                            "reason": "minecraft-version-metadata"
+                          },
+                          "status": "SELECTED",
+                          "selected": {
+                            "id": "managed:25:java",
+                            "provider": "MANAGED",
+                            "executable": "cache/runtimes/mac-os-arm64/java-runtime-gamma/image/bin/java",
+                            "majorVersion": 25,
+                            "version": "25.0.3",
+                            "managed": true
+                          },
+                          "reason": "managed-runtime-satisfies-requirement"
+                        }
+                        """.trimIndent(),
+                ),
+            )
+
+        val result =
+            LocalMinecraftServerSmoke.runWithServer(
+                config = config,
+                provisionServerJar = { _, _ -> fakeServerJar },
+            )
+
+        assertEquals(LocalMinecraftServerSmokeStatus.RAN, result.status)
+        assertEquals(selectedJava.toString() + "\n", Files.readString(root.resolve("action-java-executable.txt")))
+        assertTrue(Files.readString(requireNotNull(result.actionLog)).contains("configured smoke action saw selected Java"))
+    }
+
+    @Test
     fun `local server smoke records unsupported runtime lane without provisioning server`() {
         val root = createTempDirectory("craftless-local-server-smoke-runtime-lane")
         val config =

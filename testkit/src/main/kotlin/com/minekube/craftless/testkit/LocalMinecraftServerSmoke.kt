@@ -401,6 +401,11 @@ private fun startConfiguredActionCommand(
                         .toAbsolutePath()
                         .normalize()
                         .toString()
+                builder.environment()["CRAFTLESS_SMOKE_JAVA_EXECUTABLE"] =
+                    config.javaExecutable
+                        .toAbsolutePath()
+                        .normalize()
+                        .toString()
             }.redirectErrorStream(true)
             .start()
     val outputReader =

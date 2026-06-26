@@ -397,6 +397,15 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric run client consumes resolved smoke Java executable`() {
+        val buildScript = Files.readString(repositoryRoot().resolve("driver-fabric/build.gradle.kts"))
+
+        assertTrue(buildScript.contains("fabricClientJavaExecutable"))
+        assertTrue(buildScript.contains("\"CRAFTLESS_SMOKE_JAVA_EXECUTABLE\""))
+        assertTrue(buildScript.contains("setExecutable(fabricClientJavaExecutable)"))
+    }
+
+    @Test
     fun `fabric backend schedules generated actions through generic client execution`() {
         val gateway = RecordingFabricClientGateway()
         val backend = smokeBackend(gateway)
