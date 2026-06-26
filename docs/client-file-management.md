@@ -10,22 +10,32 @@ Craftless protocol responses expose a small, stable `InstanceFiles` object:
 
 - `root`
 - `gameRoot`
+- `runtimeRoot`
+- `cache`
 - `mods`
 - `config`
 - `saves`
 - `resourcePacks`
 - `shaderPacks`
+- `screenshots`
+- `logs`
+- `artifacts`
 
 The default layout is Craftless-owned:
 
 ```text
 instances/{instanceId}/
+  cache/
   minecraft/
     mods/
     config/
     saves/
     resourcepacks/
     shaderpacks/
+    screenshots/
+  runtime/
+    logs/
+    artifacts/
 ```
 
 This is intentionally narrower than a launcher UI. It gives agents and generated
@@ -61,11 +71,15 @@ Relevant source areas:
 - Keep `InstanceFiles` launcher-neutral and Craftless-owned.
 - Keep `gameRoot` separate from `root`; most Minecraft mutable folders live
   under `gameRoot`.
+- Keep `runtimeRoot` separate from `gameRoot` so logs and evidence artifacts do
+  not become gameplay data.
+- Keep `cache` separate from both runtime artifacts and world data, so repeated
+  local and CI runs can reuse download/setup state without copying transient
+  logs or saves.
 - Keep saves explicit because copy/link/import workflows often need different
   treatment for worlds than for cache or generated runtime data.
 - Add future file handles only when needed by automation or generated OpenAPI
-  clients, such as logs, screenshots, resource cache, data packs, local
-  libraries, natives, and asset/cache roots.
+  clients, such as data packs, local libraries, natives, and asset roots.
 - Treat pack/import adapters as optional translation layers. They may read
   launcher or modpack archive formats internally, but they must output
   Craftless-owned instance metadata.

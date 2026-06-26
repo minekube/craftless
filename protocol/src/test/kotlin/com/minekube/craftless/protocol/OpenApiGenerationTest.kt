@@ -453,7 +453,20 @@ class OpenApiGenerationTest {
         assertNotNull(filesSchema)
         assertEquals("object", filesSchema.type)
         assertEquals(
-            listOf("root", "gameRoot", "mods", "config", "saves", "resourcePacks", "shaderPacks"),
+            listOf(
+                "root",
+                "gameRoot",
+                "runtimeRoot",
+                "cache",
+                "mods",
+                "config",
+                "saves",
+                "resourcePacks",
+                "shaderPacks",
+                "screenshots",
+                "logs",
+                "artifacts",
+            ),
             filesSchema.required,
         )
         assertTrue(filesSchema.properties.keys.none { it.contains("mmc", ignoreCase = true) })

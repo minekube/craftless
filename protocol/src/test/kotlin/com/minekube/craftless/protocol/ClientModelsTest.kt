@@ -16,11 +16,16 @@ class ClientModelsTest {
 
         assertEquals("instances/alice-1.21.6-fabric", instance.files.root)
         assertEquals("instances/alice-1.21.6-fabric/minecraft", instance.files.gameRoot)
+        assertEquals("instances/alice-1.21.6-fabric/runtime", instance.files.runtimeRoot)
+        assertEquals("instances/alice-1.21.6-fabric/cache", instance.files.cache)
         assertEquals("instances/alice-1.21.6-fabric/minecraft/mods", instance.files.mods)
         assertEquals("instances/alice-1.21.6-fabric/minecraft/config", instance.files.config)
         assertEquals("instances/alice-1.21.6-fabric/minecraft/saves", instance.files.saves)
         assertEquals("instances/alice-1.21.6-fabric/minecraft/resourcepacks", instance.files.resourcePacks)
         assertEquals("instances/alice-1.21.6-fabric/minecraft/shaderpacks", instance.files.shaderPacks)
+        assertEquals("instances/alice-1.21.6-fabric/minecraft/screenshots", instance.files.screenshots)
+        assertEquals("instances/alice-1.21.6-fabric/runtime/logs", instance.files.logs)
+        assertEquals("instances/alice-1.21.6-fabric/runtime/artifacts", instance.files.artifacts)
     }
 
     @Test

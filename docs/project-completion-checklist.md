@@ -209,6 +209,8 @@ Verification:
 ## 6. Client Runtime And Files
 
 - [x] Craftless-owned instance file layout is modeled.
+- [x] The instance file contract exposes separate game, runtime, cache, logs,
+  screenshots, and artifacts handles.
 - [x] Prism Launcher source was cloned under `/tmp/prismlauncher-source` for
   research, outside Minekube repos.
 - [x] Prism findings are captured as design input, not a core dependency.

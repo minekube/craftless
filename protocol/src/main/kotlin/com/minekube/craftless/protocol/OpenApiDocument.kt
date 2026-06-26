@@ -649,13 +649,32 @@ private fun instanceFilesSchema(): OpenApiSchema =
             mapOf(
                 "root" to OpenApiSchema(type = "string"),
                 "gameRoot" to OpenApiSchema(type = "string"),
+                "runtimeRoot" to OpenApiSchema(type = "string"),
+                "cache" to OpenApiSchema(type = "string"),
                 "mods" to OpenApiSchema(type = "string"),
                 "config" to OpenApiSchema(type = "string"),
                 "saves" to OpenApiSchema(type = "string"),
                 "resourcePacks" to OpenApiSchema(type = "string"),
                 "shaderPacks" to OpenApiSchema(type = "string"),
+                "screenshots" to OpenApiSchema(type = "string"),
+                "logs" to OpenApiSchema(type = "string"),
+                "artifacts" to OpenApiSchema(type = "string"),
             ),
-        required = listOf("root", "gameRoot", "mods", "config", "saves", "resourcePacks", "shaderPacks"),
+        required =
+            listOf(
+                "root",
+                "gameRoot",
+                "runtimeRoot",
+                "cache",
+                "mods",
+                "config",
+                "saves",
+                "resourcePacks",
+                "shaderPacks",
+                "screenshots",
+                "logs",
+                "artifacts",
+            ),
     )
 
 private fun jsonContent(schema: OpenApiSchema): Map<String, OpenApiMediaType> = mapOf("application/json" to OpenApiMediaType(schema))

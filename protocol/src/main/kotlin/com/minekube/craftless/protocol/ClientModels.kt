@@ -44,14 +44,32 @@ data class Instance(
 data class InstanceFiles(
     val root: String,
     val gameRoot: String,
+    val runtimeRoot: String,
+    val cache: String,
     val mods: String,
     val config: String,
     val saves: String,
     val resourcePacks: String,
     val shaderPacks: String,
+    val screenshots: String,
+    val logs: String,
+    val artifacts: String,
 ) {
     init {
-        listOf(root, gameRoot, mods, config, saves, resourcePacks, shaderPacks).forEach { path ->
+        listOf(
+            root,
+            gameRoot,
+            runtimeRoot,
+            cache,
+            mods,
+            config,
+            saves,
+            resourcePacks,
+            shaderPacks,
+            screenshots,
+            logs,
+            artifacts,
+        ).forEach { path ->
             require(path.isNotBlank()) { "instance file path is required" }
             require(!path.contains('\\')) { "instance file paths must use forward slashes" }
         }
@@ -62,14 +80,20 @@ data class InstanceFiles(
             require(instanceId.isCraftlessInstanceId()) { "instance id must be a file-safe segment" }
             val root = "instances/$instanceId"
             val gameRoot = "$root/minecraft"
+            val runtimeRoot = "$root/runtime"
             return InstanceFiles(
                 root = root,
                 gameRoot = gameRoot,
+                runtimeRoot = runtimeRoot,
+                cache = "$root/cache",
                 mods = "$gameRoot/mods",
                 config = "$gameRoot/config",
                 saves = "$gameRoot/saves",
                 resourcePacks = "$gameRoot/resourcepacks",
                 shaderPacks = "$gameRoot/shaderpacks",
+                screenshots = "$gameRoot/screenshots",
+                logs = "$runtimeRoot/logs",
+                artifacts = "$runtimeRoot/artifacts",
             )
         }
     }
