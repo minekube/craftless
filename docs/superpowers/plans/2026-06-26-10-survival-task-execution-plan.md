@@ -115,7 +115,7 @@ Run the focused test again. Expected: PASS.
 - Modify: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricSurvivalTaskExecutor.kt`
 - Test: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricSurvivalTaskExecutorTest.kt`
 
-- [ ] **Step 1: Write failing observation tests**
+- [x] **Step 1: Write failing observation tests**
 
 Use fake observation providers:
 
@@ -128,17 +128,17 @@ assertEquals("pathfinder-unavailable", executorWithoutPathfinder.run(request).me
 Also assert progress events include `task.observe`, `task.navigate`,
 `task.inventory`, and no backend names.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run the executor test. Expected: FAIL until observation providers exist.
 
-- [ ] **Step 3: Implement observation seams**
+- [x] **Step 3: Implement observation seams**
 
 Add internal observation DTOs for material blocks, passive entities, inventory
 weapons, and player position. The real provider uses `FabricClientGateway` and
 Minecraft client-thread reads; tests use fakes.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run the executor test. Expected: PASS.
 
