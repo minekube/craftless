@@ -149,6 +149,8 @@ class OpenApiGenerationTest {
         assertEquals("object", launchSchema.type)
         assertEquals("array", launchSchema.properties["classpath"]?.type)
         assertEquals("array", launchSchema.properties["nativePath"]?.type)
+        assertEquals("string", launchSchema.properties["javaExecutable"]?.type)
+        assertEquals(true, launchSchema.properties["javaExecutable"]?.nullable)
         assertErrorSchema(requireNotNull(operation.errorSchema("400")))
     }
 

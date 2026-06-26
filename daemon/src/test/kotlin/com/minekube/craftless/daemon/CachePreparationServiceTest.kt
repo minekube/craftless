@@ -4,6 +4,7 @@ import com.minekube.craftless.protocol.CachePrepareRequest
 import com.minekube.craftless.protocol.CachePreparedArtifactKind
 import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
 import com.minekube.craftless.protocol.Loader
+import com.minekube.craftless.protocol.MINECRAFT_JAVA_RUNTIME_INDEX_URL
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
 import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayOutputStream
@@ -25,6 +26,9 @@ class CachePreparationServiceTest {
             val nativeLibraryUrl = "https://libraries.minecraft.net/org/lwjgl/lwjgl/3.3.3/lwjgl-3.3.3-natives.jar"
             val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
             val assetObjectUrl = "https://resources.download.minecraft.net/ab/abcdef0123456789abcdef0123456789abcdef01"
+            val javaRuntimeManifestUrl = "https://metadata.test/runtime/java-runtime-gamma/manifest.json"
+            val javaExecutableUrl = "https://metadata.test/runtime/java-runtime-gamma/bin/java"
+            val javaRuntimeFileUrl = "https://metadata.test/runtime/java-runtime-gamma/lib/runtime.txt"
             val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
             val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.17.2/profile/json"
             val fabricLoaderJarUrl = "https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.17.2/fabric-loader-0.17.2.jar"
@@ -49,6 +53,10 @@ class CachePreparationServiceTest {
                                       "assetIndex": {
                                         "id": "1.21.6",
                                         "url": "$assetIndexUrl"
+                                      },
+                                      "javaVersion": {
+                                        "component": "java-runtime-gamma",
+                                        "majorVersion": 21
                                       },
                                       "libraries": [
                                         {
@@ -83,6 +91,29 @@ class CachePreparationServiceTest {
                                       ],
                                       "downloads": {
                                         "client": { "url": "$clientJarUrl" }
+                                      }
+                                    }
+                                    """.trimIndent(),
+                                MINECRAFT_JAVA_RUNTIME_INDEX_URL to javaRuntimeIndexJson(javaRuntimeManifestUrl),
+                                javaRuntimeManifestUrl to
+                                    """
+                                    {
+                                      "files": {
+                                        "bin/java": {
+                                          "type": "file",
+                                          "downloads": {
+                                            "raw": { "url": "$javaExecutableUrl" }
+                                          }
+                                        },
+                                        "lib/runtime.txt": {
+                                          "type": "file",
+                                          "downloads": {
+                                            "raw": { "url": "$javaRuntimeFileUrl" }
+                                          }
+                                        },
+                                        "legal": {
+                                          "type": "directory"
+                                        }
                                       }
                                     }
                                     """.trimIndent(),
@@ -122,6 +153,8 @@ class CachePreparationServiceTest {
                                     clientJarUrl to "client-jar".encodeToByteArray(),
                                     minecraftLibraryUrl to "minecraft-library".encodeToByteArray(),
                                     nativeLibraryUrl to nativeZipBytes(),
+                                    javaExecutableUrl to "java-binary".encodeToByteArray(),
+                                    javaRuntimeFileUrl to "runtime-file".encodeToByteArray(),
                                     assetObjectUrl to "asset-bytes".encodeToByteArray(),
                                     fabricLoaderJarUrl to "fabric-loader-jar".encodeToByteArray(),
                                 ),
@@ -136,6 +169,10 @@ class CachePreparationServiceTest {
                     CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST,
                     CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR,
                     CachePreparedArtifactKind.MINECRAFT_ASSET_INDEX,
+                    CachePreparedArtifactKind.JAVA_RUNTIME_INDEX,
+                    CachePreparedArtifactKind.JAVA_RUNTIME_MANIFEST,
+                    CachePreparedArtifactKind.JAVA_RUNTIME_EXECUTABLE,
+                    CachePreparedArtifactKind.JAVA_RUNTIME_FILE,
                     CachePreparedArtifactKind.MINECRAFT_LIBRARY,
                     CachePreparedArtifactKind.MINECRAFT_NATIVE_LIBRARY,
                     CachePreparedArtifactKind.MINECRAFT_NATIVE_DIRECTORY,
@@ -151,6 +188,18 @@ class CachePreparationServiceTest {
             assertEquals(clientJarUrl, result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR }.source)
             assertEquals(assetIndexUrl, result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_ASSET_INDEX }.source)
             assertEquals(loaderProfileUrl, result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LOADER_PROFILE }.source)
+            val javaRuntimeIndex = result.artifacts.single { it.kind == CachePreparedArtifactKind.JAVA_RUNTIME_INDEX }
+            assertEquals(MINECRAFT_JAVA_RUNTIME_INDEX_URL, javaRuntimeIndex.source)
+            assertEquals("cache/runtimes/index.json", javaRuntimeIndex.handle)
+            val javaRuntimeManifest = result.artifacts.single { it.kind == CachePreparedArtifactKind.JAVA_RUNTIME_MANIFEST }
+            assertEquals(javaRuntimeManifestUrl, javaRuntimeManifest.source)
+            assertTrue(javaRuntimeManifest.handle.endsWith("/java-runtime-gamma/manifest.json"))
+            val javaExecutable = result.artifacts.single { it.kind == CachePreparedArtifactKind.JAVA_RUNTIME_EXECUTABLE }
+            assertEquals(javaExecutableUrl, javaExecutable.source)
+            assertTrue(javaExecutable.handle.endsWith("/java-runtime-gamma/image/bin/java"))
+            val javaRuntimeFile = result.artifacts.single { it.kind == CachePreparedArtifactKind.JAVA_RUNTIME_FILE }
+            assertEquals(javaRuntimeFileUrl, javaRuntimeFile.source)
+            assertTrue(javaRuntimeFile.handle.endsWith("/java-runtime-gamma/image/lib/runtime.txt"))
             val assetObject = result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_ASSET_OBJECT }
             assertEquals(assetObjectUrl, assetObject.source)
             assertTrue(assetObject.handle.startsWith("cache/assets/objects/"))
@@ -179,9 +228,15 @@ class CachePreparationServiceTest {
                 result.launch.classpath,
             )
             assertEquals(listOf(nativeDirectory.handle), result.launch.nativePath)
+            assertEquals(javaExecutable.handle, result.launch.javaExecutable)
             assertTrue(Files.readString(workspace.resolve("cache/minecraft/version_manifest_v2.json")).contains("1.21.6"))
             assertTrue(Files.readString(workspace.resolve("cache/minecraft/versions/1.21.6/version.json")).contains("client.jar"))
             assertEquals("client-jar", Files.readString(workspace.resolve("cache/minecraft/versions/1.21.6/client.jar")))
+            assertTrue(Files.readString(workspace.resolve("cache/runtimes/index.json")).contains("java-runtime-gamma"))
+            assertTrue(Files.readString(workspace.resolve(javaRuntimeManifest.handle)).contains("bin/java"))
+            assertEquals("java-binary", Files.readString(workspace.resolve(javaExecutable.handle)))
+            assertEquals("runtime-file", Files.readString(workspace.resolve(javaRuntimeFile.handle)))
+            assertTrue(Files.isExecutable(workspace.resolve(javaExecutable.handle)))
             assertEquals("minecraft-library", Files.readString(workspace.resolve(minecraftLibrary.handle)))
             assertTrue(Files.isRegularFile(workspace.resolve(nativeLibrary.handle)))
             assertEquals("native-bytes", Files.readString(workspace.resolve(nativeDirectory.handle).resolve("libcraftless-test.dylib")))
@@ -195,6 +250,7 @@ class CachePreparationServiceTest {
                 Files.readString(workspace.resolve(fabricLibrary.handle)),
             )
             assertTrue(Files.readString(workspace.resolve(result.manifest)).contains("MINECRAFT_VERSION_MANIFEST"))
+            assertTrue(Files.readString(workspace.resolve(result.manifest)).contains("JAVA_RUNTIME_EXECUTABLE"))
             assertTrue(Files.readString(workspace.resolve(result.manifest)).contains("MINECRAFT_LIBRARY"))
             assertTrue(Files.readString(workspace.resolve(result.manifest)).contains("MINECRAFT_NATIVE_DIRECTORY"))
             assertTrue(Files.readString(workspace.resolve(result.manifest)).contains("FABRIC_LIBRARY"))
@@ -274,6 +330,32 @@ private fun nativeZipBytes(): ByteArray {
     }
     return output.toByteArray()
 }
+
+private fun javaRuntimeIndexJson(manifestUrl: String): String =
+    """
+    {
+      "linux": {
+        "java-runtime-gamma": [
+          { "manifest": { "url": "$manifestUrl" } }
+        ]
+      },
+      "mac-os": {
+        "java-runtime-gamma": [
+          { "manifest": { "url": "$manifestUrl" } }
+        ]
+      },
+      "mac-os-arm64": {
+        "java-runtime-gamma": [
+          { "manifest": { "url": "$manifestUrl" } }
+        ]
+      },
+      "windows-x64": {
+        "java-runtime-gamma": [
+          { "manifest": { "url": "$manifestUrl" } }
+        ]
+      }
+    }
+    """.trimIndent()
 
 private class StaticCacheMetadataFetcher(
     private val responses: Map<String, String>,

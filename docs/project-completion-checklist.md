@@ -240,8 +240,12 @@ Verification:
   tests.
 - [x] Cache preparation extracts native classifier jars into Craftless-owned
   native directory handles and exposes them through `launch.nativePath`.
-- [x] Cache preparation emits ordered launch classpath and native-path handles
-  made only of Craftless-owned artifact handles.
+- [x] Cache preparation resolves the Mojang Java runtime index, stores the
+  selected runtime component manifest, downloads runtime files into
+  Craftless-owned handles, and exposes the Java executable through
+  `launch.javaExecutable`.
+- [x] Cache preparation emits ordered launch classpath, native-path, and
+  Java-executable handles made only of Craftless-owned artifact handles.
 - [x] Cache preparation resolves the Minecraft asset index and downloads listed
   asset objects into opaque Craftless-owned cache handles.
 - [x] Prism Launcher source was cloned under `/tmp/prismlauncher-source` for
@@ -251,9 +255,9 @@ Verification:
   runs. Instance directories and cache preparation are now repeatable and
   idempotent, with Minecraft metadata, Fabric loader profile metadata, the
   Minecraft client jar, Minecraft version libraries, Fabric profile libraries,
-  native libraries, and Minecraft asset objects materialized into the
-  workspace plus ordered launch classpath and native-path handle lists;
-  Java/runtime artifact resolution, JVM/game argument assembly, and explicit
+  native libraries, Java runtime files, and Minecraft asset objects
+  materialized into the workspace plus ordered launch classpath, native-path,
+  and Java-executable handles; JVM/game argument assembly and explicit
   cleanup/export flows are still roadmap.
 - [x] Public APIs expose Craftless-owned file handles only.
 

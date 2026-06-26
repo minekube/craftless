@@ -8,6 +8,7 @@ import com.minekube.craftless.protocol.CachePreparedArtifactKind
 import com.minekube.craftless.protocol.CachePreparedArtifactStatus
 import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
 import com.minekube.craftless.protocol.Loader
+import com.minekube.craftless.protocol.MINECRAFT_JAVA_RUNTIME_INDEX_URL
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -45,6 +46,7 @@ class CachePreparationService(
         val assetIndexMetadata = versionManifest.assetIndexMetadata(request.minecraftVersion)
         val assetIndex = metadataFetcher.fetchText(assetIndexMetadata.url)
         val assetObjects = assetIndex.assetObjects()
+        val javaRuntime = resolveJavaRuntime(versionManifest)
         val fabricMetadata = resolveFabricMetadata(request)
         val fabricLibraries = fabricMetadata?.profile?.fabricLibraries().orEmpty()
         val baseResult = CachePrepareResult.forRequest(request, fabricMetadata?.loaderVersion)
@@ -67,6 +69,7 @@ class CachePreparationService(
         val coreArtifacts = resolvedBaseArtifacts - loaderMetadataArtifacts.toSet()
         val artifacts =
             coreArtifacts +
+                javaRuntime?.artifacts.orEmpty() +
                 minecraftLibraries.map { it.artifact } +
                 minecraftNativeLibraries.flatMap { native -> listOf(native.libraryArtifact, native.directoryArtifact) } +
                 loaderMetadataArtifacts +
@@ -115,6 +118,14 @@ class CachePreparationService(
         assetObjects.forEach { asset ->
             writeBytesArtifact(asset.artifact, metadataFetcher.fetchBytes(asset.source))
         }
+        javaRuntime?.let { runtime ->
+            writeTextArtifact(runtime.indexArtifact, runtime.index)
+            writeTextArtifact(runtime.manifestArtifact, runtime.manifest)
+            runtime.files.forEach { file ->
+                val target = writeBytesArtifact(file.artifact, metadataFetcher.fetchBytes(file.source))
+                if (file.executable) target.toFile().setExecutable(true, true)
+            }
+        }
         minecraftLibraries.forEach { library ->
             writeBytesArtifact(library.artifact, metadataFetcher.fetchBytes(library.source))
         }
@@ -146,6 +157,22 @@ class CachePreparationService(
         )
     }
 
+    private suspend fun resolveJavaRuntime(versionManifest: String): JavaRuntimeCacheMetadata? {
+        val component = versionManifest.javaRuntimeComponent() ?: return null
+        val platform = currentJavaRuntimePlatformKey()
+        val index = metadataFetcher.fetchText(MINECRAFT_JAVA_RUNTIME_INDEX_URL)
+        val manifestUrl = index.javaRuntimeManifestUrl(platform, component)
+        val manifest = metadataFetcher.fetchText(manifestUrl)
+        return JavaRuntimeCacheMetadata(
+            platform = platform,
+            component = component,
+            index = index,
+            manifestUrl = manifestUrl,
+            manifest = manifest,
+            files = manifest.javaRuntimeFiles(platform, component),
+        )
+    }
+
     private fun resolveHandle(handle: String): Path {
         require(!Path.of(handle).isAbsolute) { "cache handle must be relative" }
         val resolved = root.resolve(handle).normalize()
@@ -156,10 +183,11 @@ class CachePreparationService(
     private fun writeBytesArtifact(
         artifact: CachePreparedArtifact,
         bytes: ByteArray,
-    ) {
+    ): Path {
         val target = resolveHandle(artifact.handle)
         Files.createDirectories(target.parent)
         Files.write(target, bytes)
+        return target
     }
 
     private fun writeTextArtifact(
@@ -197,6 +225,33 @@ private data class FabricCacheMetadata(
     val profileUrl: String,
     val profile: String,
 )
+
+private data class JavaRuntimeCacheMetadata(
+    val platform: String,
+    val component: String,
+    val index: String,
+    val manifestUrl: String,
+    val manifest: String,
+    val files: List<JavaRuntimeFileArtifact>,
+) {
+    val indexArtifact: CachePreparedArtifact =
+        CachePreparedArtifact(
+            kind = CachePreparedArtifactKind.JAVA_RUNTIME_INDEX,
+            handle = "cache/runtimes/index.json",
+            source = MINECRAFT_JAVA_RUNTIME_INDEX_URL,
+            status = CachePreparedArtifactStatus.RESOLVED,
+        )
+
+    val manifestArtifact: CachePreparedArtifact =
+        CachePreparedArtifact(
+            kind = CachePreparedArtifactKind.JAVA_RUNTIME_MANIFEST,
+            handle = "cache/runtimes/$platform/$component/manifest.json",
+            source = manifestUrl,
+            status = CachePreparedArtifactStatus.RESOLVED,
+        )
+
+    val artifacts: List<CachePreparedArtifact> = listOf(indexArtifact, manifestArtifact) + files.map { it.artifact }
+}
 
 interface CacheMetadataFetcher {
     suspend fun fetchText(url: String): String
@@ -296,6 +351,78 @@ private data class FabricLoaderVersion(
     val version: String,
     val stable: Boolean,
 )
+
+private fun String.javaRuntimeComponent(): String? =
+    Json
+        .parseToJsonElement(this)
+        .jsonObject["javaVersion"]
+        ?.jsonObject
+        ?.get("component")
+        ?.jsonPrimitive
+        ?.content
+        ?.also { component -> requireFileSafeCacheSegment(component, "Java runtime component") }
+
+private fun String.javaRuntimeManifestUrl(
+    platform: String,
+    component: String,
+): String =
+    Json
+        .parseToJsonElement(this)
+        .jsonObject[platform]
+        ?.jsonObject
+        ?.get(component)
+        ?.jsonArray
+        ?.firstOrNull()
+        ?.jsonObject
+        ?.get("manifest")
+        ?.jsonObject
+        ?.get("url")
+        ?.jsonPrimitive
+        ?.content
+        ?: error("Java runtime manifest for $platform/$component was not found")
+
+private fun String.javaRuntimeFiles(
+    platform: String,
+    component: String,
+): List<JavaRuntimeFileArtifact> =
+    Json
+        .parseToJsonElement(this)
+        .jsonObject["files"]
+        ?.jsonObject
+        .orEmpty()
+        .mapNotNull { (path, file) ->
+            val item = file.jsonObject
+            val type = item["type"]?.jsonPrimitive?.content ?: return@mapNotNull null
+            if (type != "file") return@mapNotNull null
+            val source =
+                item["downloads"]
+                    ?.jsonObject
+                    ?.get("raw")
+                    ?.jsonObject
+                    ?.get("url")
+                    ?.jsonPrimitive
+                    ?.content
+                    ?: return@mapNotNull null
+            JavaRuntimeFileArtifact(
+                platform = platform,
+                component = component,
+                path = path,
+                source = source,
+                executable = path.isJavaExecutablePath(),
+            )
+        }
+
+private fun currentJavaRuntimePlatformKey(): String {
+    val os = System.getProperty("os.name").lowercase()
+    val arch = System.getProperty("os.arch").lowercase()
+    return when {
+        "win" in os -> "windows-x64"
+        "mac" in os || "darwin" in os -> if ("aarch64" in arch || "arm64" in arch) "mac-os-arm64" else "mac-os"
+        else -> "linux"
+    }
+}
+
+private fun String.isJavaExecutablePath(): Boolean = this == "bin/java" || this == "bin/java.exe"
 
 private fun fabricLoaderVersionsUrl(minecraftVersion: String): String = "$FABRIC_META_BASE_URL/versions/loader/$minecraftVersion"
 
@@ -443,6 +570,33 @@ private data class MinecraftNativeLibraryArtifact(
         )
 }
 
+private data class JavaRuntimeFileArtifact(
+    val platform: String,
+    val component: String,
+    val path: String,
+    val source: String,
+    val executable: Boolean,
+) {
+    init {
+        requireFileSafeCacheSegment(platform, "Java runtime platform")
+        requireFileSafeCacheSegment(component, "Java runtime component")
+        requireRelativeCachePath(path, "Java runtime file path")
+    }
+
+    val artifact: CachePreparedArtifact =
+        CachePreparedArtifact(
+            kind =
+                if (executable) {
+                    CachePreparedArtifactKind.JAVA_RUNTIME_EXECUTABLE
+                } else {
+                    CachePreparedArtifactKind.JAVA_RUNTIME_FILE
+                },
+            handle = "cache/runtimes/$platform/$component/image/$path",
+            source = source,
+            status = CachePreparedArtifactStatus.CACHED,
+        )
+}
+
 private data class FabricLibraryArtifact(
     val source: String,
 ) {
@@ -475,4 +629,25 @@ private fun String.mavenPath(): String {
             ?.let { "-$it" }
             .orEmpty()
     return "$group/$artifact/$version/$artifact-$version$classifier.jar"
+}
+
+private fun requireFileSafeCacheSegment(
+    value: String,
+    label: String,
+) {
+    require(value.isNotBlank()) { "$label is required" }
+    require(!value.contains('/')) { "$label must be a file-safe segment" }
+    require(!value.contains('\\')) { "$label must use forward slashes" }
+    require(!value.contains("..")) { "$label must be a file-safe segment" }
+}
+
+private fun requireRelativeCachePath(
+    value: String,
+    label: String,
+) {
+    require(value.isNotBlank()) { "$label is required" }
+    require(!value.contains('\\')) { "$label must use forward slashes" }
+    require(!Path.of(value).isAbsolute) { "$label must be relative" }
+    val normalized = Path.of(value).normalize()
+    require(!normalized.startsWith("..")) { "$label must stay under the runtime image" }
 }

@@ -137,9 +137,10 @@ Implemented now:
   instance root, game root, mods, config, saves, resource packs, and shader
   packs.
 - Cache preparation resolves Minecraft metadata, the selected client jar,
-  Minecraft version libraries, native classifier libraries, Fabric loader
-  profile libraries, and Minecraft asset objects into Craftless-owned
-  workspace handles, including extracted native-path handles for launch.
+  Minecraft version libraries, Java runtime files, native classifier libraries,
+  Fabric loader profile libraries, and Minecraft asset objects into
+  Craftless-owned workspace handles, including `launch.javaExecutable` and
+  extracted native-path handles for launch.
 - Fabric/Loom driver module with internal version-aware bindings and
   gateway-backed runtime hooks for current action evidence.
 - Fabric-generated action descriptors for current chat, movement, player

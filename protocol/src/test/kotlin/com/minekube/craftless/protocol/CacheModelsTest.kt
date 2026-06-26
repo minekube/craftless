@@ -40,6 +40,7 @@ class CacheModelsTest {
             listOf("cache/minecraft/versions/1.21.6/client.jar"),
             result.launch.classpath,
         )
+        assertEquals(null, result.launch.javaExecutable)
         assertEquals(
             listOf(
                 CachePreparedArtifact(

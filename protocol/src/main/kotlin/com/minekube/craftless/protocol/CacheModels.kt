@@ -100,6 +100,8 @@ data class CachePrepareResult(
 }
 
 const val MINECRAFT_VERSION_INDEX_URL: String = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
+const val MINECRAFT_JAVA_RUNTIME_INDEX_URL: String =
+    "https://piston-meta.mojang.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json"
 const val FABRIC_META_BASE_URL: String = "https://meta.fabricmc.net/v2"
 
 @Serializable
@@ -114,6 +116,7 @@ data class CachePreparedArtifact(
 data class CacheLaunchPlan(
     val classpath: List<String>,
     val nativePath: List<String> = emptyList(),
+    val javaExecutable: String? = null,
 ) {
     companion object {
         fun fromArtifacts(artifacts: List<CachePreparedArtifact>): CacheLaunchPlan =
@@ -137,6 +140,11 @@ data class CacheLaunchPlan(
                         .filter { artifact ->
                             artifact.kind == CachePreparedArtifactKind.MINECRAFT_NATIVE_DIRECTORY
                         }.map { it.handle },
+                javaExecutable =
+                    artifacts
+                        .singleOrNull { artifact ->
+                            artifact.kind == CachePreparedArtifactKind.JAVA_RUNTIME_EXECUTABLE
+                        }?.handle,
             )
     }
 }
@@ -148,6 +156,10 @@ enum class CachePreparedArtifactKind {
     MINECRAFT_CLIENT_JAR,
     MINECRAFT_ASSET_INDEX,
     MINECRAFT_ASSET_OBJECT,
+    JAVA_RUNTIME_INDEX,
+    JAVA_RUNTIME_MANIFEST,
+    JAVA_RUNTIME_FILE,
+    JAVA_RUNTIME_EXECUTABLE,
     MINECRAFT_LIBRARY,
     MINECRAFT_NATIVE_LIBRARY,
     MINECRAFT_NATIVE_DIRECTORY,
