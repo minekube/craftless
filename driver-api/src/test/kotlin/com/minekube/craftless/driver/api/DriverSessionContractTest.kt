@@ -28,6 +28,7 @@ class DriverSessionContractTest {
                 "actions",
                 "runtimeMetadata",
                 "runtimeGraph",
+                "operationAdapters",
                 "invoke",
                 "stop",
                 "events",

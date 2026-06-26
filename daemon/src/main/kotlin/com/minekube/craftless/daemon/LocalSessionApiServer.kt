@@ -5,6 +5,7 @@ import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverEventType
+import com.minekube.craftless.driver.api.DriverOperationInvocation
 import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.ApiRouteCatalog
 import com.minekube.craftless.protocol.CacheCleanupRequest
@@ -220,13 +221,7 @@ class LocalSessionApiServer private constructor(
                             ?: throw UnsupportedAction("action ${request.action} is not available for client $clientId")
                     action.requireAvailable(clientId)
                     action.requireArguments(request.args)
-                    val result =
-                        driver.invoke(
-                            DriverActionInvocation(
-                                action = request.action,
-                                arguments = request.args,
-                            ),
-                        )
+                    val result = driver.invokeGeneratedOperation(clientId, request.action, request.args)
                     if (result.status == DriverActionStatus.UNSUPPORTED) {
                         throw UnsupportedAction(result.message ?: "action ${request.action} is not available for client $clientId")
                     }
@@ -280,13 +275,7 @@ class LocalSessionApiServer private constructor(
                     val arguments = call.receiveActionArguments()
                     action.requireAvailable(clientId)
                     action.requireArguments(arguments)
-                    val result =
-                        driver.invoke(
-                            DriverActionInvocation(
-                                action = actionId,
-                                arguments = arguments,
-                            ),
-                        )
+                    val result = driver.invokeGeneratedOperation(clientId, actionId, arguments)
                     if (result.status == DriverActionStatus.UNSUPPORTED) {
                         throw UnsupportedAction(result.message ?: "action $actionId is not available for client $clientId")
                     }
@@ -411,6 +400,31 @@ private fun ClientSessionService.requireActiveDriver(clientId: String): DriverSe
     requireActiveClient(clientId)
     return runCatching { driverFor(clientId) }.getOrElse { error ->
         throw MissingClient(error.message ?: "client $clientId not found")
+    }
+}
+
+private fun DriverSession.invokeGeneratedOperation(
+    clientId: String,
+    actionId: String,
+    arguments: Map<String, JsonElement>,
+): DriverActionResult {
+    val operation = runtimeGraph().operations.firstOrNull { it.id == actionId }
+    val adapters = operationAdapters()
+    return if (operation != null && operation.adapter in adapters.adapterKeys()) {
+        adapters.invoke(
+            DriverOperationInvocation(
+                clientId = clientId,
+                operation = operation,
+                arguments = arguments,
+            ),
+        )
+    } else {
+        invoke(
+            DriverActionInvocation(
+                action = actionId,
+                arguments = arguments,
+            ),
+        )
     }
 }
 

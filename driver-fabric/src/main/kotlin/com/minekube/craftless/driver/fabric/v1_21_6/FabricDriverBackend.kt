@@ -5,6 +5,8 @@ import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
+import com.minekube.craftless.driver.api.DriverOperationAdapter
+import com.minekube.craftless.driver.api.DriverOperationAdapters
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.runtime.DriverBackend
 import com.minekube.craftless.driver.runtime.DriverBackendAction
@@ -53,6 +55,32 @@ class FabricDriverBackend private constructor(
                 bindings = actionBindingsById,
             ),
         )
+
+    override fun operationAdapters(clientId: String): DriverOperationAdapters {
+        val adapters =
+            discoveredActions(clientId)
+                .mapNotNull { discoveredAction ->
+                    val binding = discoveredAction.binding ?: return@mapNotNull null
+                    discoveredAction.descriptor.id.fabricOperationAdapterKey() to
+                        DriverOperationAdapter { invocation ->
+                            binding.invoke(
+                                clientId = invocation.clientId,
+                                invocation =
+                                    DriverActionInvocation(
+                                        action = invocation.operation.id,
+                                        arguments = invocation.arguments,
+                                    ),
+                                context =
+                                    FabricActionContext(
+                                        modeId = mode.id,
+                                        gateway = gateway,
+                                        record = ::record,
+                                    ),
+                            )
+                        }
+                }.toMap()
+        return DriverOperationAdapters(adapters)
+    }
 
     override fun invoke(
         clientId: String,
@@ -163,6 +191,8 @@ class FabricDriverBackend private constructor(
         fun current(): FabricDriverBackend = installed ?: metadataOnly().also(::install)
     }
 }
+
+private fun String.fabricOperationAdapterKey(): String = "fabric.${replace(".", "-")}"
 
 internal fun interface FabricRuntimeMetadataProvider {
     fun runtimeMetadata(clientId: String): DriverRuntimeMetadata

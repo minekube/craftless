@@ -13,6 +13,8 @@ import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverClientSnapshot
 import com.minekube.craftless.driver.api.DriverEvent
 import com.minekube.craftless.driver.api.DriverEventType
+import com.minekube.craftless.driver.api.DriverOperationAdapter
+import com.minekube.craftless.driver.api.DriverOperationAdapters
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.CacheCleanupResult
@@ -27,6 +29,11 @@ import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
 import com.minekube.craftless.protocol.OpenApiAction
 import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.Profile
+import com.minekube.craftless.protocol.RuntimeAvailability
+import com.minekube.craftless.protocol.RuntimeCapabilityGraph
+import com.minekube.craftless.protocol.RuntimeOperationNode
+import com.minekube.craftless.protocol.RuntimeResourceNode
+import com.minekube.craftless.protocol.RuntimeSchema
 import com.minekube.craftless.testkit.FakeDriverSession
 import com.minekube.craftless.testkit.fakeDriverRuntimeMetadata
 import io.ktor.client.HttpClient
@@ -530,6 +537,93 @@ class LocalSessionApiServerTest {
                         }
 
                     assertEquals(0, driver.invokeCount)
+                }
+        }
+
+    @Test
+    fun `server dispatches graph operations through registered operation adapters`() =
+        withHttpClient { http ->
+            val driver = GraphOperationAdapterDriverSession("alice")
+            LocalSessionApiServer
+                .inMemory(
+                    driverFactory =
+                        DriverSessionFactory {
+                            driver
+                        },
+                ).use { server ->
+                    server.start()
+                    createAlice(http, server)
+
+                    http
+                        .post(server.url("/clients/alice:run")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"action":"player.chat","args":{"message":"hello from graph"}}""")
+                        }.let { response ->
+                            val body = json.parseToJsonElement(response.bodyAsText()).jsonObject
+                            assertEquals(HttpStatusCode.OK, response.status)
+                            assertEquals("player.chat", body["action"]?.jsonPrimitive?.content)
+                            assertEquals("ACCEPTED", body["status"]?.jsonPrimitive?.content)
+                            assertEquals("adapter accepted hello from graph", body["message"]?.jsonPrimitive?.content)
+                        }
+
+                    assertEquals(1, driver.adapterInvokeCount)
+                    assertEquals(0, driver.legacyInvokeCount)
+                }
+        }
+
+    @Test
+    fun `server rejects graph operation availability and schema before operation adapters`() =
+        withHttpClient { http ->
+            val driver =
+                GraphOperationAdapterDriverSession(
+                    clientId = "alice",
+                    availability = RuntimeAvailability.unavailable("client-not-connected"),
+                )
+            LocalSessionApiServer
+                .inMemory(
+                    driverFactory =
+                        DriverSessionFactory {
+                            driver
+                        },
+                ).use { server ->
+                    server.start()
+                    createAlice(http, server)
+
+                    http
+                        .post(server.url("/clients/alice:run")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"action":"player.chat","args":{"message":"hello unavailable"}}""")
+                        }.let { response ->
+                            assertEquals(HttpStatusCode.NotFound, response.status)
+                            assertError(response.bodyAsText(), "UNSUPPORTED_ACTION", "client-not-connected")
+                        }
+
+                    assertEquals(0, driver.adapterInvokeCount)
+                    assertEquals(0, driver.legacyInvokeCount)
+                }
+
+            val schemaDriver = GraphOperationAdapterDriverSession("alice")
+            LocalSessionApiServer
+                .inMemory(
+                    driverFactory =
+                        DriverSessionFactory {
+                            schemaDriver
+                        },
+                ).use { server ->
+                    server.start()
+                    createAlice(http, server)
+
+                    http
+                        .post(server.url("/clients/alice:run")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"action":"player.chat","args":{"message":42}}""")
+                        }.let { response ->
+                            assertEquals(HttpStatusCode.BadRequest, response.status)
+                            assertError(response.bodyAsText(), "INVALID_ACTION_INPUT", "action player.chat argument message must be string")
+                        }
+
+                    assertEquals(0, schemaDriver.adapterInvokeCount)
+                    assertEquals(0, schemaDriver.legacyInvokeCount)
                 }
         }
 
@@ -1102,6 +1196,67 @@ private class DataActionDriverSession(
                     put("target-kind", "block")
                 },
         )
+
+    override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
+
+    override fun events(): List<DriverEvent> = emptyList()
+}
+
+private class GraphOperationAdapterDriverSession(
+    override val clientId: String,
+    private val availability: RuntimeAvailability = RuntimeAvailability.available(),
+) : DriverSession {
+    var adapterInvokeCount = 0
+    var legacyInvokeCount = 0
+
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.RUNNING)
+
+    override fun connect(target: ConnectionTarget): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.CONNECTED)
+
+    override fun actions(): List<DriverActionDescriptor> = emptyList()
+
+    override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
+
+    override fun runtimeGraph(): RuntimeCapabilityGraph =
+        RuntimeCapabilityGraph(
+            clientId = clientId,
+            resources = listOf(RuntimeResourceNode("player", RuntimeAvailability.available())),
+            operations =
+                listOf(
+                    RuntimeOperationNode(
+                        id = "player.chat",
+                        resource = "player",
+                        adapter = "fake.chat",
+                        arguments = mapOf("message" to RuntimeSchema("string", required = true)),
+                        availability = availability,
+                    ),
+                ),
+        )
+
+    override fun operationAdapters(): DriverOperationAdapters =
+        DriverOperationAdapters(
+            mapOf(
+                "fake.chat" to
+                    DriverOperationAdapter { invocation ->
+                        adapterInvokeCount += 1
+                        DriverActionResult(
+                            action = invocation.operation.id,
+                            status = DriverActionStatus.ACCEPTED,
+                            message = "adapter accepted ${invocation.arguments.getValue("message").jsonPrimitive.content}",
+                            eventType = DriverEventType.CHAT,
+                        )
+                    },
+            ),
+        )
+
+    override fun invoke(invocation: DriverActionInvocation): DriverActionResult {
+        legacyInvokeCount += 1
+        return DriverActionResult(
+            action = invocation.action,
+            status = DriverActionStatus.UNSUPPORTED,
+            message = "legacy invoke should not run",
+        )
+    }
 
     override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
 

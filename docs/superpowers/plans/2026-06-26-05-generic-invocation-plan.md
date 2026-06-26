@@ -17,15 +17,15 @@
 - Modify: `driver-api/src/main/kotlin/com/minekube/craftless/driver/api/DriverSession.kt`
 - Test: `driver-api/src/test/kotlin/com/minekube/craftless/driver/api/DriverOperationAdapterTest.kt`
 
-- [ ] **Step 1: Add failing adapter tests**
+- [x] **Step 1: Add failing adapter tests**
 
 Assert adapters are resolved by graph operation adapter keys and do not require driver methods per gameplay action.
 
-- [ ] **Step 2: Implement adapter contract**
+- [x] **Step 2: Implement adapter contract**
 
 Add generic adapter invocation types and keep current `invoke` compatibility during migration.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run: `mise exec -- gradle :driver-api:test`
 
@@ -37,15 +37,17 @@ Expected: pass.
 - Modify: `daemon/src/main/kotlin/com/minekube/craftless/daemon/LocalSessionApiServer.kt`
 - Test: `daemon/src/test/kotlin/com/minekube/craftless/daemon/LocalSessionApiServerTest.kt`
 
-- [ ] **Step 1: Add failing invocation tests**
+- [x] **Step 1: Add failing invocation tests**
 
 Assert unavailable graph operations reject before adapter invocation, stale schema rejects, and result schema mismatch returns machine-readable error.
 
-- [ ] **Step 2: Implement graph operation validation**
+- [~] **Step 2: Implement graph operation validation**
 
 Validate action id, args, availability, permission, adapter key, and result schema from graph-projected metadata.
 
-- [ ] **Step 3: Verify**
+Current evidence covers action id, args/schema, availability, adapter-key dispatch, and result-schema validation. Permission, stale-handle, and runtime-mismatch codes still need the richer runtime/event model.
+
+- [x] **Step 3: Verify**
 
 Run: `mise exec -- gradle :daemon:test`
 
@@ -57,15 +59,15 @@ Expected: pass.
 - Modify: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricActionBindings.kt`
 - Test: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt`
 
-- [ ] **Step 1: Add failing migration test**
+- [x] **Step 1: Add failing migration test**
 
 Assert current bootstrap gameplay actions can be invoked through graph adapter metadata.
 
-- [ ] **Step 2: Implement adapter bridge**
+- [x] **Step 2: Implement adapter bridge**
 
 Wrap existing client-thread implementations as internal adapters without making their descriptors public catalog entries.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run: `mise exec -- gradle :driver-fabric:test`
 

@@ -8,11 +8,16 @@ import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverEventType
+import com.minekube.craftless.driver.api.DriverOperationAdapter
+import com.minekube.craftless.driver.api.DriverOperationAdapters
+import com.minekube.craftless.driver.api.DriverOperationInvocation
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.RuntimeAvailability
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
+import com.minekube.craftless.protocol.RuntimeOperationNode
 import com.minekube.craftless.protocol.RuntimeResourceNode
+import com.minekube.craftless.protocol.RuntimeSchema
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
@@ -174,6 +179,42 @@ class BackendDriverSessionTest {
     }
 
     @Test
+    fun `runtime driver session exposes backend operation adapters`() {
+        val graph =
+            RuntimeCapabilityGraph(
+                clientId = "alice",
+                resources = listOf(RuntimeResourceNode("player", RuntimeAvailability.available())),
+                operations =
+                    listOf(
+                        RuntimeOperationNode(
+                            id = "player.chat",
+                            resource = "player",
+                            adapter = "recording.player-chat",
+                            arguments = mapOf("message" to RuntimeSchema("string", required = true)),
+                            availability = RuntimeAvailability.available(),
+                        ),
+                    ),
+            )
+        val backend = RecordingDriverBackend(graph = graph)
+        val session = BackendDriverSession(clientId = "alice", backend = backend)
+
+        val result =
+            session
+                .operationAdapters()
+                .invoke(
+                    DriverOperationInvocation(
+                        clientId = "alice",
+                        operation = graph.operations.single(),
+                        arguments = mapOf("message" to JsonPrimitive("hello adapter")),
+                    ),
+                )
+
+        assertEquals("player.chat", result.action)
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        assertEquals("operation alice player.chat message=hello adapter", backend.calls.single())
+    }
+
+    @Test
     fun `hmc bridge backend adapts the temporary bridge to runtime backend actions`() {
         val backend = HmcBridgeDriverBackend(HmcBridgeBackend.dryRun())
 
@@ -272,6 +313,24 @@ private class RecordingDriverBackend(
         )
 
     override fun runtimeGraph(clientId: String): RuntimeCapabilityGraph = graph.copy(clientId = clientId)
+
+    override fun operationAdapters(clientId: String): DriverOperationAdapters =
+        DriverOperationAdapters(
+            mapOf(
+                "recording.player-chat" to
+                    DriverOperationAdapter { invocation ->
+                        val message = "operation ${invocation.clientId} ${invocation.operation.id} ${
+                            invocation.arguments.entries.joinToString(" ") { "${it.key}=${it.value.jsonPrimitive.content}" }
+                        }"
+                        calls += message
+                        DriverActionResult(
+                            action = invocation.operation.id,
+                            status = DriverActionStatus.ACCEPTED,
+                            message = message,
+                        )
+                    },
+            ),
+        )
 
     override fun invoke(
         clientId: String,

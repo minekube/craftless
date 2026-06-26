@@ -6,6 +6,7 @@ import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionSource
 import com.minekube.craftless.driver.api.DriverActionStatus
+import com.minekube.craftless.driver.api.DriverOperationInvocation
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import kotlinx.serialization.json.Json
@@ -258,6 +259,29 @@ class FabricDriverModuleTest {
             ),
             gateway.actions,
         )
+    }
+
+    @Test
+    fun `fabric backend exposes bootstrap bindings as graph operation adapters`() {
+        val gateway = RecordingFabricClientGateway()
+        val backend = smokeBackend(gateway)
+        val operation = backend.runtimeGraph("alice").operations.single { it.id == "player.chat" }
+
+        val result =
+            backend
+                .operationAdapters("alice")
+                .invoke(
+                    DriverOperationInvocation(
+                        clientId = "alice",
+                        operation = operation,
+                        arguments = mapOf("message" to JsonPrimitive("hello adapter")),
+                    ),
+                )
+
+        assertEquals("player.chat", result.action)
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        assertEquals("hello adapter", result.message)
+        assertEquals(listOf("client-action"), gateway.actions)
     }
 
     @Test

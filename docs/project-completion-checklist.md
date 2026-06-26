@@ -105,14 +105,16 @@ Verification:
 
 ## Phase 5: Generic Invocation
 
-- [ ] Generic invocation dispatches from graph operation metadata to internal
+- [x] Generic invocation dispatches from graph operation metadata to internal
   client-thread execution adapters.
-- [ ] Existing bootstrap Fabric implementations are adapter inputs, not the
+- [x] Existing bootstrap Fabric implementations are adapter inputs, not the
   public action catalog.
-- [ ] Unavailable, permission, schema, stale-handle, and runtime-mismatch
-  errors are machine-readable.
-- [ ] Invocation results validate against graph-projected result schemas and
-  publish correlated events.
+- [~] Unavailable, permission, schema, stale-handle, and runtime-mismatch
+  errors are machine-readable. Current evidence covers unavailable and schema
+  failures; permission, stale-handle, and runtime-mismatch codes remain.
+- [~] Invocation results validate against graph-projected result schemas and
+  publish correlated events. Current evidence covers schema validation and
+  session events; correlated SSE events remain in Phase 6.
 
 Verification:
 

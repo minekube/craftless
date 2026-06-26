@@ -28,6 +28,8 @@ interface DriverSession {
 
     fun runtimeGraph(): RuntimeCapabilityGraph = RuntimeCapabilityGraph(clientId = clientId)
 
+    fun operationAdapters(): DriverOperationAdapters = DriverOperationAdapters.empty()
+
     fun invoke(invocation: DriverActionInvocation): DriverActionResult
 
     fun stop(): DriverClientSnapshot
