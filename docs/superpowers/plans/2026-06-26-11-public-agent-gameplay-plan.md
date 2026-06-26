@@ -314,6 +314,20 @@ The live survival proof is still open until this external runner completes the
 gameplay scenario through generated primitives and Robin confirms in Minecraft
 chat.
 
+Latest no-hold live evidence:
+
+- `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0
+  mise exec -- gradle :driver-fabric:fabricFinalGameplay` exits successfully as
+  a process.
+- `public-agent-command.log` reports `publicAgentState=BLOCKED`.
+- `public-agent-gameplay-results.jsonl` reports
+  `missing-generic-primitive:world.block.query`.
+- Diagnostic `survival-task-results.jsonl` reports `no-material-source`.
+
+The next implementation phase must add generic generated block/material
+discovery through the runtime graph/projection/adapter system, not by adding a
+scenario shortcut.
+
 ### Task 6: Live Gate And Push
 
 **Files:**

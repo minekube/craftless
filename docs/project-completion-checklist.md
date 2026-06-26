@@ -180,7 +180,10 @@ Verification:
   artifact names `public-agent-gameplay-results.jsonl` and
   `public-agent-state.jsonl`. The Fabric final harness now injects its live
   daemon URL into that external runner while the client is connected; completing
-  the live survival proof through generated primitives is still open.
+  the live survival proof through generated primitives is still open. Latest
+  no-hold live evidence reports
+  `missing-generic-primitive:world.block.query`, and the diagnostic internal
+  survival harness still fails with `no-material-source`.
 - [ ] Robin joins or observes the server session after a macOS `say` prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.
@@ -221,7 +224,10 @@ Verification:
   leather.
 - [ ] The final survival proof is reproduced by an external public-agent runner
   over generated OpenAPI/SSE/CLI/skills, not by hard-coding the scenario as a
-  durable public `task.survival.*` API.
+  durable public `task.survival.*` API. Current blocker:
+  `world.block.query` or an equivalent generated resource projection is missing,
+  so an agent cannot discover nearby logs/material block handles before
+  navigating and mining.
 
 ## Phase 9: Pathfinder-Backed Execution
 

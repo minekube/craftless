@@ -53,6 +53,31 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner requires generic block discovery before claiming gameplay can run`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions =
+                        listOf(
+                            "entity.query",
+                            "inventory.query",
+                            "navigation.plan",
+                            "navigation.follow",
+                            "player.look",
+                            "player.raycast",
+                            "world.block.break",
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.BLOCKED, result.state)
+            assertEquals("missing-generic-primitive:world.block.query", result.blocker)
+            assertFalse(server.requests.any { it.startsWith("POST ") })
+        }
+
+    @Test
     fun `runner writes public agent action and state artifacts`() =
         runBlocking {
             val artifactsDir = createTempDirectory(prefix = "craftless-public-agent-test")
@@ -129,5 +154,6 @@ private fun completeActionCatalog(): List<String> =
         "navigation.follow",
         "player.look",
         "player.raycast",
+        "world.block.query",
         "world.block.break",
     )

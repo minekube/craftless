@@ -219,6 +219,7 @@ private val requiredActions =
         "navigation.follow",
         "player.look",
         "player.raycast",
+        "world.block.query",
         "world.block.break",
     )
 
