@@ -373,12 +373,12 @@ Expected: PASS.
 **Files:**
 - Modify: `docs/project-completion-checklist.md`
 
-- [ ] **Step 1: Update checklist status**
+- [x] **Step 1: Update checklist status**
 
 Mark the honest survival/navigation phase as active. Keep final completion
 unchecked until the no-cheat live run and Robin's Minecraft chat confirmation.
 
-- [ ] **Step 2: Run verification**
+- [x] **Step 2: Run verification**
 
 Run:
 
@@ -392,7 +392,7 @@ git diff --check
 
 Expected: all pass.
 
-- [ ] **Step 3: Commit and push**
+- [x] **Step 3: Commit and push**
 
 Run:
 
