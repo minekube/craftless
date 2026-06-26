@@ -53,7 +53,8 @@ Craftless currently has:
   probes with machine-readable reasons;
 - Fabric/Loom driver scaffolding with current action evidence;
 - Fabric-generated action descriptors for current chat, movement, player
-  query/look, raycast, inventory query/equip, and block-break bindings.
+  query/look, raycast, inventory query/equip, block break/interact, and
+  world time query bindings.
   Broader gameplay actions must come from real bindings or runtime discovery
   probes, not static placeholders;
 - a minimal internal Fabric discovery projection that lists binding-backed
@@ -79,8 +80,8 @@ Craftless currently has:
   per-client OpenAPI/action metadata and resource projections, connects to the
   smoke server, invokes generated `player.chat`, `player.move`,
   `screen.query`, `player.query`, `player.look`, `inventory.query`,
-  `inventory.equip`, and `world.block.break` through
-  `POST /clients/{id}:run` after connection,
+  `inventory.equip`, `world.time.query`, `world.block.break`, and
+  `world.block.interact` through `POST /clients/{id}:run` after connection,
   provisions `minecraft:iron_sword` through the server fixture as setup,
   waits until live `inventory.query` observes `Iron Sword`, equips the
   discovered slot, writes client artifacts next to server artifacts, and
@@ -122,7 +123,10 @@ the durable Fabric direction.
   `world.block.break` through `POST /clients/{id}:run`, captured server-side
   item-provision/join/chat/disconnect evidence, observed and equipped
   `Iron Sword` through live inventory metadata, and recorded driver-side
-  movement plus gameplay result telemetry.
+  movement plus gameplay result telemetry. The current smoke controller also
+  invokes generated `screen.query`, `world.time.query`, and
+  `world.block.interact`; the next opt-in real smoke refresh should capture
+  those artifacts.
 - Strengthen generated `player.move` proof from accepted driver telemetry to
   measured server-side position deltas or richer in-client position telemetry.
 - Keep bridge evidence tests separate from Fabric smoke tests so the bridge
@@ -146,14 +150,14 @@ or static placeholder descriptors.
 - Current discovery is composed from internal runtime probes. It has
   connected-client bindings with disconnected-client unavailable probe metadata
   for `player.query`, `player.look`, `player.raycast`, `inventory.query`,
-  `inventory.equip`, and `world.block.break`, plus gateway-discovered
-  `screen.query`; duplicate probe output is rejected before descriptor
-  projection.
+  `inventory.equip`, `world.block.break`, `world.block.interact`, and
+  `world.time.query`, plus gateway-discovered `screen.query`; duplicate probe
+  output is rejected before descriptor projection.
 - Current resource projection groups discovered action ids into live resources
-  such as `player`, `inventory`, and `world.block`, and includes resource-level
-  availability reasons plus the action descriptor schemas that produced each
-  resource. Richer object handles, registry/server-feature resources, and event
-  relationships are still roadmap.
+  such as `player`, `inventory`, `world.block`, and `world.time`, and includes
+  resource-level availability reasons plus the action descriptor schemas that
+  produced each resource. Richer object handles, registry/server-feature
+  resources, and event relationships are still roadmap.
 - Project discovered runtime affordances into Craftless-owned actions,
   resources, handles, schemas, availability metadata, and events.
 - Add real execution bindings before treating an action as supported.

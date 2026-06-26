@@ -669,6 +669,42 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric runtime discovery exposes world time query only from client state`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = false
+        val backend = FabricDriverBackend.real(gateway)
+
+        val unavailableTime = backend.actions("alice").single { it.id == "world.time.query" }
+        val unavailableResult = backend.invoke("alice", DriverActionInvocation("world.time.query"))
+
+        assertEquals(DriverActionSource.RUNTIME_PROBE, unavailableTime.source)
+        assertEquals(DriverActionAvailability.UNAVAILABLE, unavailableTime.availability)
+        assertEquals("client-not-connected", unavailableTime.availabilityReason)
+        assertEquals("object", unavailableTime.result.properties["data"]?.type)
+        assertEquals(DriverActionStatus.UNSUPPORTED, unavailableResult.status)
+        assertEquals("client-not-connected", unavailableResult.message)
+
+        gateway.connected = true
+        gateway.queryResult =
+            buildJsonObject {
+                put("time", 1234)
+                put("time-of-day", 5678)
+            }
+
+        val worldTime = backend.actions("alice").single { it.id == "world.time.query" }
+        val result = backend.invoke("alice", DriverActionInvocation("world.time.query"))
+
+        assertEquals(DriverActionSource.BINDING, worldTime.source)
+        assertEquals(DriverActionAvailability.AVAILABLE, worldTime.availability)
+        assertEquals(null, worldTime.availabilityReason)
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        assertEquals(1234, result.data["time"]?.jsonPrimitive?.int)
+        assertEquals(5678, result.data["time-of-day"]?.jsonPrimitive?.int)
+        assertEquals(listOf("client-query"), gateway.actions)
+        assertEquals(1, gateway.scheduled)
+    }
+
+    @Test
     fun `fabric runtime discovery exposes screen query only from live client state`() {
         val metadataOnly = FabricDriverBackend.metadataOnly()
         assertTrue(metadataOnly.actions("alice").none { it.id == "screen.query" })
@@ -805,6 +841,11 @@ class FabricDriverModuleTest {
             }
         gateway.queryResults +=
             buildJsonObject {
+                put("time", 1234)
+                put("time-of-day", 5678)
+            }
+        gateway.queryResults +=
+            buildJsonObject {
                 put(
                     "position",
                     buildJsonObject {
@@ -848,12 +889,13 @@ class FabricDriverModuleTest {
         assertEquals(0.milliseconds, controller.startupSettleDelay)
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
 
-        gateway.awaitActions(11)
+        gateway.awaitActions(12)
         assertEquals(
             listOf(
                 "connect localhost:25567",
                 "client-action",
                 "client-action",
+                "client-query",
                 "client-query",
                 "client-query",
                 "client-query",
@@ -876,6 +918,7 @@ class FabricDriverModuleTest {
         assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/screen:query"))
         assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/world/block:break"))
         assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/world/block:interact"))
+        assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/world/time:query"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("player.query"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("player.look"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("inventory.query"))
@@ -883,15 +926,18 @@ class FabricDriverModuleTest {
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("screen.query"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("world.block.break"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("world.block.interact"))
+        assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("world.time.query"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("\"availability\":\"available\""))
         val connectedResources = Files.readString(artifactsDir.resolve("client-resources-connected.json"))
         assertTrue(connectedResources.contains("\"id\":\"player\""))
         assertTrue(connectedResources.contains("\"id\":\"inventory\""))
         assertTrue(connectedResources.contains("\"id\":\"screen\""))
         assertTrue(connectedResources.contains("\"id\":\"world.block\""))
+        assertTrue(connectedResources.contains("\"id\":\"world.time\""))
         assertTrue(connectedResources.contains("\"availability\":\"available\""))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("player.query"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("screen.query"))
+        assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("world.time.query"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("player.look"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("inventory.query"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("inventory.equip"))
@@ -922,6 +968,11 @@ class FabricDriverModuleTest {
         gateway.queryResults +=
             buildJsonObject {
                 put("open", false)
+            }
+        gateway.queryResults +=
+            buildJsonObject {
+                put("time", 1234)
+                put("time-of-day", 5678)
             }
         gateway.queryResults +=
             buildJsonObject {
@@ -965,12 +1016,13 @@ class FabricDriverModuleTest {
 
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
 
-        gateway.awaitActions(12)
+        gateway.awaitActions(13)
         assertEquals(
             listOf(
                 "connect 127.0.0.1:25565",
                 "client-action",
                 "client-action",
+                "client-query",
                 "client-query",
                 "client-query",
                 "client-query",
@@ -1073,12 +1125,13 @@ class FabricDriverModuleTest {
         assertEquals(emptyList(), gateway.actions)
 
         gateway.ready = true
-        gateway.awaitActions(11)
+        gateway.awaitActions(12)
         assertEquals(
             listOf(
                 "connect 127.0.0.1:25567",
                 "client-action",
                 "client-action",
+                "client-query",
                 "client-query",
                 "client-query",
                 "client-query",

@@ -141,6 +141,13 @@ data class FabricClientSmokeController(
                                 openApi = connectedOpenApi,
                                 action = "screen.query",
                             )
+                        val worldTimeResult =
+                            http.runAvailableAction(
+                                api = api,
+                                clientId = SMOKE_CLIENT_ID,
+                                openApi = connectedOpenApi,
+                                action = "world.time.query",
+                            )
                         val playerResult =
                             http.runAvailableAction(
                                 api = api,
@@ -201,6 +208,7 @@ data class FabricClientSmokeController(
                                 chatResult,
                                 moveResult,
                                 screenResult,
+                                worldTimeResult,
                                 playerResult,
                                 inventoryResult,
                                 targetItemSlot?.let {

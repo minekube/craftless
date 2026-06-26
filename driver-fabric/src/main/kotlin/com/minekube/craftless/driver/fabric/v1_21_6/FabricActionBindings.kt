@@ -304,6 +304,39 @@ internal fun fabricWorldBlockInteractDescriptor(): DriverActionDescriptor =
             fabricObjectDataResultDescriptor(),
     )
 
+internal object FabricWorldTimeQueryActionBinding : FabricActionBinding {
+    override val descriptor: DriverActionDescriptor = fabricWorldTimeQueryDescriptor()
+
+    override fun invoke(
+        clientId: String,
+        invocation: DriverActionInvocation,
+        context: FabricActionContext,
+    ): DriverActionResult {
+        val data =
+            context.queryOnClient {
+                val world = requireNotNull(world) { "client is not connected to a server" }
+                buildJsonObject {
+                    put("time", world.time)
+                    put("time-of-day", world.timeOfDay)
+                }
+            }
+        return DriverActionResult(
+            action = invocation.action,
+            status = DriverActionStatus.ACCEPTED,
+            message = "fabric ${context.modeId} action ${invocation.action} queried",
+            data = data,
+        )
+    }
+}
+
+internal fun fabricWorldTimeQueryDescriptor(): DriverActionDescriptor =
+    DriverActionDescriptor(
+        id = "world.time.query",
+        schemaVersion = "1",
+        result =
+            fabricObjectDataResultDescriptor(),
+    )
+
 internal object FabricPlayerRaycastActionBinding : FabricActionBinding {
     override val descriptor: DriverActionDescriptor = fabricRaycastDescriptor()
 

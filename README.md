@@ -147,10 +147,11 @@ Implemented now:
 - Fabric/Loom driver module with internal version-aware bindings and
   gateway-backed runtime hooks for current action evidence.
 - Fabric-generated action descriptors for current chat, movement, player
-  query/look, screen query, raycast, inventory query/equip, and block-break
-  bindings, routed through an internal discovery projection. Broader gameplay
-  actions are not advertised until they come from real bindings or runtime
-  discovery probes with machine-readable availability reasons.
+  query/look, screen query, raycast, inventory query/equip, block
+  break/interact, and world time query bindings, routed through an internal
+  discovery projection. Broader gameplay actions are not advertised until they
+  come from real bindings or runtime discovery probes with machine-readable
+  availability reasons.
 - Testkit helpers and an opt-in `:testkit:localMinecraftServerSmoke` task for
   provisioning a Minecraft server jar, accepting the EULA, starting the server,
   keeping it running around a caller-supplied smoke action, and collecting
@@ -160,12 +161,12 @@ Implemented now:
   alive, starts the in-client daemon API, fetches per-client OpenAPI/action
   metadata and resource projections, invokes generated `player.chat`,
   `player.move`, `screen.query`, `player.query`, `player.look`,
-  `inventory.query`, `inventory.equip`, and `world.block.break` through
-  `POST /clients/{id}:run`, provisions an `Iron Sword` through the server
-  fixture as smoke setup, waits until the live inventory action observes it,
-  equips the discovered slot, and verifies server-side join, target-item
-  provisioning, chat, and disconnect evidence plus driver-side movement and
-  gameplay result artifacts.
+  `inventory.query`, `inventory.equip`, `world.time.query`,
+  `world.block.break`, and `world.block.interact` through `POST /clients/{id}:run`,
+  provisions an `Iron Sword` through the server fixture as smoke setup, waits
+  until the live inventory action observes it, equips the discovered slot, and
+  verifies server-side join, target-item provisioning, chat, and disconnect
+  evidence plus driver-side movement and gameplay result artifacts.
 
 Still roadmap:
 
