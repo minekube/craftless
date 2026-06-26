@@ -569,8 +569,10 @@ Verification:
   `docs/superpowers/plans/2026-06-26-26-version-agnostic-driver-architecture-plan.md`.
 - [x] Compatibility probe exists:
   `docs/superpowers/evidence/2026-06-26-version-26-compatibility-probe.md`.
-- [ ] Current 1.21.6-specific Fabric code is audited and classified as build
+- [x] Current 1.21.6-specific Fabric code is audited and classified as build
   lane, internal provider, runtime evidence, fixture, or public-facing debt.
+  Evidence:
+  `docs/superpowers/evidence/2026-06-26-version-agnostic-driver-audit.md`.
 - [ ] Stable internal runtime/provider facades exist before adding more
   Minecraft version breadth.
 - [ ] Compatibility matrix and provider-selection tests cover the current lane
