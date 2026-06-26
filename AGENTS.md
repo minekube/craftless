@@ -108,6 +108,22 @@ The source design is
 the client-management boundary, route generation rules, and OpenAPI
 requirements sections.
 
+The active product-completion sequence is the seven spec/plan pairs dated
+2026-06-26 under `docs/superpowers/specs/` and `docs/superpowers/plans/`.
+Follow them in order:
+
+1. truth and guardrails;
+2. runtime capability graph;
+3. Fabric discovery probes;
+4. projection and OpenAPI;
+5. generic invocation;
+6. SSE, JSON-RPC, and adaptive consumers;
+7. final gameplay completion.
+
+Do not implement a later phase before its spec and plan are written and the
+earlier phases are either complete or explicitly carried as active blockers in
+`docs/project-completion-checklist.md`.
+
 ## HTTP And CLI
 
 - Use Ktor Server for local JVM HTTP, SSE, and only-if-needed WebSocket
@@ -208,7 +224,8 @@ more hand-written descriptor/binding pairs. Completion requires a generic
 runtime capability graph, reflection/mapping/registry/callback/screen/handler
 discovery, generated per-client OpenAPI from that graph, executable adapters or
 probe-backed availability for advertised actions/resources, SSE event
-streaming for live observations, and real-client evidence.
+streaming for live observations, real-client evidence, and Robin's explicit
+Minecraft chat confirmation during the final gameplay session.
 
 ## Documentation
 

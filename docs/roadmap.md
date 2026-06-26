@@ -93,21 +93,50 @@ Craftless currently has:
 
 Craftless is not complete until the repository can prove all of the following:
 
-- Real Fabric client smoke launches a Minecraft Java client, joins a local test
-  server, invokes at least one generated action, and verifies the server-side
-  effect.
-- Gameplay automation is exposed through discovered/generated actions and
-  resources, not through hand-written static action APIs.
-- Per-client OpenAPI is authoritative for generated clients, adaptive CLI help,
-  agent tooling, and runtime action invocation.
-- Ktor remains the only JVM HTTP server/client stack in product code and tests.
+- The seven Superpowers spec/plan pairs dated 2026-06-26 have been executed in
+  order.
+- The active checklist in `docs/project-completion-checklist.md` has no open
+  items.
+- Gameplay automation is exposed through a runtime capability graph and
+  graph-generated per-client OpenAPI, not through hand-written static action
+  APIs or descriptor/binding catalog growth.
+- Fabric discovery uses reflection, mappings, registries, callbacks, screens,
+  handlers, world/entity/inventory/client state, permissions, and installed
+  mods as graph inputs.
+- Generic invocation dispatches graph-projected operations through internal
+  client-thread adapters.
+- Server-Sent Events stream lifecycle, runtime, capability, and gameplay
+  observations, with HTTP POST JSON-RPC-style control for invoke, subscribe,
+  unsubscribe, and query.
+- Ktor remains the only JVM HTTP/SSE/client stack in product code and tests.
 - All tooling runs through `mise`; JavaScript helper work uses Bun only.
 - README and active docs describe the current Craftless architecture without
   presenting removed TypeScript SDK or bridge details as product surfaces.
-- CI covers protocol policy, driver contract, daemon HTTP behavior, CLI
-  dispatch, Fabric module compilation, and Bun-powered helper tests.
-- `mise run architecture-check` covers the live OpenAPI/action architecture
-  across protocol, daemon, CLI, Fabric driver, and Bun helper tests.
+- `mise run lint`, `mise run architecture-check`, and `mise run ci` pass.
+- A final real gameplay session captures evidence while Craftless joins a
+  server, streams events, writes chat, observes inventory/world state,
+  equips a tool, mines, builds or places blocks, and fixes issues found during
+  play.
+- Robin writes in Minecraft chat that the goal may be completed.
+
+## Active Completion Sequence
+
+Follow these specs and plans in order:
+
+1. `docs/superpowers/specs/2026-06-26-01-truth-and-guardrails-design.md`
+   with `docs/superpowers/plans/2026-06-26-01-truth-and-guardrails-plan.md`.
+2. `docs/superpowers/specs/2026-06-26-02-runtime-capability-graph-design.md`
+   with `docs/superpowers/plans/2026-06-26-02-runtime-capability-graph-plan.md`.
+3. `docs/superpowers/specs/2026-06-26-03-fabric-discovery-probes-design.md`
+   with `docs/superpowers/plans/2026-06-26-03-fabric-discovery-probes-plan.md`.
+4. `docs/superpowers/specs/2026-06-26-04-projection-openapi-design.md`
+   with `docs/superpowers/plans/2026-06-26-04-projection-openapi-plan.md`.
+5. `docs/superpowers/specs/2026-06-26-05-generic-invocation-design.md`
+   with `docs/superpowers/plans/2026-06-26-05-generic-invocation-plan.md`.
+6. `docs/superpowers/specs/2026-06-26-06-sse-json-rpc-consumers-design.md`
+   with `docs/superpowers/plans/2026-06-26-06-sse-json-rpc-consumers-plan.md`.
+7. `docs/superpowers/specs/2026-06-26-07-final-gameplay-completion-design.md`
+   with `docs/superpowers/plans/2026-06-26-07-final-gameplay-completion-plan.md`.
 
 ## Phase 1: Real-Client Proof
 

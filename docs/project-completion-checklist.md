@@ -1,366 +1,163 @@
-# Craftless Project Checklist
+# Craftless Project Completion Checklist
 
-This checklist is the active project red line. Keep it short, current, and
-honest. Update it whenever implementation or product status changes.
+This is the active completion red line. Craftless is not complete until every
+unchecked item below is checked with evidence and Robin confirms completion in
+Minecraft chat during the final gameplay session.
 
 Legend:
 
-- `[ ]` not started
+- `[ ]` not done
 - `[~]` in progress
 - `[x]` done with evidence
 - `[!]` blocked
 
 ## Current Baseline
 
-- [x] Repository is renamed to Craftless and uses `com.minekube.craftless`.
+- [x] Repository is named Craftless and uses `com.minekube.craftless`.
 - [x] Tooling is pinned through `mise`.
 - [x] JVM HTTP surfaces use Ktor Server/Client.
-- [x] Go implementation and removed TypeScript SDK are not active product
-  surfaces.
+- [x] CLI binary is `craftless`.
 - [x] Stable supervisor OpenAPI exists at `GET /openapi.json`.
-- [x] Per-client OpenAPI route exists at `GET /clients/{id}/openapi.json`.
-- [x] Generic action invocation exists at `POST /clients/{id}:run`.
-- [x] Live resource projection exists at `GET /clients/{id}/resources` and in
-  `x-craftless-resources`, derived from the same action snapshot as
-  per-client OpenAPI, including resource availability reasons and the action
-  descriptors that produced each resource.
-- [x] CLI binary is `craftless` and uses adaptive action metadata.
-- [x] CLI agent-tool export uses live per-client OpenAPI action metadata.
-- [x] CLI generic and generated-alias action dispatch use the live per-client
-  OpenAPI action descriptor for argument schema validation, help, positional
-  argument mapping, and nested generated aliases such as
-  `/clients/{id}/world/block:break`, with `/clients/{id}/actions` treated as
-  an availability projection. Invocation, `craftless clients <id> actions`,
-  and `craftless clients <id> resources` no longer gate on projection
-  endpoints; live OpenAPI is the action/resource existence and schema
-  authority.
-- [x] Daemon generic and generated-alias action dispatch use the live
-  per-client OpenAPI action descriptor for action existence, availability,
-  argument validation, and result payload validation before returning success.
-- [x] Per-client OpenAPI responses expose the live runtime/action fingerprint
-  through `x-craftless-runtime-fingerprint`, `X-Craftless-Runtime-Fingerprint`,
-  and HTTP `ETag`/`If-None-Match` revalidation metadata; action/resource
-  projection endpoints use the same fingerprint.
-- [x] The real Fabric backend derives loader version, driver version,
-  installed-mod fingerprint, selected runtime registry fingerprint, and
-  gateway-derived server-feature fingerprint inputs from a runtime metadata
-  provider backed by Fabric Loader, Minecraft registries, and client-thread
-  state; richer registry and server-feature resources remain roadmap work.
-- [x] Fabric smoke has proven real client launch, server join, generated chat,
-  generated movement telemetry, generated look invocation, server-side target
-  item provisioning, generated inventory observation/equip, generated block
-  action invocation, disconnect, and artifact capture.
-- [x] Current Fabric driver has real chat, movement, `player.query`,
-  `player.look`, `player.raycast`, `inventory.query`, `inventory.equip`,
-  `world.block.break`, `world.block.interact`, `world.time.query`, and
-  gateway-discovered `screen.query` bindings plus runtime-probed
-  `screen.close` binding/unavailable metadata. Connected-client gameplay
-  actions are no longer advertised from `isConnected()` alone: discovery
-  samples a client-thread capability snapshot for player, inventory, camera,
-  interaction-manager, and world availability, then projects available
-  bindings or machine-readable unavailable reasons such as
-  `player-unavailable`, `inventory-unavailable`, `camera-unavailable`,
-  `interaction-unavailable`, `world-unavailable`, or
-  `client-not-connected`. When no screen is open, `screen.close` is exposed
-  only through gateway-backed unavailable probe metadata. Broader gameplay
-  discovery is still roadmap and must not be represented as a static
-  placeholder catalog.
-- [x] Craftless is complete.
+- [x] Per-client OpenAPI exists at `GET /clients/{id}/openapi.json`.
+- [x] Generic invocation exists at `POST /clients/{id}:run`.
+- [x] Current CLI and helper consumers use live per-client OpenAPI metadata for
+  existing action dispatch, generated help, tools export, resources, and cache
+  revalidation.
+- [x] Current Fabric smoke proves a real client can launch, join a local
+  server, chat, move, observe inventory, equip an iron sword, invoke block
+  interactions, and write evidence artifacts.
+- [x] Root `AGENTS.md` now states that existing hand-written gameplay bindings
+  are transitional bootstrap/evidence code, not the durable API shape.
 
-Baseline evidence:
+## Required Specs And Plans
 
-- Latest real-smoke evidence path:
-  `driver-fabric/build/craftless-local-server-smoke/artifacts/`
-- Latest completion smoke was run on 2026-06-26 with
-  `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`.
-- Latest real-smoke evidence includes `ITEM_PROVISIONED` for
-  `minecraft:iron_sword` in `server-evidence.jsonl`, `Iron Sword` observed in
-  `inventory.query`, `craftless-smoke-target-item-observed`,
-  `inventory.equip`, `player.look`, generated `player.move`
-  before-position telemetry, `screen.query`, `world.time.query`,
-  `world.block.break`, and `world.block.interact` in `gameplay-results.jsonl`.
-- Latest static-placeholder cleanup smoke: disconnected `client-actions.json`
-  contains binding-backed chat/move plus unavailable runtime-probe metadata for
-  connected-only gameplay actions; `server-evidence.jsonl` contained item
-  provisioning, join, chat, and disconnect for the same real client.
-- Current smoke controller re-fetches connected client OpenAPI/actions before
-  invoking gameplay actions and writes `client-openapi-connected.json`,
-  `client-actions-connected.json`, `client-resources-connected.json`, and
-  `gameplay-results.jsonl`; resource artifacts are serialized from
-  `x-craftless-resources` in the live OpenAPI documents rather than fetched
-  from the projection endpoint, and smoke now includes generated
-  `world.time.query` and `world.block.interact` invocation in addition to
-  `world.block.break`.
-- Key commands:
-  - `mise run lint`
-  - `mise run architecture-check`
-  - `mise run ci`
-  - `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
-- Current known local-only files: none in `git status`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-26-01-truth-and-guardrails-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-26-01-truth-and-guardrails-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-26-02-runtime-capability-graph-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-26-02-runtime-capability-graph-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-26-03-fabric-discovery-probes-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-26-03-fabric-discovery-probes-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-26-04-projection-openapi-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-26-04-projection-openapi-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-26-05-generic-invocation-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-26-05-generic-invocation-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-26-06-sse-json-rpc-consumers-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-26-06-sse-json-rpc-consumers-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-26-07-final-gameplay-completion-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-26-07-final-gameplay-completion-plan.md`.
 
-## 1. Product Positioning And README
+## Phase 1: Truth And Guardrails
 
-- [x] Restore the richer README comparison structure from the earlier approved
-  direction, updated to current truth.
-- [x] Keep the README comparison focused on Craftless, Mineflayer, and
-  Baritone unless another project is useful as clearly labelled evidence.
-- [x] Do not advertise HeadlessMC/HMC-Specifics, Prism Launcher, removed SDKs,
-  or bridge internals as active product surfaces.
-- [x] README must clearly separate implemented features from roadmap.
-- [x] README must describe Craftless as live generated OpenAPI over real
-  Minecraft Java clients, not a static action SDK.
+- [x] `AGENTS.md`, roadmap, and this checklist define the real completion path.
+- [ ] Architecture checks fail if new public gameplay breadth appears only as a
+  hand-written descriptor/binding pair.
+- [x] README and docs no longer imply Craftless is complete before runtime
+  graph, SSE stream, and final gameplay evidence are done.
 
 Verification:
 
 - `git diff --check`
-- `rg -n "minekube\\.dev|dev\\.minekube|player/sendChat|/player/sendChat" README.md docs --glob '!docs/superpowers/**' --glob '!docs/AGENTS.md' --glob '!docs/project-completion-checklist.md' -S`
+- `rg -n "Craftless is complete|hand-written public gameplay|runtime capability graph|SSE|Robin.*Minecraft" AGENTS.md README.md docs -S`
 
-## 2. API Layer Separation
+## Phase 2: Runtime Capability Graph
 
-- [x] Root agent rules explicitly separate supervisor API, live per-client
-  generated API, descriptor projections, adaptive consumers, internal driver
-  API, Fabric discovery/projection, and Fabric execution bindings.
-- [x] README and architecture docs explain those layers without reintroducing
-  stale static action routes.
-- [x] Supervisor/client-management API remains lifecycle/setup/discovery only;
-  gameplay does not move into the stable kernel route catalog.
-- [x] Live per-client OpenAPI owns gameplay actions/resources, generated
-  aliases, schemas, handles, availability, and runtime fingerprints.
-- [x] `/clients/{id}/actions` remains a projection of per-client OpenAPI, not
-  a separate source of truth, and revalidates with the same live OpenAPI
-  fingerprint.
-- [x] `/clients/{id}/resources` remains a live projection derived from the
-  per-client OpenAPI action snapshot, not an independent source of truth, and
-  revalidates with the same live OpenAPI fingerprint.
-- [x] Adaptive CLI generic and generated-alias action paths use the live
-  per-client OpenAPI descriptor as the argument/help schema authority,
-  including nested resource aliases derived from action ids, and do not treat
-  `/clients/{id}/actions` as an invocation precondition.
-- [x] CLI and external helper consumers use OpenAPI/descriptors at runtime
-  instead of hard-coding gameplay commands or treating `/clients/{id}/actions`
-  and `/clients/{id}/resources` as authoritative. The `craftless clients <id>
-  actions` and `craftless clients <id> resources` commands now read
-  `x-craftless-actions` and `x-craftless-resources` from
-  `/clients/{id}/openapi.json`, `craftless clients <id> tools` exports an
-  agent-tool manifest from the same live action descriptors and runtime
-  fingerprint, generated action alias help and generated resource help are
-  rendered from live per-client OpenAPI metadata, and the Playwright helper has
-  a thin OpenAPI action client that fetches `/clients/{id}/openapi.json`
-  before invoking
-  `POST /clients/{id}:run` or reading `x-craftless-resources`. The daemon
-  exposes per-client OpenAPI `ETag` revalidation keyed by the live
-  runtime/action fingerprint, and the Playwright helper revalidates its
-  process-local and optional durable cached live specs with `If-None-Match`.
-  `craftless clients <id> openapi --openapi-cache <dir>`, `craftless clients
-  <id> actions --openapi-cache <dir>`, `craftless clients <id> resources
-  --openapi-cache <dir>`, `craftless clients <id> tools --openapi-cache
-  <dir>`, `craftless clients <id> run <action> --openapi-cache <dir>`, and
-  generated action aliases with `--openapi-cache <dir>` now persist the live
-  per-client OpenAPI body plus ETag and revalidate it across CLI invocations.
-- [x] `DriverSession` remains lifecycle/events/runtime metadata plus
-  `actions()` and `invoke(...)`; no static player/world/inventory methods.
-- [x] Fabric discovery/projection and execution bindings stay internal and
-  client-thread safe.
+- [ ] Protocol graph models exist for resources, operations, handles, events,
+  schemas, availability, private source evidence, and fingerprints.
+- [ ] Graph validation rejects duplicate ids, invalid public ids, unavailable
+  nodes without reasons, and raw Fabric/Yarn/Minecraft public names.
+- [ ] Fingerprints change when graph node ids, schemas, availability,
+  permissions, or runtime inputs change.
+- [ ] Driver contract can expose a graph snapshot without adding driver methods
+  per gameplay action.
 
 Verification:
 
-- `git diff --check`
-- `rg -n "fun (sendChat|player|inventory|raycast)\\(|/clients/\\{id\\}/player/sendChat|/player/sendChat|GET /clients/\\{id\\}/player" README.md docs driver-api/src/main driver-runtime/src/main driver-fabric/src/main daemon/src/main cli/src/main protocol/src/main --glob '!docs/superpowers/**' --glob '!docs/AGENTS.md' --glob '!docs/project-completion-checklist.md' -S`
+- `mise exec -- gradle :protocol:test :driver-api:test`
 
-## 3. Runtime Discovery Architecture
+## Phase 3: Fabric Discovery Probes
 
-- [x] Remove static placeholder action descriptors from product code and tests.
-- [x] Action descriptors and per-client OpenAPI carry action source,
-  availability, and machine-readable availability reasons.
-- [x] Design the Fabric runtime discovery/projection layer. Internal discovery
-  is now composed from runtime probes for binding-backed actions,
-  client-thread capability-snapshot projection for `player.query`,
-  `player.look`, `player.raycast`, `inventory.query`, `inventory.equip`,
-  `world.block.break`, `world.block.interact`, and `world.time.query`,
-  gateway-discovered `screen.query`, runtime-probed `screen.close`, and
-  disconnected/unavailable client-state metadata, with duplicate probe output
-  rejected before descriptor projection. Broader client/world/inventory/screen
-  interaction probes are still roadmap.
-- [x] Define how internal Fabric/Minecraft/mod/registry/server data becomes
-  Craftless-owned actions, resources, handles, schemas, availability, and
-  events. Action-derived resource projection now includes resource-level
-  availability reasons and the source action descriptors; richer object
-  handles, registry/server-feature resources, and event/resource relationships
-  are still roadmap.
-- [x] Define the rule for unavailable-but-detected operations: they may appear
-  in OpenAPI only when a runtime probe discovered them and produced a
-  machine-readable availability reason.
-- [x] Daemon generic and alias action routes reject unavailable live OpenAPI
-  action descriptors before driver invocation.
-- [x] Daemon generic and alias action routes reject driver results that do not
-  match the live OpenAPI action result descriptor.
-- [x] Ensure generated aliases are derived only from the running client's
-  OpenAPI/action descriptors.
-- [x] Ensure public OpenAPI does not expose Fabric/Yarn/intermediary names,
-  raw Minecraft implementation names, mod package names, commands, or launcher
-  internals.
-- [x] Add tests that fail if public action and resource descriptors leak
-  implementation names.
-
-Verification:
-
-- `mise exec -- gradle :protocol:test :driver-fabric:test`
-- `mise exec -- gradle :protocol:test --tests com.minekube.craftless.protocol.NamespacePolicyTest`
-- `mise exec -- gradle :driver-fabric:test --tests com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest`
-
-## 4. Fabric Driver Action Bindings
-
-- [x] `player.chat` has a real Fabric binding.
-- [x] `player.move` has a real Fabric binding plus driver-side event and
-  before-position telemetry evidence.
-- [x] Fabric action listing goes through an internal discovery snapshot instead
-  of directly returning the binding map, and that snapshot is composed from
-  runtime probes with duplicate action-id validation.
-- [x] Real look/perception/block/inventory/screen capabilities are discovered
-  from the running client before they are advertised. `player.query`,
-  `player.look`, `player.raycast`, `inventory.query`, `inventory.equip`,
-  `world.block.break`, `world.block.interact`, and `world.time.query` now
-  change between unavailable probe metadata and available bindings from a
-  client-thread capability snapshot instead of a single connected flag.
-  `screen.query` is discovered from the live client gateway, and
-  `screen.close` changes from unavailable probe metadata to an available
-  binding based on live screen state; broader block/inventory/screen/world
-  discovery is still roadmap.
-- [x] Each advertised gameplay action has either a real Fabric execution
-  binding or probe-backed unavailable metadata.
-- [x] No future gameplay action is added as a hand-written placeholder
-  descriptor.
-- [x] `FabricClientGateway` stays generic and does not grow one method per
-  gameplay action.
+- [ ] Fabric probes fill graph nodes from loader/mod metadata, registries,
+  callbacks, screens, handlers, world/entity/inventory/client state, and
+  permissions.
+- [ ] Minecraft client state access stays on the client thread.
+- [ ] Probes emit private evidence and graph nodes, not public OpenAPI
+  descriptors directly.
+- [ ] Current bootstrap gameplay affordances are represented as graph nodes.
 
 Verification:
 
 - `mise exec -- gradle :driver-fabric:test`
-- `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
 
-## 5. Real Gameplay Vertical Slice
+## Phase 4: Projection And OpenAPI
 
-- [x] Define the first useful end-to-end gameplay slice: discover a target
-  inventory item, equip it through live action metadata, and exercise a world
-  block action through generated API contracts.
-- [x] Recommended target: obtain/equip an iron sword using real client actions,
-  without Minecraft console commands as the public API. The smoke provisions
-  `minecraft:iron_sword` through the local server fixture as setup, waits until
-  live `inventory.query` observes `Iron Sword`, and equips the discovered slot
-  through generated action metadata.
-- [x] The slice uses generated OpenAPI/action metadata as the client contract.
-  The smoke controller now re-fetches connected client OpenAPI and gates
-  `screen.query`, `world.time.query`, `player.query`, `player.look`,
-  `inventory.query`, `inventory.equip`, `world.block.break`, and
-  `world.block.interact` invocations on available actions from
-  `x-craftless-actions` before calling generic `POST /clients/{id}:run`;
-  `/clients/{id}/actions` remains an evidence/projection artifact.
-- [x] The slice discovers the needed actions/resources from the running client;
-  it does not call hard-coded Kotlin methods or static CLI commands for current
-  smoke gameplay actions. The smoke chooses the equip slot from live
-  `inventory.query` data and records `player.query` telemetry.
-- [x] The slice runs against a real Fabric client and local server fixture.
-- [x] Evidence proves observable game effects through server logs, client
-  telemetry, or both. Current smoke artifacts include connected
-  OpenAPI/actions/resources, server-side item provisioning, target-item
-  observation, equip slot selection, generated inventory equip, generated look,
-  generated `player.move` before-position telemetry, `screen.query`,
-  generated `world.time.query`, generated block break telemetry, and generated
-  block interact telemetry.
-
-Verification:
-
-- `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
-- Add a narrower smoke command when the slice exists.
-
-## 6. Client Runtime And Files
-
-- [x] Craftless-owned instance file layout is modeled.
-- [x] The instance file contract exposes separate game, runtime, cache, logs,
-  screenshots, and artifacts handles.
-- [x] The daemon can materialize those directories under a configured workspace
-  root without clearing existing runtime files.
-- [x] `craftless server start --workspace <path>` wires that workspace into the
-  local daemon startup path and reports it in startup metadata.
-- [x] `craftless cache prepare --mc <version> --loader <loader> --workspace
-  <path>` and `POST /cache:prepare` prepare Craftless-owned cache directories
-  and a setup manifest.
-- [x] Cache preparation resolves and stores the Minecraft version index and the
-  selected Minecraft version manifest through Ktor Client with offline test
-  fakes.
-- [x] Cache preparation resolves Fabric compatible loader versions, records the
-  resolved loader version, supports an optional loader-version pin, and stores
-  the Fabric loader profile JSON through Ktor Client with offline test fakes.
-- [x] Cache preparation downloads and stores the selected Minecraft client jar,
-  Minecraft version libraries, native classifier libraries, and Fabric profile
-  libraries under Craftless-owned cache handles with offline binary-fetcher
-  tests.
-- [x] Cache preparation extracts native classifier jars into Craftless-owned
-  native directory handles and exposes them through `launch.nativePath`.
-- [x] Cache preparation resolves the Mojang Java runtime index, stores the
-  selected runtime component manifest, downloads runtime files into
-  Craftless-owned handles, and exposes the Java executable through
-  `launch.javaExecutable`.
-- [x] Cache preparation assembles JVM/game launch arguments from resolved
-  version/profile metadata into an internal Craftless-owned artifact and
-  exposes it through `launch.arguments`.
-- [x] Cache preparation emits ordered launch classpath, native-path,
-  Java-executable, and launch-argument handles made only of Craftless-owned
-  artifact handles.
-- [x] Cache preparation resolves the Minecraft asset index and downloads listed
-  asset objects into opaque Craftless-owned cache handles.
-- [x] Cache export and cleanup operate from prepared manifest handles through
-  `POST /cache:export`, `POST /cache:cleanup`, `craftless cache export`, and
-  `craftless cache cleanup`; export writes a workspace-local archive handle and
-  cleanup removes only manifest-declared handles.
-- [x] Prism Launcher source was cloned under `/tmp/prismlauncher-source` for
-  research, outside Minekube repos.
-- [x] Prism findings are captured as design input, not a core dependency.
-- [x] Client runtime/file management is strong enough for repeated local and CI
-  runs. Instance directories and cache preparation are now repeatable and
-  idempotent, with Minecraft metadata, Fabric loader profile metadata, the
-  Minecraft client jar, Minecraft version libraries, Fabric profile libraries,
-  native libraries, Java runtime files, and Minecraft asset objects
-  materialized into the workspace plus ordered launch classpath, native-path,
-  Java-executable, and launch-argument handles, with manifest-driven
-  export/cleanup flows.
-- [x] Public APIs expose Craftless-owned file handles only.
+- [ ] Per-client OpenAPI is generated from `RuntimeCapabilityGraph`.
+- [ ] `/clients/{id}/actions` and `/clients/{id}/resources` are projections of
+  the same graph-generated OpenAPI.
+- [ ] Generated aliases, argument schemas, result schemas, resource metadata,
+  event stream metadata, and fingerprints come from graph projection.
+- [ ] Public API policy tests reject Fabric/Yarn/intermediary/raw Minecraft
+  leakage in graph-projected OpenAPI.
 
 Verification:
 
 - `mise exec -- gradle :protocol:test :daemon:test`
+- `mise run architecture-check`
 
-## 7. Quality Gates
+## Phase 5: Generic Invocation
 
-- [x] `mise run lint` exists.
-- [x] `mise run ci` exists.
-- [x] Kotlin lint includes ktlint, detekt, and compiler warnings as errors.
-- [x] Bun helper tests run through `mise`.
-- [x] `mise run architecture-check` covers the live OpenAPI/action architecture
-  across protocol, daemon, CLI, Fabric driver, and Bun helper tests.
+- [ ] Generic invocation dispatches from graph operation metadata to internal
+  client-thread execution adapters.
+- [ ] Existing bootstrap Fabric implementations are adapter inputs, not the
+  public action catalog.
+- [ ] Unavailable, permission, schema, stale-handle, and runtime-mismatch
+  errors are machine-readable.
+- [ ] Invocation results validate against graph-projected result schemas and
+  publish correlated events.
 
 Verification:
 
-- `mise run architecture-check`
-- `mise run lint`
+- `mise exec -- gradle :driver-api:test :driver-fabric:test :daemon:test`
+
+## Phase 6: SSE, JSON-RPC, And Adaptive Consumers
+
+- [ ] Daemon exposes SSE streams for supervisor and per-client live events.
+- [ ] Daemon exposes HTTP POST JSON-RPC-style control for invoke, subscribe,
+  unsubscribe, and query.
+- [ ] Event filters work server-side and client-side.
+- [ ] CLI can watch live events and invoke/query using live OpenAPI/stream
+  metadata.
+- [ ] Bun helper can subscribe to events without npm, npx, yarn, pnpm, or local
+  Node tooling.
+
+Verification:
+
+- `mise exec -- gradle :protocol:test :daemon:test :cli:test`
+- `mise exec -- bun test playwright`
+
+## Phase 7: Final Gameplay Completion
+
+- [ ] Final gameplay runbook exists in `docs/final-gameplay-runbook.md`.
+- [ ] Final gameplay Gradle task or run command launches/attaches a real
+  Craftless-controlled Fabric client and records artifacts.
+- [ ] Craftless joins a server, fetches graph-backed OpenAPI, subscribes to SSE,
+  writes chat, observes world/inventory state, equips a tool, mines, places or
+  builds a small structure, and records evidence.
+- [ ] Robin joins or observes the server session after a macOS `say` prompt.
+- [ ] Issues found during the gameplay session are fixed and reverified.
+- [ ] Robin writes in Minecraft chat that the goal may be completed.
+
+Verification:
+
+- `CRAFTLESS_FINAL_GAMEPLAY=1 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 - `mise run ci`
-- `git diff --check`
+- Evidence directory: `driver-fabric/build/craftless-final-gameplay/artifacts/`
 
-## Completion Gate
+## Final Completion Gate
 
-Craftless is complete only when all are true:
-
-- [x] README and docs match the restored product direction.
-- [x] Public docs and code preserve the API layer separation described in
-  `AGENTS.md`.
-- [x] Per-client OpenAPI is generated from runtime discovery and real bindings,
-  not a static placeholder action list.
-- [x] Public API names are Craftless-owned and policy tests enforce that.
-- [x] Advertised player/world/inventory/screen actions have real Fabric
-  execution bindings or probe-backed unavailable metadata.
-- [x] A real gameplay vertical slice passes through API/CLI the way a user or
-  agent would use it.
-- [x] `mise run lint` passes.
-- [x] `mise run ci` passes.
-- [x] Opt-in Fabric real-client smoke passes and writes evidence artifacts.
-- [x] The completed work is pushed to `main` when requested.
+- [ ] All phases above are checked with current evidence.
+- [ ] `mise run lint` passes.
+- [ ] `mise run architecture-check` passes.
+- [ ] `mise run ci` passes.
+- [ ] Final real gameplay evidence is captured.
+- [ ] Robin confirms in Minecraft chat that the goal may be completed.
+- [ ] Changes are committed and pushed to `main`.
