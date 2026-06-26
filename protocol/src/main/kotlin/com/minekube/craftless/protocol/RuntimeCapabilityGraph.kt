@@ -182,12 +182,13 @@ enum class RuntimeAvailabilityState {
 @Serializable
 data class RuntimeSchema(
     val type: String,
+    val required: Boolean = false,
 ) {
     init {
         require(type.isCraftlessActionArgumentType()) { "unsupported runtime schema type $type" }
     }
 
-    fun canonical(): String = type
+    fun canonical(): String = "$type:${if (required) "required" else "optional"}"
 
     companion object {
         fun objectSchema(): RuntimeSchema = RuntimeSchema("object")

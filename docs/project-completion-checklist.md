@@ -90,12 +90,12 @@ Verification:
 
 ## Phase 4: Projection And OpenAPI
 
-- [ ] Per-client OpenAPI is generated from `RuntimeCapabilityGraph`.
-- [ ] `/clients/{id}/actions` and `/clients/{id}/resources` are projections of
+- [x] Per-client OpenAPI is generated from `RuntimeCapabilityGraph`.
+- [x] `/clients/{id}/actions` and `/clients/{id}/resources` are projections of
   the same graph-generated OpenAPI.
-- [ ] Generated aliases, argument schemas, result schemas, resource metadata,
+- [x] Generated aliases, argument schemas, result schemas, resource metadata,
   event stream metadata, and fingerprints come from graph projection.
-- [ ] Public API policy tests reject Fabric/Yarn/intermediary/raw Minecraft
+- [x] Public API policy tests reject Fabric/Yarn/intermediary/raw Minecraft
   leakage in graph-projected OpenAPI.
 
 Verification:

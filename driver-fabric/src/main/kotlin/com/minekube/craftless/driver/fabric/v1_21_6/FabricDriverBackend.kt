@@ -50,6 +50,7 @@ class FabricDriverBackend private constructor(
                 modeId = mode.id,
                 gateway = gateway,
                 runtimeMetadata = runtimeMetadata(clientId),
+                bindings = actionBindingsById,
             ),
         )
 

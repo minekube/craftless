@@ -14,6 +14,8 @@ data class OpenApiDocument(
     val actions: List<OpenApiAction> = emptyList(),
     @SerialName("x-craftless-resources")
     val resources: List<OpenApiResource> = emptyList(),
+    @SerialName("x-craftless-events")
+    val events: List<OpenApiEvent> = emptyList(),
 ) {
     companion object {
         fun from(
@@ -21,6 +23,7 @@ data class OpenApiDocument(
             extensions: Map<String, String> = emptyMap(),
             actions: List<OpenApiAction> = emptyList(),
             resources: List<OpenApiResource>? = null,
+            events: List<OpenApiEvent> = emptyList(),
         ): OpenApiDocument {
             val duplicateAction =
                 actions
@@ -39,6 +42,14 @@ data class OpenApiDocument(
                     .firstOrNull { (_, matches) -> matches.size > 1 }
             if (duplicateResource != null) {
                 throw IllegalArgumentException("duplicate resource id ${duplicateResource.key}")
+            }
+            val duplicateEvent =
+                events
+                    .groupBy { it.id }
+                    .entries
+                    .firstOrNull { (_, matches) -> matches.size > 1 }
+            if (duplicateEvent != null) {
+                throw IllegalArgumentException("duplicate event id ${duplicateEvent.key}")
             }
             resourceProjection.forEach { resource ->
                 resource.actions.forEach { actionId ->
@@ -62,6 +73,25 @@ data class OpenApiDocument(
                 extensions = extensions,
                 actions = actions,
                 resources = resourceProjection,
+                events = events,
+            )
+        }
+
+        fun fromRuntimeGraph(
+            graph: RuntimeCapabilityGraph,
+            extensions: Map<String, String> = emptyMap(),
+        ): OpenApiDocument {
+            val actions = graph.operations.sortedBy { it.id }.map { it.toOpenApiAction() }
+            return from(
+                catalog =
+                    ApiRouteCatalog(
+                        ApiRouteCatalog.sessionDefaults().routes +
+                            graph.operations.sortedBy { it.id }.map { it.toActionAliasRoute() },
+                    ),
+                extensions = extensions + ("runtimeGraphFingerprint" to graph.fingerprint()),
+                actions = actions,
+                resources = graph.toOpenApiResources(actions),
+                events = graph.events.sortedBy { it.id }.map { it.toOpenApiEvent() },
             )
         }
     }
@@ -154,7 +184,6 @@ data class OpenApiResource(
 ) {
     init {
         require(id.isCraftlessResourceId()) { "invalid resource id $id" }
-        require(actions.isNotEmpty()) { "resource $id requires at least one action" }
         require(actions.distinct() == actions) { "resource $id declares duplicate actions" }
         require(availabilityReasons.distinct() == availabilityReasons) {
             "resource $id declares duplicate availability reasons"
@@ -168,6 +197,26 @@ data class OpenApiResource(
         }
         require(actionDescriptors.map { it.id } == actions) {
             "resource $id action descriptors must match resource actions"
+        }
+    }
+}
+
+@Serializable
+data class OpenApiEvent(
+    val id: String,
+    val payload: OpenApiActionSchema,
+    val availability: OpenApiActionAvailability = OpenApiActionAvailability.AVAILABLE,
+    val availabilityReason: String? = null,
+) {
+    init {
+        require(id.isCraftlessActionId()) { "invalid event id $id" }
+        require(availabilityReason == null || availabilityReason.isCraftlessActionArgumentName()) {
+            "event availability reason must be a machine-readable Craftless code"
+        }
+        if (availability == OpenApiActionAvailability.UNAVAILABLE) {
+            require(!availabilityReason.isNullOrBlank()) { "unavailable event $id requires availability reason" }
+        } else {
+            require(availabilityReason == null) { "available event $id must not declare availability reason" }
         }
     }
 }
@@ -313,6 +362,37 @@ fun List<OpenApiAction>.toOpenApiResources(): List<OpenApiResource> =
             )
         }
 
+private fun RuntimeCapabilityGraph.toOpenApiResources(actions: List<OpenApiAction>): List<OpenApiResource> {
+    val actionsByResource = actions.groupBy { it.resourceId() }
+    val resourceIds = (resources.map { it.id } + actionsByResource.keys.sorted()).distinct()
+    return resourceIds.map { resourceId ->
+        val resourceNode = resources.firstOrNull { it.id == resourceId }
+        val resourceActions = actionsByResource[resourceId].orEmpty().sortedBy { it.id }
+        val availabilityReasons =
+            (
+                listOfNotNull(resourceNode?.availability?.reason) +
+                    resourceActions.mapNotNull { it.availabilityReason }
+            ).distinct().sorted()
+        OpenApiResource(
+            id = resourceId,
+            actions = resourceActions.map { it.id },
+            availability =
+                when {
+                    resourceNode?.availability?.state == RuntimeAvailabilityState.UNAVAILABLE ->
+                        OpenApiResourceAvailability.UNAVAILABLE
+                    resourceActions.isEmpty() -> OpenApiResourceAvailability.AVAILABLE
+                    resourceActions.all { it.availability == OpenApiActionAvailability.AVAILABLE } ->
+                        OpenApiResourceAvailability.AVAILABLE
+                    resourceActions.all { it.availability == OpenApiActionAvailability.UNAVAILABLE } ->
+                        OpenApiResourceAvailability.UNAVAILABLE
+                    else -> OpenApiResourceAvailability.PARTIAL
+                },
+            availabilityReasons = availabilityReasons,
+            actionDescriptors = resourceActions.map { it.toOpenApiResourceActionDescriptor() },
+        )
+    }
+}
+
 private fun OpenApiAction.resourceId(): String = id.substringBeforeLast(".")
 
 private fun OpenApiAction.toOpenApiResourceActionDescriptor(): OpenApiResourceActionDescriptor =
@@ -356,6 +436,63 @@ private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenA
             },
     )
 }
+
+private fun RuntimeOperationNode.toOpenApiAction(): OpenApiAction =
+    OpenApiAction(
+        id = id,
+        schemaVersion = "1",
+        arguments = arguments.mapValues { (_, schema) -> OpenApiActionArgument(schema.type, required = schema.required) },
+        result =
+            OpenApiActionResult(
+                properties =
+                    mapOf(
+                        "action" to OpenApiActionSchema("string"),
+                        "status" to OpenApiActionSchema("string"),
+                        "message" to OpenApiActionSchema("string"),
+                        "data" to OpenApiActionSchema(result.type),
+                    ),
+                required = listOf("action", "status"),
+            ),
+        source = OpenApiActionSource.RUNTIME_PROBE,
+        availability = availability.toOpenApiActionAvailability(),
+        availabilityReason = availability.reason,
+    )
+
+private fun RuntimeEventNode.toOpenApiEvent(): OpenApiEvent =
+    OpenApiEvent(
+        id = id,
+        payload = OpenApiActionSchema(payload.type),
+        availability = availability.toOpenApiActionAvailability(),
+        availabilityReason = availability.reason,
+    )
+
+private fun RuntimeAvailability.toOpenApiActionAvailability(): OpenApiActionAvailability =
+    when (state) {
+        RuntimeAvailabilityState.AVAILABLE -> OpenApiActionAvailability.AVAILABLE
+        RuntimeAvailabilityState.UNAVAILABLE -> OpenApiActionAvailability.UNAVAILABLE
+    }
+
+private fun RuntimeOperationNode.toActionAliasRoute(): ApiRoute {
+    val parts = id.split(".")
+    val resourcePath = parts.dropLast(1).joinToString("/")
+    val action = parts.last()
+    return ApiRoute(
+        method = "POST",
+        path = "/clients/{id}/$resourcePath:$action",
+        operationId = "run${parts.joinToString("") { it.toPascalIdentifier() }}",
+        tag = "clients",
+        owner = "clients",
+        member = "run",
+        target = "client",
+        source = "action",
+        actionId = id,
+    )
+}
+
+private fun String.toPascalIdentifier(): String =
+    split('-', '_')
+        .filter { it.isNotBlank() }
+        .joinToString("") { part -> part.replaceFirstChar { it.uppercaseChar() } }
 
 private fun ApiRoute.responses(actionsById: Map<String, OpenApiAction>): Map<String, OpenApiResponse> {
     val successStatus = if (path == "/clients" && method == "POST") "201" else "200"

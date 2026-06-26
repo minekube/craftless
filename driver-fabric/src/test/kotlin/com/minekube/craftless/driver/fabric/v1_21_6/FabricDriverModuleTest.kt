@@ -1404,6 +1404,7 @@ private class RecordingFabricClientGateway : FabricClientGateway {
             world = true,
         )
     var capabilityProbeQueries = 0
+    var graphCapabilityProbeQueries = 0
 
     @Volatile
     var connected = false
@@ -1428,6 +1429,14 @@ private class RecordingFabricClientGateway : FabricClientGateway {
 
     @Suppress("UNCHECKED_CAST")
     override fun <T> queryOnClient(query: net.minecraft.client.MinecraftClient.() -> T): T {
+        if (isCapabilityGraphProbe()) {
+            graphCapabilityProbeQueries += 1
+            return if (graphCapabilityProbeQueries % 2 == 1) {
+                capabilities as T
+            } else {
+                screenOpen as T
+            }
+        }
         if (isCapabilityDiscoveryProbe()) {
             capabilityProbeQueries += 1
             return capabilities as T
@@ -1468,5 +1477,10 @@ private class RecordingFabricClientGateway : FabricClientGateway {
     private fun isCapabilityDiscoveryProbe(): Boolean =
         Thread.currentThread().stackTrace.any { frame ->
             frame.methodName == "discoverClientCapabilities"
+        }
+
+    private fun isCapabilityGraphProbe(): Boolean =
+        Thread.currentThread().stackTrace.any { frame ->
+            frame.className.endsWith("FabricClientStateCapabilityProbe")
         }
 }

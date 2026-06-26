@@ -207,10 +207,7 @@ class ClientSessionServiceTest {
         assertEquals("none", document.extensions["x-craftless-registry-fingerprint"])
         assertEquals("none", document.extensions["x-craftless-server-feature-fingerprint"])
         assertEquals("local-fake", document.extensions["x-craftless-permissions-fingerprint"])
-        assertEquals(
-            "minecraft=1.21.4;loader=FABRIC;loaderVersion=none;driver=craftless-fake;driverVersion=0.1.0-SNAPSHOT;mappings=none;mods=none;registries=none;serverFeatures=none;permissions=local-fake;actions=player.chat:1:binding:available(message:string!)->(action:string!,data:object,message:string,status:string!),player.move:1:binding:available(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)->(action:string!,data:object,message:string,status:string!)",
-            document.extensions["x-craftless-runtime-fingerprint"],
-        )
+        assertEquals(document.extensions["runtimeGraphFingerprint"], document.extensions["x-craftless-runtime-fingerprint"])
         assertTrue(document.paths.containsKey("/clients/alice/openapi.json"))
         assertTrue(document.paths.containsKey("/clients/alice"))
         assertTrue(document.paths.containsKey("/clients/alice:connect"))

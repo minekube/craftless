@@ -658,6 +658,35 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `client openapi actions and resources share runtime graph fingerprint`() =
+        withHttpClient { http ->
+            fakeLocalSessionApiServer().use { server ->
+                server.start()
+                createAlice(http, server)
+
+                val openApiResponse = http.get(server.url("/clients/alice/openapi.json"))
+                assertEquals(HttpStatusCode.OK, openApiResponse.status)
+                val document = json.decodeFromString<OpenApiDocument>(openApiResponse.bodyAsText())
+                val graphFingerprint = requireNotNull(document.extensions["runtimeGraphFingerprint"])
+
+                assertEquals(graphFingerprint, document.extensions["x-craftless-runtime-fingerprint"])
+                assertEquals(graphFingerprint, openApiResponse.headers["X-Craftless-Runtime-Fingerprint"])
+
+                http.get(server.url("/clients/alice/actions")).let { response ->
+                    assertEquals(HttpStatusCode.OK, response.status)
+                    assertEquals(graphFingerprint, response.headers["X-Craftless-Runtime-Fingerprint"])
+                    assertEquals(document.actions, json.decodeFromString<List<OpenApiAction>>(response.bodyAsText()))
+                }
+
+                http.get(server.url("/clients/alice/resources")).let { response ->
+                    assertEquals(HttpStatusCode.OK, response.status)
+                    assertEquals(graphFingerprint, response.headers["X-Craftless-Runtime-Fingerprint"])
+                    assertEquals(document.resources, json.decodeFromString(response.bodyAsText()))
+                }
+            }
+        }
+
+    @Test
     fun `server handles session routes for fake client actions`() =
         withHttpClient { http ->
             fakeLocalSessionApiServer().use { server ->

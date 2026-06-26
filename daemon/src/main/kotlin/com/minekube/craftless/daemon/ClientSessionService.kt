@@ -21,6 +21,7 @@ import com.minekube.craftless.protocol.OpenApiActionSchema
 import com.minekube.craftless.protocol.OpenApiActionSource
 import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.OpenApiResource
+import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import com.minekube.craftless.protocol.isCraftlessClientId
 
 class ClientSessionService private constructor(
@@ -85,6 +86,20 @@ class ClientSessionService private constructor(
     fun openApiFor(clientId: String): OpenApiDocument {
         val client = client(clientId)
         val driver = driverFor(clientId)
+        val graph = driver.runtimeGraph()
+        if (graph.hasProjectionNodes()) {
+            val metadata =
+                RuntimeOpenApiMetadata.forGraph(
+                    client = client,
+                    graph = graph,
+                    metadata = driver.runtimeMetadata(),
+                )
+            return OpenApiDocument
+                .fromRuntimeGraph(
+                    graph = graph,
+                    extensions = metadata.extensions,
+                ).withConcreteClientId(clientId)
+        }
         val actions = driver.sortedActions()
         val runtimeMetadata =
             RuntimeOpenApiMetadata.forClient(
@@ -159,6 +174,17 @@ class ClientSessionService private constructor(
     }
 }
 
+private fun RuntimeCapabilityGraph.hasProjectionNodes(): Boolean =
+    resources.isNotEmpty() || operations.isNotEmpty() || handles.isNotEmpty() || events.isNotEmpty()
+
+private fun OpenApiDocument.withConcreteClientId(clientId: String): OpenApiDocument =
+    copy(
+        paths =
+            paths.mapKeys { (path, _) ->
+                path.replace("/clients/{id}", "/clients/$clientId")
+            },
+    )
+
 private fun DriverSession.sortedActions(): List<DriverActionDescriptor> {
     val actions = actions()
     val duplicateAction =
@@ -217,6 +243,33 @@ private data class RuntimeOpenApiMetadata(
                     "x-craftless-action-fingerprint" to actionFingerprint,
                 )
             extensions["x-craftless-runtime-fingerprint"] = runtimeFingerprint(client, metadata, actionFingerprint)
+            return RuntimeOpenApiMetadata(extensions)
+        }
+
+        fun forGraph(
+            client: Client,
+            graph: RuntimeCapabilityGraph,
+            metadata: DriverRuntimeMetadata,
+        ): RuntimeOpenApiMetadata {
+            val graphFingerprint = graph.fingerprint()
+            val extensions =
+                linkedMapOf(
+                    "x-craftless-client-id" to client.id,
+                    "x-craftless-minecraft-version" to client.instance.version.id,
+                    "x-craftless-loader" to client.instance.loader.name,
+                    "x-craftless-loader-version" to metadata.loaderVersion,
+                    "x-craftless-driver" to metadata.driver,
+                    "x-craftless-driver-version" to metadata.driverVersion,
+                    "x-craftless-mappings-fingerprint" to metadata.mappings,
+                    "x-craftless-installed-mods-fingerprint" to metadata.installedModsFingerprint,
+                    "x-craftless-registry-fingerprint" to metadata.registryFingerprint,
+                    "x-craftless-server-feature-fingerprint" to metadata.serverFeatureFingerprint,
+                    "x-craftless-permissions-fingerprint" to metadata.permissionsFingerprint,
+                    "x-craftless-action-schema-versions" to graphFingerprint,
+                    "x-craftless-action-fingerprint" to graphFingerprint,
+                    "runtimeGraphFingerprint" to graphFingerprint,
+                    "x-craftless-runtime-fingerprint" to graphFingerprint,
+                )
             return RuntimeOpenApiMetadata(extensions)
         }
 

@@ -245,6 +245,60 @@ class OpenApiGenerationTest {
     }
 
     @Test
+    fun `openapi document projects actions resources aliases and events from runtime graph`() {
+        val graph =
+            RuntimeCapabilityGraph(
+                clientId = "alice",
+                resources =
+                    listOf(
+                        RuntimeResourceNode("runtime", RuntimeAvailability.available()),
+                        RuntimeResourceNode("player", RuntimeAvailability.available()),
+                    ),
+                operations =
+                    listOf(
+                        RuntimeOperationNode(
+                            id = "player.move",
+                            resource = "player",
+                            adapter = "fabric.player-move",
+                            arguments = mapOf("forward" to RuntimeSchema("boolean")),
+                            availability = RuntimeAvailability.available(),
+                        ),
+                    ),
+                events =
+                    listOf(
+                        RuntimeEventNode(
+                            id = "player.chat.received",
+                            resource = "player",
+                            payload = RuntimeSchema.objectSchema(),
+                            availability = RuntimeAvailability.available(),
+                        ),
+                    ),
+            )
+
+        val document = OpenApiDocument.fromRuntimeGraph(graph)
+
+        assertEquals(graph.fingerprint(), document.extensions["runtimeGraphFingerprint"])
+        assertEquals(listOf("player.move"), document.actions.map { it.id })
+        val move = document.actions.single()
+        assertEquals(OpenApiActionSource.RUNTIME_PROBE, move.source)
+        assertEquals(OpenApiActionAvailability.AVAILABLE, move.availability)
+        assertEquals("boolean", move.arguments.getValue("forward").type)
+        assertEquals(listOf("runtime", "player"), document.resources.map { it.id })
+        assertEquals(emptyList(), document.resources.single { it.id == "runtime" }.actions)
+        assertEquals(listOf("player.move"), document.resources.single { it.id == "player" }.actions)
+        assertEquals(listOf("player.chat.received"), document.events.map { it.id })
+        assertEquals("/clients/{id}/player:move", document.paths.keys.single { it.endsWith("player:move") })
+        assertEquals(
+            "player.move",
+            document.paths
+                .getValue("/clients/{id}/player:move")
+                .post
+                ?.extensions
+                ?.get("x-craftless-action"),
+        )
+    }
+
+    @Test
     fun `openapi document rejects duplicate action ids`() {
         val action =
             OpenApiAction(

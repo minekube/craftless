@@ -13,6 +13,11 @@ import com.minekube.craftless.protocol.CacheExportResult
 import com.minekube.craftless.protocol.CachePrepareResult
 import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
+import com.minekube.craftless.protocol.RuntimeAvailability
+import com.minekube.craftless.protocol.RuntimeCapabilityGraph
+import com.minekube.craftless.protocol.RuntimeOperationNode
+import com.minekube.craftless.protocol.RuntimeResourceNode
+import com.minekube.craftless.protocol.RuntimeSchema
 import com.minekube.craftless.testkit.FakeDriverSession
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -1804,6 +1809,21 @@ class CraftlessCliTest {
                         ),
                 )
 
+        override fun runtimeGraph(): RuntimeCapabilityGraph {
+            val graph = delegate.runtimeGraph()
+            return graph.copy(
+                operations =
+                    graph.operations +
+                        RuntimeOperationNode(
+                            id = "player.fail",
+                            resource = "player",
+                            adapter = "test.player-fail",
+                            arguments = mapOf("message" to RuntimeSchema("string", required = true)),
+                            availability = RuntimeAvailability.available(),
+                        ),
+            )
+        }
+
         override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
             if (invocation.action == "player.fail") {
                 DriverActionResult(
@@ -1829,6 +1849,22 @@ class CraftlessCliTest {
                             "max-distance" to DriverActionArgument("number"),
                         ),
                 )
+
+        override fun runtimeGraph(): RuntimeCapabilityGraph {
+            val graph = delegate.runtimeGraph()
+            return graph.copy(
+                resources = graph.resources + RuntimeResourceNode("world.block", RuntimeAvailability.available()),
+                operations =
+                    graph.operations +
+                        RuntimeOperationNode(
+                            id = "world.block.break",
+                            resource = "world.block",
+                            adapter = "test.world-block-break",
+                            arguments = mapOf("max-distance" to RuntimeSchema("number")),
+                            availability = RuntimeAvailability.available(),
+                        ),
+            )
+        }
 
         override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
             if (invocation.action == "world.block.break") {

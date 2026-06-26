@@ -7,6 +7,7 @@ import com.minekube.craftless.protocol.RuntimeEventNode
 import com.minekube.craftless.protocol.RuntimeHandleNode
 import com.minekube.craftless.protocol.RuntimeOperationNode
 import com.minekube.craftless.protocol.RuntimeResourceNode
+import com.minekube.craftless.protocol.RuntimeSchema
 import com.minekube.craftless.protocol.RuntimeSourceEvidence
 
 internal fun interface FabricCapabilityDiscovery {
@@ -22,6 +23,7 @@ internal data class FabricCapabilityProbeContext(
     val modeId: String,
     val gateway: FabricClientGateway?,
     val runtimeMetadata: DriverRuntimeMetadata = DriverRuntimeMetadata.runtimeAdapter(),
+    val bindings: Map<String, FabricActionBinding> = emptyMap(),
 )
 
 internal data class FabricCapabilityGraphFragment(
@@ -116,27 +118,58 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                 ),
             operations =
                 listOf(
-                    RuntimeOperationNode("player.query", "player", "fabric.player-query", availability = playerAvailability),
-                    RuntimeOperationNode("player.chat", "player", "fabric.player-chat", availability = playerAvailability),
-                    RuntimeOperationNode("player.look", "player", "fabric.player-look", availability = playerAvailability),
-                    RuntimeOperationNode("player.move", "player", "fabric.player-move", availability = playerAvailability),
-                    RuntimeOperationNode("player.raycast", "player", "fabric.player-raycast", availability = cameraAvailability),
-                    RuntimeOperationNode("inventory.query", "inventory", "fabric.inventory-query", availability = inventoryAvailability),
-                    RuntimeOperationNode("inventory.equip", "inventory", "fabric.inventory-equip", availability = inventoryAvailability),
-                    RuntimeOperationNode("world.time.query", "world", "fabric.world-time-query", availability = worldAvailability),
-                    RuntimeOperationNode("world.block.break", "world", "fabric.world-block-break", availability = blockBreakAvailability),
-                    RuntimeOperationNode(
-                        "world.block.interact",
-                        "world",
-                        "fabric.world-block-interact",
-                        availability = blockInteractAvailability,
-                    ),
-                    RuntimeOperationNode("screen.query", "screen", "fabric.screen-query", availability = RuntimeAvailability.available()),
-                    RuntimeOperationNode("screen.close", "screen", "fabric.screen-close", availability = screenCloseAvailability),
+                    context.operation("player.query", "player", "fabric.player-query", playerAvailability),
+                    context.operation("player.chat", "player", "fabric.player-chat", playerAvailability),
+                    context.operation("player.look", "player", "fabric.player-look", playerAvailability),
+                    context.operation("player.move", "player", "fabric.player-move", playerAvailability),
+                    context.operation("player.raycast", "player", "fabric.player-raycast", cameraAvailability),
+                    context.operation("inventory.query", "inventory", "fabric.inventory-query", inventoryAvailability),
+                    context.operation("inventory.equip", "inventory", "fabric.inventory-equip", inventoryAvailability),
+                    context.operation("world.time.query", "world", "fabric.world-time-query", worldAvailability),
+                    context.operation("world.block.break", "world", "fabric.world-block-break", blockBreakAvailability),
+                    context.operation("world.block.interact", "world", "fabric.world-block-interact", blockInteractAvailability),
+                    context.operation("screen.query", "screen", "fabric.screen-query", RuntimeAvailability.available()),
+                    context.operation("screen.close", "screen", "fabric.screen-close", screenCloseAvailability),
                 ),
         )
     }
 }
+
+private fun FabricCapabilityProbeContext.operation(
+    id: String,
+    resource: String,
+    adapter: String,
+    availability: RuntimeAvailability,
+): RuntimeOperationNode =
+    RuntimeOperationNode(
+        id = id,
+        resource = resource,
+        adapter = adapter,
+        arguments =
+            actionDescriptorArguments(id)
+                ?.mapValues { (_, argument) -> RuntimeSchema(argument.type, required = argument.required) }
+                .orEmpty(),
+        availability = availability,
+    )
+
+private fun FabricCapabilityProbeContext.actionDescriptorArguments(id: String) =
+    bindings[id]?.descriptor?.arguments
+        ?: fabricBootstrapDescriptor(id)?.arguments
+
+private fun fabricBootstrapDescriptor(id: String) =
+    when (id) {
+        "player.query" -> fabricPlayerQueryDescriptor()
+        "player.look" -> fabricPlayerLookDescriptor()
+        "player.raycast" -> fabricRaycastDescriptor()
+        "inventory.query" -> fabricInventoryQueryDescriptor()
+        "inventory.equip" -> fabricInventoryEquipDescriptor()
+        "world.time.query" -> fabricWorldTimeQueryDescriptor()
+        "world.block.break" -> fabricWorldBlockBreakDescriptor()
+        "world.block.interact" -> fabricWorldBlockInteractDescriptor()
+        "screen.query" -> fabricScreenQueryDescriptor()
+        "screen.close" -> fabricScreenCloseDescriptor()
+        else -> null
+    }
 
 private fun FabricClientCapabilitySnapshot.connectedAvailability(): RuntimeAvailability =
     if (connected) RuntimeAvailability.available() else RuntimeAvailability.unavailable("client-not-connected")
