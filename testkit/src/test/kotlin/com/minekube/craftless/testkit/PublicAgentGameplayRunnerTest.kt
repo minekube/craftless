@@ -45,8 +45,13 @@ class PublicAgentGameplayRunnerTest {
                     "POST /clients/fabric-smoke:run",
                     "POST /clients/fabric-smoke:run",
                     "POST /clients/fabric-smoke:run",
+                    "POST /clients/fabric-smoke:run",
+                    "POST /clients/fabric-smoke:run",
+                    "POST /clients/fabric-smoke:run",
+                    "POST /clients/fabric-smoke:run",
+                    "POST /clients/fabric-smoke:run",
                 ),
-                server.requests.take(14),
+                server.requests.take(19),
             )
             assertEquals(
                 listOf(
@@ -58,6 +63,11 @@ class PublicAgentGameplayRunnerTest {
                     "player.look",
                     "player.raycast",
                     "world.block.break",
+                    "navigation.plan",
+                    "navigation.follow",
+                    "entity.query",
+                    "inventory.query",
+                    "inventory.equip",
                     "inventory.query",
                     "entity.query",
                 ),
@@ -70,6 +80,9 @@ class PublicAgentGameplayRunnerTest {
             assertTrue(server.requestBodies.any { it.contains(""""pitch"""") })
             assertTrue(server.requestBodies.any { it.contains("player.raycast") })
             assertTrue(server.requestBodies.any { it.contains("world.block.break") })
+            assertTrue(server.requestBodies.any { it.contains("inventory.equip") })
+            assertTrue(server.requestBodies.any { it.contains(""""slot":0""") })
+            assertTrue(server.requestBodies.any { it.contains(""""ticks":80""") })
             assertTrue(
                 server.requestBodies.any {
                     it.contains(
@@ -78,6 +91,86 @@ class PublicAgentGameplayRunnerTest {
                 },
             )
             assertTrue(server.requestBodies.none { it.contains("task.survival") })
+        }
+
+    @Test
+    fun `runner prefers lower public material targets for collection reachability`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog(),
+                    blockQueryResponses = listOf(layeredLogBlockQueryResponse),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains(
+                        """"target":{"handle":"world.block:13:63:-5","position":{"x":13,"y":63,"z":-5}}""",
+                    )
+                },
+            )
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner navigates to observed public material drop before inventory proof`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog(),
+                    entityQueryResponse =
+                        """
+                        {
+                          "action": "entity.query",
+                          "status": "ACCEPTED",
+                          "data": {
+                            "entities": [
+                              {
+                                "handle": "entity.handle-42",
+                                "label": "Oak Log",
+                                "category": "object",
+                                "distance": 3.0,
+                                "position": {"x": 14.5, "y": 64.0, "z": -6.5}
+                              }
+                            ]
+                          }
+                        }
+                        """.trimIndent(),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(result.actionLog.map { it.action }.contains("entity.query"))
+            assertTrue(server.requestBodies.any { it.contains(""""x":14.5""") })
+            assertTrue(server.requestBodies.any { it.contains(""""z":-6.5""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner reports insufficient public evidence when block break does not change target state`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog(),
+                    blockBreakResponse =
+                        """{"action":"world.block.break","status":"ACCEPTED","data":{"hit":true,"target-kind":"block","started":true,"changed":false}}""",
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.BLOCKED, result.state)
+            assertEquals("insufficient-public-evidence:world.block.break.changed", result.blocker)
+            assertTrue(result.actionLog.map { it.action }.contains("world.block.break"))
+            assertFalse(result.actionLog.map { it.action }.contains("inventory.equip"))
+            assertTrue(server.requestBodies.any { it.contains(""""ticks":80""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 
     @Test
@@ -96,8 +189,39 @@ class PublicAgentGameplayRunnerTest {
             assertEquals("insufficient-public-evidence:inventory.query.log", result.blocker)
             assertTrue(result.actionLog.map { it.action }.contains("world.block.break"))
             assertTrue(result.actionLog.map { it.action }.contains("inventory.query"))
-            assertFalse(result.actionLog.map { it.action }.contains("entity.query"))
+            assertTrue(result.actionLog.map { it.action }.contains("entity.query"))
             assertFalse(server.requestBodies.any { it.contains("task.survival") })
+        }
+
+    @Test
+    fun `runner reports insufficient public evidence when equip does not select collected material`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog(),
+                    finalInventoryResponse =
+                        """
+                        {
+                          "action": "inventory.query",
+                          "status": "ACCEPTED",
+                          "data": {
+                            "selected-slot": 1,
+                            "slots": [
+                              {"slot": 0, "empty": false, "count": 1, "item-name": "Oak Log"}
+                            ]
+                          }
+                        }
+                        """.trimIndent(),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.BLOCKED, result.state)
+            assertEquals("insufficient-public-evidence:inventory.equip.selected-slot", result.blocker)
+            assertTrue(result.actionLog.map { it.action }.contains("inventory.equip"))
+            assertTrue(result.actionLog.map { it.action }.contains("entity.query"))
+            assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 
     @Test
@@ -151,6 +275,11 @@ class PublicAgentGameplayRunnerTest {
                     "player.look",
                     "player.raycast",
                     "world.block.break",
+                    "navigation.plan",
+                    "navigation.follow",
+                    "entity.query",
+                    "inventory.query",
+                    "inventory.equip",
                     "inventory.query",
                     "entity.query",
                 ),
@@ -191,7 +320,7 @@ class PublicAgentGameplayRunnerTest {
             val result = runner.runOnce()
 
             assertEquals(PublicAgentGameplayState.BLOCKED, result.state)
-            assertEquals("missing-generic-primitive:navigation.plan", result.blocker)
+            assertEquals("missing-generic-primitive:inventory.equip", result.blocker)
             assertFalse(server.requests.any { it.contains("task.survival") })
             assertFalse(server.requests.any { it.startsWith("POST ") })
         }
@@ -205,6 +334,7 @@ class PublicAgentGameplayRunnerTest {
                         listOf(
                             "entity.query",
                             "inventory.query",
+                            "inventory.equip",
                             "navigation.plan",
                             "navigation.follow",
                             "player.query",
@@ -263,12 +393,16 @@ class PublicAgentGameplayRunnerTest {
 private class RecordingCraftlessHttpServer(
     private val actions: List<String>,
     private val blockQueryResponses: List<String> = listOf(logBlockQueryResponse),
+    private val blockBreakResponse: String =
+        """{"action":"world.block.break","status":"ACCEPTED","data":{"hit":true,"target-kind":"block","started":true,"changed":true}}""",
+    private val entityQueryResponse: String = """{"action":"entity.query","status":"ACCEPTED","data":{"entities":[]}}""",
     private val finalInventoryResponse: String =
         """
         {
           "action": "inventory.query",
           "status": "ACCEPTED",
           "data": {
+            "selected-slot": 0,
             "slots": [
               {"slot": 0, "empty": false, "count": 1, "item-name": "Oak Log"}
             ]
@@ -324,9 +458,9 @@ private class RecordingCraftlessHttpServer(
                 """{"action":"player.look","status":"ACCEPTED"}"""
             body.contains("player.raycast") ->
                 """{"action":"player.raycast","status":"ACCEPTED","data":{"hit":true,"target-kind":"block"}}"""
-            body.contains("world.block.break") ->
-                """{"action":"world.block.break","status":"ACCEPTED","data":{"hit":true,"target-kind":"block","started":true}}"""
-            body.contains("entity.query") -> """{"action":"entity.query","status":"ACCEPTED","data":{"entities":[]}}"""
+            body.contains("world.block.break") -> blockBreakResponse
+            body.contains("inventory.equip") -> """{"action":"inventory.equip","status":"ACCEPTED"}"""
+            body.contains("entity.query") -> entityQueryResponse
             else -> """{"action":"unknown","status":"UNSUPPORTED","message":"unexpected action"}"""
         }
     }
@@ -380,6 +514,31 @@ private val logBlockQueryResponse =
     }
     """.trimIndent()
 
+private val layeredLogBlockQueryResponse =
+    """
+    {
+      "action": "world.block.query",
+      "status": "ACCEPTED",
+      "data": {
+        "count": 2,
+        "blocks": [
+          {
+            "handle": "world.block:12:70:-4",
+            "category": "log",
+            "distance": 4.0,
+            "position": {"x": 12, "y": 70, "z": -4}
+          },
+          {
+            "handle": "world.block:13:63:-5",
+            "category": "log",
+            "distance": 6.0,
+            "position": {"x": 13, "y": 63, "z": -5}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
 private fun List<String>.anyScenarioShortcut(): Boolean =
     any { body ->
         scenarioShortcutNames.any(body::contains)
@@ -399,6 +558,7 @@ private fun completeActionCatalog(): List<String> =
     listOf(
         "entity.query",
         "inventory.query",
+        "inventory.equip",
         "navigation.plan",
         "navigation.follow",
         "player.query",

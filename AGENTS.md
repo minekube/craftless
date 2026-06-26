@@ -129,6 +129,10 @@ Follow them in order:
 15. public-agent material exploration.
 16. targetable generic block break.
 17. public-agent action timeout blockers.
+18. public-agent material equip.
+19. sustained generic block break.
+20. public-agent material pickup.
+21. public-agent drop perception.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -160,6 +164,19 @@ id and must not add log/mining/survival-specific public actions.
 Phase 17 makes public-agent generated-action request failures explicit
 blockers with artifacts. It must not retry non-idempotent actions by default
 because a timeout may leave action outcome ambiguous.
+Phase 18 composes collected public inventory evidence with generic
+`inventory.equip` and follow-up inventory verification. It must not add
+material-specific equip actions, crafting shortcuts, combat shortcuts, or a
+survival macro.
+Phase 19 corrects `world.block.break` so it can drive bounded generic breaking
+progress and report observed block-state change. It must keep the generic
+action id and must not add material-specific mining actions.
+Phase 20 composes public material pickup by choosing reachable queried targets
+and moving through generic navigation before inventory verification. It must
+not add pickup or collection shortcut actions.
+Phase 21 uses public `entity.query` perception to find dropped material
+entities and navigate to their positions before inventory verification. It must
+not add pickup or collection shortcut actions.
 
 ## Acceptance Scenarios Are Not Product APIs
 

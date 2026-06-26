@@ -65,6 +65,14 @@ Legend:
 - [x] Plan exists: `docs/superpowers/plans/2026-06-26-16-targetable-block-break-plan.md`.
 - [x] Spec exists: `docs/superpowers/specs/2026-06-26-17-public-agent-action-timeout-design.md`.
 - [x] Plan exists: `docs/superpowers/plans/2026-06-26-17-public-agent-action-timeout-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-26-18-public-agent-material-equip-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-26-18-public-agent-material-equip-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-26-19-sustained-block-break-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-26-19-sustained-block-break-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-26-20-public-agent-material-pickup-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-26-20-public-agent-material-pickup-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-26-21-public-agent-drop-perception-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-26-21-public-agent-drop-perception-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -376,6 +384,84 @@ Verification:
 - [x] Live no-hold evidence shows targeted block-break progress and the
   external public-agent command exits normally. Focused test evidence covers
   the controlled `action-request-failed:<action-id>` blocker path.
+
+Verification:
+
+- `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
+- `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=120000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
+
+## Phase 18: Public-Agent Material Equip
+
+- [x] Spec and plan exist for selecting collected material through generic
+  public inventory actions without adding `equip.log`, `craft.sword`,
+  `kill.cow`, `task.survival.*`, or other scenario shortcuts.
+- [x] Public-agent runner requires discovered `inventory.equip`, chooses a
+  hotbar slot from public `inventory.query` state, invokes `inventory.equip`,
+  and verifies `selected-slot` with a follow-up `inventory.query`. Focused
+  public-agent tests cover success and selected-slot failure paths.
+- [!] Live no-hold evidence is blocked before equip by
+  public material acquisition/exploration before final inventory proof. Phase
+  19 corrected one root cause by proving sustained block-state change; latest
+  live evidence is now blocked at `action-request-failed:navigation.follow`
+  during material exploration when local `world.block.query` returned no logs.
+
+Verification:
+
+- `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
+- `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=120000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
+
+## Phase 19: Sustained Generic Block Break
+
+- [x] Spec and plan exist for bounded generic block-break progress without
+  adding `mine.log`, `collect.wood`, `find.tree`, or survival-specific product
+  actions.
+- [x] `world.block.break` exposes a generic `ticks` budget and returns
+  `changed` evidence from observed client block state.
+- [x] Public-agent runner sends bounded break ticks and blocks when
+  `world.block.break` reports `changed = false`.
+- [x] Live no-hold evidence shows sustained block break can change an ordinary
+  survival block. Current evidence: `world.block.break` returned
+  `changed = true` with `ticks = 61` for `world.block:64:81:-287`.
+- [!] Inventory proof after the changed block is still blocked by public pickup
+  and exploration reliability; the generic block break primitive itself is no
+  longer the current blocker.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric runtime discovery exposes block break only from client state'`
+- `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
+- `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=120000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
+
+## Phase 20: Public-Agent Material Pickup
+
+- [x] Spec and plan exist for generic pickup composition without adding
+  `pickup.log`, `collect.wood`, `mine.log`, or survival-specific product
+  actions.
+- [x] Public-agent runner prefers lower reachable material targets from public
+  `world.block.query` data. Focused tests cover lower-target selection.
+- [x] Public-agent runner composes pickup movement with `navigation.plan` and
+  `navigation.follow` after `world.block.break` reports `changed = true`.
+- [!] Live no-hold evidence has not yet reached inventory material proof. Runs
+  either changed a high log and still had empty inventory, or later blocked
+  during exploration before reaching a material target.
+
+Verification:
+
+- `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
+- `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=120000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
+
+## Phase 21: Public-Agent Drop Perception
+
+- [x] Spec and plan exist for using public `entity.query` drop perception
+  without adding `pickup.log`, `collect.wood`, `mine.log`, or survival-specific
+  product actions.
+- [x] Public-agent runner queries entities after block break and pickup
+  movement, optionally navigates to observed material drop positions, and still
+  verifies pickup through `inventory.query`. Focused tests cover public material
+  drop navigation.
+- [!] Live no-hold evidence has not yet exercised drop perception after a
+  material break because the latest run blocked earlier during exploration with
+  `action-request-failed:navigation.follow`.
 
 Verification:
 

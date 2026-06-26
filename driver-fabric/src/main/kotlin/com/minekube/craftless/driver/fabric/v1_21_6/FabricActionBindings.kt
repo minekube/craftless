@@ -21,9 +21,13 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import net.minecraft.block.BlockState
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.input.Input
+import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.client.network.ClientPlayerInteractionManager
+import net.minecraft.client.world.ClientWorld
 import net.minecraft.item.ItemStack
 import net.minecraft.util.Hand
 import net.minecraft.util.PlayerInput
@@ -222,32 +226,43 @@ internal object FabricWorldBlockBreakActionBinding : FabricActionBinding {
     ): DriverActionResult {
         val maxDistance = invocation.arguments["max-distance"]?.jsonPrimitive?.doubleOrNull ?: DEFAULT_MAX_DISTANCE
         require(maxDistance > 0.0) { "block break max-distance must be positive" }
+        val ticks = invocation.arguments.intArgument("ticks") ?: DEFAULT_BREAK_TICKS
+        require(ticks in 1..MAX_BREAK_TICKS) { "block break ticks must be between 1 and $MAX_BREAK_TICKS" }
         val includeFluids = invocation.arguments.booleanArgument("include-fluids")
         val requestedTarget = invocation.arguments.blockBreakTarget()
         val data =
             context.queryOnClient {
                 val player = requireNotNull(player) { "client is not connected to a server" }
+                val world = requireNotNull(world) { "client is not connected to a server" }
                 val interactionManager =
                     requireNotNull(interactionManager) { "client interaction manager is unavailable" }
                 if (requestedTarget != null) {
                     val distance = player.eyePos.distanceTo(Vec3d.ofCenter(requestedTarget.position))
                     require(distance <= maxDistance) { "block target exceeds max-distance" }
                     val side = Direction.UP
-                    val started = interactionManager.attackBlock(requestedTarget.position, side)
-                    if (started) {
-                        player.swingHand(Hand.MAIN_HAND)
-                    }
-                    return@queryOnClient requestedTarget.toCraftlessBlockBreakData(started, side)
+                    val progress =
+                        interactionManager.breakBlockWithProgress(
+                            player = player,
+                            world = world,
+                            position = requestedTarget.position,
+                            side = side,
+                            ticks = ticks,
+                        )
+                    return@queryOnClient requestedTarget.toCraftlessBlockBreakData(progress, side)
                 }
                 val camera = requireNotNull(cameraEntity ?: player) { "client is not connected to a server" }
                 val target =
                     camera.raycast(maxDistance, 1.0f, includeFluids) as? BlockHitResult
                         ?: error("no block target")
-                val started = interactionManager.attackBlock(target.blockPos, target.side)
-                if (started) {
-                    player.swingHand(Hand.MAIN_HAND)
-                }
-                target.toCraftlessBlockBreakData(started)
+                val progress =
+                    interactionManager.breakBlockWithProgress(
+                        player = player,
+                        world = world,
+                        position = target.blockPos,
+                        side = target.side,
+                        ticks = ticks,
+                    )
+                target.toCraftlessBlockBreakData(progress)
             }
         return DriverActionResult(
             action = invocation.action,
@@ -267,6 +282,7 @@ internal fun fabricWorldBlockBreakDescriptor(): DriverActionDescriptor =
                 "max-distance" to DriverActionArgument("number"),
                 "include-fluids" to DriverActionArgument("boolean"),
                 "target" to DriverActionArgument("object"),
+                "ticks" to DriverActionArgument("integer"),
             ),
         result =
             fabricObjectDataResultDescriptor(),
@@ -379,6 +395,9 @@ internal object FabricPlayerRaycastActionBinding : FabricActionBinding {
 }
 
 private const val DEFAULT_MAX_DISTANCE = 5.0
+private const val DEFAULT_BREAK_TICKS = 80
+private const val MAX_BREAK_TICKS = 400
+private const val HAND_SWING_PROGRESS_INTERVAL = 4
 
 private fun Map<String, kotlinx.serialization.json.JsonElement>.numberArgument(name: String): Double? =
     this[name]?.jsonPrimitive?.let { primitive ->
@@ -702,11 +721,58 @@ private fun ItemStack.toCraftlessSlotData(slot: Int): JsonObject =
         }
     }
 
-private fun BlockHitResult.toCraftlessBlockBreakData(started: Boolean): JsonObject =
+private data class CraftlessBlockBreakProgress(
+    val started: Boolean,
+    val changed: Boolean,
+    val ticks: Int,
+)
+
+private fun ClientPlayerInteractionManager.breakBlockWithProgress(
+    player: ClientPlayerEntity,
+    world: ClientWorld,
+    position: BlockPos,
+    side: Direction,
+    ticks: Int,
+): CraftlessBlockBreakProgress {
+    val initialState = world.getBlockState(position)
+    val started = attackBlock(position, side)
+    if (started) {
+        player.swingHand(Hand.MAIN_HAND)
+    }
+    var usedTicks = 0
+    var changed = world.hasBlockChanged(position, initialState)
+    while (started && !changed && usedTicks < ticks) {
+        usedTicks += 1
+        val progressing = updateBlockBreakingProgress(position, side)
+        if (progressing && usedTicks % HAND_SWING_PROGRESS_INTERVAL == 0) {
+            player.swingHand(Hand.MAIN_HAND)
+        }
+        changed = world.hasBlockChanged(position, initialState)
+        if (!progressing && !isBreakingBlock) {
+            break
+        }
+    }
+    if (!changed && isBreakingBlock) {
+        cancelBlockBreaking()
+    }
+    return CraftlessBlockBreakProgress(started = started, changed = changed, ticks = usedTicks)
+}
+
+private fun ClientWorld.hasBlockChanged(
+    position: BlockPos,
+    initialState: BlockState,
+): Boolean {
+    val currentState = getBlockState(position)
+    return currentState.isAir || currentState.block != initialState.block || currentState != initialState
+}
+
+private fun BlockHitResult.toCraftlessBlockBreakData(progress: CraftlessBlockBreakProgress): JsonObject =
     buildJsonObject {
         put("hit", true)
         put("target-kind", "block")
-        put("started", started)
+        put("started", progress.started)
+        put("changed", progress.changed)
+        put("ticks", progress.ticks)
         put("block", blockPos.toShortString())
         put("handle", blockPos.toCraftlessBlockHandle())
         put("side", side.name.lowercase())
@@ -714,13 +780,15 @@ private fun BlockHitResult.toCraftlessBlockBreakData(started: Boolean): JsonObje
     }
 
 private fun CraftlessBlockBreakTarget.toCraftlessBlockBreakData(
-    started: Boolean,
+    progress: CraftlessBlockBreakProgress,
     side: Direction,
 ): JsonObject =
     buildJsonObject {
         put("hit", true)
         put("target-kind", "block")
-        put("started", started)
+        put("started", progress.started)
+        put("changed", progress.changed)
+        put("ticks", progress.ticks)
         put("block", position.toShortString())
         put("handle", handle ?: position.toCraftlessBlockHandle())
         put("side", side.name.lowercase())

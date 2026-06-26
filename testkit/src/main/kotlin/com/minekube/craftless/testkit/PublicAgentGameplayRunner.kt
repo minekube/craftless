@@ -112,7 +112,7 @@ class PublicAgentGameplayRunner(
                         put("limit", JsonPrimitive(16))
                         put("category", JsonPrimitive("log"))
                     },
-            ).responseObject()?.firstBlockTarget()
+            ).responseObject()?.materialBlockTarget()
 
         suspend fun navigateTo(
             position: JsonObject,
@@ -195,18 +195,52 @@ class PublicAgentGameplayRunner(
                         put("include-fluids", JsonPrimitive(false))
                     },
             )
-            invokeGenerated(
-                action = "world.block.break",
-                args =
-                    buildJsonObject {
-                        put("max-distance", JsonPrimitive(6.0))
-                        put("include-fluids", JsonPrimitive(false))
-                        put("target", discoveredMaterialTarget.toJsonObject())
-                    },
-            )
+            val breakResult =
+                invokeGenerated(
+                    action = "world.block.break",
+                    args =
+                        buildJsonObject {
+                            put("max-distance", JsonPrimitive(6.0))
+                            put("include-fluids", JsonPrimitive(false))
+                            put("ticks", JsonPrimitive(80))
+                            put("target", discoveredMaterialTarget.toJsonObject())
+                        },
+                )
+            if (breakResult.responseObject()?.dataBoolean("changed") == false) {
+                return blockedAndWrite("insufficient-public-evidence:world.block.break.changed")
+            }
+            navigateTo(position = discoveredMaterialPosition, radius = 1.5)
+                ?.let { blocker -> return blockedAndWrite(blocker) }
+            val materialDrop =
+                invokeGenerated(
+                    action = "entity.query",
+                    args =
+                        buildJsonObject {
+                            put("radius", JsonPrimitive(16.0))
+                            put("limit", JsonPrimitive(20))
+                        },
+                )
+            materialDrop.responseObject()?.materialDropPosition()?.let { dropPosition ->
+                navigateTo(position = dropPosition, radius = 1.0)
+                    ?.let { blocker -> return blockedAndWrite(blocker) }
+            }
             val finalInventory = invokeGenerated("inventory.query")
             if (finalInventory.responseObject()?.hasLogItem() != true) {
                 return blockedAndWrite("insufficient-public-evidence:inventory.query.log")
+            }
+            val logSlot =
+                finalInventory.responseObject()?.logHotbarSlot()
+                    ?: return blockedAndWrite("insufficient-public-evidence:inventory.query.hotbar-log")
+            invokeGenerated(
+                action = "inventory.equip",
+                args =
+                    buildJsonObject {
+                        put("slot", JsonPrimitive(logSlot))
+                    },
+            )
+            val equippedInventory = invokeGenerated("inventory.query")
+            if (equippedInventory.responseObject()?.selectedSlot() != logSlot) {
+                return blockedAndWrite("insufficient-public-evidence:inventory.equip.selected-slot")
             }
             invokeGenerated("entity.query")
             val result =
@@ -384,6 +418,7 @@ private val requiredActions =
     listOf(
         "entity.query",
         "inventory.query",
+        "inventory.equip",
         "navigation.plan",
         "navigation.follow",
         "player.query",
@@ -402,19 +437,48 @@ private val publicAgentJson =
 private fun PublicAgentActionLog.responseObject(): JsonObject? =
     runCatching { publicAgentJson.parseToJsonElement(response).jsonObject }.getOrNull()
 
-private fun JsonObject.firstBlockTarget(): PublicBlockTarget? {
+private fun JsonObject.materialBlockTarget(): PublicBlockTarget? {
     val data = this["data"] as? JsonObject ?: return null
     val blocks = data["blocks"]?.jsonArray ?: return null
-    val block = blocks.firstOrNull() as? JsonObject ?: return null
-    val position = block["position"] as? JsonObject ?: return null
-    val handle = block["handle"]?.jsonPrimitive?.contentOrNull
-    return PublicBlockTarget(handle = handle, position = position)
+    return blocks
+        .mapNotNull { element ->
+            val block = element as? JsonObject ?: return@mapNotNull null
+            val position = block["position"] as? JsonObject ?: return@mapNotNull null
+            PublicBlockTarget(
+                handle = block["handle"]?.jsonPrimitive?.contentOrNull,
+                position = position,
+                distance = block.doubleField("distance"),
+            )
+        }.minWithOrNull(
+            compareBy<PublicBlockTarget> { target ->
+                target.position.toCraftlessPoint()?.y ?: Double.MAX_VALUE
+            }.thenBy { target ->
+                target.distance ?: Double.MAX_VALUE
+            },
+        )
 }
 
 private fun JsonObject.playerPosition(): CraftlessPoint? {
     val data = this["data"] as? JsonObject ?: return null
     val position = data["position"] as? JsonObject ?: return null
     return position.toCraftlessPoint()
+}
+
+private fun JsonObject.materialDropPosition(): JsonObject? {
+    val data = this["data"] as? JsonObject ?: return null
+    val entities = data["entities"]?.jsonArray ?: return null
+    return entities
+        .mapNotNull { element ->
+            val entity = element as? JsonObject ?: return@mapNotNull null
+            val position = entity["position"] as? JsonObject ?: return@mapNotNull null
+            val label = entity["label"]?.jsonPrimitive?.contentOrNull.orEmpty()
+            if (!label.contains("log", ignoreCase = true)) {
+                return@mapNotNull null
+            }
+            val distance = entity.doubleField("distance") ?: Double.MAX_VALUE
+            distance to position
+        }.minByOrNull { (distance, _) -> distance }
+        ?.second
 }
 
 private fun JsonObject.toCraftlessPoint(): CraftlessPoint? {
@@ -429,12 +493,56 @@ private fun JsonObject.hasLogItem(): Boolean {
     val slots = data["slots"]?.jsonArray ?: return false
     return slots.any { element ->
         val slot = element as? JsonObject ?: return@any false
-        slot["item-name"]
-            ?.jsonPrimitive
-            ?.contentOrNull
-            ?.contains("log", ignoreCase = true) == true
+        slot.containsItemName("log")
     }
 }
+
+private fun JsonObject.logHotbarSlot(): Int? {
+    val data = this["data"] as? JsonObject ?: return null
+    val slots = data["slots"]?.jsonArray ?: return null
+    return slots.firstNotNullOfOrNull { element ->
+        val slot = element as? JsonObject ?: return@firstNotNullOfOrNull null
+        val slotNumber =
+            slot["slot"]
+                ?.jsonPrimitive
+                ?.contentOrNull
+                ?.toIntOrNull()
+                ?: return@firstNotNullOfOrNull null
+        val empty =
+            slot["empty"]
+                ?.jsonPrimitive
+                ?.contentOrNull
+                ?.toBooleanStrictOrNull()
+                ?: true
+        if (slotNumber in 0..8 && !empty && slot.containsItemName("log")) {
+            slotNumber
+        } else {
+            null
+        }
+    }
+}
+
+private fun JsonObject.selectedSlot(): Int? {
+    val data = this["data"] as? JsonObject ?: return null
+    return data["selected-slot"]
+        ?.jsonPrimitive
+        ?.contentOrNull
+        ?.toIntOrNull()
+}
+
+private fun JsonObject.dataBoolean(name: String): Boolean? {
+    val data = this["data"] as? JsonObject ?: return null
+    return data[name]
+        ?.jsonPrimitive
+        ?.contentOrNull
+        ?.toBooleanStrictOrNull()
+}
+
+private fun JsonObject.containsItemName(part: String): Boolean =
+    this["item-name"]
+        ?.jsonPrimitive
+        ?.contentOrNull
+        ?.contains(part, ignoreCase = true) == true
 
 private fun JsonObject.planId(): String? {
     val data = this["data"] as? JsonObject ?: return null
@@ -489,6 +597,7 @@ private data class CraftlessLook(
 private data class PublicBlockTarget(
     val handle: String?,
     val position: JsonObject,
+    val distance: Double?,
 ) {
     fun toJsonObject(): JsonObject =
         buildJsonObject {
