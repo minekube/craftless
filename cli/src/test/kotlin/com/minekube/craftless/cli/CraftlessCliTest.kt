@@ -928,6 +928,51 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `clients tools revalidates durable live openapi cache by etag`() {
+        val cacheDir = Files.createTempDirectory("craftless-cli-tools-openapi-cache")
+        val firstOutput = StringBuilder()
+        val secondOutput = StringBuilder()
+
+        RevalidatingOpenApiServer().use { server ->
+            val firstExit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "tools",
+                        "--api",
+                        server.url,
+                        "--openapi-cache",
+                        cacheDir.toString(),
+                    ),
+                    stdout = { firstOutput.appendLine(it) },
+                )
+            val secondExit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "tools",
+                        "--api",
+                        server.url,
+                        "--openapi-cache",
+                        cacheDir.toString(),
+                    ),
+                    stdout = { secondOutput.appendLine(it) },
+                )
+
+            assertEquals(0, firstExit)
+            assertEquals(0, secondExit)
+            assertEquals(listOf(null, "etag-v1"), server.ifNoneMatchValues)
+        }
+
+        assertEquals(firstOutput.toString(), secondOutput.toString())
+        val manifest = Json.parseToJsonElement(secondOutput.toString().trim()).jsonObject
+        val tools = manifest["tools"]?.jsonArray.orEmpty()
+        assertEquals(listOf("craftless_player_chat"), tools.map { it.jsonObject["name"]?.jsonPrimitive?.content })
+    }
+
+    @Test
     fun `clients resources fetches live resource projection from daemon`() {
         val output = StringBuilder()
 
