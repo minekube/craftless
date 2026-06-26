@@ -195,7 +195,7 @@ Verification:
 - [x] Internal pathfinder backend contract and task progress registry exist.
 - [x] Generic navigation operation adapters invoke the pathfinder backend
   instead of placeholder unsupported adapters when execution is available.
-- [ ] Reflection backend probes optional pathfinder runtime classes privately
+- [x] Reflection backend probes optional pathfinder runtime classes privately
   and never leaks backend names into OpenAPI or SSE payloads.
 - [ ] Final gameplay can opt into a pinned pathfinder runtime mod without
   server-side item provisioning.

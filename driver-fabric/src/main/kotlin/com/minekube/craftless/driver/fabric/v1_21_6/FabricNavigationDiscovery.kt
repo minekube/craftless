@@ -10,20 +10,22 @@ import java.security.MessageDigest
 
 internal class FabricNavigationDiscovery(
     private val classExists: (String) -> Boolean = ::classExists,
+    private val pathfinderProbe: ReflectiveFabricPathfinderProbe = ClassLoaderReflectiveFabricPathfinderProbe(),
 ) : FabricCapabilityProbe {
     override fun discover(context: FabricCapabilityProbeContext): FabricCapabilityGraphFragment {
         val detectedPathfinders = PATHFINDER_CLASS_CANDIDATES.filter(classExists)
+        val pathfinderAvailable = detectedPathfinders.isNotEmpty() && pathfinderProbe.inspect().available
         val navigationAvailability =
-            if (detectedPathfinders.isEmpty()) {
-                RuntimeAvailability.unavailable("pathfinder-unavailable")
-            } else {
-                RuntimeAvailability.available()
+            when {
+                detectedPathfinders.isEmpty() -> RuntimeAvailability.unavailable("pathfinder-unavailable")
+                pathfinderAvailable -> RuntimeAvailability.available()
+                else -> RuntimeAvailability.unavailable(PATHFINDER_PROBE_UNAVAILABLE)
             }
         val operationAvailability =
-            if (detectedPathfinders.isEmpty()) {
-                RuntimeAvailability.unavailable("pathfinder-unavailable")
-            } else {
-                RuntimeAvailability.unavailable("adapter-unavailable")
+            when {
+                detectedPathfinders.isEmpty() -> RuntimeAvailability.unavailable("pathfinder-unavailable")
+                pathfinderAvailable -> RuntimeAvailability.available()
+                else -> RuntimeAvailability.unavailable(PATHFINDER_PROBE_UNAVAILABLE)
             }
         val sourceEvidence =
             detectedPathfinders

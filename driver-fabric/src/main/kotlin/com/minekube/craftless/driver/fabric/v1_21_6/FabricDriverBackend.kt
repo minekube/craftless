@@ -281,7 +281,7 @@ class FabricDriverBackend private constructor(
                 gateway = gateway,
                 actionDiscovery = actionDiscovery,
                 runtimeMetadataProvider = runtimeMetadataProvider,
-                pathfinderBackend = UnavailableFabricPathfinderBackend,
+                pathfinderBackend = ReflectiveFabricPathfinderBackend(gateway = gateway),
             )
 
         fun install(backend: FabricDriverBackend) {

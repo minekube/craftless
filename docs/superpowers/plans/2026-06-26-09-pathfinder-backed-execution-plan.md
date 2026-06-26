@@ -92,14 +92,14 @@ Run the focused test again. Expected: PASS.
 - Create: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/ReflectiveFabricPathfinderBackend.kt`
 - Test: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/ReflectiveFabricPathfinderBackendTest.kt`
 
-- [ ] **Step 1: Write failing reflection probe tests**
+- [x] **Step 1: Write failing reflection probe tests**
 
 Use fake reflection gateways to prove class/method probes mark the backend
 available only when provider, primary client, custom goal process, goal class,
 and stop/cancel methods are all present. Assert public status/events do not
 contain backend class names.
 
-- [ ] **Step 2: Run focused test and verify RED**
+- [x] **Step 2: Run focused test and verify RED**
 
 Run:
 
@@ -109,14 +109,14 @@ mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.f
 
 Expected: FAIL until the reflective backend exists.
 
-- [ ] **Step 3: Implement reflective backend**
+- [x] **Step 3: Implement reflective backend**
 
 Implement class lookup, method lookup, goal object construction, plan/follow,
 and stop calls behind the `FabricPathfinderBackend` interface. Execute all live
 client calls through `FabricClientGateway.executeOnClient` or
 `queryOnClient`.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run the focused test again. Expected: PASS.
 

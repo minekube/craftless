@@ -19,14 +19,17 @@ import kotlin.test.assertTrue
 
 class FabricNavigationDiscoveryTest {
     @Test
-    fun `pathfinder presence is private evidence and public graph stays craftless owned`() {
+    fun `pathfinder class presence without full probe is private unavailable evidence`() {
         val graph =
             defaultFabricCapabilityDiscovery(
                 probes =
                     listOf(
-                        FabricNavigationDiscovery(classExists = { className ->
-                            className == "baritone.api.BaritoneAPI"
-                        }),
+                        FabricNavigationDiscovery(
+                            classExists = { className ->
+                                className == "baritone.api.BaritoneAPI"
+                            },
+                            pathfinderProbe = navigationProbe(provider = null),
+                        ),
                     ),
             ).discover(navigationContext())
 
@@ -42,12 +45,35 @@ class FabricNavigationDiscoveryTest {
                 .state,
         )
         assertEquals(
-            "adapter-unavailable",
+            "pathfinder-probe-unavailable",
             graph.operations
                 .single { it.id == "navigation.plan" }
                 .availability
                 .reason,
         )
+        assertFalse(graph.toString().contains("baritone", ignoreCase = true))
+        assertFalse(graph.toString().contains("swarmbot", ignoreCase = true))
+    }
+
+    @Test
+    fun `complete pathfinder probe makes navigation operations available without public backend names`() {
+        val graph =
+            defaultFabricCapabilityDiscovery(
+                probes =
+                    listOf(
+                        FabricNavigationDiscovery(
+                            classExists = { className ->
+                                className == "baritone.api.BaritoneAPI"
+                            },
+                            pathfinderProbe = navigationProbe(),
+                        ),
+                    ),
+            ).discover(navigationContext())
+
+        val operation = graph.operations.single { it.id == "navigation.plan" }
+
+        assertEquals(RuntimeAvailabilityState.AVAILABLE, operation.availability.state)
+        assertEquals(null, operation.availability.reason)
         assertFalse(graph.toString().contains("baritone", ignoreCase = true))
         assertFalse(graph.toString().contains("swarmbot", ignoreCase = true))
     }
@@ -152,6 +178,25 @@ private fun navigationContext(): FabricCapabilityProbeContext =
         modeId = "real-client",
         gateway = null,
     )
+
+private fun navigationProbe(
+    provider: Any? = Any(),
+    primaryClient: Any? = Any(),
+    customGoalProcess: Any? = Any(),
+    goalFactory: ((Int, Int, Int) -> Any)? = { x, y, z -> "goal:$x:$y:$z" },
+    startGoal: ((Any, Any) -> Unit)? = { _, _ -> },
+    stopNavigation: ((Any) -> Unit)? = {},
+): ReflectiveFabricPathfinderProbe =
+    ReflectiveFabricPathfinderProbe {
+        ReflectiveFabricPathfinderHandles(
+            provider = provider,
+            primaryClient = primaryClient,
+            customGoalProcess = customGoalProcess,
+            goalFactory = goalFactory,
+            startGoal = startGoal,
+            stopNavigation = stopNavigation,
+        )
+    }
 
 private class AcceptingPathfinderBackend : FabricPathfinderBackend {
     val calls = mutableListOf<String>()
