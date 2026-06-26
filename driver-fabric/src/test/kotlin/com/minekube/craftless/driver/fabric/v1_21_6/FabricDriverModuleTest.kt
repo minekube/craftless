@@ -324,10 +324,12 @@ class FabricDriverModuleTest {
         assertTrue(plan.artifacts.contains("client-resources-connected.json"))
         assertTrue(plan.artifacts.contains("client-events.jsonl"))
         assertTrue(plan.artifacts.contains("gameplay-results.jsonl"))
+        assertTrue(plan.artifacts.contains("survival-task-results.jsonl"))
         assertTrue(plan.artifacts.contains("server-evidence.jsonl"))
         assertTrue(plan.completionGates.any { it.contains("Robin", ignoreCase = true) && it.contains("Minecraft chat", ignoreCase = true) })
         assertTrue(plan.completionGates.any { it.contains("SSE", ignoreCase = true) })
         assertTrue(plan.completionGates.any { it.contains("no server-side item provisioning", ignoreCase = true) })
+        assertFalse(plan.completionGates.any { it.contains("provisioned", ignoreCase = true) && !it.contains("no", ignoreCase = true) })
         assertTrue(plan.completionGates.none { it.contains("static fallback", ignoreCase = true) && !it.contains("no", ignoreCase = true) })
         assertFalse(plan.artifacts.contains("provisioned-iron-sword"))
     }
@@ -1231,11 +1233,13 @@ class FabricDriverModuleTest {
             FabricClientSmokeController.fromEnvironment(
                 mapOf(
                     "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
+                    "CRAFTLESS_FINAL_GAMEPLAY" to "1",
                     "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS" to "60000",
                 ),
             )
 
         assertEquals(60_000.milliseconds, controller.holdAfterActions)
+        assertTrue(controller.runSurvivalTask)
     }
 
     @Test

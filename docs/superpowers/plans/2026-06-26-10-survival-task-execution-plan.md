@@ -184,7 +184,7 @@ Run the executor test. Expected: PASS.
 - Modify: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricClientSmokeController.kt`
 - Test: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt`
 
-- [ ] **Step 1: Write failing final-controller test**
+- [x] **Step 1: Write failing final-controller test**
 
 Assert final gameplay artifacts include task evidence names and no provisioning:
 
@@ -193,12 +193,12 @@ assertTrue(FabricFinalGameplayPlan.default().artifacts.contains("survival-task-r
 assertFalse(FabricFinalGameplayPlan.default().completionGates.any { it.contains("provisioned", ignoreCase = true) && !it.contains("no", ignoreCase = true) })
 ```
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run the focused module test. Expected: FAIL until final artifacts mention the
 survival task run.
 
-- [ ] **Step 3: Invoke `task.run` in final mode**
+- [x] **Step 3: Invoke `task.run` in final mode**
 
 When `CRAFTLESS_FINAL_GAMEPLAY=1`, after connected OpenAPI is captured, invoke
 `task.run` with:
@@ -210,7 +210,7 @@ When `CRAFTLESS_FINAL_GAMEPLAY=1`, after connected OpenAPI is captured, invoke
 Write `survival-task-results.jsonl` and append task progress to
 `gameplay-results.jsonl`.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run `mise exec -- gradle :driver-fabric:test`. Expected: PASS.
 
