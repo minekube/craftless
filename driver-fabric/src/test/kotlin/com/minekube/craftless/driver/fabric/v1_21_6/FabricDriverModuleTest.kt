@@ -58,6 +58,10 @@ class FabricDriverModuleTest {
         val mixins = resourceJson("craftless-driver-fabric.mixins.json")
         assertEquals("com.minekube.craftless.driver.fabric.v1_21_6.mixin", mixins["package"]?.jsonPrimitive?.content)
         assertEquals("client", mixins["environment"]?.jsonPrimitive?.content)
+        assertEquals(
+            listOf("MinecraftClientMixin"),
+            mixins["mixins"]?.jsonArray?.map { it.jsonPrimitive.content },
+        )
     }
 
     @Test
@@ -75,6 +79,19 @@ class FabricDriverModuleTest {
         assertTrue("executeOnClient" in methodNames)
         assertTrue("dispatchChatMessage" !in methodNames)
         assertTrue("move" !in methodNames)
+    }
+
+    @Test
+    fun `fabric event hooks record internal mixin events with generic evidence`() {
+        val before = FabricEventHooks.snapshot().clientTicks
+
+        FabricEventHooks.recordClientTick()
+
+        val sourceEvidence = FabricEventHooks.sourceEvidence().single()
+        assertEquals(before + 1, FabricEventHooks.snapshot().clientTicks)
+        assertEquals("mixin", sourceEvidence.kind)
+        assertEquals("craftless-client-tick", sourceEvidence.fingerprint)
+        assertFalse(sourceEvidence.fingerprint.contains("minecraft"))
     }
 
     @Test

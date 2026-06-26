@@ -188,14 +188,20 @@ class FabricCapabilityProbeTest {
         val events = graph.events.associateBy { it.id }
 
         assertEquals(RuntimeAvailabilityState.AVAILABLE, event.availability.state)
-        assertEquals("event-source", event.sourceEvidence.single().kind)
+        assertEquals(setOf("event-source", "mixin"), event.sourceEvidence.map { it.kind }.toSet())
+        assertTrue(
+            event.sourceEvidence
+                .single { it.kind == "mixin" }
+                .fingerprint
+                .startsWith("craftless-client-tick"),
+        )
         assertEquals(
             setOf("event.lifecycle", "event.action", "event.capability"),
             events.keys,
         )
         assertTrue(events.values.all { node -> node.resource == "event" })
         assertTrue(events.values.all { node -> node.payload.type == "object" })
-        assertTrue(events.values.all { node -> node.sourceEvidence.single().kind == "event-source" })
+        assertTrue(events.values.all { node -> node.sourceEvidence.map { it.kind }.toSet() == setOf("event-source", "mixin") })
         assertEquals(emptyList(), graph.operations)
     }
 

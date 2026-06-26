@@ -87,8 +87,9 @@ Verification:
   permissions. Current evidence covers runtime metadata evidence, generic
   registry-family handles, client/world/player/inventory/entity/screen
   availability nodes, handles, operation events, driver-generated event-source
-  nodes, and private pathfinder probe evidence; Fabric callback/mixin event
-  source discovery remains incomplete.
+  nodes, one internal client-tick mixin event-source hook, and private
+  pathfinder probe evidence; broader Fabric callback discovery remains
+  incomplete.
 - [x] Minecraft client state access stays on the client thread.
 - [x] Probes emit private evidence and graph nodes, not public OpenAPI
   descriptors directly.

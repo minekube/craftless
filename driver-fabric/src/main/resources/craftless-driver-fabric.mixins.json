@@ -3,7 +3,9 @@
   "package": "com.minekube.craftless.driver.fabric.v1_21_6.mixin",
   "compatibilityLevel": "JAVA_21",
   "environment": "client",
-  "mixins": [],
+  "mixins": [
+    "MinecraftClientMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }

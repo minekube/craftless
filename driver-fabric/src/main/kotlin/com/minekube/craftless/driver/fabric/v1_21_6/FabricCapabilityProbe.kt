@@ -104,14 +104,16 @@ internal object FabricRegistrySummaryCapabilityProbe : FabricCapabilityProbe {
 
 internal object FabricEventSourceCapabilityProbe : FabricCapabilityProbe {
     override fun discover(context: FabricCapabilityProbeContext): FabricCapabilityGraphFragment {
-        val eventSourceEvidence = RuntimeSourceEvidence("event-source", "driver:${context.runtimeMetadata.driverVersion}")
+        val eventSourceEvidence =
+            listOf(RuntimeSourceEvidence("event-source", "driver:${context.runtimeMetadata.driverVersion}")) +
+                FabricEventHooks.sourceEvidence()
         return FabricCapabilityGraphFragment(
             resources =
                 listOf(
                     RuntimeResourceNode(
                         id = "event",
                         availability = RuntimeAvailability.available(),
-                        sourceEvidence = listOf(eventSourceEvidence),
+                        sourceEvidence = eventSourceEvidence,
                     ),
                 ),
             events =
@@ -121,7 +123,7 @@ internal object FabricEventSourceCapabilityProbe : FabricCapabilityProbe {
                         resource = "event",
                         payload = RuntimeSchema.objectSchema(),
                         availability = RuntimeAvailability.available(),
-                        sourceEvidence = listOf(eventSourceEvidence),
+                        sourceEvidence = eventSourceEvidence,
                     )
                 },
         )
