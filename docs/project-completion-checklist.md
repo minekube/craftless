@@ -42,10 +42,10 @@ Legend:
   and HTTP `ETag`/`If-None-Match` revalidation metadata; action/resource
   projection endpoints use the same fingerprint.
 - [x] The real Fabric backend derives loader version, driver version,
-  installed-mod fingerprint, and selected runtime registry fingerprint from a
-  runtime metadata provider backed by Fabric Loader and Minecraft registries;
-  richer registry resources and server-feature fingerprints remain roadmap
-  work.
+  installed-mod fingerprint, selected runtime registry fingerprint, and
+  gateway-derived server-feature fingerprint inputs from a runtime metadata
+  provider backed by Fabric Loader, Minecraft registries, and client-thread
+  state; richer registry and server-feature resources remain roadmap work.
 - [x] Fabric smoke has proven real client launch, server join, generated chat,
   generated movement telemetry, generated look invocation, server-side target
   item provisioning, generated inventory observation/equip, generated block

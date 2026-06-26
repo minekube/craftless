@@ -146,6 +146,17 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric server feature metadata is queried from client gateway`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.queryResults.add(listOf("connection:connected", "server:remote", "feature-set:abc123"))
+
+        val features = GatewayFabricServerFeatureProvider(gateway).serverFeatures()
+
+        assertEquals(listOf("connection:connected", "server:remote", "feature-set:abc123"), features)
+        assertEquals(listOf("client-query"), gateway.actions)
+    }
+
+    @Test
     fun `fabric client smoke plan is opt in and bridge independent`() {
         val plan = FabricClientSmokePlan.default()
 

@@ -128,7 +128,7 @@ class FabricDriverBackend private constructor(
             real(
                 gateway = gateway,
                 actionDiscovery = actionDiscovery,
-                runtimeMetadataProvider = FabricLoaderRuntimeMetadataProvider,
+                runtimeMetadataProvider = FabricLoaderRuntimeMetadataProvider(gateway),
             )
 
         internal fun real(
@@ -194,7 +194,23 @@ internal class SnapshotFabricRuntimeMetadataProvider(
         )
 }
 
-private object FabricLoaderRuntimeMetadataProvider : FabricRuntimeMetadataProvider {
+internal class GatewayFabricServerFeatureProvider(
+    private val gateway: FabricClientGateway,
+) {
+    fun serverFeatures(): List<String> =
+        gateway.queryOnClient {
+            listOf(
+                "connection:${if (networkHandler != null && player != null) "connected" else "disconnected"}",
+                "server:${serverKind()}",
+                "local-server:$isConnectedToLocalServer",
+                "feature-set:${networkHandler?.enabledFeatures?.hashCode() ?: "none"}",
+            )
+        }
+}
+
+private class FabricLoaderRuntimeMetadataProvider(
+    private val gateway: FabricClientGateway,
+) : FabricRuntimeMetadataProvider {
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
         SnapshotFabricRuntimeMetadataProvider(runtimeMetadataSnapshot()).runtimeMetadata(clientId)
 
@@ -205,10 +221,21 @@ private object FabricLoaderRuntimeMetadataProvider : FabricRuntimeMetadataProvid
             driverVersion = loader.versionFor(FABRIC_DRIVER_ID) ?: FABRIC_DRIVER_VERSION,
             installedMods = loader.installedMods(),
             registries = runtimeRegistryEntries(),
-            serverFeatures = listOf("environment:${if (loader.isDevelopmentEnvironment) "dev" else "runtime"}"),
+            serverFeatures =
+                listOf("environment:${if (loader.isDevelopmentEnvironment) "dev" else "runtime"}") +
+                    GatewayFabricServerFeatureProvider(gateway).serverFeatures(),
         )
     }
 }
+
+private fun net.minecraft.client.MinecraftClient.serverKind(): String =
+    when {
+        isInSingleplayer -> "singleplayer"
+        currentServerEntry?.isLocal == true -> "local"
+        currentServerEntry?.isRealm == true -> "realm"
+        currentServerEntry != null -> "remote"
+        else -> "none"
+    }
 
 private fun FabricLoader.versionFor(modId: String): String? =
     getModContainer(modId)
