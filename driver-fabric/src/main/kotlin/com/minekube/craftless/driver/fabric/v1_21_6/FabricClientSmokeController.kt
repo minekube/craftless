@@ -190,6 +190,14 @@ data class FabricClientSmokeController(
                                 action = "world.block.break",
                                 args = mapOf("max-distance" to JsonPrimitive(4.0)),
                             )
+                        val blockInteractResult =
+                            http.runAvailableAction(
+                                api = api,
+                                clientId = SMOKE_CLIENT_ID,
+                                openApi = connectedOpenApi,
+                                action = "world.block.interact",
+                                args = mapOf("max-distance" to JsonPrimitive(4.0)),
+                            )
                         val smokeResults =
                             listOfNotNull(
                                 chatResult,
@@ -204,6 +212,7 @@ data class FabricClientSmokeController(
                                 equipResult,
                                 lookResult,
                                 blockBreakResult,
+                                blockInteractResult,
                             )
                         writeLinesArtifact("gameplay-results.jsonl", smokeResults)
                     }

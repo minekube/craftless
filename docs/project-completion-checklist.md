@@ -41,14 +41,15 @@ Legend:
 - [~] Current Fabric driver has real chat, movement, connected-client
   `player.query`, connected-client `player.look`, connected-client
   `player.raycast`, connected-client `inventory.query`, connected-client
-  `inventory.equip`, connected-client `world.block.break`, and
+  `inventory.equip`, connected-client `world.block.break`, connected-client
+  `world.block.interact`, and
   gateway-discovered `screen.query` bindings plus runtime-probed `screen.close`
   binding/unavailable metadata. When the client is disconnected, player query,
-  look, raycast, inventory query, inventory equip, and block break are exposed
-  only through gateway-backed unavailable probe metadata. When no screen is
-  open, `screen.close` is exposed only through gateway-backed unavailable probe
-  metadata. Broader gameplay discovery is not implemented yet and must not be
-  represented as a static placeholder catalog.
+  look, raycast, inventory query, inventory equip, block break, and block
+  interact are exposed only through gateway-backed unavailable probe metadata.
+  When no screen is open, `screen.close` is exposed only through gateway-backed
+  unavailable probe metadata. Broader gameplay discovery is not implemented yet
+  and must not be represented as a static placeholder catalog.
 - [ ] Craftless is complete.
 
 Baseline evidence:
@@ -67,7 +68,8 @@ Baseline evidence:
 - Current smoke controller re-fetches connected client OpenAPI/actions before
   invoking gameplay actions and writes `client-openapi-connected.json`,
   `client-actions-connected.json`, `client-resources-connected.json`, and
-  `gameplay-results.jsonl`.
+  `gameplay-results.jsonl`; it now includes generated `world.block.interact`
+  invocation in addition to `world.block.break`.
 - Key commands:
   - `mise run lint`
   - `mise run architecture-check`
@@ -136,10 +138,10 @@ Verification:
   connected-client `player.query`, connected-client `player.look`,
   connected-client `player.raycast`, connected-client `inventory.query`,
   connected-client `inventory.equip`, connected-client `world.block.break`,
-  gateway-discovered `screen.query`, runtime-probed `screen.close`, and
-  disconnected/unavailable client-state metadata, with duplicate probe output
-  rejected before descriptor projection; broader client/world/inventory/screen
-  interaction probes are still roadmap.
+  connected-client `world.block.interact`, gateway-discovered `screen.query`,
+  runtime-probed `screen.close`, and disconnected/unavailable client-state
+  metadata, with duplicate probe output rejected before descriptor projection;
+  broader client/world/inventory/screen interaction probes are still roadmap.
 - [~] Define how internal Fabric/Minecraft/mod/registry/server data becomes
   Craftless-owned actions, resources, handles, schemas, availability, and
   events. Action-derived resource projection now includes resource-level
@@ -177,11 +179,12 @@ Verification:
 - [~] Real look/perception/block/inventory/screen capabilities are discovered
   from the running client before they are advertised. `player.query`,
   `player.look`, `player.raycast`, `inventory.query`, `inventory.equip`, and
-  `world.block.break` now change from unavailable probe metadata to available
-  bindings based on connected-client state. `screen.query` is discovered from
-  the live client gateway, and `screen.close` changes from unavailable probe
-  metadata to an available binding based on live screen state; broader
-  block/inventory/screen interaction discovery is still missing.
+  `world.block.break` and `world.block.interact` now change from unavailable
+  probe metadata to available bindings based on connected-client state.
+  `screen.query` is discovered from the live client gateway, and `screen.close`
+  changes from unavailable probe metadata to an available binding based on live
+  screen state; broader block/inventory/screen interaction discovery is still
+  missing.
 - [x] Each advertised gameplay action has either a real Fabric execution
   binding or probe-backed unavailable metadata.
 - [x] No future gameplay action is added as a hand-written placeholder
@@ -207,9 +210,10 @@ Verification:
 - [x] The slice uses generated OpenAPI/action metadata as the client contract.
   The smoke controller now re-fetches connected client OpenAPI and gates
   `screen.query`, `player.query`, `player.look`, `inventory.query`,
-  `inventory.equip`, and `world.block.break` invocations on available actions from
-  `x-craftless-actions` before calling generic `POST /clients/{id}:run`;
-  `/clients/{id}/actions` remains an evidence/projection artifact.
+  `inventory.equip`, `world.block.break`, and `world.block.interact`
+  invocations on available actions from `x-craftless-actions` before calling
+  generic `POST /clients/{id}:run`; `/clients/{id}/actions` remains an
+  evidence/projection artifact.
 - [x] The slice discovers the needed actions/resources from the running client;
   it does not call hard-coded Kotlin methods or static CLI commands for current
   smoke gameplay actions. The smoke chooses the equip slot from live

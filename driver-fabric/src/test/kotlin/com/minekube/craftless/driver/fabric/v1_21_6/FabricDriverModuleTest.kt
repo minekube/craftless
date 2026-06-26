@@ -615,6 +615,60 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric runtime discovery exposes block interact only from client state`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = false
+        val backend = FabricDriverBackend.real(gateway)
+
+        val unavailableInteract = backend.actions("alice").single { it.id == "world.block.interact" }
+        val unavailableResult =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "world.block.interact",
+                    arguments = mapOf("max-distance" to JsonPrimitive(4.0)),
+                ),
+            )
+
+        assertEquals(DriverActionSource.RUNTIME_PROBE, unavailableInteract.source)
+        assertEquals(DriverActionAvailability.UNAVAILABLE, unavailableInteract.availability)
+        assertEquals("client-not-connected", unavailableInteract.availabilityReason)
+        assertEquals("number", unavailableInteract.arguments["max-distance"]?.type)
+        assertEquals("boolean", unavailableInteract.arguments["include-fluids"]?.type)
+        assertEquals("object", unavailableInteract.result.properties["data"]?.type)
+        assertEquals(DriverActionStatus.UNSUPPORTED, unavailableResult.status)
+        assertEquals("client-not-connected", unavailableResult.message)
+
+        gateway.connected = true
+        gateway.queryResult =
+            buildJsonObject {
+                put("hit", true)
+                put("target-kind", "block")
+                put("accepted", true)
+                put("block", "1 64 1")
+            }
+
+        val blockInteract = backend.actions("alice").single { it.id == "world.block.interact" }
+        val result =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "world.block.interact",
+                    arguments = mapOf("max-distance" to JsonPrimitive(4.0)),
+                ),
+            )
+
+        assertEquals(DriverActionSource.BINDING, blockInteract.source)
+        assertEquals(DriverActionAvailability.AVAILABLE, blockInteract.availability)
+        assertEquals(null, blockInteract.availabilityReason)
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        assertEquals(true, result.data["accepted"]?.jsonPrimitive?.boolean)
+        assertEquals("1 64 1", result.data["block"]?.jsonPrimitive?.content)
+        assertEquals(listOf("client-query"), gateway.actions)
+        assertEquals(1, gateway.scheduled)
+    }
+
+    @Test
     fun `fabric runtime discovery exposes screen query only from live client state`() {
         val metadataOnly = FabricDriverBackend.metadataOnly()
         assertTrue(metadataOnly.actions("alice").none { it.id == "screen.query" })
@@ -784,11 +838,17 @@ class FabricDriverModuleTest {
                 put("hit", true)
                 put("target-kind", "block")
             }
+        gateway.queryResults +=
+            buildJsonObject {
+                put("hit", true)
+                put("target-kind", "block")
+                put("accepted", true)
+            }
 
         assertEquals(0.milliseconds, controller.startupSettleDelay)
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
 
-        gateway.awaitActions(10)
+        gateway.awaitActions(11)
         assertEquals(
             listOf(
                 "connect localhost:25567",
@@ -799,6 +859,7 @@ class FabricDriverModuleTest {
                 "client-query",
                 "client-action",
                 "client-action",
+                "client-query",
                 "client-query",
                 "stop",
             ),
@@ -814,12 +875,14 @@ class FabricDriverModuleTest {
         assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/player:look"))
         assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/screen:query"))
         assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/world/block:break"))
+        assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/world/block:interact"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("player.query"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("player.look"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("inventory.query"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("inventory.equip"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("screen.query"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("world.block.break"))
+        assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("world.block.interact"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("\"availability\":\"available\""))
         val connectedResources = Files.readString(artifactsDir.resolve("client-resources-connected.json"))
         assertTrue(connectedResources.contains("\"id\":\"player\""))
@@ -835,6 +898,7 @@ class FabricDriverModuleTest {
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("slot 1"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("Iron Sword"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("world.block.break"))
+        assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("world.block.interact"))
         assertTrue(Files.readString(artifactsDir.resolve("runtime-metadata.json")).contains("craftless-driver-fabric"))
         assertTrue(Files.readString(artifactsDir.resolve("client-events.jsonl")).contains("hello from fabric smoke"))
         assertTrue(Files.readString(artifactsDir.resolve("client-events.jsonl")).contains("player.move"))
@@ -892,10 +956,16 @@ class FabricDriverModuleTest {
                 put("hit", true)
                 put("target-kind", "block")
             }
+        gateway.queryResults +=
+            buildJsonObject {
+                put("hit", true)
+                put("target-kind", "block")
+                put("accepted", true)
+            }
 
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
 
-        gateway.awaitActions(11)
+        gateway.awaitActions(12)
         assertEquals(
             listOf(
                 "connect 127.0.0.1:25565",
@@ -907,6 +977,7 @@ class FabricDriverModuleTest {
                 "client-query",
                 "client-action",
                 "client-action",
+                "client-query",
                 "client-query",
                 "stop",
             ),
@@ -967,7 +1038,7 @@ class FabricDriverModuleTest {
         assertEquals(emptyList(), gateway.actions)
 
         gateway.ready = true
-        gateway.awaitActions(10)
+        gateway.awaitActions(11)
         assertEquals(
             listOf(
                 "connect 127.0.0.1:25567",
@@ -978,6 +1049,7 @@ class FabricDriverModuleTest {
                 "client-query",
                 "client-action",
                 "client-action",
+                "client-query",
                 "client-query",
                 "stop",
             ),

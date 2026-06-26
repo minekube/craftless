@@ -121,6 +121,10 @@ private fun FabricActionDiscoveryContext.probeConnectedClientActions(): List<Fab
                 descriptor = FabricWorldBlockBreakActionBinding.descriptor,
                 binding = FabricWorldBlockBreakActionBinding,
             ),
+            FabricDiscoveredAction(
+                descriptor = FabricWorldBlockInteractActionBinding.descriptor,
+                binding = FabricWorldBlockInteractActionBinding,
+            ),
         )
     } else {
         listOf(
@@ -141,6 +145,9 @@ private fun FabricActionDiscoveryContext.probeConnectedClientActions(): List<Fab
             ),
             FabricDiscoveredAction(
                 descriptor = unavailableWorldBlockBreakDescriptor(),
+            ),
+            FabricDiscoveredAction(
+                descriptor = unavailableWorldBlockInteractDescriptor(),
             ),
         )
     }
@@ -193,6 +200,13 @@ private fun unavailableInventoryEquipDescriptor(): DriverActionDescriptor =
 
 private fun unavailableWorldBlockBreakDescriptor(): DriverActionDescriptor =
     fabricWorldBlockBreakDescriptor().copy(
+        source = DriverActionSource.RUNTIME_PROBE,
+        availability = DriverActionAvailability.UNAVAILABLE,
+        availabilityReason = "client-not-connected",
+    )
+
+private fun unavailableWorldBlockInteractDescriptor(): DriverActionDescriptor =
+    fabricWorldBlockInteractDescriptor().copy(
         source = DriverActionSource.RUNTIME_PROBE,
         availability = DriverActionAvailability.UNAVAILABLE,
         availabilityReason = "client-not-connected",
