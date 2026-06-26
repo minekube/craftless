@@ -38,13 +38,14 @@ class CachePreparationService(
         val versionManifestUrl = versionIndex.versionManifestUrl(request.minecraftVersion)
         val versionManifest = metadataFetcher.fetchText(versionManifestUrl)
         val clientJarUrl = versionManifest.clientJarUrl(request.minecraftVersion)
+        val minecraftLibraries = versionManifest.minecraftLibraries()
         val assetIndexMetadata = versionManifest.assetIndexMetadata(request.minecraftVersion)
         val assetIndex = metadataFetcher.fetchText(assetIndexMetadata.url)
         val assetObjects = assetIndex.assetObjects()
         val fabricMetadata = resolveFabricMetadata(request)
         val fabricLibraries = fabricMetadata?.profile?.fabricLibraries().orEmpty()
         val baseResult = CachePrepareResult.forRequest(request, fabricMetadata?.loaderVersion)
-        val artifacts =
+        val resolvedBaseArtifacts =
             baseResult.artifacts
                 .map { artifact ->
                     when (artifact.kind) {
@@ -54,7 +55,19 @@ class CachePreparationService(
                         CachePreparedArtifactKind.FABRIC_LOADER_PROFILE -> artifact.copy(source = fabricMetadata?.profileUrl)
                         else -> artifact
                     }
-                } + assetObjects.map { it.artifact } + fabricLibraries.map { it.artifact }
+                }
+        val loaderMetadataArtifacts =
+            resolvedBaseArtifacts.filter { artifact ->
+                artifact.kind == CachePreparedArtifactKind.FABRIC_LOADER_VERSIONS ||
+                    artifact.kind == CachePreparedArtifactKind.FABRIC_LOADER_PROFILE
+            }
+        val coreArtifacts = resolvedBaseArtifacts - loaderMetadataArtifacts.toSet()
+        val artifacts =
+            coreArtifacts +
+                minecraftLibraries.map { it.artifact } +
+                loaderMetadataArtifacts +
+                assetObjects.map { it.artifact } +
+                fabricLibraries.map { it.artifact }
         val result =
             baseResult.copy(
                 artifacts = artifacts,
@@ -97,6 +110,9 @@ class CachePreparationService(
         }
         assetObjects.forEach { asset ->
             writeBytesArtifact(asset.artifact, metadataFetcher.fetchBytes(asset.source))
+        }
+        minecraftLibraries.forEach { library ->
+            writeBytesArtifact(library.artifact, metadataFetcher.fetchBytes(library.source))
         }
         fabricLibraries.forEach { library ->
             writeBytesArtifact(library.artifact, metadataFetcher.fetchBytes(library.source))
@@ -282,6 +298,24 @@ private fun String.fabricLibraries(): List<FabricLibraryArtifact> =
             FabricLibraryArtifact(baseUrl.trimEnd('/') + "/$path")
         }
 
+private fun String.minecraftLibraries(): List<MinecraftLibraryArtifact> =
+    Json
+        .parseToJsonElement(this)
+        .jsonObject["libraries"]
+        ?.jsonArray
+        .orEmpty()
+        .mapNotNull { library ->
+            val item = library.jsonObject
+            item["downloads"]
+                ?.jsonObject
+                ?.get("artifact")
+                ?.jsonObject
+                ?.get("url")
+                ?.jsonPrimitive
+                ?.content
+                ?.let(::MinecraftLibraryArtifact)
+        }
+
 private fun String.assetObjects(): List<MinecraftAssetObject> =
     Json
         .parseToJsonElement(this)
@@ -309,6 +343,20 @@ private data class MinecraftAssetObject(
 }
 
 private const val MINECRAFT_ASSET_BASE_URL = "https://resources.download.minecraft.net"
+
+private data class MinecraftLibraryArtifact(
+    val source: String,
+) {
+    private val handle: String = "cache/libraries/minecraft/${source.sha256Hex()}.jar"
+
+    val artifact: CachePreparedArtifact =
+        CachePreparedArtifact(
+            kind = CachePreparedArtifactKind.MINECRAFT_LIBRARY,
+            handle = handle,
+            source = source,
+            status = CachePreparedArtifactStatus.CACHED,
+        )
+}
 
 private data class FabricLibraryArtifact(
     val source: String,

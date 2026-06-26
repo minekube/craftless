@@ -234,9 +234,9 @@ Verification:
 - [x] Cache preparation resolves Fabric compatible loader versions, records the
   resolved loader version, supports an optional loader-version pin, and stores
   the Fabric loader profile JSON through Ktor Client with offline test fakes.
-- [x] Cache preparation downloads and stores the selected Minecraft client jar
-  plus Fabric profile libraries under Craftless-owned cache handles with
-  offline binary-fetcher tests.
+- [x] Cache preparation downloads and stores the selected Minecraft client jar,
+  Minecraft version libraries, and Fabric profile libraries under
+  Craftless-owned cache handles with offline binary-fetcher tests.
 - [x] Cache preparation emits an ordered launch classpath made only of
   Craftless-owned artifact handles.
 - [x] Cache preparation resolves the Minecraft asset index and downloads listed
@@ -247,10 +247,11 @@ Verification:
 - [~] Client runtime/file management is strong enough for repeated local and CI
   runs. Instance directories and cache preparation are now repeatable and
   idempotent, with Minecraft metadata, Fabric loader profile metadata, the
-  Minecraft client jar, Fabric profile libraries, and Minecraft asset objects
-  materialized into the workspace plus an ordered launch classpath handle list;
-  Java/runtime artifact resolution, native extraction, JVM/game argument
-  assembly, and explicit cleanup/export flows are still roadmap.
+  Minecraft client jar, Minecraft version libraries, Fabric profile libraries,
+  and Minecraft asset objects materialized into the workspace plus an ordered
+  launch classpath handle list; Java/runtime artifact resolution, native
+  extraction, JVM/game argument assembly, and explicit cleanup/export flows are
+  still roadmap.
 - [x] Public APIs expose Craftless-owned file handles only.
 
 Verification:

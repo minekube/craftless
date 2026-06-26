@@ -121,12 +121,14 @@ data class CacheLaunchPlan(
                     artifacts
                         .filter { artifact ->
                             artifact.kind == CachePreparedArtifactKind.FABRIC_LIBRARY ||
+                                artifact.kind == CachePreparedArtifactKind.MINECRAFT_LIBRARY ||
                                 artifact.kind == CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR
                         }.sortedBy { artifact ->
                             when (artifact.kind) {
-                                CachePreparedArtifactKind.FABRIC_LIBRARY -> 0
-                                CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR -> 1
-                                else -> 2
+                                CachePreparedArtifactKind.MINECRAFT_LIBRARY -> 0
+                                CachePreparedArtifactKind.FABRIC_LIBRARY -> 1
+                                CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR -> 2
+                                else -> 3
                             }
                         }.map { it.handle },
             )
@@ -140,6 +142,7 @@ enum class CachePreparedArtifactKind {
     MINECRAFT_CLIENT_JAR,
     MINECRAFT_ASSET_INDEX,
     MINECRAFT_ASSET_OBJECT,
+    MINECRAFT_LIBRARY,
     FABRIC_LOADER_VERSIONS,
     FABRIC_LOADER_PROFILE,
     FABRIC_LIBRARY,

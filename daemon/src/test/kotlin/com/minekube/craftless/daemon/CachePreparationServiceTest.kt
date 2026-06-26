@@ -18,6 +18,7 @@ class CachePreparationServiceTest {
             val workspace = Files.createTempDirectory("craftless-cache-resolution")
             val versionUrl = "https://metadata.test/1.21.6.json"
             val clientJarUrl = "https://metadata.test/client.jar"
+            val minecraftLibraryUrl = "https://libraries.minecraft.net/com/mojang/authlib/6.0.54/authlib-6.0.54.jar"
             val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
             val assetObjectUrl = "https://resources.download.minecraft.net/ab/abcdef0123456789abcdef0123456789abcdef01"
             val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
@@ -45,6 +46,16 @@ class CachePreparationServiceTest {
                                         "id": "1.21.6",
                                         "url": "$assetIndexUrl"
                                       },
+                                      "libraries": [
+                                        {
+                                          "name": "com.mojang:authlib:6.0.54",
+                                          "downloads": {
+                                            "artifact": {
+                                              "url": "$minecraftLibraryUrl"
+                                            }
+                                          }
+                                        }
+                                      ],
                                       "downloads": {
                                         "client": { "url": "$clientJarUrl" }
                                       }
@@ -84,6 +95,7 @@ class CachePreparationServiceTest {
                             binaryResponses =
                                 mapOf(
                                     clientJarUrl to "client-jar".encodeToByteArray(),
+                                    minecraftLibraryUrl to "minecraft-library".encodeToByteArray(),
                                     assetObjectUrl to "asset-bytes".encodeToByteArray(),
                                     fabricLoaderJarUrl to "fabric-loader-jar".encodeToByteArray(),
                                 ),
@@ -98,6 +110,7 @@ class CachePreparationServiceTest {
                     CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST,
                     CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR,
                     CachePreparedArtifactKind.MINECRAFT_ASSET_INDEX,
+                    CachePreparedArtifactKind.MINECRAFT_LIBRARY,
                     CachePreparedArtifactKind.FABRIC_LOADER_VERSIONS,
                     CachePreparedArtifactKind.FABRIC_LOADER_PROFILE,
                     CachePreparedArtifactKind.MINECRAFT_ASSET_OBJECT,
@@ -114,11 +127,16 @@ class CachePreparationServiceTest {
             assertEquals(assetObjectUrl, assetObject.source)
             assertTrue(assetObject.handle.startsWith("cache/assets/objects/"))
             assertEquals("CACHED", assetObject.status.name)
+            val minecraftLibrary = result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_LIBRARY }
+            assertEquals(minecraftLibraryUrl, minecraftLibrary.source)
+            assertTrue(minecraftLibrary.handle.startsWith("cache/libraries/minecraft/"))
+            assertEquals("CACHED", minecraftLibrary.status.name)
             val fabricLibrary = result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LIBRARY }
             assertEquals(null, fabricLibrary.source)
             assertTrue(fabricLibrary.handle.startsWith("cache/libraries/fabric/"))
             assertEquals(
                 listOf(
+                    minecraftLibrary.handle,
                     fabricLibrary.handle,
                     "cache/minecraft/versions/1.21.6/client.jar",
                 ),
@@ -127,6 +145,7 @@ class CachePreparationServiceTest {
             assertTrue(Files.readString(workspace.resolve("cache/minecraft/version_manifest_v2.json")).contains("1.21.6"))
             assertTrue(Files.readString(workspace.resolve("cache/minecraft/versions/1.21.6/version.json")).contains("client.jar"))
             assertEquals("client-jar", Files.readString(workspace.resolve("cache/minecraft/versions/1.21.6/client.jar")))
+            assertEquals("minecraft-library", Files.readString(workspace.resolve(minecraftLibrary.handle)))
             assertTrue(Files.readString(workspace.resolve("cache/assets/indexes/1.21.6.json")).contains("test.ogg"))
             assertEquals("asset-bytes", Files.readString(workspace.resolve(assetObject.handle)))
             assertTrue(Files.readString(workspace.resolve("cache/loaders/fabric/1.21.6/versions.json")).contains("0.17.2"))
@@ -136,6 +155,7 @@ class CachePreparationServiceTest {
                 Files.readString(workspace.resolve(fabricLibrary.handle)),
             )
             assertTrue(Files.readString(workspace.resolve(result.manifest)).contains("MINECRAFT_VERSION_MANIFEST"))
+            assertTrue(Files.readString(workspace.resolve(result.manifest)).contains("MINECRAFT_LIBRARY"))
             assertTrue(Files.readString(workspace.resolve(result.manifest)).contains("FABRIC_LIBRARY"))
         }
 
