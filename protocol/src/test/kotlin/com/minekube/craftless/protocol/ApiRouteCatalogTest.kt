@@ -17,6 +17,8 @@ class ApiRouteCatalogTest {
         assertEquals("POST", catalog.route("/cache:prepare").method)
         assertEquals("POST", catalog.route("/cache:export").method)
         assertEquals("POST", catalog.route("/cache:cleanup").method)
+        assertEquals("GET", catalog.route("/runtimes/java").method)
+        assertEquals("POST", catalog.route("/runtimes/java:resolve").method)
         assertEquals("GET", catalog.route("GET", "/clients").method)
         assertEquals("POST", catalog.route("POST", "/clients").method)
         assertEquals("GET", catalog.route("GET", "/clients/{id}").method)

@@ -69,6 +69,8 @@ class CraftlessCliTest {
         assertTrue(commands.contains("cache prepare"))
         assertTrue(commands.contains("cache export"))
         assertTrue(commands.contains("cache cleanup"))
+        assertTrue(commands.contains("runtimes java list"))
+        assertTrue(commands.contains("runtimes java resolve"))
         assertTrue(commands.contains("server start"))
         assertTrue("clients api" !in commands)
         assertTrue("versions" !in commands)
@@ -336,6 +338,83 @@ class CraftlessCliTest {
         assertEquals("0.16.14", result.loaderVersion)
         assertEquals("cache/loaders/fabric/1.21.6/0.16.14", result.loaderRoot)
         assertTrue(Files.isRegularFile(workspace.resolve("cache/loaders/fabric/1.21.6/0.16.14/profile.json")))
+    }
+
+    @Test
+    fun `runtimes java list returns supervisor runtime candidates`() {
+        val output = StringBuilder()
+        val workspace = Files.createTempDirectory("craftless-cli-java-list")
+        val java = workspace.resolve("cache/runtimes/mac-os-arm64/java-runtime-gamma/image/bin/java")
+        writeFakeJava(java, "25.0.3")
+
+        LocalTestApiServer(workspaceRoot = workspace).use { server ->
+            val exit =
+                CraftlessCli.run(
+                    listOf("runtimes", "java", "list", "--api", server.url),
+                    stdout = { output.appendLine(it) },
+                )
+
+            assertEquals(0, exit)
+        }
+
+        val runtimes = Json.parseToJsonElement(output.toString().trim()).jsonObject["runtimes"]!!.jsonArray
+        assertTrue(
+            runtimes.any { runtime ->
+                runtime.jsonObject["executable"]?.jsonPrimitive?.content ==
+                    "cache/runtimes/mac-os-arm64/java-runtime-gamma/image/bin/java"
+            },
+        )
+    }
+
+    @Test
+    fun `runtimes java resolve resolves by minecraft version through supervisor api`() {
+        val output = StringBuilder()
+        val workspace = Files.createTempDirectory("craftless-cli-java-resolve")
+        val java = workspace.resolve("cache/runtimes/mac-os-arm64/java-runtime-gamma/image/bin/java")
+        writeFakeJava(java, "25.0.3")
+
+        LocalTestApiServer(
+            workspaceRoot = workspace,
+            cacheMetadataFetcher =
+                StaticCacheMetadataFetcher(
+                    mapOf(
+                        MINECRAFT_VERSION_INDEX_URL to
+                            """
+                            {
+                              "versions": [
+                                { "id": "26.2", "url": "https://metadata.test/26.2.json" }
+                              ]
+                            }
+                            """.trimIndent(),
+                        "https://metadata.test/26.2.json" to
+                            """
+                            {
+                              "id": "26.2",
+                              "javaVersion": {
+                                "component": "java-runtime-gamma",
+                                "majorVersion": 25
+                              }
+                            }
+                            """.trimIndent(),
+                    ),
+                ),
+        ).use { server ->
+            val exit =
+                CraftlessCli.run(
+                    listOf("runtimes", "java", "resolve", "--mc", "26.2", "--api", server.url),
+                    stdout = { output.appendLine(it) },
+                )
+
+            assertEquals(0, exit)
+        }
+
+        val selection = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        assertEquals("SELECTED", selection["status"]?.jsonPrimitive?.content)
+        assertEquals(25, selection["requirement"]?.jsonObject?.get("majorVersion")?.jsonPrimitive?.content?.toInt())
+        assertEquals(
+            "cache/runtimes/mac-os-arm64/java-runtime-gamma/image/bin/java",
+            selection["selected"]?.jsonObject?.get("executable")?.jsonPrimitive?.content,
+        )
     }
 
     @Test
@@ -1875,10 +1954,14 @@ class CraftlessCliTest {
             DriverSessionFactory { request ->
                 FakeDriverSession(request.id)
             },
+        workspaceRoot: java.nio.file.Path? = null,
+        cacheMetadataFetcher: CacheMetadataFetcher = com.minekube.craftless.daemon.KtorCacheMetadataFetcher(),
     ) : AutoCloseable {
         private val server =
             com.minekube.craftless.daemon.LocalSessionApiServer.inMemory(
                 driverFactory = driverFactory,
+                workspaceRoot = workspaceRoot,
+                cacheMetadataFetcher = cacheMetadataFetcher,
             )
         val url: String
 
@@ -2481,4 +2564,21 @@ private class StaticCacheMetadataFetcher(
         requireNotNull(binaryResponses[url]) {
             "missing test binary response for $url"
         }
+}
+
+private fun writeFakeJava(
+    path: java.nio.file.Path,
+    version: String,
+) {
+    Files.createDirectories(path.parent)
+    Files.writeString(
+        path,
+        """
+        #!/usr/bin/env sh
+        echo 'openjdk version "$version" 2026-04-21 LTS' >&2
+        echo 'Eclipse Temurin Runtime Environment' >&2
+        echo '    os.arch = aarch64' >&2
+        """.trimIndent() + "\n",
+    )
+    path.toFile().setExecutable(true, true)
 }

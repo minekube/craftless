@@ -231,6 +231,25 @@ enum class JavaRuntimeSelectionStatus {
     UNSATISFIED,
 }
 
+@Serializable
+data class JavaRuntimeResolveRequest(
+    val minecraftVersion: String? = null,
+    val requirement: JavaRuntimeRequirement? = null,
+) {
+    init {
+        minecraftVersion?.let { requireFileSafeSegment(it, "minecraft version") }
+        require(minecraftVersion != null || requirement != null) {
+            "Java runtime resolve request requires minecraftVersion or requirement"
+        }
+    }
+}
+
+@Serializable
+data class JavaRuntimeListResult(
+    val runtimes: List<JavaRuntimeDescriptor>,
+    val rejected: List<RejectedJavaRuntimeCandidate> = emptyList(),
+)
+
 const val MINECRAFT_VERSION_INDEX_URL: String = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
 const val MINECRAFT_JAVA_RUNTIME_INDEX_URL: String =
     "https://piston-meta.mojang.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json"

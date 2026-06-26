@@ -87,6 +87,8 @@ class ApiRouteCatalog(
                     route("POST", "/cache:prepare", "prepareCache", "cache", "cache", "prepare", "method"),
                     route("POST", "/cache:export", "exportCache", "cache", "cache", "export", "method"),
                     route("POST", "/cache:cleanup", "cleanupCache", "cache", "cache", "cleanup", "method"),
+                    route("GET", "/runtimes/java", "listJavaRuntimes", "runtimes", "runtimes", "java", "route"),
+                    route("POST", "/runtimes/java:resolve", "resolveJavaRuntime", "runtimes", "runtimes", "java", "method"),
                     route("GET", "/clients", "listClients", "clients", "clients", "list", "route"),
                     route("POST", "/clients", "createClient", "clients", "clients", "create", "route"),
                     route("GET", "/clients/{id}", "getClient", "clients", "clients", "get", "route"),

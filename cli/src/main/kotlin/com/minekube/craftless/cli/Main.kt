@@ -12,6 +12,7 @@ import com.minekube.craftless.protocol.CacheCleanupRequest
 import com.minekube.craftless.protocol.CacheExportRequest
 import com.minekube.craftless.protocol.CachePrepareRequest
 import com.minekube.craftless.protocol.CreateClientRequest
+import com.minekube.craftless.protocol.JavaRuntimeResolveRequest
 import com.minekube.craftless.protocol.JsonRpcMethod
 import com.minekube.craftless.protocol.JsonRpcRequest
 import com.minekube.craftless.protocol.JsonRpcResponse
@@ -76,6 +77,12 @@ object CraftlessCli {
                 LeafCommand("export"),
                 LeafCommand("cleanup"),
             ),
+            GroupCommand("runtimes").subcommands(
+                GroupCommand("java").subcommands(
+                    LeafCommand("list"),
+                    LeafCommand("resolve"),
+                ),
+            ),
             GroupCommand("server").subcommands(
                 LeafCommand("start"),
             ),
@@ -99,6 +106,8 @@ object CraftlessCli {
             "cache prepare",
             "cache export",
             "cache cleanup",
+            "runtimes java list",
+            "runtimes java resolve",
             "server start",
         )
 
@@ -125,6 +134,12 @@ object CraftlessCli {
         }
         if (args.take(2) == listOf("cache", "cleanup")) {
             return cleanupCache(args.drop(2), stdout, stderr)
+        }
+        if (args.take(3) == listOf("runtimes", "java", "list")) {
+            return listJavaRuntimes(args.drop(3), stdout, stderr, env)
+        }
+        if (args.take(3) == listOf("runtimes", "java", "resolve")) {
+            return resolveJavaRuntime(args.drop(3), stdout, stderr, env)
         }
         if (args.take(2) == listOf("clients", "create")) {
             return createClient(args.drop(2), stdout, stderr, env)
@@ -277,6 +292,53 @@ object CraftlessCli {
             0
         }.getOrElse { error ->
             stderr("error: ${error.message ?: "failed to cleanup cache"}")
+            2
+        }
+    }
+
+    private fun listJavaRuntimes(
+        args: List<String>,
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+        env: Map<String, String>,
+    ): Int {
+        val api = args.apiBaseUrl(env)
+        return runCatching {
+            kotlinx.coroutines.runBlocking {
+                HttpClient(CIO).use { http ->
+                    http.get("${api.trimEnd('/')}/runtimes/java").forwardBody(stdout, stderr)
+                }
+            }
+        }.getOrElse { error ->
+            stderr("error: ${error.message ?: "failed to list Java runtimes"}")
+            2
+        }
+    }
+
+    private fun resolveJavaRuntime(
+        args: List<String>,
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+        env: Map<String, String>,
+    ): Int {
+        val minecraftVersion = args.optionValue("--mc")
+        if (minecraftVersion.isNullOrBlank()) {
+            stderr("error: usage is runtimes java resolve --mc <version> [--api <url>]")
+            return 2
+        }
+        val api = args.apiBaseUrl(env)
+        return runCatching {
+            kotlinx.coroutines.runBlocking {
+                HttpClient(CIO).use { http ->
+                    http
+                        .post("${api.trimEnd('/')}/runtimes/java:resolve") {
+                            contentType(ContentType.Application.Json)
+                            setBody(json.encodeToString(JavaRuntimeResolveRequest(minecraftVersion = minecraftVersion)))
+                        }.forwardBody(stdout, stderr)
+                }
+            }
+        }.getOrElse { error ->
+            stderr("error: ${error.message ?: "failed to resolve Java runtime"}")
             2
         }
     }

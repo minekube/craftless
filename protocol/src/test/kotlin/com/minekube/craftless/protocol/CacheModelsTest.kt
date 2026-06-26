@@ -194,4 +194,29 @@ class CacheModelsTest {
             requirement.copy(majorVersion = 0)
         }
     }
+
+    @Test
+    fun `java runtime resolve request and list result are supervisor runtime models`() {
+        val request = JavaRuntimeResolveRequest(minecraftVersion = "26.2")
+        val descriptor =
+            JavaRuntimeDescriptor(
+                id = "managed:25:java",
+                provider = JavaRuntimeProviderKind.MANAGED,
+                executable = "cache/runtimes/mac-os-arm64/java-runtime-gamma/bin/java",
+                majorVersion = 25,
+                version = "25.0.3",
+                managed = true,
+            )
+        val result = JavaRuntimeListResult(runtimes = listOf(descriptor))
+
+        assertEquals("26.2", request.minecraftVersion)
+        assertEquals(1, result.runtimes.size)
+        assertEquals(JavaRuntimeProviderKind.MANAGED, result.runtimes.single().provider)
+        assertFailsWith<IllegalArgumentException> {
+            JavaRuntimeResolveRequest()
+        }
+        assertFailsWith<IllegalArgumentException> {
+            JavaRuntimeResolveRequest(minecraftVersion = "../26.2")
+        }
+    }
 }

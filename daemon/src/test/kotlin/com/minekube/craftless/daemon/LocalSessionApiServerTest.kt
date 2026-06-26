@@ -25,6 +25,10 @@ import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
 import com.minekube.craftless.protocol.JsonRpcResponse
+import com.minekube.craftless.protocol.JavaRuntimeListResult
+import com.minekube.craftless.protocol.JavaRuntimeProviderKind
+import com.minekube.craftless.protocol.JavaRuntimeSelection
+import com.minekube.craftless.protocol.JavaRuntimeSelectionStatus
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
 import com.minekube.craftless.protocol.OpenApiAction
@@ -1135,6 +1139,50 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `server lists and resolves Java runtimes under configured workspace`() =
+        withHttpClient { http ->
+            val workspace = Files.createTempDirectory("craftless-server-java-runtimes")
+            val java = workspace.resolve("cache/runtimes/mac-os-arm64/java-runtime-gamma/image/bin/java")
+            writeFakeJava(java, "25.0.3")
+            fakeLocalSessionApiServer(workspaceRoot = workspace).use { server ->
+                server.start()
+
+                http.get(server.url("/runtimes/java")).let { response ->
+                    assertEquals(HttpStatusCode.OK, response.status)
+                    val result = json.decodeFromString<JavaRuntimeListResult>(response.bodyAsText())
+                    val runtime =
+                        result.runtimes.single {
+                            it.executable == "cache/runtimes/mac-os-arm64/java-runtime-gamma/image/bin/java"
+                        }
+                    assertEquals(JavaRuntimeProviderKind.MANAGED, runtime.provider)
+                    assertEquals(25, runtime.majorVersion)
+                }
+
+                http
+                    .post(server.url("/runtimes/java:resolve")) {
+                        contentType(ContentType.Application.Json)
+                        setBody(
+                            """
+                            {
+                              "requirement": {
+                                "majorVersion": 25,
+                                "component": "java-runtime-gamma",
+                                "reason": "minecraft-version-metadata"
+                              }
+                            }
+                            """.trimIndent(),
+                        )
+                    }.let { response ->
+                        assertEquals(HttpStatusCode.OK, response.status)
+                        val selection = json.decodeFromString<JavaRuntimeSelection>(response.bodyAsText())
+                        assertEquals(JavaRuntimeSelectionStatus.SELECTED, selection.status)
+                        assertEquals(JavaRuntimeProviderKind.MANAGED, selection.selected?.provider)
+                        assertEquals("cache/runtimes/mac-os-arm64/java-runtime-gamma/image/bin/java", selection.selected?.executable)
+                    }
+            }
+        }
+
+    @Test
     fun `client openapi actions and resources share runtime graph fingerprint`() =
         withHttpClient { http ->
             fakeLocalSessionApiServer().use { server ->
@@ -1451,7 +1499,24 @@ private class ServerStaticCacheMetadataFetcher(
     override suspend fun fetchBytes(url: String): ByteArray =
         requireNotNull(binaryResponses[url]) {
             "missing test binary response for $url"
-        }
+    }
+}
+
+private fun writeFakeJava(
+    path: java.nio.file.Path,
+    version: String,
+) {
+    Files.createDirectories(path.parent)
+    Files.writeString(
+        path,
+        """
+        #!/usr/bin/env sh
+        echo 'openjdk version "$version" 2026-04-21 LTS' >&2
+        echo 'Eclipse Temurin Runtime Environment' >&2
+        echo '    os.arch = aarch64' >&2
+        """.trimIndent() + "\n",
+    )
+    path.toFile().setExecutable(true, true)
 }
 
 private class EventMetadataDriverSession(

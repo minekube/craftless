@@ -620,8 +620,9 @@ Verification:
 - [x] Cache manifests and launch plans record selected Java runtime evidence
   and use the selected executable. Evidence:
   `mise exec -- gradle :daemon:test --tests '*CachePreparationServiceTest.cache preparation resolves and stores minecraft version metadata*'`.
-- [ ] Supervisor API and CLI can list or resolve Java runtimes without adding
-  gameplay action catalogs.
+- [x] Supervisor API and CLI can list or resolve Java runtimes without adding
+  gameplay action catalogs. Evidence:
+  `mise exec -- gradle :protocol:test :daemon:test :cli:test`.
 - [ ] Testkit/server smoke consumes resolver output and records Java selection
   evidence instead of depending only on `CRAFTLESS_SMOKE_JAVA_EXECUTABLE`.
 - [ ] Minecraft `26.2` server smoke proves Java 25 selection; Fabric client

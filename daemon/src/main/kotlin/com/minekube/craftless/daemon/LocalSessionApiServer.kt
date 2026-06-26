@@ -14,6 +14,7 @@ import com.minekube.craftless.protocol.CachePrepareRequest
 import com.minekube.craftless.protocol.Client
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
+import com.minekube.craftless.protocol.JavaRuntimeResolveRequest
 import com.minekube.craftless.protocol.JsonRpcMethod
 import com.minekube.craftless.protocol.JsonRpcRequest
 import com.minekube.craftless.protocol.JsonRpcResponse
@@ -60,6 +61,7 @@ import java.time.Instant
 class LocalSessionApiServer private constructor(
     private val service: ClientSessionService,
     private val cachePreparationService: CachePreparationService?,
+    private val javaRuntimeService: JavaRuntimeService?,
     private val host: String,
     requestedPort: Int,
 ) : AutoCloseable {
@@ -125,6 +127,23 @@ class LocalSessionApiServer private constructor(
                     val preparer = cachePreparationService ?: error("cache workspace is not configured")
                     val request = json.decodeFromString<CacheCleanupRequest>(call.receiveText())
                     call.respondJson(HttpStatusCode.OK, preparer.cleanup(request))
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                }
+            }
+            get("/runtimes/java") {
+                runCatching {
+                    val runtimes = javaRuntimeService ?: error("runtime workspace is not configured")
+                    call.respondJson(HttpStatusCode.OK, runtimes.list())
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                }
+            }
+            post("/runtimes/java:resolve") {
+                runCatching {
+                    val runtimes = javaRuntimeService ?: error("runtime workspace is not configured")
+                    val request = json.decodeFromString<JavaRuntimeResolveRequest>(call.receiveText())
+                    call.respondJson(HttpStatusCode.OK, runtimes.resolve(request))
                 }.getOrElse { error ->
                     call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
                 }
@@ -490,6 +509,7 @@ class LocalSessionApiServer private constructor(
                         fileStore = workspaceRoot?.let(::InstanceFileStore),
                     ),
                 cachePreparationService = workspaceRoot?.let { CachePreparationService(it, cacheMetadataFetcher) },
+                javaRuntimeService = workspaceRoot?.let { JavaRuntimeService(it, cacheMetadataFetcher) },
                 host = host,
                 requestedPort = port,
             )
