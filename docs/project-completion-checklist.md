@@ -175,10 +175,11 @@ Verification:
 - [ ] A public-agent gameplay runner uses only the generated per-client
   OpenAPI/actions/resources, SSE/JSON-RPC events, adaptive CLI or HTTP, and
   repository agent skills/docs to complete the survival scenario. Current
-  implementation evidence exists for a first runner contract and final-harness
-  artifacts `public-agent-gameplay-results.jsonl` and
-  `public-agent-state.jsonl`; the full process-external live survival proof is
-  still open.
+  implementation evidence exists for a runner contract, JSONL artifact writer,
+  process-external `:testkit:publicAgentGameplay` entrypoint, and final-harness
+  artifact names `public-agent-gameplay-results.jsonl` and
+  `public-agent-state.jsonl`; wiring that external runner to the live final
+  gameplay daemon URL and completing the live survival proof is still open.
 - [ ] Robin joins or observes the server session after a macOS `say` prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.

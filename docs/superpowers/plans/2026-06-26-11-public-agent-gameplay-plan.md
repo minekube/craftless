@@ -239,12 +239,68 @@ OpenAPI/action/SSE boundary:
 - `public-agent-state.jsonl`.
 
 Keep `survival-task-results.jsonl` only as diagnostic harness evidence.
-The next implementation step is to make the runner process-external by exposing
-or reusing a daemon URL that is reachable outside the Fabric smoke controller.
+The next implementation step is to connect the process-external runner task to
+the daemon URL used by the live final gameplay harness.
 
 - [x] **Step 4: Verify GREEN**
 
 Run the focused module test. Expected: PASS.
+
+### Task 5B: Process-External Runner Entrypoint
+
+**Files:**
+- Modify: `testkit/src/main/kotlin/com/minekube/craftless/testkit/PublicAgentGameplayRunner.kt`
+- Modify: `testkit/src/test/kotlin/com/minekube/craftless/testkit/PublicAgentGameplayRunnerTest.kt`
+- Modify: `testkit/build.gradle.kts`
+
+- [x] **Step 1: Write failing artifact/config tests**
+
+Assert the runner can write:
+
+- `public-agent-gameplay-results.jsonl`;
+- `public-agent-state.jsonl`.
+
+Assert process-external env parsing for:
+
+- `CRAFTLESS_PUBLIC_AGENT_BASE_URL`;
+- `CRAFTLESS_PUBLIC_AGENT_CLIENT_ID`;
+- `CRAFTLESS_PUBLIC_AGENT_ARTIFACTS_DIR`.
+
+- [x] **Step 2: Verify RED**
+
+Run focused `:testkit:test` filters. Expected: FAIL until artifact output and
+process-external config exist.
+
+- [x] **Step 3: Implement the standalone runner**
+
+Add a `PublicAgentGameplayRunnerKt` main and `:testkit:publicAgentGameplay`
+verification task. The task must use only public HTTP/SSE endpoints:
+
+- `GET /openapi.json`;
+- `GET /clients/{id}/openapi.json`;
+- `GET /clients/{id}/actions`;
+- `GET /clients/{id}/events:stream`;
+- `POST /clients/{id}:run`.
+
+Do not add any `task.survival.*` invocation.
+
+- [x] **Step 4: Verify GREEN**
+
+Run:
+
+```sh
+mise exec -- gradle :testkit:test --tests com.minekube.craftless.testkit.PublicAgentGameplayRunnerTest
+mise exec -- gradle :testkit:tasks --group verification
+```
+
+Expected: tests pass and `publicAgentGameplay` is listed.
+
+- [ ] **Step 5: Wire live final gameplay to the process-external runner**
+
+The final harness still needs to expose or reuse the live daemon URL outside
+the Fabric smoke controller, run `:testkit:publicAgentGameplay` against that
+URL while the client is connected, and use its artifacts as the final
+public-agent evidence.
 
 ### Task 6: Live Gate And Push
 

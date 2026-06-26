@@ -8,9 +8,13 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.headersOf
 import kotlinx.coroutines.runBlocking
+import java.nio.file.Files
+import java.nio.file.Path
+import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class PublicAgentGameplayRunnerTest {
     @Test
@@ -47,6 +51,41 @@ class PublicAgentGameplayRunnerTest {
             assertFalse(server.requests.any { it.contains("task.survival") })
             assertFalse(server.requests.any { it.startsWith("POST ") })
         }
+
+    @Test
+    fun `runner writes public agent action and state artifacts`() =
+        runBlocking {
+            val artifactsDir = createTempDirectory(prefix = "craftless-public-agent-test")
+            val server = RecordingCraftlessHttpServer(actions = completeActionCatalog())
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce(artifactsDir = artifactsDir)
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            val gameplay = Files.readString(artifactsDir.resolve("public-agent-gameplay-results.jsonl"))
+            val state = Files.readString(artifactsDir.resolve("public-agent-state.jsonl"))
+            assertTrue(gameplay.contains("public-agent-action"))
+            assertTrue(gameplay.contains("entity.query"))
+            assertTrue(state.contains("public-agent-discovery"))
+            assertTrue(state.contains("GET /clients/fabric-smoke/events:stream"))
+            assertFalse(gameplay.contains("task.survival"))
+        }
+
+    @Test
+    fun `runner config parses process external environment`() {
+        val config =
+            PublicAgentGameplayRunnerConfig.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_PUBLIC_AGENT_BASE_URL" to "http://127.0.0.1:18080",
+                    "CRAFTLESS_PUBLIC_AGENT_CLIENT_ID" to "fabric-smoke",
+                    "CRAFTLESS_PUBLIC_AGENT_ARTIFACTS_DIR" to "/tmp/craftless-public-agent-artifacts",
+                ),
+            )
+
+        assertEquals("http://127.0.0.1:18080", config.baseUrl)
+        assertEquals("fabric-smoke", config.clientId)
+        assertEquals(Path.of("/tmp/craftless-public-agent-artifacts"), config.artifactsDir)
+    }
 }
 
 private class RecordingCraftlessHttpServer(

@@ -40,6 +40,19 @@ that fetches the live per-client OpenAPI/actions/resources, subscribes to
 events, and composes gameplay through generated Craftless actions/handles and
 documented agent skills.
 
+When a live daemon URL is available, run the process-external public-agent
+helper against it:
+
+```sh
+CRAFTLESS_PUBLIC_AGENT_BASE_URL=http://127.0.0.1:<daemon-port> \
+CRAFTLESS_PUBLIC_AGENT_CLIENT_ID=fabric-smoke \
+CRAFTLESS_PUBLIC_AGENT_ARTIFACTS_DIR=driver-fabric/build/craftless-final-gameplay/artifacts \
+mise exec -- gradle :testkit:publicAgentGameplay
+```
+
+This helper must report missing generic primitives as blockers instead of
+calling `task.survival.*` or adding scenario-specific actions.
+
 Default evidence path:
 
 ```text

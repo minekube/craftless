@@ -13,3 +13,10 @@ tasks.register<JavaExec>("localMinecraftServerSmoke") {
     classpath = sourceSets.main.get().runtimeClasspath
     mainClass.set("com.minekube.craftless.testkit.LocalMinecraftServerSmokeKt")
 }
+
+tasks.register<JavaExec>("publicAgentGameplay") {
+    group = "verification"
+    description = "Runs the external Craftless public-agent gameplay helper against CRAFTLESS_PUBLIC_AGENT_BASE_URL."
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("com.minekube.craftless.testkit.PublicAgentGameplayRunnerKt")
+}
