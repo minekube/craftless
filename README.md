@@ -52,7 +52,7 @@ permissions, and driver runtime.
 
 ```sh
 # Prepare repeatable cache handles for the Minecraft/Fabric setup state.
-# This resolves metadata and caches the Minecraft client jar plus Fabric libraries.
+# This resolves metadata, caches jars, and emits Craftless launch classpath handles.
 craftless cache prepare --mc 1.21.6 --loader fabric --loader-version 0.17.2 --workspace .craftless
 
 # Start the local Craftless supervisor API with a repeatable client workspace.

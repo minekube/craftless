@@ -227,6 +227,8 @@ Verification:
 - [x] Cache preparation downloads and stores the selected Minecraft client jar
   plus Fabric profile libraries under Craftless-owned cache handles with
   offline binary-fetcher tests.
+- [x] Cache preparation emits an ordered launch classpath made only of
+  Craftless-owned artifact handles.
 - [x] Prism Launcher source was cloned under `/tmp/prismlauncher-source` for
   research, outside Minekube repos.
 - [x] Prism findings are captured as design input, not a core dependency.
@@ -234,9 +236,9 @@ Verification:
   runs. Instance directories and cache preparation are now repeatable and
   idempotent, with Minecraft metadata, Fabric loader profile metadata, the
   Minecraft client jar, and Fabric profile libraries resolved into the
-  workspace; Java/runtime artifact resolution, asset indexes, native
-  extraction, full launch classpath assembly, and explicit cleanup/export flows
-  are still roadmap.
+  workspace plus an ordered launch classpath handle list; Java/runtime artifact
+  resolution, asset indexes, native extraction, JVM/game argument assembly, and
+  explicit cleanup/export flows are still roadmap.
 - [x] Public APIs expose Craftless-owned file handles only.
 
 Verification:

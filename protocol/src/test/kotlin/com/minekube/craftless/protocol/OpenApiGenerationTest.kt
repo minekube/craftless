@@ -137,6 +137,7 @@ class OpenApiGenerationTest {
                 "manifest",
                 "status",
                 "artifacts",
+                "launch",
             ),
             responseSchema.required,
         )
@@ -144,6 +145,9 @@ class OpenApiGenerationTest {
         assertEquals(true, responseSchema.properties["loaderVersion"]?.nullable)
         assertEquals("string", responseSchema.properties["status"]?.type)
         assertEquals("array", responseSchema.properties["artifacts"]?.type)
+        val launchSchema = requireNotNull(responseSchema.properties["launch"])
+        assertEquals("object", launchSchema.type)
+        assertEquals("array", launchSchema.properties["classpath"]?.type)
         assertErrorSchema(requireNotNull(operation.errorSchema("400")))
     }
 

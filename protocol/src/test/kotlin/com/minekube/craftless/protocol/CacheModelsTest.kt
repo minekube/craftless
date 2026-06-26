@@ -37,6 +37,10 @@ class CacheModelsTest {
         assertEquals("cache/prepared/1.21.6-fabric.json", result.manifest)
         assertEquals(CachePrepareStatus.PREPARED, result.status)
         assertEquals(
+            listOf("cache/minecraft/versions/1.21.6/client.jar"),
+            result.launch.classpath,
+        )
+        assertEquals(
             listOf(
                 CachePreparedArtifact(
                     kind = CachePreparedArtifactKind.MINECRAFT_VERSION_INDEX,

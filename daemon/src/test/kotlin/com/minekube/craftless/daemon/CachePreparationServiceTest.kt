@@ -84,6 +84,13 @@ class CachePreparationServiceTest {
             val fabricLibrary = result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LIBRARY }
             assertEquals(null, fabricLibrary.source)
             assertTrue(fabricLibrary.handle.startsWith("cache/libraries/fabric/"))
+            assertEquals(
+                listOf(
+                    fabricLibrary.handle,
+                    "cache/minecraft/versions/1.21.6/client.jar",
+                ),
+                result.launch.classpath,
+            )
             assertTrue(Files.readString(workspace.resolve("cache/minecraft/version_manifest_v2.json")).contains("1.21.6"))
             assertTrue(Files.readString(workspace.resolve("cache/minecraft/versions/1.21.6/version.json")).contains("client.jar"))
             assertEquals("client-jar", Files.readString(workspace.resolve("cache/minecraft/versions/1.21.6/client.jar")))

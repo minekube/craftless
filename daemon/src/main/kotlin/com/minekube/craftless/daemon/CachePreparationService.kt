@@ -1,5 +1,6 @@
 package com.minekube.craftless.daemon
 
+import com.minekube.craftless.protocol.CacheLaunchPlan
 import com.minekube.craftless.protocol.CachePrepareRequest
 import com.minekube.craftless.protocol.CachePrepareResult
 import com.minekube.craftless.protocol.CachePreparedArtifact
@@ -40,18 +41,20 @@ class CachePreparationService(
         val fabricMetadata = resolveFabricMetadata(request)
         val fabricLibraries = fabricMetadata?.profile?.fabricLibraries().orEmpty()
         val baseResult = CachePrepareResult.forRequest(request, fabricMetadata?.loaderVersion)
+        val artifacts =
+            baseResult.artifacts
+                .map { artifact ->
+                    when (artifact.kind) {
+                        CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST -> artifact.copy(source = versionManifestUrl)
+                        CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR -> artifact.copy(source = clientJarUrl)
+                        CachePreparedArtifactKind.FABRIC_LOADER_PROFILE -> artifact.copy(source = fabricMetadata?.profileUrl)
+                        else -> artifact
+                    }
+                } + fabricLibraries.map { it.artifact }
         val result =
             baseResult.copy(
-                artifacts =
-                    baseResult.artifacts
-                        .map { artifact ->
-                            when (artifact.kind) {
-                                CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST -> artifact.copy(source = versionManifestUrl)
-                                CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR -> artifact.copy(source = clientJarUrl)
-                                CachePreparedArtifactKind.FABRIC_LOADER_PROFILE -> artifact.copy(source = fabricMetadata?.profileUrl)
-                                else -> artifact
-                            }
-                        } + fabricLibraries.map { it.artifact },
+                artifacts = artifacts,
+                launch = CacheLaunchPlan.fromArtifacts(artifacts),
             )
         Files.createDirectories(root)
         listOf(

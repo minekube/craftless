@@ -26,6 +26,7 @@ data class CachePrepareResult(
     val manifest: String,
     val status: CachePrepareStatus,
     val artifacts: List<CachePreparedArtifact>,
+    val launch: CacheLaunchPlan,
 ) {
     companion object {
         fun forRequest(
@@ -87,6 +88,7 @@ data class CachePrepareResult(
                 manifest = "cache/prepared/${request.minecraftVersion}-$loaderPath$manifestVersionPart.json",
                 status = CachePrepareStatus.PREPARED,
                 artifacts = artifacts,
+                launch = CacheLaunchPlan.fromArtifacts(artifacts),
             )
         }
     }
@@ -102,6 +104,29 @@ data class CachePreparedArtifact(
     val source: String? = null,
     val status: CachePreparedArtifactStatus,
 )
+
+@Serializable
+data class CacheLaunchPlan(
+    val classpath: List<String>,
+) {
+    companion object {
+        fun fromArtifacts(artifacts: List<CachePreparedArtifact>): CacheLaunchPlan =
+            CacheLaunchPlan(
+                classpath =
+                    artifacts
+                        .filter { artifact ->
+                            artifact.kind == CachePreparedArtifactKind.FABRIC_LIBRARY ||
+                                artifact.kind == CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR
+                        }.sortedBy { artifact ->
+                            when (artifact.kind) {
+                                CachePreparedArtifactKind.FABRIC_LIBRARY -> 0
+                                CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR -> 1
+                                else -> 2
+                            }
+                        }.map { it.handle },
+            )
+    }
+}
 
 @Serializable
 enum class CachePreparedArtifactKind {

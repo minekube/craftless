@@ -601,6 +601,19 @@ private fun cachePrepareResponse(): OpenApiResponse =
                                             required = listOf("kind", "handle", "status"),
                                         ),
                                 ),
+                            "launch" to
+                                OpenApiSchema(
+                                    type = "object",
+                                    properties =
+                                        mapOf(
+                                            "classpath" to
+                                                OpenApiSchema(
+                                                    type = "array",
+                                                    items = OpenApiSchema(type = "string"),
+                                                ),
+                                        ),
+                                    required = listOf("classpath"),
+                                ),
                         ),
                     required =
                         listOf(
@@ -614,6 +627,7 @@ private fun cachePrepareResponse(): OpenApiResponse =
                             "manifest",
                             "status",
                             "artifacts",
+                            "launch",
                         ),
                 ),
             ),

@@ -58,9 +58,10 @@ preparation manifest. The same contract is exposed by the supervisor API as
 `POST /cache:prepare`. Current implementation uses Ktor Client to resolve and
 store Mojang's version index, the selected Minecraft version manifest, Fabric's
 compatible loader-version list, the resolved Fabric loader profile JSON, the
-Minecraft client jar, and Fabric profile libraries. Java runtimes, full launch
-classpath assembly, native extraction, asset indexes, and integrity
-verification are still future provisioning work.
+Minecraft client jar, Fabric profile libraries, and an ordered launch classpath
+made only of Craftless-owned handles. Java runtimes, native extraction, asset
+indexes, JVM/game argument assembly, and integrity verification are still future
+provisioning work.
 
 ## Prism Source Findings
 
