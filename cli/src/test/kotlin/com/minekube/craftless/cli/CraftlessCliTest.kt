@@ -7,6 +7,7 @@ import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverSession
+import com.minekube.craftless.protocol.CachePrepareResult
 import com.minekube.craftless.testkit.FakeDriverSession
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -48,6 +49,7 @@ class CraftlessCliTest {
         assertTrue(commands.contains("clients <id> resources"))
         assertTrue(commands.contains("clients <id> run <action>"))
         assertTrue(commands.contains("clients <id> <resource...> <action>"))
+        assertTrue(commands.contains("cache prepare"))
         assertTrue(commands.contains("server start"))
         assertTrue("clients api" !in commands)
         assertTrue("versions" !in commands)
@@ -148,6 +150,36 @@ class CraftlessCliTest {
 
         val json = Json.parseToJsonElement(output.toString().trim()).jsonObject
         assertEquals(workspace.toString(), json["workspace"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `cache prepare creates cache handles in workspace`() {
+        val output = StringBuilder()
+        val workspace = Files.createTempDirectory("craftless-cli-cache")
+
+        val exit =
+            CraftlessCli.run(
+                listOf(
+                    "cache",
+                    "prepare",
+                    "--mc",
+                    "1.21.6",
+                    "--loader",
+                    "fabric",
+                    "--workspace",
+                    workspace.toString(),
+                ),
+                stdout = { output.appendLine(it) },
+            )
+
+        assertEquals(0, exit)
+        val result = Json.decodeFromString<CachePrepareResult>(output.toString().trim())
+        assertEquals("1.21.6", result.minecraftVersion)
+        assertTrue(Files.isDirectory(workspace.resolve(result.cacheRoot)))
+        assertTrue(Files.isDirectory(workspace.resolve(result.minecraftVersionRoot)))
+        assertTrue(Files.isDirectory(workspace.resolve(result.loaderRoot)))
+        assertTrue(Files.isDirectory(workspace.resolve(result.runtimeRoot)))
+        assertTrue(Files.isRegularFile(workspace.resolve(result.manifest)))
     }
 
     @Test

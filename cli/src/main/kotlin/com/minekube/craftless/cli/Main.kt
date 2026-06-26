@@ -4,7 +4,9 @@ import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.core.CoreCliktCommand
 import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.core.subcommands
+import com.minekube.craftless.daemon.CachePreparationService
 import com.minekube.craftless.daemon.LocalSessionApiServer
+import com.minekube.craftless.protocol.CachePrepareRequest
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.OpenApiAction
@@ -49,6 +51,9 @@ object CraftlessCli {
                 LeafCommand("create"),
                 LeafCommand("list"),
             ),
+            GroupCommand("cache").subcommands(
+                LeafCommand("prepare"),
+            ),
             GroupCommand("server").subcommands(
                 LeafCommand("start"),
             ),
@@ -66,6 +71,7 @@ object CraftlessCli {
             "clients <id> resources",
             "clients <id> run <action>",
             "clients <id> <resource...> <action>",
+            "cache prepare",
             "server start",
         )
 
@@ -78,6 +84,9 @@ object CraftlessCli {
     ): Int {
         if (args.take(2) == listOf("server", "start")) {
             return runServerStart(args.drop(2), stdout, stderr, afterStart)
+        }
+        if (args.take(2) == listOf("cache", "prepare")) {
+            return prepareCache(args.drop(2), stdout, stderr)
         }
         if (args.take(2) == listOf("clients", "create")) {
             return createClient(args.drop(2), stdout, stderr, env)
@@ -115,6 +124,37 @@ object CraftlessCli {
         }
         root().main(args)
         return 0
+    }
+
+    private fun prepareCache(
+        args: List<String>,
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+    ): Int {
+        val minecraftVersion = args.optionValue("--mc")
+        val loader =
+            args.optionValue("--loader")?.let { value ->
+                runCatching { Loader.valueOf(value.uppercase()) }.getOrNull()
+            }
+        val workspace = args.optionValue("--workspace")?.let(Path::of)
+        if (minecraftVersion.isNullOrBlank() || loader == null || workspace == null) {
+            stderr("error: usage is cache prepare --mc <version> --loader <loader> --workspace <path>")
+            return 2
+        }
+        return runCatching {
+            val result =
+                CachePreparationService(workspace).prepare(
+                    CachePrepareRequest(
+                        minecraftVersion = minecraftVersion,
+                        loader = loader,
+                    ),
+                )
+            stdout(json.encodeToString(result))
+            0
+        }.getOrElse { error ->
+            stderr("error: ${error.message ?: "failed to prepare cache"}")
+            2
+        }
     }
 
     private fun createClient(

@@ -15,6 +15,7 @@ import com.minekube.craftless.driver.api.DriverEvent
 import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.api.DriverSession
+import com.minekube.craftless.protocol.CachePrepareResult
 import com.minekube.craftless.protocol.Client
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
@@ -186,6 +187,38 @@ class LocalSessionApiServerTest {
                 client.instance.files.directoryHandles().forEach { handle ->
                     assertTrue(Files.isDirectory(workspace.resolve(handle)))
                 }
+            }
+        }
+
+    @Test
+    fun `server prepares cache handles under configured workspace`() =
+        withHttpClient { http ->
+            val workspace = Files.createTempDirectory("craftless-server-cache")
+            fakeLocalSessionApiServer(workspaceRoot = workspace).use { server ->
+                server.start()
+
+                val response =
+                    http.post(server.url("/cache:prepare")) {
+                        contentType(ContentType.Application.Json)
+                        setBody(
+                            """
+                            {
+                              "minecraftVersion": "1.21.6",
+                              "loader": "FABRIC"
+                            }
+                            """.trimIndent(),
+                        )
+                    }
+
+                assertEquals(HttpStatusCode.OK, response.status)
+                val result = json.decodeFromString<CachePrepareResult>(response.bodyAsText())
+                assertEquals("1.21.6", result.minecraftVersion)
+                assertEquals(Loader.FABRIC, result.loader)
+                assertTrue(Files.isDirectory(workspace.resolve(result.cacheRoot)))
+                assertTrue(Files.isDirectory(workspace.resolve(result.minecraftVersionRoot)))
+                assertTrue(Files.isDirectory(workspace.resolve(result.loaderRoot)))
+                assertTrue(Files.isDirectory(workspace.resolve(result.runtimeRoot)))
+                assertTrue(Files.isRegularFile(workspace.resolve(result.manifest)))
             }
         }
 

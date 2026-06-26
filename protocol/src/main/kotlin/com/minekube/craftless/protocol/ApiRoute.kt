@@ -83,6 +83,7 @@ class ApiRouteCatalog(
                     route("GET", "/openapi.json", "getOpenapiJson", "openapi", "supervisor", "openapi", "route"),
                     route("GET", "/version", "getVersion", "version", "supervisor", "version", "route"),
                     route("GET", "/events", "getEvents", "events", "supervisor", "events", "route"),
+                    route("POST", "/cache:prepare", "prepareCache", "cache", "cache", "prepare", "method"),
                     route("GET", "/clients", "listClients", "clients", "clients", "list", "route"),
                     route("POST", "/clients", "createClient", "clients", "clients", "create", "route"),
                     route("GET", "/clients/{id}", "getClient", "clients", "clients", "get", "route"),

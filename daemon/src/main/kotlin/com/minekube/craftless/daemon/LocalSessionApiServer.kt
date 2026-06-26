@@ -10,6 +10,7 @@ import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.ApiRouteCatalog
+import com.minekube.craftless.protocol.CachePrepareRequest
 import com.minekube.craftless.protocol.Client
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
@@ -44,6 +45,7 @@ import java.time.Instant
 
 class LocalSessionApiServer private constructor(
     private val service: ClientSessionService,
+    private val cachePreparationService: CachePreparationService?,
     private val host: String,
     requestedPort: Int,
 ) : AutoCloseable {
@@ -80,6 +82,15 @@ class LocalSessionApiServer private constructor(
             }
             get("/events") {
                 call.respondJson(HttpStatusCode.OK, events)
+            }
+            post("/cache:prepare") {
+                runCatching {
+                    val preparer = cachePreparationService ?: error("cache workspace is not configured")
+                    val request = json.decodeFromString<CachePrepareRequest>(call.receiveText())
+                    call.respondJson(HttpStatusCode.OK, preparer.prepare(request))
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                }
             }
             get("/clients/{id}/openapi.json") {
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
@@ -291,6 +302,7 @@ class LocalSessionApiServer private constructor(
                         driverFactory = driverFactory,
                         fileStore = workspaceRoot?.let(::InstanceFileStore),
                     ),
+                cachePreparationService = workspaceRoot?.let(::CachePreparationService),
                 host = "127.0.0.1",
                 requestedPort = port,
             )

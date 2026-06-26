@@ -215,13 +215,16 @@ Verification:
   root without clearing existing runtime files.
 - [x] `craftless server start --workspace <path>` wires that workspace into the
   local daemon startup path and reports it in startup metadata.
+- [x] `craftless cache prepare --mc <version> --loader <loader> --workspace
+  <path>` and `POST /cache:prepare` prepare Craftless-owned cache directories
+  and a setup manifest.
 - [x] Prism Launcher source was cloned under `/tmp/prismlauncher-source` for
   research, outside Minekube repos.
 - [x] Prism findings are captured as design input, not a core dependency.
 - [~] Client runtime/file management is strong enough for repeated local and CI
-  runs. Instance directories are now repeatable and idempotent; Java/runtime
-  provisioning, cache preparation commands, and explicit cleanup/export flows
-  are still roadmap.
+  runs. Instance directories and cache preparation are now repeatable and
+  idempotent; Java/runtime artifact resolution, Minecraft/Fabric downloads, and
+  explicit cleanup/export flows are still roadmap.
 - [x] Public APIs expose Craftless-owned file handles only.
 
 Verification:

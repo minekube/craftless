@@ -312,6 +312,7 @@ private fun ApiRoute.responses(actionsById: Map<String, OpenApiAction>): Map<Str
                 (path == "/events" || path.endsWith("/events")) && method == "GET" -> eventListResponse()
                 path.endsWith("/actions") && method == "GET" -> actionListResponse()
                 path.endsWith("/resources") && method == "GET" -> resourceListResponse()
+                path == "/cache:prepare" && method == "POST" -> cachePrepareResponse()
                 path == "/clients" && method == "GET" -> clientListResponse()
                 path == "/clients" && method == "POST" -> clientResponse()
                 path.endsWith(":connect") && method == "POST" -> clientResponse()
@@ -329,6 +330,7 @@ private fun ApiRoute.responses(actionsById: Map<String, OpenApiAction>): Map<Str
 private fun ApiRoute.errorStatuses(): List<String> =
     when {
         path == "/clients" && method == "POST" -> listOf("400")
+        path == "/cache:prepare" && method == "POST" -> listOf("400")
         path.endsWith(":connect") && method == "POST" -> listOf("400", "404", "409")
         source == "action" && method == "POST" -> listOf("400", "404", "409")
         path.endsWith(":run") && method == "POST" -> listOf("400", "404", "409")
@@ -345,6 +347,7 @@ private fun ApiRoute.requestBody(actionsById: Map<String, OpenApiAction>): OpenA
     when {
         method != "POST" -> null
         actionId != null -> actionsById[actionId]?.arguments?.toRequestBody()
+        path == "/cache:prepare" -> cachePrepareRequestBody()
         path == "/clients" -> createClientRequestBody()
         path.endsWith(":connect") -> connectRequestBody()
         path.endsWith(":run") -> genericActionRequestBody()
@@ -565,6 +568,38 @@ private fun clientListResponse(): OpenApiResponse =
 
 private fun clientResponse(): OpenApiResponse = OpenApiResponse(content = jsonContent(clientSchema()))
 
+private fun cachePrepareResponse(): OpenApiResponse =
+    OpenApiResponse(
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "minecraftVersion" to OpenApiSchema(type = "string"),
+                            "loader" to OpenApiSchema(type = "string"),
+                            "cacheRoot" to OpenApiSchema(type = "string"),
+                            "minecraftVersionRoot" to OpenApiSchema(type = "string"),
+                            "loaderRoot" to OpenApiSchema(type = "string"),
+                            "runtimeRoot" to OpenApiSchema(type = "string"),
+                            "manifest" to OpenApiSchema(type = "string"),
+                            "status" to OpenApiSchema(type = "string"),
+                        ),
+                    required =
+                        listOf(
+                            "minecraftVersion",
+                            "loader",
+                            "cacheRoot",
+                            "minecraftVersionRoot",
+                            "loaderRoot",
+                            "runtimeRoot",
+                            "manifest",
+                            "status",
+                        ),
+                ),
+            ),
+    )
+
 private fun clientSchema(): OpenApiSchema =
     OpenApiSchema(
         type = "object",
@@ -611,6 +646,22 @@ private fun createClientRequestBody(): OpenApiRequestBody =
                             "profile" to profileSchema(),
                         ),
                     required = listOf("id", "version", "loader", "profile"),
+                ),
+            ),
+    )
+
+private fun cachePrepareRequestBody(): OpenApiRequestBody =
+    OpenApiRequestBody(
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "minecraftVersion" to OpenApiSchema(type = "string"),
+                            "loader" to OpenApiSchema(type = "string"),
+                        ),
+                    required = listOf("minecraftVersion", "loader"),
                 ),
             ),
     )

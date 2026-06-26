@@ -102,6 +102,46 @@ class OpenApiGenerationTest {
     }
 
     @Test
+    fun `stable supervisor openapi describes cache preparation`() {
+        val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
+        val operation = document.paths["/cache:prepare"]?.post
+        assertNotNull(operation)
+        assertEquals("prepareCache", operation.operationId)
+        assertEquals("cache", operation.tags.single())
+        assertEquals("cache", operation.extensions["x-craftless-owner"])
+        assertEquals("prepare", operation.extensions["x-craftless-member"])
+        assertEquals("supervisor", operation.extensions["x-craftless-target"])
+
+        val requestSchema =
+            operation.requestBody
+                ?.content
+                ?.get("application/json")
+                ?.schema
+        assertNotNull(requestSchema)
+        assertEquals(listOf("minecraftVersion", "loader"), requestSchema.required)
+        assertEquals("string", requestSchema.properties["minecraftVersion"]?.type)
+        assertEquals("string", requestSchema.properties["loader"]?.type)
+
+        val responseSchema = requireNotNull(operation.okSchema())
+        assertEquals(
+            listOf(
+                "minecraftVersion",
+                "loader",
+                "cacheRoot",
+                "minecraftVersionRoot",
+                "loaderRoot",
+                "runtimeRoot",
+                "manifest",
+                "status",
+            ),
+            responseSchema.required,
+        )
+        assertEquals("string", responseSchema.properties["cacheRoot"]?.type)
+        assertEquals("string", responseSchema.properties["status"]?.type)
+        assertErrorSchema(requireNotNull(operation.errorSchema("400")))
+    }
+
+    @Test
     fun `openapi document projects resources from discovered actions`() {
         val document =
             OpenApiDocument.from(
