@@ -42,10 +42,12 @@ Legend:
   `player.query`, connected-client `player.look`, connected-client
   `player.raycast`, connected-client `inventory.query`, connected-client
   `inventory.equip`, connected-client `world.block.break`, and
-  gateway-discovered `screen.query` bindings. When the client is disconnected,
-  player query, look, raycast, inventory query, inventory equip, and block
-  break are exposed only through gateway-backed unavailable probe metadata.
-  Broader gameplay discovery is not implemented yet and must not be
+  gateway-discovered `screen.query` bindings plus runtime-probed `screen.close`
+  binding/unavailable metadata. When the client is disconnected, player query,
+  look, raycast, inventory query, inventory equip, and block break are exposed
+  only through gateway-backed unavailable probe metadata. When no screen is
+  open, `screen.close` is exposed only through gateway-backed unavailable probe
+  metadata. Broader gameplay discovery is not implemented yet and must not be
   represented as a static placeholder catalog.
 - [ ] Craftless is complete.
 
@@ -134,9 +136,10 @@ Verification:
   connected-client `player.query`, connected-client `player.look`,
   connected-client `player.raycast`, connected-client `inventory.query`,
   connected-client `inventory.equip`, connected-client `world.block.break`,
-  gateway-discovered `screen.query`, and disconnected-client unavailable
-  metadata, with duplicate probe output rejected before descriptor projection;
-  broader client/world/inventory/screen interaction probes are still roadmap.
+  gateway-discovered `screen.query`, runtime-probed `screen.close`, and
+  disconnected/unavailable client-state metadata, with duplicate probe output
+  rejected before descriptor projection; broader client/world/inventory/screen
+  interaction probes are still roadmap.
 - [~] Define how internal Fabric/Minecraft/mod/registry/server data becomes
   Craftless-owned actions, resources, handles, schemas, availability, and
   events. Action-derived resource projection now includes resource-level
@@ -175,9 +178,10 @@ Verification:
   from the running client before they are advertised. `player.query`,
   `player.look`, `player.raycast`, `inventory.query`, `inventory.equip`, and
   `world.block.break` now change from unavailable probe metadata to available
-  bindings based on connected-client state, and `screen.query` is discovered
-  from the live client gateway; broader block/inventory/screen interaction
-  discovery is still missing.
+  bindings based on connected-client state. `screen.query` is discovered from
+  the live client gateway, and `screen.close` changes from unavailable probe
+  metadata to an available binding based on live screen state; broader
+  block/inventory/screen interaction discovery is still missing.
 - [x] Each advertised gameplay action has either a real Fabric execution
   binding or probe-backed unavailable metadata.
 - [x] No future gameplay action is added as a hand-written placeholder

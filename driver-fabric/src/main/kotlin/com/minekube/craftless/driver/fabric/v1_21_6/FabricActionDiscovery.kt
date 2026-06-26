@@ -84,6 +84,7 @@ private object ScreenFabricActionProbe : FabricActionProbe {
                     descriptor = FabricScreenQueryActionBinding.descriptor,
                     binding = FabricScreenQueryActionBinding,
                 ),
+                context.discoverScreenCloseAction(),
             )
         }
 }
@@ -196,3 +197,22 @@ private fun unavailableWorldBlockBreakDescriptor(): DriverActionDescriptor =
         availability = DriverActionAvailability.UNAVAILABLE,
         availabilityReason = "client-not-connected",
     )
+
+private fun FabricActionDiscoveryContext.discoverScreenCloseAction(): FabricDiscoveredAction {
+    val gateway = requireNotNull(gateway)
+    return if (gateway.queryOnClient { currentScreen != null }) {
+        FabricDiscoveredAction(
+            descriptor = FabricScreenCloseActionBinding.descriptor,
+            binding = FabricScreenCloseActionBinding,
+        )
+    } else {
+        FabricDiscoveredAction(
+            descriptor =
+                fabricScreenCloseDescriptor().copy(
+                    source = DriverActionSource.RUNTIME_PROBE,
+                    availability = DriverActionAvailability.UNAVAILABLE,
+                    availabilityReason = "screen-not-open",
+                ),
+        )
+    }
+}

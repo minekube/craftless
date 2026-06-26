@@ -329,6 +329,31 @@ internal fun fabricScreenQueryDescriptor(): DriverActionDescriptor =
         result = fabricObjectDataResultDescriptor(),
     )
 
+internal object FabricScreenCloseActionBinding : FabricActionBinding {
+    override val descriptor: DriverActionDescriptor = fabricScreenCloseDescriptor()
+
+    override fun invoke(
+        clientId: String,
+        invocation: DriverActionInvocation,
+        context: FabricActionContext,
+    ): DriverActionResult {
+        context.executeOnClient {
+            setScreen(null)
+        }
+        return DriverActionResult(
+            action = invocation.action,
+            status = DriverActionStatus.ACCEPTED,
+            message = "fabric ${context.modeId} action ${invocation.action} accepted",
+        )
+    }
+}
+
+internal fun fabricScreenCloseDescriptor(): DriverActionDescriptor =
+    DriverActionDescriptor(
+        id = "screen.close",
+        schemaVersion = "1",
+    )
+
 private fun fabricObjectDataResultDescriptor(): DriverActionResultDescriptor =
     DriverActionResultDescriptor(
         properties =

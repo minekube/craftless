@@ -642,6 +642,46 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric runtime discovery exposes unavailable screen close when no screen is open`() {
+        val metadataOnly = FabricDriverBackend.metadataOnly()
+        assertTrue(metadataOnly.actions("alice").none { it.id == "screen.close" })
+
+        val gateway = RecordingFabricClientGateway()
+        gateway.screenOpen = false
+        val backend = FabricDriverBackend.real(gateway)
+
+        val close = backend.actions("alice").single { it.id == "screen.close" }
+        val result = backend.invoke("alice", DriverActionInvocation("screen.close"))
+
+        assertEquals(DriverActionSource.RUNTIME_PROBE, close.source)
+        assertEquals(DriverActionAvailability.UNAVAILABLE, close.availability)
+        assertEquals("screen-not-open", close.availabilityReason)
+        assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
+        assertEquals("screen-not-open", result.message)
+        assertEquals(2, gateway.screenProbeQueries)
+        assertEquals(emptyList(), gateway.actions)
+        assertEquals(0, gateway.scheduled)
+    }
+
+    @Test
+    fun `fabric runtime discovery exposes screen close only when a screen is open`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.screenOpen = true
+        val backend = FabricDriverBackend.real(gateway)
+
+        val close = backend.actions("alice").single { it.id == "screen.close" }
+        val result = backend.invoke("alice", DriverActionInvocation("screen.close"))
+
+        assertEquals(DriverActionSource.BINDING, close.source)
+        assertEquals(DriverActionAvailability.AVAILABLE, close.availability)
+        assertEquals(null, close.availabilityReason)
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        assertEquals(2, gateway.screenProbeQueries)
+        assertEquals(listOf("client-action"), gateway.actions)
+        assertEquals(1, gateway.scheduled)
+    }
+
+    @Test
     fun `fabric discovery rejects available actions without execution binding`() {
         val error =
             assertFailsWith<IllegalArgumentException> {
@@ -955,12 +995,14 @@ class FabricDriverModuleTest {
 private class RecordingFabricClientGateway : FabricClientGateway {
     var scheduled = 0
     val actions = mutableListOf<String>()
-    val queryResults = ArrayDeque<kotlinx.serialization.json.JsonObject>()
-    var queryResult =
+    val queryResults = ArrayDeque<Any>()
+    var queryResult: Any =
         buildJsonObject {
             put("hit", true)
             put("target-kind", "block")
         }
+    var screenOpen = false
+    var screenProbeQueries = 0
 
     @Volatile
     var connected = false
@@ -985,6 +1027,10 @@ private class RecordingFabricClientGateway : FabricClientGateway {
 
     @Suppress("UNCHECKED_CAST")
     override fun <T> queryOnClient(query: net.minecraft.client.MinecraftClient.() -> T): T {
+        if (isScreenCloseDiscoveryProbe()) {
+            screenProbeQueries += 1
+            return screenOpen as T
+        }
         scheduled += 1
         actions += "client-query"
         return (queryResults.removeFirstOrNull() ?: queryResult) as T
@@ -1008,4 +1054,9 @@ private class RecordingFabricClientGateway : FabricClientGateway {
             Thread.sleep(10)
         }
     }
+
+    private fun isScreenCloseDiscoveryProbe(): Boolean =
+        Thread.currentThread().stackTrace.any { frame ->
+            frame.methodName == "discoverScreenCloseAction"
+        }
 }
