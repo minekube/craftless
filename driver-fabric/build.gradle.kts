@@ -1,5 +1,6 @@
 import java.net.URI
 import java.security.MessageDigest
+import java.util.zip.ZipFile
 
 plugins {
     id("net.fabricmc.fabric-loom-remap")
@@ -26,11 +27,15 @@ tasks.processResources {
 }
 
 val pathfinderRuntimeVersion = "1.15.0"
-val pathfinderRuntimeFileName = "baritone-standalone-fabric-$pathfinderRuntimeVersion.jar"
+val pathfinderRuntimeFileName = "baritone-api-fabric-$pathfinderRuntimeVersion.jar"
 val pathfinderRuntimeUrl =
     "https://github.com/cabaletta/baritone/releases/download/v$pathfinderRuntimeVersion/$pathfinderRuntimeFileName"
-val pathfinderRuntimeSha256 = "18decb85df264ac1dbc61d01d9fbdc31090b26fe25571a9e0bf9846f50acebd0"
+val pathfinderRuntimeSha256 = "c58ef35a133b6ffce96a74682138ac2ee818cbc063b7c62671db9f9d7d783ebb"
 val pathfinderRuntimeJar = layout.buildDirectory.file("pathfinder/$pathfinderRuntimeFileName")
+val pathfinderNestedRuntimeFileName = "nether-pathfinder-1.4.1.jar"
+val pathfinderNestedRuntimeZipPath = "META-INF/jars/$pathfinderNestedRuntimeFileName"
+val pathfinderNestedRuntimeSha256 = "5bf06c2406b80c86a94fd58f18623fcc1877324e3beb7e01ac6503c5a7a260a6"
+val pathfinderNestedRuntimeJar = layout.buildDirectory.file("pathfinder/$pathfinderNestedRuntimeFileName")
 val pathfinderRuntimeEnabled =
     listOf("CRAFTLESS_ENABLE_PATHFINDER_BACKEND", "CRAFTLESS_FINAL_GAMEPLAY")
         .any { name ->
@@ -44,34 +49,63 @@ fun sha256(file: File): String =
         .digest(file.readBytes())
         .joinToString("") { byte -> "%02x".format(byte) }
 
+fun preparePathfinderRuntimeFiles() {
+    val output = pathfinderRuntimeJar.get().asFile
+    val nestedOutput = pathfinderNestedRuntimeJar.get().asFile
+    output.parentFile.mkdirs()
+    if (!output.exists() || sha256(output) != pathfinderRuntimeSha256) {
+        URI(pathfinderRuntimeUrl).toURL().openStream().use { input ->
+            output.outputStream().use { outputStream ->
+                input.copyTo(outputStream)
+            }
+        }
+    }
+    val actualSha256 = sha256(output)
+    check(actualSha256 == pathfinderRuntimeSha256) {
+        "Pathfinder runtime checksum mismatch: expected $pathfinderRuntimeSha256 but got $actualSha256"
+    }
+    if (!nestedOutput.exists() || sha256(nestedOutput) != pathfinderNestedRuntimeSha256) {
+        ZipFile(output).use { zip ->
+            val entry =
+                zip.getEntry(pathfinderNestedRuntimeZipPath)
+                    ?: error("Pathfinder runtime is missing nested mod jar: $pathfinderNestedRuntimeZipPath")
+            zip.getInputStream(entry).use { input ->
+                nestedOutput.outputStream().use { outputStream ->
+                    input.copyTo(outputStream)
+                }
+            }
+        }
+    }
+    val actualNestedSha256 = sha256(nestedOutput)
+    check(actualNestedSha256 == pathfinderNestedRuntimeSha256) {
+        "Nested pathfinder runtime checksum mismatch: expected $pathfinderNestedRuntimeSha256 but got $actualNestedSha256"
+    }
+}
+
 val preparePathfinderRuntime =
     tasks.register("preparePathfinderRuntime") {
         group = "verification"
         description = "Downloads and verifies the pinned optional Fabric pathfinder runtime jar."
-        outputs.file(pathfinderRuntimeJar)
+        outputs.files(pathfinderRuntimeJar, pathfinderNestedRuntimeJar)
 
         doLast {
-            val output = pathfinderRuntimeJar.get().asFile
-            output.parentFile.mkdirs()
-            if (!output.exists() || sha256(output) != pathfinderRuntimeSha256) {
-                URI(pathfinderRuntimeUrl).toURL().openStream().use { input ->
-                    output.outputStream().use { outputStream ->
-                        input.copyTo(outputStream)
-                    }
-                }
-            }
-            val actualSha256 = sha256(output)
-            check(actualSha256 == pathfinderRuntimeSha256) {
-                "Pathfinder runtime checksum mismatch: expected $pathfinderRuntimeSha256 but got $actualSha256"
-            }
+            preparePathfinderRuntimeFiles()
         }
     }
+
+if (pathfinderRuntimeEnabled) {
+    preparePathfinderRuntimeFiles()
+    val pathfinderRuntimeFiles = files(pathfinderRuntimeJar, pathfinderNestedRuntimeJar)
+    pathfinderRuntimeFiles.builtBy(preparePathfinderRuntime)
+    dependencies.add("modRuntimeOnly", pathfinderRuntimeFiles)
+    tasks.named("generateRemapClasspath") {
+        dependsOn(preparePathfinderRuntime)
+    }
+}
 
 tasks.named<JavaExec>("runClient") {
     if (pathfinderRuntimeEnabled) {
         dependsOn(preparePathfinderRuntime)
-        classpath(pathfinderRuntimeJar)
-        jvmArgs("-Dfabric.addMods=${pathfinderRuntimeJar.get().asFile.absolutePath}")
     }
 }
 

@@ -8,6 +8,7 @@ import java.nio.file.Path
 import java.nio.file.StandardOpenOption.APPEND
 import java.nio.file.StandardOpenOption.CREATE
 import java.util.Collections
+import java.util.Comparator
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
@@ -22,6 +23,7 @@ data class LocalServerFixture(
         Files.createDirectories(root)
         val logsDir = root.resolve("logs")
         val artifactsDir = root.resolve("artifacts")
+        artifactsDir.deleteChildrenIfExists()
         Files.createDirectories(logsDir)
         Files.createDirectories(artifactsDir)
         val serverLog = logsDir.resolve("server.log")
@@ -50,6 +52,20 @@ data class LocalServerFixture(
             evidenceLog = evidenceLog,
         )
     }
+}
+
+private fun Path.deleteChildrenIfExists() {
+    if (!Files.exists(this)) {
+        return
+    }
+    Files
+        .walk(this)
+        .use { paths ->
+            paths
+                .filter { it != this }
+                .sorted(Comparator.reverseOrder())
+                .forEach(Files::deleteIfExists)
+        }
 }
 
 data class LocalServerLayout(

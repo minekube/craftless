@@ -179,7 +179,7 @@ Verification:
   running client without static gameplay shortcut descriptors.
 - [x] Generic navigation/task graph adapter keys are wired through
   `DriverOperationAdapters` without adding static driver gameplay methods.
-- [ ] Optional Baritone integration is internal backend evidence only; public
+- [x] Optional Baritone integration is internal backend evidence only; public
   OpenAPI remains Craftless-owned.
 - [x] A no-cheat final gameplay harness rejects server-side item provisioning
   as completion evidence.
@@ -199,6 +199,10 @@ Verification:
   and never leaks backend names into OpenAPI or SSE payloads.
 - [x] Final gameplay can opt into a pinned pathfinder runtime mod without
   server-side item provisioning.
+- [x] Opt-in pathfinder runtime uses the remapped Loom runtime, loads nested
+  optional mod dependencies, and exposes `navigation.plan`,
+  `navigation.follow`, and `navigation.stop` as Craftless-owned graph actions
+  when the runtime probe succeeds.
 
 Verification:
 

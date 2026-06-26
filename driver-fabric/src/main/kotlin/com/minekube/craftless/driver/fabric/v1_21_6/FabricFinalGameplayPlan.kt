@@ -50,8 +50,10 @@ data class FabricFinalGameplayPlan(
                     ),
                 runtimePreparations =
                     listOf(
-                        "When CRAFTLESS_ENABLE_PATHFINDER_BACKEND=1 or CRAFTLESS_FINAL_GAMEPLAY=1 is set, prepare a pinned Fabric pathfinder runtime jar under driver-fabric/build/pathfinder.",
+                        "When CRAFTLESS_ENABLE_PATHFINDER_BACKEND=1 or CRAFTLESS_FINAL_GAMEPLAY=1 is set, prepare a pinned Fabric api-fabric pathfinder runtime jar under driver-fabric/build/pathfinder.",
                         "Verify the prepared runtime jar with SHA-256 before adding it to the visible Fabric runClient launch.",
+                        "Load the optional runtime through Loom's remapped mod runtime configuration, not as a raw fabric.addMods jar.",
+                        "Extract, verify, and load nested optional runtime mod dependencies through the same remapped Loom runtime.",
                         "Treat the pathfinder runtime as private execution evidence; public OpenAPI, SSE, CLI, and docs stay Craftless-owned.",
                     ),
                 artifacts =

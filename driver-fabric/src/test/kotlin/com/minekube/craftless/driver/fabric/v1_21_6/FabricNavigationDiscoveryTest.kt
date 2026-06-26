@@ -9,8 +9,9 @@ import com.minekube.craftless.protocol.NavigationTaskState
 import com.minekube.craftless.protocol.NavigationTaskStatus
 import com.minekube.craftless.protocol.RuntimeAvailabilityState
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -150,7 +151,13 @@ class FabricNavigationDiscoveryTest {
                 DriverOperationInvocation(
                     clientId = "alice",
                     operation = operations.getValue("navigation.follow"),
-                    arguments = mapOf("plan" to JsonPrimitive("navigation.plan.accepting.0001")),
+                    arguments =
+                        mapOf(
+                            "plan" to
+                                buildJsonObject {
+                                    put("id", "navigation.plan.accepting.0001")
+                                },
+                        ),
                 ),
             )
         val stopResult =

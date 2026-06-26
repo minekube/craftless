@@ -256,6 +256,9 @@ class FabricDriverModuleTest {
         assertTrue(plan.runtimePreparations.any { it.contains("CRAFTLESS_ENABLE_PATHFINDER_BACKEND", ignoreCase = true) })
         assertTrue(plan.runtimePreparations.any { it.contains("driver-fabric/build/pathfinder", ignoreCase = true) })
         assertTrue(plan.runtimePreparations.any { it.contains("SHA-256", ignoreCase = true) })
+        assertTrue(plan.runtimePreparations.any { it.contains("api-fabric", ignoreCase = true) })
+        assertTrue(plan.runtimePreparations.any { it.contains("Loom", ignoreCase = true) && it.contains("remapped", ignoreCase = true) })
+        assertTrue(plan.runtimePreparations.any { it.contains("nested", ignoreCase = true) && it.contains("remapped", ignoreCase = true) })
         assertTrue(plan.runtimePreparations.none { it.contains("server-side item provisioning", ignoreCase = true) })
         assertTrue(plan.artifacts.contains("client-openapi-connected.json"))
         assertTrue(plan.artifacts.contains("client-actions-connected.json"))
@@ -1325,6 +1328,64 @@ class FabricDriverModuleTest {
         assertTrue(gameplay.contains("craftless-smoke-target-item-observed"))
         assertTrue(gameplay.contains("slot 2"))
         assertTrue(gameplay.contains("Iron Sword"))
+    }
+
+    @Test
+    fun `fabric smoke controller does not claim missing target item was selected`() {
+        val gateway = RecordingFabricClientGateway()
+        val backend = smokeBackend(gateway)
+        val artifactsDir = Files.createTempDirectory("craftless-fabric-smoke-missing-target-item")
+        val controller =
+            FabricClientSmokeController.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
+                    "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS" to "1000",
+                    "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS" to "0",
+                    "CRAFTLESS_SMOKE_ARTIFACTS_DIR" to artifactsDir.toString(),
+                ),
+            )
+        gateway.queryResults +=
+            buildJsonObject {
+                put("ticks", 4)
+            }
+        gateway.queryResults +=
+            buildJsonObject {
+                put("open", false)
+            }
+        gateway.queryResults +=
+            buildJsonObject {
+                put("time", 1234)
+                put("time-of-day", 5678)
+            }
+        gateway.queryResults +=
+            buildJsonObject {
+                put("selected-slot", 0)
+            }
+        gateway.queryResults +=
+            buildJsonObject {
+                put("selected-slot", 0)
+                put("slot-count", 46)
+                put("slots", buildJsonArray {})
+            }
+        gateway.queryResults +=
+            buildJsonObject {
+                put("hit", true)
+                put("target-kind", "block")
+            }
+        gateway.queryResults +=
+            buildJsonObject {
+                put("hit", true)
+                put("target-kind", "block")
+                put("accepted", true)
+            }
+
+        assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
+
+        gateway.awaitActions(12)
+        val gameplay = Files.readString(artifactsDir.resolve("gameplay-results.jsonl"))
+        assertFalse(gameplay.contains("selected slot 0 for Iron Sword"))
+        assertTrue(gameplay.contains("craftless-smoke-inventory-fallback"))
+        assertTrue(gameplay.contains("target item Iron Sword was not observed"))
     }
 
     @Test

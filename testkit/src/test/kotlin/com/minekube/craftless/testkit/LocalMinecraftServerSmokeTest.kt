@@ -153,6 +153,8 @@ class LocalMinecraftServerSmokeTest {
         val fakeJava = root.resolve("fake-java")
         val fakeServerJar = root.resolve("server.jar")
         val actionCommand = root.resolve("smoke-action")
+        Files.createDirectories(root.resolve("artifacts"))
+        Files.writeString(root.resolve("artifacts").resolve("stale-result.json"), "old")
         Files.writeString(fakeServerJar, "fake")
         Files.writeString(
             fakeJava,
@@ -211,6 +213,7 @@ class LocalMinecraftServerSmokeTest {
         )
         assertEquals(listOf("--client", "fabric"), Files.readAllLines(root.resolve("action-arguments.txt")))
         assertEquals("25567\n", Files.readString(root.resolve("action-server-port.txt")))
+        assertFalse(Files.exists(root.resolve("artifacts").resolve("stale-result.json")))
         assertEquals(
             root.resolve("artifacts").toRealPath(),
             Path.of(Files.readString(root.resolve("action-artifacts-dir.txt")).trim()).toRealPath(),

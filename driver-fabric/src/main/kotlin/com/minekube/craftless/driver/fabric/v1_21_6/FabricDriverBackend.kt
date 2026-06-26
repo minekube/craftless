@@ -15,6 +15,8 @@ import com.minekube.craftless.protocol.NavigationGoal
 import com.minekube.craftless.protocol.NavigationTaskState
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -194,7 +196,7 @@ class FabricDriverBackend private constructor(
 
     private fun followNavigation(invocation: com.minekube.craftless.driver.api.DriverOperationInvocation): DriverActionResult {
         val planId =
-            invocation.arguments["plan"]?.jsonPrimitive?.content
+            invocation.arguments["plan"]?.navigationPlanId()
                 ?: return DriverActionResult(
                     action = invocation.operation.id,
                     status = DriverActionStatus.FAILED,
@@ -291,6 +293,15 @@ class FabricDriverBackend private constructor(
         fun current(): FabricDriverBackend = installed ?: metadataOnly().also(::install)
     }
 }
+
+private fun kotlinx.serialization.json.JsonElement.navigationPlanId(): String? =
+    when (this) {
+        is JsonPrimitive -> content
+        is JsonObject ->
+            this["id"]?.jsonPrimitive?.content
+                ?: this["plan-id"]?.jsonPrimitive?.content
+        else -> null
+    }
 
 private fun String.fabricOperationAdapterKey(): String = "fabric.${replace(".", "-")}"
 

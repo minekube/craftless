@@ -205,6 +205,12 @@ data class FabricClientSmokeController(
                                 action = "world.block.interact",
                                 args = mapOf("max-distance" to JsonPrimitive(4.0)),
                             )
+                        val inventorySelectionEvidence =
+                            if (targetItemSlot == null) {
+                                """{"event":"craftless-smoke-inventory-fallback","message":"target item $equipItemName was not observed; selected slot $equipSlot"}"""
+                            } else {
+                                """{"event":"craftless-smoke-inventory-select","message":"selected slot $equipSlot for $equipItemName"}"""
+                            }
                         val smokeResults =
                             listOfNotNull(
                                 chatResult,
@@ -216,7 +222,7 @@ data class FabricClientSmokeController(
                                 targetItemSlot?.let {
                                     """{"event":"craftless-smoke-target-item-observed","message":"observed $equipItemName in slot $it"}"""
                                 },
-                                """{"event":"craftless-smoke-inventory-select","message":"selected slot $equipSlot for $equipItemName"}""",
+                                inventorySelectionEvidence,
                                 equipResult,
                                 lookResult,
                                 blockBreakResult,
