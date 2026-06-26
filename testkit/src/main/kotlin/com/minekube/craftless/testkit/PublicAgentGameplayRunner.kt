@@ -67,6 +67,10 @@ class PublicAgentGameplayRunner(
                 availableActions = actionIds.sorted(),
             )
 
+        fun blockedAndWrite(blocker: String): PublicAgentGameplayResult =
+            blocked(blocker)
+                .also { result -> artifactsDir?.let { writeArtifacts(it, result) } }
+
         suspend fun invokeGenerated(
             action: String,
             args: JsonObject = JsonObject(emptyMap()),
@@ -81,8 +85,7 @@ class PublicAgentGameplayRunner(
                 .also(actionLog::add)
         }
 
-        invokeGenerated("inventory.query")
-        val blockQuery =
+        suspend fun queryMaterialPosition(): JsonObject? =
             invokeGenerated(
                 action = "world.block.query",
                 args =
@@ -91,52 +94,70 @@ class PublicAgentGameplayRunner(
                         put("limit", JsonPrimitive(16))
                         put("category", JsonPrimitive("log"))
                     },
-            )
-        val materialPosition =
-            blockQuery.responseObject()?.firstBlockPosition()
-                ?: return blocked("insufficient-public-evidence:world.block.query.log")
-                    .also { result -> artifactsDir?.let { writeArtifacts(it, result) } }
-        val materialPoint =
-            materialPosition.toCraftlessPoint()
-                ?: return blocked("insufficient-public-evidence:world.block.query.position")
-                    .also { result -> artifactsDir?.let { writeArtifacts(it, result) } }
-        val plan =
+            ).responseObject()?.firstBlockPosition()
+
+        suspend fun navigateTo(
+            position: JsonObject,
+            radius: Double,
+        ): String? {
+            val plan =
+                invokeGenerated(
+                    action = "navigation.plan",
+                    args =
+                        buildJsonObject {
+                            put(
+                                "goal",
+                                buildJsonObject {
+                                    put("kind", JsonPrimitive("block"))
+                                    put("position", position)
+                                    put("radius", JsonPrimitive(radius))
+                                },
+                            )
+                        },
+                )
+            val planId = plan.responseObject()?.planId() ?: return "insufficient-public-evidence:navigation.plan"
             invokeGenerated(
-                action = "navigation.plan",
+                action = "navigation.follow",
                 args =
                     buildJsonObject {
                         put(
-                            "goal",
+                            "plan",
                             buildJsonObject {
-                                put("kind", JsonPrimitive("block"))
-                                put("position", materialPosition)
-                                put("radius", JsonPrimitive(2.0))
+                                put("id", JsonPrimitive(planId))
                             },
                         )
                     },
             )
-        val planId =
-            plan.responseObject()?.planId()
-                ?: return blocked("insufficient-public-evidence:navigation.plan")
-                    .also { result -> artifactsDir?.let { writeArtifacts(it, result) } }
-        invokeGenerated(
-            action = "navigation.follow",
-            args =
-                buildJsonObject {
-                    put(
-                        "plan",
-                        buildJsonObject {
-                            put("id", JsonPrimitive(planId))
-                        },
-                    )
-                },
-        )
+            return null
+        }
+
+        invokeGenerated("inventory.query")
+        var materialPosition = queryMaterialPosition()
+        if (materialPosition == null) {
+            val player = invokeGenerated("player.query")
+            val origin =
+                player.responseObject()?.playerPosition()
+                    ?: return blockedAndWrite("insufficient-public-evidence:player.query.position")
+            for (waypoint in origin.explorationWaypoints()) {
+                navigateTo(position = waypoint.toJsonObject(), radius = 4.0)
+                    ?.let { blocker -> return blockedAndWrite(blocker) }
+                materialPosition = queryMaterialPosition()
+                if (materialPosition != null) break
+            }
+        }
+        val discoveredMaterialPosition =
+            materialPosition
+                ?: return blockedAndWrite("insufficient-public-evidence:world.block.query.log")
+        val materialPoint =
+            discoveredMaterialPosition.toCraftlessPoint()
+                ?: return blockedAndWrite("insufficient-public-evidence:world.block.query.position")
+        navigateTo(position = discoveredMaterialPosition, radius = 2.0)
+            ?.let { blocker -> return blockedAndWrite(blocker) }
         val player =
             invokeGenerated("player.query")
         val playerPosition =
             player.responseObject()?.playerPosition()
-                ?: return blocked("insufficient-public-evidence:player.query.position")
-                    .also { result -> artifactsDir?.let { writeArtifacts(it, result) } }
+                ?: return blockedAndWrite("insufficient-public-evidence:player.query.position")
         val look = playerPosition.lookAt(materialPoint.centered())
         invokeGenerated(
             action = "player.look",
@@ -164,8 +185,7 @@ class PublicAgentGameplayRunner(
         )
         val finalInventory = invokeGenerated("inventory.query")
         if (finalInventory.responseObject()?.hasLogItem() != true) {
-            return blocked("insufficient-public-evidence:inventory.query.log")
-                .also { result -> artifactsDir?.let { writeArtifacts(it, result) } }
+            return blockedAndWrite("insufficient-public-evidence:inventory.query.log")
         }
         invokeGenerated("entity.query")
         val result =
@@ -403,6 +423,21 @@ private data class CraftlessPoint(
     val z: Double,
 ) {
     fun centered(): CraftlessPoint = copy(x = x + 0.5, y = y + 0.5, z = z + 0.5)
+
+    fun toJsonObject(): JsonObject =
+        buildJsonObject {
+            put("x", JsonPrimitive(x))
+            put("y", JsonPrimitive(y))
+            put("z", JsonPrimitive(z))
+        }
+
+    fun explorationWaypoints(): List<CraftlessPoint> =
+        listOf(
+            copy(x = x + 48.0),
+            copy(z = z + 48.0),
+            copy(x = x - 48.0),
+            copy(z = z - 48.0),
+        )
 
     fun lookAt(target: CraftlessPoint): CraftlessLook {
         val dx = target.x - x

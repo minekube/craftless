@@ -59,6 +59,8 @@ Legend:
   product API.
 - [x] Plan exists for the public-agent final gameplay path:
   `docs/superpowers/plans/2026-06-26-11-public-agent-gameplay-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-26-15-public-agent-material-exploration-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-26-15-public-agent-material-exploration-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -313,9 +315,29 @@ Verification:
   does not produce public inventory evidence.
 - [x] Live no-hold evidence proves either collected-log inventory state or an
   explicit blocker that identifies the next generic block-breaking/pickup
-  primitive needed. Current evidence blocked earlier at
-  `insufficient-public-evidence:world.block.query.log`, showing the runner now
-  preserves action evidence when local material search is insufficient.
+  primitive needed. Current evidence found log blocks through
+  `world.block.query`, planned/followed navigation, invoked `player.look`,
+  `player.raycast`, and `world.block.break`, then blocked at
+  `insufficient-public-evidence:inventory.query.log` because public inventory
+  state did not prove collection.
+
+Verification:
+
+- `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
+- `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
+
+## Phase 15: Public-Agent Material Exploration
+
+- [x] Spec and plan exist for bounded public-agent material exploration without
+  adding `find.tree`, `mine.log`, `collect.wood`, `craft.sword`, `kill.cow`, or
+  `task.survival.*`.
+- [x] Public-agent runner retries material search by composing generated
+  `player.query`, `navigation.plan`, `navigation.follow`, and
+  `world.block.query` actions when the first local material query is empty.
+- [~] Focused test evidence covers the empty-local-query exploration path. The
+  latest live no-hold run did not need exploration because local
+  `world.block.query` returned log targets; it continued to collection and
+  blocked at `insufficient-public-evidence:inventory.query.log`.
 
 Verification:
 

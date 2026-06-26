@@ -126,6 +126,7 @@ Follow them in order:
 12. runtime block resource query.
 13. public-agent material navigation.
 14. public-agent material collection.
+15. public-agent material exploration.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -147,6 +148,10 @@ API as an external agent policy. It still must not add `find.tree`,
 Phase 14 composes public navigation with look/raycast/block-break/inventory
 verification. It must treat accepted break actions as insufficient until
 public state proves inventory or block changes.
+Phase 15 adds bounded generic exploration when the local material query is
+empty. It must use generated player, navigation, and block-query actions only;
+it must not introduce a survival macro or product actions such as `find.tree`,
+`mine.log`, `collect.wood`, `craft.sword`, or `kill.cow`.
 
 ## Acceptance Scenarios Are Not Product APIs
 

@@ -99,8 +99,7 @@ class PublicAgentGameplayRunnerTest {
             val server =
                 RecordingCraftlessHttpServer(
                     actions = completeActionCatalog(),
-                    blockQueryResponse =
-                        """{"action":"world.block.query","status":"ACCEPTED","data":{"count":0,"blocks":[]}}""",
+                    blockQueryResponses = List(5) { EMPTY_BLOCK_QUERY_RESPONSE },
                 )
             val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
 
@@ -108,13 +107,49 @@ class PublicAgentGameplayRunnerTest {
 
             assertEquals(PublicAgentGameplayState.BLOCKED, result.state)
             assertEquals("insufficient-public-evidence:world.block.query.log", result.blocker)
-            assertTrue(result.actionLog.map { it.action }.contains("world.block.query"))
-            assertFalse(result.actionLog.map { it.action }.contains("navigation.plan"))
-            assertFalse(server.requests.any { it.contains("task.survival") })
+            assertTrue(result.actionLog.map { it.action }.count { it == "world.block.query" } > 1)
+            assertTrue(result.actionLog.map { it.action }.contains("navigation.plan"))
+            assertFalse(server.requestBodies.anyScenarioShortcut())
             val gameplay = Files.readString(artifactsDir.resolve("public-agent-gameplay-results.jsonl"))
             assertTrue(gameplay.contains("public-agent-action"))
             assertTrue(gameplay.contains("world.block.query"))
             assertTrue(gameplay.contains("public-agent-blocked"))
+        }
+
+    @Test
+    fun `runner explores with generic navigation when local material query is empty`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog(),
+                    blockQueryResponses = listOf(EMPTY_BLOCK_QUERY_RESPONSE, logBlockQueryResponse),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertEquals(
+                listOf(
+                    "inventory.query",
+                    "world.block.query",
+                    "player.query",
+                    "navigation.plan",
+                    "navigation.follow",
+                    "world.block.query",
+                    "navigation.plan",
+                    "navigation.follow",
+                    "player.query",
+                    "player.look",
+                    "player.raycast",
+                    "world.block.break",
+                    "inventory.query",
+                    "entity.query",
+                ),
+                result.actionLog.map { it.action },
+            )
+            assertTrue(server.requestBodies.count { it.contains(""""category":"log"""") } >= 2)
+            assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 
     @Test
@@ -197,24 +232,7 @@ class PublicAgentGameplayRunnerTest {
 
 private class RecordingCraftlessHttpServer(
     private val actions: List<String>,
-    private val blockQueryResponse: String =
-        """
-        {
-          "action": "world.block.query",
-          "status": "ACCEPTED",
-          "data": {
-            "count": 1,
-            "blocks": [
-              {
-                "handle": "world.block:12:65:-4",
-                "category": "log",
-                "distance": 5.0,
-                "position": {"x": 12, "y": 65, "z": -4}
-              }
-            ]
-          }
-        }
-        """.trimIndent(),
+    private val blockQueryResponses: List<String> = listOf(logBlockQueryResponse),
     private val finalInventoryResponse: String =
         """
         {
@@ -232,6 +250,7 @@ private class RecordingCraftlessHttpServer(
     val requests = mutableListOf<String>()
     val requestBodies = mutableListOf<String>()
     private var inventoryQueryCount = 0
+    private var blockQueryCount = 0
     val http =
         HttpClient(
             MockEngine { request ->
@@ -258,7 +277,7 @@ private class RecordingCraftlessHttpServer(
         val body = requestBodies.lastOrNull().orEmpty()
         return when {
             body.contains("inventory.query") -> inventoryQueryResponse()
-            body.contains("world.block.query") -> blockQueryResponse
+            body.contains("world.block.query") -> blockQueryResponse()
             body.contains("navigation.plan") ->
                 """{"action":"navigation.plan","status":"ACCEPTED","data":{"plan-id":"navigation.plan.public-agent.0001","state":"pending"}}"""
             body.contains("navigation.follow") ->
@@ -285,6 +304,11 @@ private class RecordingCraftlessHttpServer(
         }
     }
 
+    private fun blockQueryResponse(): String {
+        blockQueryCount += 1
+        return blockQueryResponses.getOrElse(blockQueryCount - 1) { blockQueryResponses.last() }
+    }
+
     private fun actionsJson(): String =
         actions.joinToString(prefix = "[", postfix = "]") { action ->
             """{"id":"$action","schemaVersion":"1","args":{},"result":{"properties":{},"required":[]},"source":"runtime-probe","availability":"available"}"""
@@ -297,6 +321,43 @@ private class RecordingCraftlessHttpServer(
             else -> ""
         }
 }
+
+private const val EMPTY_BLOCK_QUERY_RESPONSE =
+    """{"action":"world.block.query","status":"ACCEPTED","data":{"count":0,"blocks":[]}}"""
+
+private val logBlockQueryResponse =
+    """
+    {
+      "action": "world.block.query",
+      "status": "ACCEPTED",
+      "data": {
+        "count": 1,
+        "blocks": [
+          {
+            "handle": "world.block:12:65:-4",
+            "category": "log",
+            "distance": 5.0,
+            "position": {"x": 12, "y": 65, "z": -4}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private fun List<String>.anyScenarioShortcut(): Boolean =
+    any { body ->
+        scenarioShortcutNames.any(body::contains)
+    }
+
+private val scenarioShortcutNames =
+    listOf(
+        "task.survival",
+        "find.tree",
+        "mine.log",
+        "collect.wood",
+        "craft.sword",
+        "kill.cow",
+    )
 
 private fun completeActionCatalog(): List<String> =
     listOf(
