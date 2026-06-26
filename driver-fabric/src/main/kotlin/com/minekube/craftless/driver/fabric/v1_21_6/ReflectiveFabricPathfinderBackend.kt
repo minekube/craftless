@@ -74,16 +74,17 @@ internal class ReflectiveFabricPathfinderBackend(
             record(status, "navigation.follow")
             return status
         }
-        val completed = waitForPathCompletion(pathingActive)
+        val completion = waitForPathCompletion(pathingActive)
         val status =
             NavigationTaskStatus(
                 id = plan.taskId,
                 state =
-                    when (completed) {
-                        false -> NavigationTaskState.FAILED
-                        true -> NavigationTaskState.SUCCEEDED
+                    if (completion.completed) {
+                        NavigationTaskState.SUCCEEDED
+                    } else {
+                        NavigationTaskState.FAILED
                     },
-                message = if (completed == false) "navigation-timeout" else "following",
+                message = completion.message,
             )
         record(status, "navigation.follow")
         return status
@@ -159,14 +160,29 @@ internal class ReflectiveFabricPathfinderBackend(
             gateway.queryOnClient { query() }
         }
 
-    private fun waitForPathCompletion(pathingActive: () -> Boolean): Boolean {
-        waitUntil(timeoutMillis = PATHING_START_TIMEOUT_MS) {
-            queryOnClient { pathingActive() }
+    private fun waitForPathCompletion(pathingActive: () -> Boolean): PathCompletion {
+        val started =
+            waitUntil(timeoutMillis = PATHING_START_TIMEOUT_MS) {
+                queryOnClient { pathingActive() }
+            }
+        if (!started) {
+            return PathCompletion(completed = false, message = "navigation-did-not-start")
         }
-        return waitUntil(timeoutMillis = PATHING_COMPLETION_TIMEOUT_MS) {
-            queryOnClient { !pathingActive() }
+        val completed =
+            waitUntil(timeoutMillis = PATHING_COMPLETION_TIMEOUT_MS) {
+                queryOnClient { !pathingActive() }
+            }
+        return if (completed) {
+            PathCompletion(completed = true, message = "following")
+        } else {
+            PathCompletion(completed = false, message = "navigation-timeout")
         }
     }
+
+    private data class PathCompletion(
+        val completed: Boolean,
+        val message: String,
+    )
 
     private fun waitUntil(
         timeoutMillis: Long,

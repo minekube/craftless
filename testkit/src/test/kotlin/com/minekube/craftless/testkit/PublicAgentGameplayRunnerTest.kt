@@ -49,9 +49,8 @@ class PublicAgentGameplayRunnerTest {
                     "POST /clients/fabric-smoke:run",
                     "POST /clients/fabric-smoke:run",
                     "POST /clients/fabric-smoke:run",
-                    "POST /clients/fabric-smoke:run",
                 ),
-                server.requests.take(19),
+                server.requests.take(18),
             )
             assertEquals(
                 listOf(
@@ -69,7 +68,6 @@ class PublicAgentGameplayRunnerTest {
                     "inventory.query",
                     "inventory.equip",
                     "inventory.query",
-                    "entity.query",
                 ),
                 result.actionLog.map { it.action },
             )
@@ -153,6 +151,59 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner still uses public drop perception when block target pickup navigation fails`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog(),
+                    navigationFollowResponses =
+                        listOf(
+                            """{"action":"navigation.follow","status":"ACCEPTED","data":{"task-id":"task:navigation:public-agent","state":"succeeded"}}""",
+                            """
+                            {
+                              "action": "navigation.follow",
+                              "status": "FAILED",
+                              "message": "navigation-did-not-start",
+                              "data": {
+                                "task-id": "task:navigation:public-agent",
+                                "state": "failed"
+                              }
+                            }
+                            """.trimIndent(),
+                            """{"action":"navigation.follow","status":"ACCEPTED","data":{"task-id":"task:navigation:public-agent","state":"succeeded"}}""",
+                        ),
+                    playerQueryResponse =
+                        """{"action":"player.query","status":"ACCEPTED","data":{"position":{"x":80.0,"y":65.0,"z":-80.0}}}""",
+                    entityQueryResponse =
+                        """
+                        {
+                          "action": "entity.query",
+                          "status": "ACCEPTED",
+                          "data": {
+                            "entities": [
+                              {
+                                "handle": "entity.handle-42",
+                                "label": "Oak Log",
+                                "category": "object",
+                                "distance": 3.0,
+                                "position": {"x": 14.5, "y": 64.0, "z": -6.5}
+                              }
+                            ]
+                          }
+                        }
+                        """.trimIndent(),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(server.requestBodies.any { it.contains(""""x":14.5""") })
+            assertTrue(server.requestBodies.any { it.contains(""""z":-6.5""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner retries bounded public pickup evidence before blocking`() =
         runBlocking {
             val server =
@@ -195,6 +246,7 @@ class PublicAgentGameplayRunnerTest {
                     entityQueryResponses =
                         listOf(
                             EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
                             aliveCowEntityQueryResponse,
                             deadCowEntityQueryResponse,
                         ),
@@ -250,6 +302,115 @@ class PublicAgentGameplayRunnerTest {
             assertTrue(result.actionLog.map { it.action }.contains("entity.attack"))
             assertTrue(result.actionLog.map { it.action }.count { it == "entity.query" } >= 2)
             assertTrue(result.actionLog.map { it.action }.count { it == "inventory.query" } >= 3)
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner blocks when discovered entity attack has no public attack target`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
+                    entityQueryResponse = EMPTY_ENTITY_QUERY_RESPONSE,
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.BLOCKED, result.state)
+            assertEquals("insufficient-public-evidence:entity.query.attack-target", result.blocker)
+            assertFalse(result.actionLog.map { it.action }.contains("entity.attack"))
+            assertTrue(result.actionLog.map { it.action }.count { it == "entity.query" } >= 2)
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner explores with generated navigation to find public attack target`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            deadCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(result.actionLog.map { it.action }.contains("entity.attack"))
+            assertTrue(result.actionLog.map { it.action }.count { it == "entity.query" } >= 4)
+            assertTrue(result.actionLog.map { it.action }.count { it == "navigation.plan" } >= 3)
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("entity.attack") &&
+                        it.contains(""""target":{"handle":"entity.handle-42"}""")
+                },
+            )
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner prefers vertically reachable public attack targets`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            lowerAquaticAndReachableSheepEntityQueryResponse,
+                            reachableSheepEntityQueryResponse,
+                            deadSheepEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("entity.attack") &&
+                        it.contains(""""target":{"handle":"entity.handle-2"}""")
+                },
+            )
+            assertFalse(server.requestBodies.any { it.contains(""""target":{"handle":"entity.handle-6"}""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner revalidates public attack target after navigation before attacking`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveFarSheepEntityQueryResponse,
+                            reachableSheepEntityQueryResponse,
+                            deadSheepEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(result.actionLog.map { it.action }.count { it == "entity.query" } >= 4)
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("entity.attack") &&
+                        it.contains(""""target":{"handle":"entity.handle-2"}""")
+                },
+            )
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 
@@ -625,7 +786,6 @@ class PublicAgentGameplayRunnerTest {
                     "inventory.query",
                     "inventory.equip",
                     "inventory.query",
-                    "entity.query",
                 ),
                 result.actionLog.map { it.action },
             )
@@ -655,6 +815,68 @@ class PublicAgentGameplayRunnerTest {
             assertTrue(gameplay.contains("navigation.follow"))
             assertTrue(gameplay.contains("action-request-failed:navigation.follow"))
             assertFalse(gameplay.contains("task.survival"))
+        }
+
+    @Test
+    fun `runner blocks when generated navigation follow does not prove success`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog(),
+                    navigationFollowResponse =
+                        """
+                        {
+                          "action": "navigation.follow",
+                          "status": "FAILED",
+                          "message": "navigation-did-not-start",
+                          "data": {
+                            "task-id": "task:navigation:public-agent",
+                            "state": "failed"
+                          }
+                        }
+                        """.trimIndent(),
+                    playerQueryResponse =
+                        """{"action":"player.query","status":"ACCEPTED","data":{"position":{"x":80.0,"y":65.0,"z":-80.0}}}""",
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.BLOCKED, result.state)
+            assertEquals("insufficient-public-evidence:navigation.follow.succeeded", result.blocker)
+            assertTrue(result.actionLog.map { it.action }.contains("navigation.follow"))
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner accepts failed generated navigation when public player position is already within goal radius`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog(),
+                    navigationFollowResponses =
+                        listOf(
+                            """{"action":"navigation.follow","status":"ACCEPTED","data":{"task-id":"task:navigation:public-agent","state":"succeeded"}}""",
+                            """
+                            {
+                              "action": "navigation.follow",
+                              "status": "FAILED",
+                              "message": "navigation-did-not-start",
+                              "data": {
+                                "task-id": "task:navigation:public-agent",
+                                "state": "failed"
+                              }
+                            }
+                            """.trimIndent(),
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(result.actionLog.map { it.action }.contains("player.query"))
+            assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 
     @Test
@@ -746,6 +968,11 @@ private class RecordingCraftlessHttpServer(
     private val blockInteractResponse: String =
         """{"action":"world.block.interact","status":"ACCEPTED","data":{"accepted":true,"changed":true}}""",
     private val blockInteractResponses: List<String>? = null,
+    private val navigationFollowResponse: String =
+        """{"action":"navigation.follow","status":"ACCEPTED","data":{"task-id":"task:navigation:public-agent","state":"succeeded"}}""",
+    private val navigationFollowResponses: List<String>? = null,
+    private val playerQueryResponse: String =
+        """{"action":"player.query","status":"ACCEPTED","data":{"position":{"x":11.0,"y":65.0,"z":-3.0}}}""",
     private val entityQueryResponse: String = """{"action":"entity.query","status":"ACCEPTED","data":{"entities":[]}}""",
     private val entityQueryResponses: List<String>? = null,
     private val finalInventoryResponse: String =
@@ -770,6 +997,7 @@ private class RecordingCraftlessHttpServer(
     private var blockQueryCount = 0
     private var entityQueryCount = 0
     private var blockInteractCount = 0
+    private var navigationFollowCount = 0
     val http =
         HttpClient(
             MockEngine { request ->
@@ -802,12 +1030,10 @@ private class RecordingCraftlessHttpServer(
         return when {
             body.contains("inventory.query") -> inventoryQueryResponse()
             body.contains("world.block.query") -> blockQueryResponse()
+            body.contains("navigation.follow") -> navigationFollowResponse()
             body.contains("navigation.plan") ->
                 """{"action":"navigation.plan","status":"ACCEPTED","data":{"plan-id":"navigation.plan.public-agent.0001","state":"pending"}}"""
-            body.contains("navigation.follow") ->
-                """{"action":"navigation.follow","status":"ACCEPTED","data":{"task-id":"task:navigation:public-agent","state":"running"}}"""
-            body.contains("player.query") ->
-                """{"action":"player.query","status":"ACCEPTED","data":{"position":{"x":11.0,"y":65.0,"z":-3.0}}}"""
+            body.contains("player.query") -> playerQueryResponse
             body.contains("player.look") ->
                 """{"action":"player.look","status":"ACCEPTED"}"""
             body.contains("player.raycast") ->
@@ -849,6 +1075,12 @@ private class RecordingCraftlessHttpServer(
         blockInteractCount += 1
         return blockInteractResponses?.getOrElse(blockInteractCount - 1) { blockInteractResponses.last() }
             ?: blockInteractResponse
+    }
+
+    private fun navigationFollowResponse(): String {
+        navigationFollowCount += 1
+        return navigationFollowResponses?.getOrElse(navigationFollowCount - 1) { navigationFollowResponses.last() }
+            ?: navigationFollowResponse
     }
 
     private fun actionsJson(): String =
@@ -928,6 +1160,97 @@ private val deadCowEntityQueryResponse =
             "alive": false,
             "distance": 3.0,
             "position": {"x": 14.5, "y": 64.0, "z": -6.5}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val lowerAquaticAndReachableSheepEntityQueryResponse =
+    """
+    {
+      "action": "entity.query",
+      "status": "ACCEPTED",
+      "data": {
+        "origin": {"x": 5.0, "y": 63.0, "z": -266.0},
+        "entities": [
+          {
+            "handle": "entity.handle-6",
+            "label": "Squid",
+            "category": "passive",
+            "alive": true,
+            "distance": 12.0,
+            "position": {"x": 7.5, "y": 53.5, "z": -259.2}
+          },
+          {
+            "handle": "entity.handle-2",
+            "label": "Sheep",
+            "category": "passive",
+            "alive": true,
+            "distance": 15.0,
+            "position": {"x": 20.0, "y": 67.0, "z": -269.0}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val aliveFarSheepEntityQueryResponse =
+    """
+    {
+      "action": "entity.query",
+      "status": "ACCEPTED",
+      "data": {
+        "origin": {"x": 5.0, "y": 63.0, "z": -266.0},
+        "entities": [
+          {
+            "handle": "entity.handle-2",
+            "label": "Sheep",
+            "category": "passive",
+            "alive": true,
+            "distance": 15.0,
+            "position": {"x": 20.0, "y": 67.0, "z": -269.0}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val reachableSheepEntityQueryResponse =
+    """
+    {
+      "action": "entity.query",
+      "status": "ACCEPTED",
+      "data": {
+        "origin": {"x": 19.0, "y": 67.0, "z": -269.0},
+        "entities": [
+          {
+            "handle": "entity.handle-2",
+            "label": "Sheep",
+            "category": "passive",
+            "alive": true,
+            "distance": 2.0,
+            "position": {"x": 20.0, "y": 67.0, "z": -269.0}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val deadSheepEntityQueryResponse =
+    """
+    {
+      "action": "entity.query",
+      "status": "ACCEPTED",
+      "data": {
+        "entities": [
+          {
+            "handle": "entity.handle-2",
+            "label": "Sheep",
+            "category": "passive",
+            "alive": false,
+            "distance": 2.0,
+            "position": {"x": 20.0, "y": 67.0, "z": -269.0}
           }
         ]
       }

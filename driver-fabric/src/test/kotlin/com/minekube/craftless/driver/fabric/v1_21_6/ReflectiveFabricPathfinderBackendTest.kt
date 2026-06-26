@@ -72,6 +72,26 @@ class ReflectiveFabricPathfinderBackendTest {
     }
 
     @Test
+    fun `reflection backend fails follow when pathing never starts`() {
+        val backend =
+            ReflectiveFabricPathfinderBackend(
+                probe = RecordingPathfinderProbe(pathingActive = { false }),
+                nextPlanId = { "navigation.plan.reflective.0001" },
+            )
+        val goal =
+            NavigationGoal(
+                kind = "block",
+                position = mapOf("x" to 10.0, "y" to 65.0, "z" to -4.0),
+            )
+
+        val plan = backend.plan(goal)
+        val follow = backend.follow(plan.id)
+
+        assertEquals(NavigationTaskState.FAILED, follow.state)
+        assertEquals("navigation-did-not-start", follow.message)
+    }
+
+    @Test
     fun `reflection backend reports unavailable without leaking private class names`() {
         val backend = ReflectiveFabricPathfinderBackend(probe = RecordingPathfinderProbe(provider = null))
         val goal =
