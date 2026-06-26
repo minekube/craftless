@@ -172,6 +172,32 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `server start accepts host for container port publishing`() {
+        val output = StringBuilder()
+        var versionStatus = 0
+
+        val exit =
+            CraftlessCli.run(
+                listOf("server", "start", "--once", "--host", "0.0.0.0"),
+                stdout = { output.appendLine(it) },
+                afterStart = { metadata ->
+                    val port = metadata.url.substringAfterLast(":").toInt()
+                    kotlinx.coroutines.runBlocking {
+                        HttpClient(CIO).use { http ->
+                            versionStatus = http.get("http://127.0.0.1:$port/version").status.value
+                        }
+                    }
+                },
+            )
+
+        assertEquals(0, exit)
+        assertEquals(200, versionStatus)
+
+        val json = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        assertTrue(json["url"]?.jsonPrimitive?.content?.startsWith("http://0.0.0.0:") == true)
+    }
+
+    @Test
     fun `cache prepare creates cache handles in workspace`() {
         val output = StringBuilder()
         val workspace = Files.createTempDirectory("craftless-cli-cache")

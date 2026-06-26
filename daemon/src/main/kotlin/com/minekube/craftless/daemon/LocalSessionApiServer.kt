@@ -477,6 +477,7 @@ class LocalSessionApiServer private constructor(
 
     companion object {
         fun inMemory(
+            host: String = "127.0.0.1",
             port: Int = 0,
             driverFactory: DriverSessionFactory = DriverSessionFactory.unavailable(),
             workspaceRoot: Path? = null,
@@ -489,7 +490,7 @@ class LocalSessionApiServer private constructor(
                         fileStore = workspaceRoot?.let(::InstanceFileStore),
                     ),
                 cachePreparationService = workspaceRoot?.let { CachePreparationService(it, cacheMetadataFetcher) },
-                host = "127.0.0.1",
+                host = host,
                 requestedPort = port,
             )
     }

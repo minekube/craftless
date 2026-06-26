@@ -6,5 +6,6 @@ if [ "$#" -gt 0 ]; then
 fi
 
 exec /opt/craftless/bin/craftless server start \
+  --host "${CRAFTLESS_HOST:-0.0.0.0}" \
   --port "${CRAFTLESS_PORT:-8080}" \
   --workspace "${CRAFTLESS_WORKSPACE:-/var/lib/craftless}"

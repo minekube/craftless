@@ -786,6 +786,7 @@ object CraftlessCli {
         afterStart: (ApiServerMetadata) -> Unit,
     ): Int {
         val once = args.contains("--once")
+        val host = args.optionValue("--host") ?: "127.0.0.1"
         val port = args.optionValue("--port")?.toIntOrNull() ?: 0
         if (args.optionValue("--port") != null && port < 0) {
             stderr("error: --port must be a non-negative integer")
@@ -793,7 +794,7 @@ object CraftlessCli {
         }
         val workspaceRoot = args.optionValue("--workspace")?.let(Path::of)
 
-        LocalSessionApiServer.inMemory(port = port, workspaceRoot = workspaceRoot).use { server ->
+        LocalSessionApiServer.inMemory(host = host, port = port, workspaceRoot = workspaceRoot).use { server ->
             server.start()
             val metadata =
                 ApiServerMetadata(
