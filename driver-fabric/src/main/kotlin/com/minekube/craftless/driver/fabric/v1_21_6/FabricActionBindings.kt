@@ -29,6 +29,8 @@ import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.ClientPlayerInteractionManager
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.item.ItemStack
+import net.minecraft.registry.tag.BlockTags
+import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
 import net.minecraft.util.PlayerInput
 import net.minecraft.util.hit.BlockHitResult
@@ -318,27 +320,54 @@ internal object FabricWorldBlockInteractActionBinding : FabricActionBinding {
                             false,
                         )
                     val adjacentPosition = requestedTarget.position.offset(requestedSide)
+                    val targetState = world.getBlockState(requestedTarget.position)
                     val before = world.getBlockState(adjacentPosition)
-                    val result = interactionManager.interactBlock(player, Hand.MAIN_HAND, target)
-                    if (result.isAccepted) {
+                    val blockResult = interactionManager.interactBlock(player, Hand.MAIN_HAND, target)
+                    val itemResult =
+                        if (blockResult.isAccepted) {
+                            ActionResult.PASS
+                        } else {
+                            interactionManager.interactItem(player, Hand.MAIN_HAND)
+                        }
+                    val accepted = craftlessBlockInteractAccepted(blockResult, itemResult)
+                    if (accepted) {
                         player.swingHand(Hand.MAIN_HAND)
                     }
                     val after = world.getBlockState(adjacentPosition)
                     return@queryOnClient target.toCraftlessBlockInteractData(
-                        accepted = result.isAccepted,
+                        accepted = accepted,
                         changed = before != after,
                         adjacentPosition = adjacentPosition,
+                        blockAccepted = blockResult.isAccepted,
+                        itemAccepted = itemResult.isAccepted,
+                        heldItem = player.mainHandStack,
+                        targetState = targetState,
+                        adjacentState = before,
                     )
                 }
                 val camera = requireNotNull(cameraEntity ?: player) { "client is not connected to a server" }
                 val target =
                     camera.raycast(maxDistance, 1.0f, includeFluids) as? BlockHitResult
                         ?: error("no block target")
-                val result = interactionManager.interactBlock(player, Hand.MAIN_HAND, target)
-                if (result.isAccepted) {
+                val targetState = world.getBlockState(target.blockPos)
+                val blockResult = interactionManager.interactBlock(player, Hand.MAIN_HAND, target)
+                val itemResult =
+                    if (blockResult.isAccepted) {
+                        ActionResult.PASS
+                    } else {
+                        interactionManager.interactItem(player, Hand.MAIN_HAND)
+                    }
+                val accepted = craftlessBlockInteractAccepted(blockResult, itemResult)
+                if (accepted) {
                     player.swingHand(Hand.MAIN_HAND)
                 }
-                target.toCraftlessBlockInteractData(result.isAccepted)
+                target.toCraftlessBlockInteractData(
+                    accepted = accepted,
+                    blockAccepted = blockResult.isAccepted,
+                    itemAccepted = itemResult.isAccepted,
+                    heldItem = player.mainHandStack,
+                    targetState = targetState,
+                )
             }
         return DriverActionResult(
             action = invocation.action,
@@ -373,6 +402,11 @@ internal fun craftlessBlockFaceHitPosition(
         position.y + 0.5 + side.offsetY * 0.5,
         position.z + 0.5 + side.offsetZ * 0.5,
     )
+
+internal fun craftlessBlockInteractAccepted(
+    blockResult: ActionResult,
+    itemResult: ActionResult,
+): Boolean = blockResult.isAccepted || itemResult.isAccepted
 
 internal object FabricWorldTimeQueryActionBinding : FabricActionBinding {
     override val descriptor: DriverActionDescriptor = fabricWorldTimeQueryDescriptor()
@@ -849,6 +883,11 @@ private fun BlockHitResult.toCraftlessBlockInteractData(
     accepted: Boolean,
     changed: Boolean? = null,
     adjacentPosition: BlockPos? = null,
+    blockAccepted: Boolean? = null,
+    itemAccepted: Boolean? = null,
+    heldItem: ItemStack? = null,
+    targetState: BlockState? = null,
+    adjacentState: BlockState? = null,
 ): JsonObject =
     buildJsonObject {
         put("hit", true)
@@ -859,11 +898,36 @@ private fun BlockHitResult.toCraftlessBlockInteractData(
         put("side", side.name.lowercase())
         put("position", pos.toCraftlessJson())
         changed?.let { put("changed", it) }
+        blockAccepted?.let { put("block-accepted", it) }
+        itemAccepted?.let { put("item-accepted", it) }
+        heldItem?.let { stack ->
+            put("held-item-empty", stack.isEmpty)
+            if (!stack.isEmpty) {
+                put("held-item-name", stack.name.string)
+                put("held-item-count", stack.count)
+            }
+        }
+        targetState?.let { state ->
+            put("target-category", state.toCraftlessBlockCategory())
+            put("target-replaceable", state.isReplaceable)
+        }
         adjacentPosition?.let { adjacent ->
             put("adjacent-block", adjacent.toShortString())
             put("adjacent-handle", adjacent.toCraftlessBlockHandle())
             put("adjacent-position", adjacent.toCraftlessJson())
         }
+        adjacentState?.let { state ->
+            put("adjacent-category", state.toCraftlessBlockCategory())
+            put("adjacent-replaceable", state.isReplaceable)
+        }
+    }
+
+private fun BlockState.toCraftlessBlockCategory(): String =
+    when {
+        isAir -> "air"
+        isIn(BlockTags.LOGS) -> "log"
+        !fluidState.isEmpty -> "fluid"
+        else -> "block"
     }
 
 private fun HitResult.toCraftlessRaycastData(): JsonObject =

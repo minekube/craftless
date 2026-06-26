@@ -20,6 +20,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import net.minecraft.util.ActionResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import java.nio.file.Files
@@ -1387,6 +1388,31 @@ class FabricDriverModuleTest {
         assertEquals(10.5, north.x)
         assertEquals(64.5, north.y)
         assertEquals(-4.0, north.z)
+    }
+
+    @Test
+    fun `block query face metadata projects generic adjacent placement affordance`() {
+        val face =
+            CraftlessBlockQueryFace(
+                side = Direction.NORTH,
+                adjacentPosition = BlockPos(10, 64, -5),
+                adjacentCategory = "air",
+                replaceable = true,
+                occupiedByPlayer = false,
+            ).toCraftlessJson()
+
+        assertEquals("north", face["side"]?.jsonPrimitive?.content)
+        assertEquals("world.block:10:64:-5", face["adjacent-handle"]?.jsonPrimitive?.content)
+        assertEquals("air", face["adjacent-category"]?.jsonPrimitive?.content)
+        assertEquals(true, face["replaceable"]?.jsonPrimitive?.boolean)
+        assertEquals(false, face["occupied-by-player"]?.jsonPrimitive?.boolean)
+    }
+
+    @Test
+    fun `block interact acceptance includes item use fallback result`() {
+        assertTrue(craftlessBlockInteractAccepted(ActionResult.PASS, ActionResult.SUCCESS))
+        assertTrue(craftlessBlockInteractAccepted(ActionResult.SUCCESS, ActionResult.PASS))
+        assertFalse(craftlessBlockInteractAccepted(ActionResult.PASS, ActionResult.PASS))
     }
 
     @Test

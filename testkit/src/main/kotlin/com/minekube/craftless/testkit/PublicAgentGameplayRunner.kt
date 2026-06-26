@@ -269,11 +269,32 @@ class PublicAgentGameplayRunner(
                     for (supportTarget in supportTargets.take(PLACEMENT_TARGET_ATTEMPTS)) {
                         navigateTo(position = supportTarget.position, radius = 2.5)
                             ?.let { blocker -> return blockedAndWrite(blocker) }
+                        val refreshedSupportTarget =
+                            invokeGenerated(
+                                action = "world.block.query",
+                                args =
+                                    buildJsonObject {
+                                        put("radius", JsonPrimitive(4.0))
+                                        put("limit", JsonPrimitive(16))
+                                        put("category", JsonPrimitive("block"))
+                                    },
+                            ).responseObject()?.supportBlockTarget() ?: supportTarget
+                        invokeGenerated(
+                            action = "inventory.equip",
+                            args =
+                                buildJsonObject {
+                                    put("slot", JsonPrimitive(logSlot))
+                                },
+                        )
+                        val placementInventory = invokeGenerated("inventory.query")
+                        if (placementInventory.responseObject()?.selectedSlot() != logSlot) {
+                            return blockedAndWrite("insufficient-public-evidence:inventory.equip.selected-slot")
+                        }
                         val placementPlayer = invokeGenerated("player.query")
                         val placementPlayerPosition =
                             placementPlayer.responseObject()?.playerPosition()
                                 ?: return blockedAndWrite("insufficient-public-evidence:player.query.position")
-                        supportTarget.position.toCraftlessPoint()?.let { targetPoint ->
+                        refreshedSupportTarget.position.toCraftlessPoint()?.let { targetPoint ->
                             val placementLook = placementPlayerPosition.lookAt(targetPoint.centered())
                             invokeGenerated(
                                 action = "player.look",
@@ -290,8 +311,8 @@ class PublicAgentGameplayRunner(
                                 args =
                                     buildJsonObject {
                                         put("max-distance", JsonPrimitive(6.0))
-                                        put("side", JsonPrimitive("up"))
-                                        put("target", supportTarget.toJsonObject())
+                                        put("side", JsonPrimitive(refreshedSupportTarget.side))
+                                        put("target", refreshedSupportTarget.toJsonObject())
                                     },
                             )
                         if (interactResult.responseObject()?.dataBoolean("changed") == true) {
@@ -578,11 +599,15 @@ private fun JsonObject.materialBlockTarget(): PublicBlockTarget? {
     return blocks
         .mapNotNull { element ->
             val block = element as? JsonObject ?: return@mapNotNull null
+            if (block["replaceable"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() == true) {
+                return@mapNotNull null
+            }
             val position = block["position"] as? JsonObject ?: return@mapNotNull null
             PublicBlockTarget(
                 handle = block["handle"]?.jsonPrimitive?.contentOrNull,
                 position = position,
                 distance = block.doubleField("distance"),
+                side = block.preferredPlacementSide() ?: DEFAULT_PLACEMENT_SIDE,
             )
         }.minWithOrNull(
             compareBy<PublicBlockTarget> { target ->
@@ -599,11 +624,16 @@ private fun JsonObject.supportBlockTargets(): List<PublicBlockTarget> {
     return blocks
         .mapNotNull { element ->
             val block = element as? JsonObject ?: return@mapNotNull null
+            if (block["replaceable"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() == true) {
+                return@mapNotNull null
+            }
             val position = block["position"] as? JsonObject ?: return@mapNotNull null
+            val placementSide = block.preferredPlacementSide() ?: return@mapNotNull null
             PublicBlockTarget(
                 handle = block["handle"]?.jsonPrimitive?.contentOrNull,
                 position = position,
                 distance = block.doubleField("distance"),
+                side = placementSide,
             )
         }.sortedWith(
             compareBy<PublicBlockTarget> { target ->
@@ -612,6 +642,21 @@ private fun JsonObject.supportBlockTargets(): List<PublicBlockTarget> {
                 target.position.toCraftlessPoint()?.y ?: Double.MAX_VALUE
             },
         )
+}
+
+private fun JsonObject.preferredPlacementSide(): String? {
+    val faces = this["faces"]?.jsonArray ?: return null
+    return faces
+        .mapNotNull { element -> element as? JsonObject }
+        .filter { face ->
+            face["replaceable"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() == true &&
+                face["occupied-by-player"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() != true
+        }.minByOrNull { face ->
+            val side = face["side"]?.jsonPrimitive?.contentOrNull.orEmpty()
+            placementSidePreference.indexOf(side).takeIf { it >= 0 } ?: Int.MAX_VALUE
+        }?.get("side")
+        ?.jsonPrimitive
+        ?.contentOrNull
 }
 
 private fun JsonObject.supportBlockTarget(): PublicBlockTarget? = supportBlockTargets().firstOrNull()
@@ -817,6 +862,7 @@ private data class PublicBlockTarget(
     val handle: String?,
     val position: JsonObject,
     val distance: Double?,
+    val side: String = DEFAULT_PLACEMENT_SIDE,
 ) {
     fun toJsonObject(): JsonObject =
         buildJsonObject {
@@ -834,6 +880,10 @@ private data class PublicEntityTarget(
 private val attackableEntityCategories = setOf("passive", "hostile", "living")
 
 private val combatLootNameParts = listOf("beef", "leather", "pork", "mutton", "chicken", "rotten flesh")
+
+private const val DEFAULT_PLACEMENT_SIDE = "up"
+
+private val placementSidePreference = listOf("north", "south", "west", "east", "up", "down")
 
 fun main() {
     val config = PublicAgentGameplayRunnerConfig.fromEnvironment()

@@ -40,6 +40,8 @@ import net.minecraft.registry.Registry
 import net.minecraft.registry.tag.BlockTags
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
+import net.minecraft.util.math.Direction
 import java.security.MessageDigest
 import kotlin.math.sqrt
 
@@ -373,7 +375,28 @@ class FabricDriverBackend private constructor(
                             val state = currentWorld.getBlockState(pos)
                             val blockCategory = state.toCraftlessBlockCategory()
                             if (state.matchesCraftlessBlockCategory(blockCategory, category)) {
-                                matches += CraftlessBlockQueryMatch(pos, blockCategory, distance)
+                                matches +=
+                                    CraftlessBlockQueryMatch(
+                                        position = pos,
+                                        category = blockCategory,
+                                        distance = distance,
+                                        replaceable = state.isReplaceable,
+                                        faces =
+                                            Direction.entries.map { side ->
+                                                val adjacentPosition = pos.offset(side)
+                                                val adjacentState = currentWorld.getBlockState(adjacentPosition)
+                                                CraftlessBlockQueryFace(
+                                                    side = side,
+                                                    adjacentPosition = adjacentPosition,
+                                                    adjacentCategory = adjacentState.toCraftlessBlockCategory(),
+                                                    replaceable = adjacentState.isAir || adjacentState.isReplaceable,
+                                                    occupiedByPlayer =
+                                                        currentPlayer.boundingBox.intersects(
+                                                            adjacentPosition.toCraftlessBlockBox(),
+                                                        ),
+                                                )
+                                            },
+                                    )
                             }
                         }
                     }
@@ -619,13 +642,40 @@ private data class CraftlessBlockQueryMatch(
     val position: BlockPos,
     val category: String,
     val distance: Double,
+    val replaceable: Boolean,
+    val faces: List<CraftlessBlockQueryFace>,
 ) {
     fun toCraftlessJson(): JsonObject =
         buildJsonObject {
-            put("handle", "world.block:${position.x}:${position.y}:${position.z}")
+            put("handle", position.toCraftlessBlockHandle())
             put("category", category)
+            put("replaceable", replaceable)
             put("distance", distance)
             put("position", position.toCraftlessPositionJson())
+            put(
+                "faces",
+                buildJsonArray {
+                    faces.forEach { face -> add(face.toCraftlessJson()) }
+                },
+            )
+        }
+}
+
+internal data class CraftlessBlockQueryFace(
+    val side: Direction,
+    val adjacentPosition: BlockPos,
+    val adjacentCategory: String,
+    val replaceable: Boolean,
+    val occupiedByPlayer: Boolean,
+) {
+    fun toCraftlessJson(): JsonObject =
+        buildJsonObject {
+            put("side", side.name.lowercase())
+            put("adjacent-handle", adjacentPosition.toCraftlessBlockHandle())
+            put("adjacent-position", adjacentPosition.toCraftlessPositionJson())
+            put("adjacent-category", adjacentCategory)
+            put("replaceable", replaceable)
+            put("occupied-by-player", occupiedByPlayer)
         }
 }
 
@@ -655,6 +705,18 @@ private fun BlockPos.distanceTo(origin: BlockPos): Double {
     val dz = z - origin.z
     return sqrt((dx * dx + dy * dy + dz * dz).toDouble())
 }
+
+private fun BlockPos.toCraftlessBlockHandle(): String = "world.block:$x:$y:$z"
+
+private fun BlockPos.toCraftlessBlockBox(): Box =
+    Box(
+        x.toDouble(),
+        y.toDouble(),
+        z.toDouble(),
+        x + 1.0,
+        y + 1.0,
+        z + 1.0,
+    )
 
 private fun BlockPos.toCraftlessPositionJson(): JsonObject =
     buildJsonObject {

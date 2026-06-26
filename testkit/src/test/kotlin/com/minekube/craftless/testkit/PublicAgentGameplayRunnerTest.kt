@@ -305,7 +305,13 @@ class PublicAgentGameplayRunnerTest {
                         mapOf(
                             "world.block.interact" to listOf("target", "side", "max-distance"),
                         ),
-                    blockQueryResponses = listOf(logBlockQueryResponse, placementSupportBlocksQueryResponse),
+                    blockQueryResponses =
+                        listOf(
+                            logBlockQueryResponse,
+                            placementSupportBlocksQueryResponse,
+                            placementSupportBlockQueryResponse,
+                            placementSupportBlockWithNorthFaceQueryResponse,
+                        ),
                     blockInteractResponses =
                         listOf(
                             """
@@ -342,6 +348,151 @@ class PublicAgentGameplayRunnerTest {
             assertTrue(result.actionLog.map { it.action }.count { it == "player.look" } >= 3)
             assertTrue(server.requestBodies.any { it.contains(""""handle":"world.block:11:64:-4"""") })
             assertTrue(server.requestBodies.any { it.contains(""""handle":"world.block:12:64:-4"""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner uses public block face metadata for targetable block interact`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "world.block.interact",
+                    actionArguments =
+                        mapOf(
+                            "world.block.interact" to listOf("target", "side", "max-distance"),
+                        ),
+                    blockQueryResponses = listOf(logBlockQueryResponse, placementSupportBlockWithNorthFaceQueryResponse),
+                    inventoryResponses =
+                        listOf(
+                            EMPTY_INVENTORY_QUERY_RESPONSE,
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 0),
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("world.block.interact") &&
+                        it.contains(""""handle":"world.block:12:64:-4"""") &&
+                        it.contains(""""side":"north"""")
+                },
+            )
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner re-equips collected material after navigation before targetable block interact`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "world.block.interact",
+                    actionArguments =
+                        mapOf(
+                            "world.block.interact" to listOf("target", "side", "max-distance"),
+                        ),
+                    blockQueryResponses = listOf(logBlockQueryResponse, placementSupportBlockWithNorthFaceQueryResponse),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(result.actionLog.map { it.action }.count { it == "inventory.equip" } >= 2)
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner skips replaceable block query targets for targetable block interact support`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "world.block.interact",
+                    actionArguments =
+                        mapOf(
+                            "world.block.interact" to listOf("target", "side", "max-distance"),
+                        ),
+                    blockQueryResponses = listOf(logBlockQueryResponse, replaceableThenStableSupportBlocksQueryResponse),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertFalse(server.requestBodies.any { it.contains(""""handle":"world.block:13:64:-4"""") })
+            assertTrue(server.requestBodies.any { it.contains(""""handle":"world.block:14:64:-4"""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner refreshes public support block evidence after navigation before targetable block interact`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "world.block.interact",
+                    actionArguments =
+                        mapOf(
+                            "world.block.interact" to listOf("target", "side", "max-distance"),
+                        ),
+                    blockQueryResponses =
+                        listOf(
+                            logBlockQueryResponse,
+                            placementSupportBlockQueryResponse,
+                            refreshedPlacementSupportBlockQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(result.actionLog.map { it.action }.count { it == "world.block.query" } >= 3)
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("world.block.interact") &&
+                        it.contains(""""target":{"handle":"world.block:15:64:-4","position":{"x":15,"y":64,"z":-4}}""")
+                },
+            )
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner skips support blocks without unoccupied replaceable placement faces`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "world.block.interact",
+                    actionArguments =
+                        mapOf(
+                            "world.block.interact" to listOf("target", "side", "max-distance"),
+                        ),
+                    blockQueryResponses =
+                        listOf(
+                            logBlockQueryResponse,
+                            occupiedThenFreePlacementSupportBlocksQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertFalse(
+                server.requestBodies.any {
+                    it.contains("world.block.interact") && it.contains(""""handle":"world.block:16:64:-4"""")
+                },
+            )
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("world.block.interact") &&
+                        it.contains(""""handle":"world.block:17:64:-4"""") &&
+                        it.contains(""""side":"north"""")
+                },
+            )
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 
@@ -725,6 +876,24 @@ private const val EMPTY_BLOCK_QUERY_RESPONSE =
 private const val EMPTY_ENTITY_QUERY_RESPONSE =
     """{"action":"entity.query","status":"ACCEPTED","data":{"entities":[]}}"""
 
+private const val EMPTY_INVENTORY_QUERY_RESPONSE =
+    """{"action":"inventory.query","status":"ACCEPTED","data":{"slots":[]}}"""
+
+private fun logInSlotOneInventoryQueryResponse(selectedSlot: Int): String =
+    """
+    {
+      "action": "inventory.query",
+      "status": "ACCEPTED",
+      "data": {
+        "selected-slot": $selectedSlot,
+        "slots": [
+          {"slot": 0, "empty": false, "count": 1, "item-name": "Oak Sapling"},
+          {"slot": 1, "empty": false, "count": 2, "item-name": "Oak Log"}
+        ]
+      }
+    }
+    """.trimIndent()
+
 private val aliveCowEntityQueryResponse =
     """
     {
@@ -820,8 +989,19 @@ private val placementSupportBlockQueryResponse =
           {
             "handle": "world.block:11:64:-4",
             "category": "block",
+            "replaceable": false,
             "distance": 2.0,
-            "position": {"x": 11, "y": 64, "z": -4}
+            "position": {"x": 11, "y": 64, "z": -4},
+            "faces": [
+              {
+                "side": "up",
+                "adjacent-handle": "world.block:11:65:-4",
+                "adjacent-position": {"x": 11, "y": 65, "z": -4},
+                "adjacent-category": "air",
+                "replaceable": true,
+                "occupied-by-player": false
+              }
+            ]
           }
         ]
       }
@@ -839,14 +1019,189 @@ private val placementSupportBlocksQueryResponse =
           {
             "handle": "world.block:11:64:-4",
             "category": "block",
+            "replaceable": false,
             "distance": 2.0,
-            "position": {"x": 11, "y": 64, "z": -4}
+            "position": {"x": 11, "y": 64, "z": -4},
+            "faces": [
+              {
+                "side": "up",
+                "adjacent-handle": "world.block:11:65:-4",
+                "adjacent-position": {"x": 11, "y": 65, "z": -4},
+                "adjacent-category": "air",
+                "replaceable": true,
+                "occupied-by-player": false
+              }
+            ]
           },
           {
             "handle": "world.block:12:64:-4",
             "category": "block",
+            "replaceable": false,
             "distance": 3.0,
-            "position": {"x": 12, "y": 64, "z": -4}
+            "position": {"x": 12, "y": 64, "z": -4},
+            "faces": [
+              {
+                "side": "up",
+                "adjacent-handle": "world.block:12:65:-4",
+                "adjacent-position": {"x": 12, "y": 65, "z": -4},
+                "adjacent-category": "air",
+                "replaceable": true,
+                "occupied-by-player": false
+              }
+            ]
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val placementSupportBlockWithNorthFaceQueryResponse =
+    """
+    {
+      "action": "world.block.query",
+      "status": "ACCEPTED",
+      "data": {
+        "count": 1,
+        "blocks": [
+          {
+            "handle": "world.block:12:64:-4",
+            "category": "block",
+            "distance": 3.0,
+            "position": {"x": 12, "y": 64, "z": -4},
+            "faces": [
+              {
+                "side": "north",
+                "adjacent-handle": "world.block:12:64:-5",
+                "adjacent-position": {"x": 12, "y": 64, "z": -5},
+                "adjacent-category": "air",
+                "replaceable": true,
+                "occupied-by-player": false
+              }
+            ]
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val replaceableThenStableSupportBlocksQueryResponse =
+    """
+    {
+      "action": "world.block.query",
+      "status": "ACCEPTED",
+      "data": {
+        "count": 2,
+        "blocks": [
+          {
+            "handle": "world.block:13:64:-4",
+            "category": "block",
+            "replaceable": true,
+            "distance": 2.0,
+            "position": {"x": 13, "y": 64, "z": -4},
+            "faces": [
+              {
+                "side": "north",
+                "adjacent-handle": "world.block:13:64:-5",
+                "adjacent-position": {"x": 13, "y": 64, "z": -5},
+                "adjacent-category": "air",
+                "replaceable": true,
+                "occupied-by-player": false
+              }
+            ]
+          },
+          {
+            "handle": "world.block:14:64:-4",
+            "category": "block",
+            "replaceable": false,
+            "distance": 3.0,
+            "position": {"x": 14, "y": 64, "z": -4},
+            "faces": [
+              {
+                "side": "north",
+                "adjacent-handle": "world.block:14:64:-5",
+                "adjacent-position": {"x": 14, "y": 64, "z": -5},
+                "adjacent-category": "air",
+                "replaceable": true,
+                "occupied-by-player": false
+              }
+            ]
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val refreshedPlacementSupportBlockQueryResponse =
+    """
+    {
+      "action": "world.block.query",
+      "status": "ACCEPTED",
+      "data": {
+        "count": 1,
+        "blocks": [
+          {
+            "handle": "world.block:15:64:-4",
+            "category": "block",
+            "replaceable": false,
+            "distance": 1.0,
+            "position": {"x": 15, "y": 64, "z": -4},
+            "faces": [
+              {
+                "side": "north",
+                "adjacent-handle": "world.block:15:64:-5",
+                "adjacent-position": {"x": 15, "y": 64, "z": -5},
+                "adjacent-category": "air",
+                "replaceable": true,
+                "occupied-by-player": false
+              }
+            ]
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val occupiedThenFreePlacementSupportBlocksQueryResponse =
+    """
+    {
+      "action": "world.block.query",
+      "status": "ACCEPTED",
+      "data": {
+        "count": 2,
+        "blocks": [
+          {
+            "handle": "world.block:16:64:-4",
+            "category": "block",
+            "replaceable": false,
+            "distance": 1.0,
+            "position": {"x": 16, "y": 64, "z": -4},
+            "faces": [
+              {
+                "side": "up",
+                "adjacent-handle": "world.block:16:65:-4",
+                "adjacent-position": {"x": 16, "y": 65, "z": -4},
+                "adjacent-category": "air",
+                "replaceable": true,
+                "occupied-by-player": true
+              }
+            ]
+          },
+          {
+            "handle": "world.block:17:64:-4",
+            "category": "block",
+            "replaceable": false,
+            "distance": 2.0,
+            "position": {"x": 17, "y": 64, "z": -4},
+            "faces": [
+              {
+                "side": "north",
+                "adjacent-handle": "world.block:17:64:-5",
+                "adjacent-position": {"x": 17, "y": 64, "z": -5},
+                "adjacent-category": "air",
+                "replaceable": true,
+                "occupied-by-player": false
+              }
+            ]
           }
         ]
       }

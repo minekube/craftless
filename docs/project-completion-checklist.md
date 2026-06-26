@@ -529,21 +529,25 @@ Verification:
   side, invokes the Fabric client-thread interaction manager, and returns
   `accepted` plus state-change evidence.
 - [x] Public-agent composition invokes targetable `world.block.interact` only
-  when the generated action descriptor advertises `target`, faces each public
-  support target with `player.query`/`player.look`, retries bounded alternate
-  support targets, and verifies `changed` before treating placement as proven.
+  when the generated action descriptor advertises `target`, refreshes public
+  support block evidence after navigation, requires an unoccupied replaceable
+  placement face, faces the public support target with
+  `player.query`/`player.look`, retries bounded alternate support targets, and
+  verifies `changed` before treating placement as proven.
 - [x] Focused driver and public-agent tests pass.
-- [!] Live gameplay evidence shows the targetable descriptor is generated and
-  the public-agent runner collects/equips logs, faces six public support
-  targets, and invokes `world.block.interact` for each. All attempts currently
-  return `accepted = false` and `changed = false`, so final structure-building
-  proof remains blocked at
-  `insufficient-public-evidence:world.block.interact.changed`.
+- [x] Live no-hold gameplay evidence shows the generated
+  `world.block.interact` path accepts a public block handle plus side and
+  reports `accepted = true` and `changed = true`; the public-agent command
+  reports `publicAgentState=RAN`. This clears the previous
+  `insufficient-public-evidence:world.block.interact.changed` blocker, but it
+  is not final project completion because Robin-confirmed multiplayer gameplay
+  is still outstanding.
 
 Verification:
 
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric runtime discovery exposes block interact only from client state'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
+- `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=120000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 
 ## Phase 25: Distribution Usability
 
