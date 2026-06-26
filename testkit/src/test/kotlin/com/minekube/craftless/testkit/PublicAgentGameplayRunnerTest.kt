@@ -507,6 +507,65 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner crafts useful inventory output through generated recipe actions when available`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + listOf("recipe.query", "recipe.craft"),
+                    inventoryResponses =
+                        listOf(
+                            """{"action":"inventory.query","status":"ACCEPTED","data":{"selected-slot":0,"slots":[]}}""",
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            craftedToolInventoryResponse,
+                        ),
+                    recipeQueryResponse =
+                        """
+                        {
+                          "action": "recipe.query",
+                          "status": "ACCEPTED",
+                          "data": {
+                            "count": 1,
+                            "recipes": [
+                              {
+                                "handle": "recipe.handle:tool-1",
+                                "label": "Useful tool",
+                                "category": "tool",
+                                "craftable": true,
+                                "produces": [
+                                  {"label": "Wooden Sword", "category": "weapon", "count": 1}
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                        """.trimIndent(),
+                    recipeCraftResponse =
+                        """
+                        {
+                          "action": "recipe.craft",
+                          "status": "ACCEPTED",
+                          "data": {
+                            "handle": "recipe.handle:tool-1",
+                            "accepted": true,
+                            "changed": true,
+                            "crafted-count": 1
+                          }
+                        }
+                        """.trimIndent(),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(result.actionLog.map { it.action }.contains("recipe.query"))
+            assertTrue(result.actionLog.map { it.action }.contains("recipe.craft"))
+            assertTrue(server.requestBodies.any { it.contains(""""target":{"handle":"recipe.handle:tool-1"}""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner invokes targetable block interact when generated descriptor supports target`() =
         runBlocking {
             val server =
@@ -1111,6 +1170,10 @@ private class RecordingCraftlessHttpServer(
         """{"action":"player.query","status":"ACCEPTED","data":{"position":{"x":11.0,"y":65.0,"z":-3.0}}}""",
     private val entityQueryResponse: String = """{"action":"entity.query","status":"ACCEPTED","data":{"entities":[]}}""",
     private val entityQueryResponses: List<String>? = null,
+    private val recipeQueryResponse: String =
+        """{"action":"recipe.query","status":"ACCEPTED","data":{"count":0,"recipes":[]}}""",
+    private val recipeCraftResponse: String =
+        """{"action":"recipe.craft","status":"ACCEPTED","data":{"accepted":false,"changed":false,"crafted-count":0}}""",
     private val finalInventoryResponse: String =
         """
         {
@@ -1177,6 +1240,8 @@ private class RecordingCraftlessHttpServer(
             body.contains("world.block.break") -> blockBreakResponse
             body.contains("world.block.interact") -> blockInteractResponse()
             body.contains("inventory.equip") -> """{"action":"inventory.equip","status":"ACCEPTED"}"""
+            body.contains("recipe.query") -> recipeQueryResponse
+            body.contains("recipe.craft") -> recipeCraftResponse
             body.contains("entity.attack") ->
                 """{"action":"entity.attack","status":"ACCEPTED","data":{"hit":true,"handle":"entity.handle-42"}}"""
             body.contains("entity.query") -> entityQueryResponse()
@@ -1257,6 +1322,21 @@ private fun logInSlotOneInventoryQueryResponse(selectedSlot: Int): String =
         "slots": [
           {"slot": 0, "empty": false, "count": 1, "item-name": "Oak Sapling"},
           {"slot": 1, "empty": false, "count": 2, "item-name": "Oak Log"}
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val craftedToolInventoryResponse =
+    """
+    {
+      "action": "inventory.query",
+      "status": "ACCEPTED",
+      "data": {
+        "selected-slot": 1,
+        "slots": [
+          {"slot": 0, "empty": false, "count": 1, "item-name": "Oak Sapling"},
+          {"slot": 1, "empty": false, "count": 1, "item-name": "Wooden Sword"}
         ]
       }
     }

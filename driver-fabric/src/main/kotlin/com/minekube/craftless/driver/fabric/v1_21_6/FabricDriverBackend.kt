@@ -185,6 +185,8 @@ class FabricDriverBackend private constructor(
             "fabric.entity-query" to entityQueryOperationAdapter(),
             "fabric.entity-attack" to entityAttackOperationAdapter(),
             "fabric.world-block-query" to blockQueryOperationAdapter(),
+            "fabric.recipe-query" to recipeQueryOperationAdapter(),
+            "fabric.recipe-craft" to recipeCraftOperationAdapter(),
         )
 
     private fun navigationOperationAdapter(): DriverOperationAdapter =
@@ -235,6 +237,66 @@ class FabricDriverBackend private constructor(
             }
             queryBlocks(invocation)
         }
+
+    private fun recipeQueryOperationAdapter(): DriverOperationAdapter =
+        DriverOperationAdapter { invocation ->
+            if (invocation.operation.id != "recipe.query") {
+                return@DriverOperationAdapter unsupportedGraphOperation(invocation)
+            }
+            queryRecipes(invocation)
+        }
+
+    private fun recipeCraftOperationAdapter(): DriverOperationAdapter =
+        DriverOperationAdapter { invocation ->
+            if (invocation.operation.id != "recipe.craft") {
+                return@DriverOperationAdapter unsupportedGraphOperation(invocation)
+            }
+            craftRecipe(invocation)
+        }
+
+    private fun queryRecipes(invocation: DriverOperationInvocation): DriverActionResult {
+        val limit = invocation.arguments["limit"]?.jsonPrimitive?.intOrNull ?: DEFAULT_RECIPE_QUERY_LIMIT
+        require(limit in RECIPE_QUERY_LIMIT_RANGE) { "recipe query limit must be between 1 and 256" }
+        val clientGateway = gateway
+        if (clientGateway == null || !clientGateway.isConnected()) {
+            return DriverActionResult(
+                action = invocation.operation.id,
+                status = DriverActionStatus.UNSUPPORTED,
+                message = "client-not-connected",
+            )
+        }
+        return DriverActionResult(
+            action = invocation.operation.id,
+            status = DriverActionStatus.UNSUPPORTED,
+            message = "recipe-discovery-unavailable",
+        )
+    }
+
+    private fun craftRecipe(invocation: DriverOperationInvocation): DriverActionResult {
+        val handle =
+            invocation.arguments["target"]?.recipeTargetHandle()
+                ?: return DriverActionResult(
+                    action = invocation.operation.id,
+                    status = DriverActionStatus.FAILED,
+                    message = "missing-target",
+                )
+        require(handle.startsWith("recipe.handle:")) { "recipe target handle must use recipe.handle:<id>" }
+        val count = invocation.arguments["count"]?.jsonPrimitive?.intOrNull ?: 1
+        require(count in RECIPE_CRAFT_COUNT_RANGE) { "recipe craft count must be between 1 and 64" }
+        val clientGateway = gateway
+        if (clientGateway == null || !clientGateway.isConnected()) {
+            return DriverActionResult(
+                action = invocation.operation.id,
+                status = DriverActionStatus.UNSUPPORTED,
+                message = "client-not-connected",
+            )
+        }
+        return DriverActionResult(
+            action = invocation.operation.id,
+            status = DriverActionStatus.UNSUPPORTED,
+            message = "recipe-execution-unavailable",
+        )
+    }
 
     private fun queryEntities(invocation: DriverOperationInvocation): DriverActionResult {
         val radius = invocation.arguments["radius"]?.jsonPrimitive?.doubleOrNull ?: DEFAULT_ENTITY_QUERY_RADIUS
@@ -741,6 +803,13 @@ private fun kotlinx.serialization.json.JsonElement.entityTargetHandle(): String?
         else -> null
     }?.trim()?.takeIf { it.isNotEmpty() }
 
+private fun kotlinx.serialization.json.JsonElement.recipeTargetHandle(): String? =
+    when (this) {
+        is JsonPrimitive -> contentOrNull
+        is JsonObject -> this["handle"]?.jsonPrimitive?.contentOrNull
+        else -> null
+    }?.trim()?.takeIf { it.isNotEmpty() }
+
 private fun String.entityHandleId(): Int? =
     removePrefix("entity.handle-")
         .takeIf { it != this }
@@ -754,6 +823,9 @@ private const val DEFAULT_ENTITY_QUERY_RADIUS = 16.0
 private const val DEFAULT_ENTITY_QUERY_LIMIT = 25
 private val ENTITY_QUERY_LIMIT_RANGE = 1..100
 private const val DEFAULT_ENTITY_ATTACK_DISTANCE = 4.5
+private const val DEFAULT_RECIPE_QUERY_LIMIT = 64
+private val RECIPE_QUERY_LIMIT_RANGE = 1..256
+private val RECIPE_CRAFT_COUNT_RANGE = 1..64
 private const val DEFAULT_BLOCK_QUERY_RADIUS = 16.0
 private const val MAX_BLOCK_QUERY_RADIUS = 32.0
 private const val DEFAULT_BLOCK_QUERY_LIMIT = 64

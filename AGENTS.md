@@ -139,6 +139,7 @@ Follow them in order:
 25. distribution usability.
 26. version-agnostic driver architecture.
 27. Java runtime resolution.
+28. generic recipe and crafting.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -209,6 +210,14 @@ or system providers. `mise` remains mandatory for repository tooling but must
 not be the only product runtime provider. Do not paper over Java-version
 failures with ad hoc environment overrides or by silently using the repository
 build JVM.
+Phase 28 adds generic recipe discovery and crafting through the runtime graph.
+It must expose Craftless-owned recipe handles and generic actions such as
+`recipe.query` and `recipe.craft` only when discovered from the live client
+recipe, inventory, screen, handler, and permission state. It must not add
+`craft.sword`, `craft.planks`, `craft.table`, `make.weapon`, or a survival
+macro. Until a real live recipe probe and executor exist, recipe graph nodes
+must remain unavailable with machine-readable reasons instead of returning
+placeholder recipes or placeholder crafting success.
 
 ## Acceptance Scenarios Are Not Product APIs
 

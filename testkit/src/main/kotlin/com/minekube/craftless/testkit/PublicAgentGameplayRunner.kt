@@ -419,6 +419,40 @@ class PublicAgentGameplayRunner(
                     }
                 }
             }
+            if ("recipe.query" in actionIds && "recipe.craft" in actionIds) {
+                val recipeQuery =
+                    invokeGenerated(
+                        action = "recipe.query",
+                        args =
+                            buildJsonObject {
+                                put("craftable", JsonPrimitive(true))
+                                put("limit", JsonPrimitive(16))
+                            },
+                    )
+                recipeQuery.responseObject()?.usefulCraftableRecipe()?.let { recipe ->
+                    val craftResult =
+                        invokeGenerated(
+                            action = "recipe.craft",
+                            args =
+                                buildJsonObject {
+                                    put(
+                                        "target",
+                                        buildJsonObject {
+                                            put("handle", JsonPrimitive(recipe.handle))
+                                        },
+                                    )
+                                    put("count", JsonPrimitive(1))
+                                },
+                        )
+                    if (craftResult.responseObject()?.dataBoolean("changed") == false) {
+                        return blockedAndWrite("insufficient-public-evidence:recipe.craft.changed")
+                    }
+                    val craftedInventory = invokeGenerated("inventory.query")
+                    if (craftedInventory.responseObject()?.hasUsefulCraftedItem() != true) {
+                        return blockedAndWrite("insufficient-public-evidence:inventory.query.crafted-output")
+                    }
+                }
+            }
             if ("entity.attack" in actionIds) {
                 val attackTarget =
                     exploreAttackTarget()
@@ -847,6 +881,51 @@ private fun JsonObject.hasCombatLootItem(): Boolean {
     }
 }
 
+private fun JsonObject.usefulCraftableRecipe(): PublicRecipeTarget? {
+    val data = this["data"] as? JsonObject ?: return null
+    val recipes = data["recipes"]?.jsonArray ?: return null
+    return recipes.firstNotNullOfOrNull { element ->
+        val recipe = element as? JsonObject ?: return@firstNotNullOfOrNull null
+        val craftable =
+            recipe["craftable"]
+                ?.jsonPrimitive
+                ?.contentOrNull
+                ?.toBooleanStrictOrNull()
+                ?: false
+        if (!craftable) {
+            return@firstNotNullOfOrNull null
+        }
+        val handle =
+            recipe["handle"]
+                ?.jsonPrimitive
+                ?.contentOrNull
+                ?.takeIf { it.startsWith("recipe.handle:") }
+                ?: return@firstNotNullOfOrNull null
+        val category = recipe["category"]?.jsonPrimitive?.contentOrNull.orEmpty()
+        val produces = recipe["produces"]?.jsonArray.orEmpty().mapNotNull { produced -> produced as? JsonObject }
+        if (category !in usefulRecipeCategories && produces.none { it.hasUsefulRecipeOutput() }) {
+            return@firstNotNullOfOrNull null
+        }
+        PublicRecipeTarget(handle = handle)
+    }
+}
+
+private fun JsonObject.hasUsefulRecipeOutput(): Boolean {
+    val category = this["category"]?.jsonPrimitive?.contentOrNull.orEmpty()
+    val label = this["label"]?.jsonPrimitive?.contentOrNull.orEmpty()
+    return category in usefulRecipeCategories ||
+        usefulCraftedItemNameParts.any { part -> label.contains(part, ignoreCase = true) }
+}
+
+private fun JsonObject.hasUsefulCraftedItem(): Boolean {
+    val data = this["data"] as? JsonObject ?: return false
+    val slots = data["slots"]?.jsonArray ?: return false
+    return slots.any { element ->
+        val slot = element as? JsonObject ?: return@any false
+        usefulCraftedItemNameParts.any(slot::containsItemName)
+    }
+}
+
 private fun JsonObject.entityNotAlive(handle: String): Boolean {
     val data = this["data"] as? JsonObject ?: return false
     val entities = data["entities"]?.jsonArray ?: return false
@@ -1015,6 +1094,10 @@ private data class PublicEntityTarget(
     }
 }
 
+private data class PublicRecipeTarget(
+    val handle: String,
+)
+
 private data class FocusedAttackTarget(
     val target: PublicEntityTarget? = null,
     val blocker: String? = null,
@@ -1023,6 +1106,10 @@ private data class FocusedAttackTarget(
 private val attackableEntityCategories = setOf("passive", "hostile", "living")
 
 private val combatLootNameParts = listOf("beef", "leather", "pork", "mutton", "chicken", "rotten flesh")
+
+private val usefulRecipeCategories = setOf("weapon", "tool", "utility")
+
+private val usefulCraftedItemNameParts = listOf("sword", "axe", "pickaxe", "shovel")
 
 private const val DEFAULT_PLACEMENT_SIDE = "up"
 

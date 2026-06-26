@@ -848,7 +848,11 @@ class FabricDriverModuleTest {
     fun `fabric runtime discovery probes client state before advertising unavailable raycast`() {
         val gateway = RecordingFabricClientGateway()
         gateway.connected = false
-        val backend = FabricDriverBackend.real(gateway)
+        val backend =
+            FabricDriverBackend.real(
+                gateway = gateway,
+                runtimeMetadataProvider = blockQueryRuntimeMetadataProvider(),
+            )
 
         val raycast = backend.actions("alice").single { it.id == "player.raycast" }
         val result = backend.invoke("alice", DriverActionInvocation("player.raycast"))
@@ -1302,6 +1306,149 @@ class FabricDriverModuleTest {
         )
         assertEquals(listOf("client-query"), gateway.actions)
         assertEquals(1, gateway.scheduled)
+    }
+
+    @Test
+    fun `fabric runtime discovery keeps recipe operations unavailable until live recipe probes exist`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = false
+        val backend =
+            FabricDriverBackend.real(
+                gateway = gateway,
+                runtimeMetadataProvider = blockQueryRuntimeMetadataProvider(),
+            )
+
+        val disconnectedGraph = backend.runtimeGraph("alice")
+        val unavailableQuery = disconnectedGraph.operations.single { it.id == "recipe.query" }
+        val unavailableCraft = disconnectedGraph.operations.single { it.id == "recipe.craft" }
+
+        assertEquals("recipe", disconnectedGraph.resources.single { it.id == "recipe" }.id)
+        assertEquals("recipe.handle", disconnectedGraph.handles.single { it.id == "recipe.handle" }.id)
+        assertEquals("fabric.recipe-query", unavailableQuery.adapter)
+        assertEquals("fabric.recipe-craft", unavailableCraft.adapter)
+        assertEquals(RuntimeAvailabilityState.UNAVAILABLE, unavailableQuery.availability.state)
+        assertEquals("client-not-connected", unavailableQuery.availability.reason)
+        assertEquals(RuntimeAvailabilityState.UNAVAILABLE, unavailableCraft.availability.state)
+        assertEquals("client-not-connected", unavailableCraft.availability.reason)
+
+        gateway.connected = true
+        gateway.capabilities =
+            FabricClientCapabilitySnapshot(
+                connected = true,
+                player = true,
+                inventory = true,
+                camera = true,
+                interactionManager = true,
+                world = true,
+            )
+
+        val connectedGraph = backend.runtimeGraph("alice")
+        val query = connectedGraph.operations.single { it.id == "recipe.query" }
+        val craft = connectedGraph.operations.single { it.id == "recipe.craft" }
+
+        val recipeResource = connectedGraph.resources.single { it.id == "recipe" }
+        val recipeHandle = connectedGraph.handles.single { it.id == "recipe.handle" }
+
+        assertEquals(RuntimeAvailabilityState.UNAVAILABLE, recipeResource.availability.state)
+        assertEquals(
+            "recipe-discovery-unavailable",
+            recipeResource.availability.reason,
+        )
+        assertEquals(RuntimeAvailabilityState.UNAVAILABLE, recipeHandle.availability.state)
+        assertEquals("recipe-discovery-unavailable", recipeHandle.availability.reason)
+        assertEquals(RuntimeAvailabilityState.UNAVAILABLE, query.availability.state)
+        assertEquals("recipe-discovery-unavailable", query.availability.reason)
+        assertEquals(RuntimeAvailabilityState.UNAVAILABLE, craft.availability.state)
+        assertEquals("recipe-discovery-unavailable", craft.availability.reason)
+        assertEquals("string", query.arguments["category"]?.type)
+        assertEquals("string", query.arguments["output"]?.type)
+        assertEquals("boolean", query.arguments["craftable"]?.type)
+        assertEquals("integer", query.arguments["limit"]?.type)
+        assertEquals("object", craft.arguments["target"]?.type)
+        assertEquals(true, craft.arguments["target"]?.required)
+        assertEquals("integer", craft.arguments["count"]?.type)
+    }
+
+    @Test
+    fun `fabric backend refuses recipe query until live recipe probe exists`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        gateway.capabilities =
+            FabricClientCapabilitySnapshot(
+                connected = true,
+                player = true,
+                inventory = true,
+                camera = true,
+                interactionManager = true,
+                world = true,
+            )
+        val backend =
+            FabricDriverBackend.real(
+                gateway = gateway,
+                runtimeMetadataProvider = blockQueryRuntimeMetadataProvider(),
+            )
+        val recipeQuery = backend.runtimeGraph("alice").operations.single { it.id == "recipe.query" }
+
+        val result =
+            backend.operationAdapters("alice").invoke(
+                DriverOperationInvocation(
+                    clientId = "alice",
+                    operation = recipeQuery,
+                    arguments =
+                        mapOf(
+                            "category" to JsonPrimitive("tool"),
+                            "craftable" to JsonPrimitive(true),
+                            "limit" to JsonPrimitive(8),
+                        ),
+                ),
+            )
+
+        assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
+        assertEquals("recipe-discovery-unavailable", result.message)
+        assertEquals(emptyList<String>(), gateway.actions)
+        assertEquals(0, gateway.scheduled)
+    }
+
+    @Test
+    fun `fabric backend refuses recipe craft until live recipe executor exists`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        gateway.capabilities =
+            FabricClientCapabilitySnapshot(
+                connected = true,
+                player = true,
+                inventory = true,
+                camera = true,
+                interactionManager = true,
+                world = true,
+            )
+        val backend =
+            FabricDriverBackend.real(
+                gateway = gateway,
+                runtimeMetadataProvider = blockQueryRuntimeMetadataProvider(),
+            )
+        val recipeCraft = backend.runtimeGraph("alice").operations.single { it.id == "recipe.craft" }
+
+        val result =
+            backend.operationAdapters("alice").invoke(
+                DriverOperationInvocation(
+                    clientId = "alice",
+                    operation = recipeCraft,
+                    arguments =
+                        mapOf(
+                            "target" to
+                                buildJsonObject {
+                                    put("handle", "recipe.handle:abc123")
+                                },
+                            "count" to JsonPrimitive(1),
+                        ),
+                ),
+            )
+
+        assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
+        assertEquals("recipe-execution-unavailable", result.message)
+        assertEquals(emptyList<String>(), gateway.actions)
+        assertEquals(0, gateway.scheduled)
     }
 
     @Test
