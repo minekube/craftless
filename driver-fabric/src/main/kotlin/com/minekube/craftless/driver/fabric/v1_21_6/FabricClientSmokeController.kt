@@ -613,7 +613,7 @@ private val PUBLIC_AGENT_REQUIRED_ACTIONS =
         "world.block.break",
     )
 
-private fun FabricClientGateway.awaitConnected(
+internal fun FabricClientGateway.awaitConnected(
     timeout: Duration,
     pollInterval: Duration,
 ): Boolean {
@@ -629,7 +629,7 @@ private fun FabricClientGateway.awaitConnected(
     return isConnected()
 }
 
-private fun FabricClientGateway.awaitReadyToConnect(
+internal fun FabricClientGateway.awaitReadyToConnect(
     timeout: Duration,
     pollInterval: Duration,
 ): Boolean {

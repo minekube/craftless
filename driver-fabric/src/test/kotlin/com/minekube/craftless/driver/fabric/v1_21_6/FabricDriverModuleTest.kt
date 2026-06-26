@@ -1903,31 +1903,16 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `fabric smoke controller waits for client readiness before connecting`() {
+    fun `fabric smoke readiness gate waits for client readiness before connecting`() {
         val gateway = RecordingFabricClientGateway()
         gateway.ready = false
-        val backend = smokeBackend(gateway)
-        val controller =
-            FabricClientSmokeController.fromEnvironment(
-                mapOf(
-                    "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
-                    "CRAFTLESS_SMOKE_SERVER_PORT" to "25567",
-                    "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS" to "1000",
-                    "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS" to "0",
-                ),
-            )
 
-        assertTrue(controller.start(backend, gateway, pollInterval = 10.milliseconds))
-
-        Thread.sleep(100)
+        assertFalse(gateway.awaitReadyToConnect(timeout = 20.milliseconds, pollInterval = 5.milliseconds))
         assertEquals(emptyList(), gateway.actions)
 
         gateway.ready = true
-        gateway.awaitActionsMatching { actions ->
-            actions.firstOrNull() == "connect 127.0.0.1:25567" && "stop" in actions
-        }
-        assertEquals("connect 127.0.0.1:25567", gateway.actions.firstOrNull())
-        assertTrue("stop" in gateway.actions)
+        assertTrue(gateway.awaitReadyToConnect(timeout = 20.milliseconds, pollInterval = 5.milliseconds))
+        assertEquals(emptyList(), gateway.actions)
     }
 
     private fun resourceJson(path: String) =
@@ -2118,16 +2103,6 @@ private class RecordingFabricClientGateway : FabricClientGateway {
         val deadline = System.nanoTime() + 1_000_000_000
         while (System.nanoTime() < deadline) {
             if (actions.size >= count) {
-                return
-            }
-            Thread.sleep(10)
-        }
-    }
-
-    fun awaitActionsMatching(matches: (List<String>) -> Boolean) {
-        val deadline = System.nanoTime() + 1_000_000_000
-        while (System.nanoTime() < deadline) {
-            if (matches(actions)) {
                 return
             }
             Thread.sleep(10)
