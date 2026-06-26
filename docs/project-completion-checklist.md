@@ -513,6 +513,29 @@ Verification:
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricCapabilityProbeTest*' --tests '*FabricDriverModuleTest.fabric backend invokes entity attack through runtime graph adapter'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 
+## Phase 24: Targetable Block Interact
+
+- [x] Spec and plan exist for targetable generic block interaction without
+  adding `build.house`, `place.log`, structure macros, or other scenario
+  shortcuts.
+- [x] `world.block.interact` accepts public block handles or positions plus a
+  side, invokes the Fabric client-thread interaction manager, and returns
+  `accepted` plus state-change evidence.
+- [x] Public-agent composition invokes targetable `world.block.interact` only
+  when the generated action descriptor advertises `target`, and verifies
+  `changed` when the action reports it.
+- [x] Focused driver and public-agent tests pass.
+- [!] Live gameplay evidence shows the targetable descriptor is generated, but
+  the no-hold run blocked before placement at
+  `insufficient-public-evidence:inventory.query.log` after a changed block
+  break. Final structure-building proof remains open until material pickup is
+  reliable enough to equip and place a collected block.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric runtime discovery exposes block interact only from client state'`
+- `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
+
 Verification:
 
 - `mise exec -- gradle :protocol:test :driver-api:test :driver-fabric:test`

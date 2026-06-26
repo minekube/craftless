@@ -1261,6 +1261,8 @@ class FabricDriverModuleTest {
         assertEquals("client-not-connected", unavailableInteract.availabilityReason)
         assertEquals("number", unavailableInteract.arguments["max-distance"]?.type)
         assertEquals("boolean", unavailableInteract.arguments["include-fluids"]?.type)
+        assertEquals("object", unavailableInteract.arguments["target"]?.type)
+        assertEquals("string", unavailableInteract.arguments["side"]?.type)
         assertEquals("object", unavailableInteract.result.properties["data"]?.type)
         assertEquals(DriverActionStatus.UNSUPPORTED, unavailableResult.status)
         assertEquals("client-not-connected", unavailableResult.message)
@@ -1271,7 +1273,10 @@ class FabricDriverModuleTest {
                 put("hit", true)
                 put("target-kind", "block")
                 put("accepted", true)
+                put("changed", true)
                 put("block", "1 64 1")
+                put("handle", "world.block:1:64:1")
+                put("adjacent-handle", "world.block:1:65:1")
             }
 
         val blockInteract = backend.actions("alice").single { it.id == "world.block.interact" }
@@ -1280,16 +1285,28 @@ class FabricDriverModuleTest {
                 "alice",
                 DriverActionInvocation(
                     action = "world.block.interact",
-                    arguments = mapOf("max-distance" to JsonPrimitive(4.0)),
+                    arguments =
+                        mapOf(
+                            "max-distance" to JsonPrimitive(4.0),
+                            "side" to JsonPrimitive("up"),
+                            "target" to
+                                buildJsonObject {
+                                    put("handle", "world.block:1:64:1")
+                                },
+                        ),
                 ),
             )
 
         assertEquals(DriverActionSource.BINDING, blockInteract.source)
         assertEquals(DriverActionAvailability.AVAILABLE, blockInteract.availability)
         assertEquals(null, blockInteract.availabilityReason)
+        assertEquals("object", blockInteract.arguments["target"]?.type)
+        assertEquals("string", blockInteract.arguments["side"]?.type)
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
         assertEquals(true, result.data["accepted"]?.jsonPrimitive?.boolean)
+        assertEquals(true, result.data["changed"]?.jsonPrimitive?.boolean)
         assertEquals("1 64 1", result.data["block"]?.jsonPrimitive?.content)
+        assertEquals("world.block:1:65:1", result.data["adjacent-handle"]?.jsonPrimitive?.content)
         assertEquals(listOf("client-query"), gateway.actions)
         assertEquals(1, gateway.scheduled)
     }

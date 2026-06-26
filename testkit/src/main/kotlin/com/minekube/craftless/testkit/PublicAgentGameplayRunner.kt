@@ -242,6 +242,35 @@ class PublicAgentGameplayRunner(
             if (equippedInventory.responseObject()?.selectedSlot() != logSlot) {
                 return blockedAndWrite("insufficient-public-evidence:inventory.equip.selected-slot")
             }
+            if (actions.actionSupportsArgument("world.block.interact", "target")) {
+                val supportTarget =
+                    invokeGenerated(
+                        action = "world.block.query",
+                        args =
+                            buildJsonObject {
+                                put("radius", JsonPrimitive(8.0))
+                                put("limit", JsonPrimitive(16))
+                                put("category", JsonPrimitive("block"))
+                            },
+                    ).responseObject()?.supportBlockTarget()
+                if (supportTarget != null) {
+                    navigateTo(position = supportTarget.position, radius = 2.5)
+                        ?.let { blocker -> return blockedAndWrite(blocker) }
+                    val interactResult =
+                        invokeGenerated(
+                            action = "world.block.interact",
+                            args =
+                                buildJsonObject {
+                                    put("max-distance", JsonPrimitive(6.0))
+                                    put("side", JsonPrimitive("up"))
+                                    put("target", supportTarget.toJsonObject())
+                                },
+                        )
+                    if (interactResult.responseObject()?.dataBoolean("changed") == false) {
+                        return blockedAndWrite("insufficient-public-evidence:world.block.interact.changed")
+                    }
+                }
+            }
             val finalEntityQuery = invokeGenerated("entity.query")
             if ("entity.attack" in actionIds) {
                 val attackTarget = finalEntityQuery.responseObject()?.attackTarget()
@@ -456,6 +485,20 @@ private fun String.actionIds(): Set<String> =
         else -> emptySet()
     }
 
+private fun String.actionSupportsArgument(
+    action: String,
+    argument: String,
+): Boolean =
+    when (val parsed = publicAgentJson.parseToJsonElement(this)) {
+        is JsonArray ->
+            parsed.any { element ->
+                val descriptor = element.jsonObject
+                descriptor["id"]?.jsonPrimitive?.content == action &&
+                    descriptor["args"]?.jsonObject?.containsKey(argument) == true
+            }
+        else -> false
+    }
+
 private val requiredActions =
     listOf(
         "entity.query",
@@ -499,6 +542,8 @@ private fun JsonObject.materialBlockTarget(): PublicBlockTarget? {
             },
         )
 }
+
+private fun JsonObject.supportBlockTarget(): PublicBlockTarget? = materialBlockTarget()
 
 private fun JsonObject.playerPosition(): CraftlessPoint? {
     val data = this["data"] as? JsonObject ?: return null

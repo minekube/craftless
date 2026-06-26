@@ -185,6 +185,9 @@ Phase 23 adds generic `entity.attack` through the runtime graph and generated
 per-client action path. It must consume public entity handles from
 `entity.query` and must not add `kill.cow`, combat macros, or survival
 scenario actions.
+Phase 24 makes `world.block.interact` targetable with Craftless-owned block
+handles/positions and state-change evidence. It must not add `build.house`,
+`place.log`, or other building scenario shortcuts.
 
 ## Acceptance Scenarios Are Not Product APIs
 

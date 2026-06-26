@@ -195,6 +195,48 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner invokes targetable block interact when generated descriptor supports target`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "world.block.interact",
+                    actionArguments =
+                        mapOf(
+                            "world.block.interact" to listOf("target", "side", "max-distance"),
+                        ),
+                    blockQueryResponses = listOf(logBlockQueryResponse, placementSupportBlockQueryResponse),
+                    blockInteractResponse =
+                        """
+                        {
+                          "action": "world.block.interact",
+                          "status": "ACCEPTED",
+                          "data": {
+                            "accepted": true,
+                            "changed": true,
+                            "handle": "world.block:11:64:-4",
+                            "adjacent-handle": "world.block:11:65:-4"
+                          }
+                        }
+                        """.trimIndent(),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(result.actionLog.map { it.action }.contains("world.block.interact"))
+            assertTrue(server.requestBodies.any { it.contains(""""category":"block"""") })
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("world.block.interact") &&
+                        it.contains(""""target":{"handle":"world.block:11:64:-4","position":{"x":11,"y":64,"z":-4}}""") &&
+                        it.contains(""""side":"up"""")
+                },
+            )
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner reports insufficient public evidence when block break does not change target state`() =
         runBlocking {
             val server =
@@ -436,9 +478,12 @@ class PublicAgentGameplayRunnerTest {
 
 private class RecordingCraftlessHttpServer(
     private val actions: List<String>,
+    private val actionArguments: Map<String, List<String>> = emptyMap(),
     private val blockQueryResponses: List<String> = listOf(logBlockQueryResponse),
     private val blockBreakResponse: String =
         """{"action":"world.block.break","status":"ACCEPTED","data":{"hit":true,"target-kind":"block","started":true,"changed":true}}""",
+    private val blockInteractResponse: String =
+        """{"action":"world.block.interact","status":"ACCEPTED","data":{"accepted":true,"changed":true}}""",
     private val entityQueryResponse: String = """{"action":"entity.query","status":"ACCEPTED","data":{"entities":[]}}""",
     private val finalInventoryResponse: String =
         """
@@ -503,6 +548,7 @@ private class RecordingCraftlessHttpServer(
             body.contains("player.raycast") ->
                 """{"action":"player.raycast","status":"ACCEPTED","data":{"hit":true,"target-kind":"block"}}"""
             body.contains("world.block.break") -> blockBreakResponse
+            body.contains("world.block.interact") -> blockInteractResponse
             body.contains("inventory.equip") -> """{"action":"inventory.equip","status":"ACCEPTED"}"""
             body.contains("entity.attack") ->
                 """{"action":"entity.attack","status":"ACCEPTED","data":{"hit":true,"handle":"entity.handle-42"}}"""
@@ -527,7 +573,13 @@ private class RecordingCraftlessHttpServer(
 
     private fun actionsJson(): String =
         actions.joinToString(prefix = "[", postfix = "]") { action ->
-            """{"id":"$action","schemaVersion":"1","args":{},"result":{"properties":{},"required":[]},"source":"runtime-probe","availability":"available"}"""
+            val args =
+                actionArguments
+                    .getOrDefault(action, emptyList())
+                    .joinToString(prefix = "{", postfix = "}") { argument ->
+                        """"$argument":{"type":"object","required":false}"""
+                    }
+            """{"id":"$action","schemaVersion":"1","args":$args,"result":{"properties":{},"required":[]},"source":"runtime-probe","availability":"available"}"""
         }
 
     private fun OutgoingContent.contentText(): String =
@@ -579,6 +631,25 @@ private val layeredLogBlockQueryResponse =
             "category": "log",
             "distance": 6.0,
             "position": {"x": 13, "y": 63, "z": -5}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val placementSupportBlockQueryResponse =
+    """
+    {
+      "action": "world.block.query",
+      "status": "ACCEPTED",
+      "data": {
+        "count": 1,
+        "blocks": [
+          {
+            "handle": "world.block:11:64:-4",
+            "category": "block",
+            "distance": 2.0,
+            "position": {"x": 11, "y": 64, "z": -4}
           }
         ]
       }
