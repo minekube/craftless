@@ -16,7 +16,7 @@
 - Create: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricPathfinderBackend.kt`
 - Create: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricPathfinderBackendTest.kt`
 
-- [ ] **Step 1: Write failing backend contract tests**
+- [x] **Step 1: Write failing backend contract tests**
 
 Test that a fake backend can create a plan, follow it, stop it, and record
 Craftless-owned progress:
@@ -30,7 +30,7 @@ assertEquals(NavigationTaskState.CANCELLED, backend.stop().state)
 assertFalse(backend.events().joinToString().contains("baritone", ignoreCase = true))
 ```
 
-- [ ] **Step 2: Run focused test and verify RED**
+- [x] **Step 2: Run focused test and verify RED**
 
 Run:
 
@@ -40,14 +40,14 @@ mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.f
 
 Expected: FAIL because the backend contract does not exist.
 
-- [ ] **Step 3: Implement minimal contract and fake backend**
+- [x] **Step 3: Implement minimal contract and fake backend**
 
 Add `FabricPathfinderBackend`, `FabricPathfinderPlan`, and
 `RecordingFabricPathfinderBackend` test fake. Use protocol
 `NavigationGoal`, `NavigationTaskStatus`, `NavigationTaskState`, and
 `NavigationProgressEvent`.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run the focused test again. Expected: PASS.
 
