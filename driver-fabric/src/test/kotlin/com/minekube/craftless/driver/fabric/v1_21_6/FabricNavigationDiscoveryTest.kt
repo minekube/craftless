@@ -5,10 +5,12 @@ import com.minekube.craftless.driver.api.DriverOperationInvocation
 import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.NavigationGoal
 import com.minekube.craftless.protocol.NavigationProgressEvent
+import com.minekube.craftless.protocol.NavigationTaskRequest
 import com.minekube.craftless.protocol.NavigationTaskState
 import com.minekube.craftless.protocol.NavigationTaskStatus
 import com.minekube.craftless.protocol.RuntimeAvailabilityState
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -176,6 +178,43 @@ class FabricNavigationDiscoveryTest {
         assertEquals(DriverActionStatus.ACCEPTED, stopResult.status)
         assertEquals("cancelled", stopResult.data["state"]?.jsonPrimitive?.content)
         assertEquals(listOf("plan", "follow:navigation.plan.accepting.0001", "stop"), pathfinder.calls)
+    }
+
+    @Test
+    fun `fabric backend task adapters invoke survival executor generically`() {
+        val survival = RecordingSurvivalExecutor(nextTaskId = { "task:survival:honest-cow-hunt:0001" })
+        val backend = FabricDriverBackend.metadataOnly(survivalTaskExecutor = survival)
+        val adapters = backend.operationAdapters("alice")
+        val operations = backend.runtimeGraph("alice").operations.associateBy { it.id }
+        val request = NavigationTaskRequest(task = "task.survival.honest-cow-hunt")
+
+        val runResult =
+            adapters.invoke(
+                DriverOperationInvocation(
+                    clientId = "alice",
+                    operation = operations.getValue("task.run"),
+                    arguments =
+                        mapOf(
+                            "request" to Json.encodeToJsonElement(NavigationTaskRequest.serializer(), request),
+                        ),
+                ),
+            )
+        val statusResult =
+            adapters.invoke(
+                DriverOperationInvocation(
+                    clientId = "alice",
+                    operation = operations.getValue("task.status"),
+                    arguments = mapOf("task" to JsonPrimitive("task:survival:honest-cow-hunt:0001")),
+                ),
+            )
+
+        assertEquals(DriverActionStatus.ACCEPTED, runResult.status)
+        assertEquals("task.run", runResult.action)
+        assertEquals("task.survival.honest-cow-hunt", runResult.data["task"]?.jsonPrimitive?.content)
+        assertEquals("running", runResult.data["state"]?.jsonPrimitive?.content)
+        assertEquals(DriverActionStatus.ACCEPTED, statusResult.status)
+        assertEquals("task.status", statusResult.action)
+        assertEquals("task:survival:honest-cow-hunt:0001", statusResult.data["task-id"]?.jsonPrimitive?.content)
     }
 }
 

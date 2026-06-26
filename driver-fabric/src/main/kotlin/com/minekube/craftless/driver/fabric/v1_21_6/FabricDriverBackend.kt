@@ -12,6 +12,7 @@ import com.minekube.craftless.driver.runtime.DriverBackend
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import com.minekube.craftless.driver.runtime.DriverBackendResult
 import com.minekube.craftless.protocol.NavigationGoal
+import com.minekube.craftless.protocol.NavigationTaskRequest
 import com.minekube.craftless.protocol.NavigationTaskState
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import kotlinx.serialization.json.Json
@@ -20,6 +21,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -41,6 +43,7 @@ class FabricDriverBackend private constructor(
     private val capabilityDiscovery: FabricCapabilityDiscovery = defaultFabricCapabilityDiscovery(),
     private val runtimeMetadataProvider: FabricRuntimeMetadataProvider = staticFabricRuntimeMetadataProvider(),
     private val pathfinderBackend: FabricPathfinderBackend = UnavailableFabricPathfinderBackend,
+    private val survivalTaskExecutor: FabricSurvivalTaskExecutor = RecordingSurvivalExecutor(),
 ) : DriverBackend {
     private val events = mutableListOf<String>()
     private val actionBindingsById = actionBindings.associateBy { it.descriptor.id }
@@ -160,7 +163,7 @@ class FabricDriverBackend private constructor(
     private fun navigationTaskOperationAdapters(): Map<String, DriverOperationAdapter> =
         mapOf(
             "navigation.default" to navigationOperationAdapter(),
-            "task.executor" to unsupportedGraphOperationAdapter(),
+            "task.executor" to taskOperationAdapter(),
             "fabric.entity-query" to entityQueryOperationAdapter(),
         )
 
@@ -179,6 +182,15 @@ class FabricDriverBackend private constructor(
 
     private fun unsupportedGraphOperationAdapter(): DriverOperationAdapter =
         DriverOperationAdapter { invocation -> unsupportedGraphOperation(invocation) }
+
+    private fun taskOperationAdapter(): DriverOperationAdapter =
+        DriverOperationAdapter { invocation ->
+            when (invocation.operation.id) {
+                "task.run" -> runTask(invocation)
+                "task.status" -> queryTaskStatus(invocation)
+                else -> unsupportedGraphOperation(invocation)
+            }
+        }
 
     private fun entityQueryOperationAdapter(): DriverOperationAdapter =
         DriverOperationAdapter { invocation ->
@@ -293,6 +305,50 @@ class FabricDriverBackend private constructor(
         )
     }
 
+    private fun runTask(invocation: com.minekube.craftless.driver.api.DriverOperationInvocation): DriverActionResult {
+        val requestElement =
+            invocation.arguments["request"]
+                ?: return DriverActionResult(
+                    action = invocation.operation.id,
+                    status = DriverActionStatus.FAILED,
+                    message = "missing-request",
+                )
+        val request = fabricBackendJson.decodeFromJsonElement(NavigationTaskRequest.serializer(), requestElement)
+        val status = survivalTaskExecutor.run(request)
+        return DriverActionResult(
+            action = invocation.operation.id,
+            status = status.state.toDriverActionStatus(),
+            message = status.message,
+            data =
+                buildJsonObject {
+                    put("task", request.task)
+                    put("task-id", status.id)
+                    put("state", status.state)
+                },
+        )
+    }
+
+    private fun queryTaskStatus(invocation: com.minekube.craftless.driver.api.DriverOperationInvocation): DriverActionResult {
+        val taskId =
+            invocation.arguments["task"]?.jsonPrimitive?.contentOrNull
+                ?: return DriverActionResult(
+                    action = invocation.operation.id,
+                    status = DriverActionStatus.FAILED,
+                    message = "missing-task",
+                )
+        val status = survivalTaskExecutor.status(taskId)
+        return DriverActionResult(
+            action = invocation.operation.id,
+            status = status.state.toDriverActionStatus(),
+            message = status.message,
+            data =
+                buildJsonObject {
+                    put("task-id", status.id)
+                    put("state", status.state)
+                },
+        )
+    }
+
     private fun unsupportedGraphOperation(invocation: com.minekube.craftless.driver.api.DriverOperationInvocation): DriverActionResult =
         DriverActionResult(
             action = invocation.operation.id,
@@ -316,12 +372,14 @@ class FabricDriverBackend private constructor(
         internal fun metadataOnly(
             actionDiscovery: FabricActionDiscovery = defaultFabricActionDiscovery(),
             pathfinderBackend: FabricPathfinderBackend = UnavailableFabricPathfinderBackend,
+            survivalTaskExecutor: FabricSurvivalTaskExecutor = RecordingSurvivalExecutor(),
         ): FabricDriverBackend =
             FabricDriverBackend(
                 mode = Mode.METADATA_ONLY,
                 gateway = null,
                 actionDiscovery = actionDiscovery,
                 pathfinderBackend = pathfinderBackend,
+                survivalTaskExecutor = survivalTaskExecutor,
             )
 
         fun real(gateway: FabricClientGateway = MinecraftFabricClientGateway()): FabricDriverBackend =
@@ -348,6 +406,7 @@ class FabricDriverBackend private constructor(
                 actionDiscovery = actionDiscovery,
                 runtimeMetadataProvider = runtimeMetadataProvider,
                 pathfinderBackend = ReflectiveFabricPathfinderBackend(gateway = gateway),
+                survivalTaskExecutor = RecordingSurvivalExecutor(),
             )
 
         fun install(backend: FabricDriverBackend) {
