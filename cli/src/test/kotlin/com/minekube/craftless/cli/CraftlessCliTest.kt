@@ -997,6 +997,57 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `clients openapi revalidates durable live openapi cache by etag`() {
+        val cacheDir = Files.createTempDirectory("craftless-cli-raw-openapi-cache")
+        val firstOutput = StringBuilder()
+        val secondOutput = StringBuilder()
+
+        RevalidatingOpenApiServer().use { server ->
+            val firstExit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "openapi",
+                        "--api",
+                        server.url,
+                        "--openapi-cache",
+                        cacheDir.toString(),
+                    ),
+                    stdout = { firstOutput.appendLine(it) },
+                )
+            val secondExit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "openapi",
+                        "--api",
+                        server.url,
+                        "--openapi-cache",
+                        cacheDir.toString(),
+                    ),
+                    stdout = { secondOutput.appendLine(it) },
+                )
+
+            assertEquals(0, firstExit)
+            assertEquals(0, secondExit)
+            assertEquals(listOf(null, "etag-v1"), server.ifNoneMatchValues)
+        }
+
+        assertEquals(firstOutput.toString(), secondOutput.toString())
+        val openApi = Json.parseToJsonElement(secondOutput.toString().trim()).jsonObject
+        val fingerprint =
+            openApi["x-craftless"]
+                ?.jsonObject
+                ?.get("x-craftless-runtime-fingerprint")
+                ?.jsonPrimitive
+                ?.content
+        assertEquals("3.1.0", openApi["openapi"]?.jsonPrimitive?.content)
+        assertEquals("fingerprint-test", fingerprint)
+    }
+
+    @Test
     fun `clients tools exports agent tools from live openapi actions`() {
         val output = StringBuilder()
 

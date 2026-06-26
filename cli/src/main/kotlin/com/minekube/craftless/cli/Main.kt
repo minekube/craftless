@@ -652,14 +652,28 @@ object CraftlessCli {
     ): Int {
         val clientId = args.getOrNull(0).orEmpty()
         if (clientId.isBlank()) {
-            stderr("error: usage is clients <id> openapi [--api <url>]")
+            stderr("error: usage is clients <id> openapi [--api <url>] [--openapi-cache <dir>]")
             return 2
         }
         val api = args.apiBaseUrl(env)
+        val openApiCache = args.optionValue("--openapi-cache")?.let(Path::of)
         return runCatching {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
-                    http.get("${api.trimEnd('/')}/clients/$clientId/openapi.json").forwardBody(stdout, stderr)
+                    var openApiFetchError: String? = null
+                    val openApiBody =
+                        http.getClientOpenApiBody(
+                            api = api,
+                            clientId = clientId,
+                            cacheRoot = openApiCache,
+                            onErrorBody = { body -> openApiFetchError = body },
+                        )
+                    if (openApiBody == null) {
+                        stderr(openApiFetchError ?: "error: live OpenAPI cache could not be revalidated for client $clientId")
+                        return@runBlocking 1
+                    }
+                    stdout(openApiBody)
+                    0
                 }
             }
         }.getOrElse { error ->
