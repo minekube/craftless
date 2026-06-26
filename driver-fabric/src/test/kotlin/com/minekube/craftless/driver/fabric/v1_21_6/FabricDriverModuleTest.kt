@@ -22,6 +22,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.Collections
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -1585,10 +1586,11 @@ class FabricDriverModuleTest {
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
 
         gateway.awaitAction("stop")
-        assertEquals("connect localhost:25567", gateway.actions.firstOrNull())
-        assertTrue(gateway.actions.count { it == "client-action" } >= 2)
-        assertTrue(gateway.actions.count { it == "client-query" } >= 6)
-        assertTrue("stop" in gateway.actions)
+        val smokeActions = gateway.actionSnapshot()
+        assertTrue("connect localhost:25567" in smokeActions)
+        assertTrue(smokeActions.count { it == "client-action" } >= 2)
+        assertTrue(smokeActions.count { it == "client-query" } >= 6)
+        assertTrue("stop" in smokeActions)
         assertTrue(Files.readString(artifactsDir.resolve("client-openapi.json")).contains("/clients/fabric-smoke:run"))
         assertTrue(Files.readString(artifactsDir.resolve("client-openapi.json")).contains("craftless-driver-fabric"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions.json")).contains("player.chat"))
@@ -1735,10 +1737,11 @@ class FabricDriverModuleTest {
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
 
         gateway.awaitAction("stop")
-        assertEquals("connect 127.0.0.1:25565", gateway.actions.firstOrNull())
-        assertTrue(gateway.actions.count { it == "client-action" } >= 2)
-        assertTrue(gateway.actions.count { it == "client-query" } >= 7)
-        assertTrue("stop" in gateway.actions)
+        val smokeActions = gateway.actionSnapshot()
+        assertTrue("connect 127.0.0.1:25565" in smokeActions)
+        assertTrue(smokeActions.count { it == "client-action" } >= 2)
+        assertTrue(smokeActions.count { it == "client-query" } >= 7)
+        assertTrue("stop" in smokeActions)
         val gameplay = Files.readString(artifactsDir.resolve("gameplay-results.jsonl"))
         assertTrue(gameplay.contains("craftless-smoke-target-item-observed"))
         assertTrue(gameplay.contains("slot 2"))
@@ -1996,7 +1999,7 @@ private fun enqueueBasicSmokeQueryResults(gateway: RecordingFabricClientGateway)
 
 private class RecordingFabricClientGateway : FabricClientGateway {
     var scheduled = 0
-    val actions = mutableListOf<String>()
+    val actions: MutableList<String> = Collections.synchronizedList(mutableListOf())
     val queryResults = ArrayDeque<Any>()
     var queryResult: Any =
         buildJsonObject {
@@ -2073,7 +2076,7 @@ private class RecordingFabricClientGateway : FabricClientGateway {
     fun awaitActions(count: Int) {
         val deadline = System.nanoTime() + 1_000_000_000
         while (System.nanoTime() < deadline) {
-            if (actions.size >= count) {
+            if (actionSnapshot().size >= count) {
                 return
             }
             Thread.sleep(10)
@@ -2083,12 +2086,14 @@ private class RecordingFabricClientGateway : FabricClientGateway {
     fun awaitAction(action: String) {
         val deadline = System.nanoTime() + 1_000_000_000
         while (System.nanoTime() < deadline) {
-            if (action in actions) {
+            if (action in actionSnapshot()) {
                 return
             }
             Thread.sleep(10)
         }
     }
+
+    fun actionSnapshot(): List<String> = synchronized(actions) { actions.toList() }
 
     private fun isScreenCloseDiscoveryProbe(): Boolean =
         Thread.currentThread().stackTrace.any { frame ->
