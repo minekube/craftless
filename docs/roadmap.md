@@ -40,10 +40,10 @@ Craftless currently has:
   execution binding, and allows unbound actions only as unavailable runtime
   probes with machine-readable reasons;
 - Fabric/Loom driver scaffolding with current action evidence;
-- Fabric-generated action descriptors for current chat, movement, player query,
-  raycast, inventory query/equip, and block-break bindings. Broader gameplay
-  actions must come from real bindings or runtime discovery probes, not static
-  placeholders;
+- Fabric-generated action descriptors for current chat, movement, player
+  query/look, raycast, inventory query/equip, and block-break bindings.
+  Broader gameplay actions must come from real bindings or runtime discovery
+  probes, not static placeholders;
 - a minimal internal Fabric discovery projection that lists binding-backed
   actions and can represent runtime-probe unavailable actions without an
   execution binding;
@@ -66,7 +66,7 @@ Craftless currently has:
   controller starts a local daemon API backed by the Fabric driver, fetches
   per-client OpenAPI/action metadata and resource projections, connects to the
   smoke server, invokes generated `player.chat`, `player.move`,
-  `player.query`, `inventory.query`, `inventory.equip`, and
+  `player.query`, `player.look`, `inventory.query`, `inventory.equip`, and
   `world.block.break` through `POST /clients/{id}:run` after connection,
   provisions `minecraft:iron_sword` through the server fixture as setup,
   waits until live `inventory.query` observes `Iron Sword`, equips the
@@ -105,8 +105,8 @@ the durable Fabric direction.
   server, fetched generated OpenAPI/actions/resources through the in-client
   daemon API,
   invoked generated `player.chat`, `player.move`, `player.query`,
-  `inventory.query`, `inventory.equip`, and `world.block.break` through
-  `POST /clients/{id}:run`, captured server-side
+  `player.look`, `inventory.query`, `inventory.equip`, and
+  `world.block.break` through `POST /clients/{id}:run`, captured server-side
   item-provision/join/chat/disconnect evidence, observed and equipped
   `Iron Sword` through live inventory metadata, and recorded driver-side
   movement plus gameplay result telemetry.
@@ -131,8 +131,9 @@ or static placeholder descriptors.
   player, world, interaction manager, inventory, screen, registries, mods,
   permissions, and server features.
 - Current discovery has connected-client bindings with disconnected-client
-  unavailable probe metadata for `player.query`, `player.raycast`,
-  `inventory.query`, `inventory.equip`, and `world.block.break`.
+  unavailable probe metadata for `player.query`, `player.look`,
+  `player.raycast`, `inventory.query`, `inventory.equip`, and
+  `world.block.break`.
 - Current resource projection groups discovered action ids into live resources
   such as `player`, `inventory`, and `world.block`; richer handles and
   resource schemas are still roadmap.

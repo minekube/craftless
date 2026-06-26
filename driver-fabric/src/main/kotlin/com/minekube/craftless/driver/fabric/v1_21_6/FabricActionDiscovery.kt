@@ -67,6 +67,10 @@ private fun FabricActionDiscoveryContext.probeUnavailableActions(): List<FabricD
                 binding = FabricPlayerQueryActionBinding,
             ),
             FabricDiscoveredAction(
+                descriptor = FabricPlayerLookActionBinding.descriptor,
+                binding = FabricPlayerLookActionBinding,
+            ),
+            FabricDiscoveredAction(
                 descriptor = FabricPlayerRaycastActionBinding.descriptor,
                 binding = FabricPlayerRaycastActionBinding,
             ),
@@ -89,6 +93,9 @@ private fun FabricActionDiscoveryContext.probeUnavailableActions(): List<FabricD
                 descriptor = unavailablePlayerQueryDescriptor(),
             ),
             FabricDiscoveredAction(
+                descriptor = unavailablePlayerLookDescriptor(),
+            ),
+            FabricDiscoveredAction(
                 descriptor = unavailableRaycastDescriptor(),
             ),
             FabricDiscoveredAction(
@@ -106,6 +113,13 @@ private fun FabricActionDiscoveryContext.probeUnavailableActions(): List<FabricD
 
 private fun unavailablePlayerQueryDescriptor(): DriverActionDescriptor =
     fabricPlayerQueryDescriptor().copy(
+        source = DriverActionSource.RUNTIME_PROBE,
+        availability = DriverActionAvailability.UNAVAILABLE,
+        availabilityReason = "client-not-connected",
+    )
+
+private fun unavailablePlayerLookDescriptor(): DriverActionDescriptor =
+    fabricPlayerLookDescriptor().copy(
         source = DriverActionSource.RUNTIME_PROBE,
         availability = DriverActionAvailability.UNAVAILABLE,
         availabilityReason = "client-not-connected",

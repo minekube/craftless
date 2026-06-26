@@ -34,17 +34,17 @@ Legend:
   payloads against the advertised action result descriptor before returning
   success.
 - [x] Fabric smoke has proven real client launch, server join, generated chat,
-  generated movement invocation, server-side target item provisioning,
-  generated inventory observation/equip, generated block action invocation,
-  disconnect, and artifact capture.
+  generated movement invocation, generated look invocation, server-side target
+  item provisioning, generated inventory observation/equip, generated block
+  action invocation, disconnect, and artifact capture.
 - [~] Current Fabric driver has real chat, movement, connected-client
-  `player.query`, connected-client `player.raycast`, connected-client
-  `inventory.query`, connected-client `inventory.equip`, and connected-client
-  `world.block.break` bindings. When the client is disconnected, player query,
-  raycast, inventory query, inventory equip, and block break are exposed only
-  through gateway-backed unavailable probe metadata. Broader gameplay discovery
-  is not implemented yet and must not be represented as a static placeholder
-  catalog.
+  `player.query`, connected-client `player.look`, connected-client
+  `player.raycast`, connected-client `inventory.query`, connected-client
+  `inventory.equip`, and connected-client `world.block.break` bindings. When
+  the client is disconnected, player query, look, raycast, inventory query,
+  inventory equip, and block break are exposed only through gateway-backed
+  unavailable probe metadata. Broader gameplay discovery is not implemented yet
+  and must not be represented as a static placeholder catalog.
 - [ ] Craftless is complete.
 
 Baseline evidence:
@@ -54,10 +54,12 @@ Baseline evidence:
 - Latest real-smoke evidence includes `ITEM_PROVISIONED` for
   `minecraft:iron_sword` in `server-evidence.jsonl`, `Iron Sword` observed in
   `inventory.query`, `craftless-smoke-target-item-observed`,
-  `inventory.equip`, and `world.block.break` in `gameplay-results.jsonl`.
-- Latest static-placeholder cleanup smoke: `client-actions.json` contained
-  only `player.chat` and `player.move`; `server-evidence.jsonl` contained
-  join, chat, and disconnect for the same real client.
+  `inventory.equip`, `player.look`, and `world.block.break` in
+  `gameplay-results.jsonl`.
+- Latest static-placeholder cleanup smoke: disconnected `client-actions.json`
+  contains binding-backed chat/move plus unavailable runtime-probe metadata for
+  connected-only gameplay actions; `server-evidence.jsonl` contained item
+  provisioning, join, chat, and disconnect for the same real client.
 - Current smoke controller re-fetches connected client OpenAPI/actions before
   invoking gameplay actions and writes `client-openapi-connected.json`,
   `client-actions-connected.json`, `client-resources-connected.json`, and
@@ -127,8 +129,9 @@ Verification:
   availability, and machine-readable availability reasons.
 - [~] Design the Fabric runtime discovery/projection layer. A minimal internal
   discovery abstraction exists for binding-backed actions, connected-client
-  `player.query`, connected-client `player.raycast`, connected-client
-  `inventory.query`, connected-client `inventory.equip`,
+  `player.query`, connected-client `player.look`, connected-client
+  `player.raycast`, connected-client `inventory.query`, connected-client
+  `inventory.equip`,
   connected-client `world.block.break`, and
   disconnected-client unavailable probe metadata; broader
   client/world/inventory/screen probes are still roadmap.
@@ -165,7 +168,7 @@ Verification:
   of directly returning the binding map.
 - [~] Real look/perception/block/inventory/screen capabilities are discovered
   from the running client before they are advertised. `player.query`,
-  `player.raycast`, `inventory.query`, `inventory.equip`, and
+  `player.look`, `player.raycast`, `inventory.query`, `inventory.equip`, and
   `world.block.break` now change from unavailable probe metadata to available
   bindings based on connected-client state; broader block/inventory/screen
   discovery is still missing.
@@ -193,7 +196,7 @@ Verification:
   through generated action metadata.
 - [x] The slice uses generated OpenAPI/action metadata as the client contract.
   The smoke controller now re-fetches connected client OpenAPI and gates
-  `player.query`, `inventory.query`, `inventory.equip`, and
+  `player.query`, `player.look`, `inventory.query`, `inventory.equip`, and
   `world.block.break` invocations on available actions from
   `x-craftless-actions` before calling generic `POST /clients/{id}:run`;
   `/clients/{id}/actions` remains an evidence/projection artifact.
@@ -205,8 +208,8 @@ Verification:
 - [x] Evidence proves observable game effects through server logs, client
   telemetry, or both. Current smoke artifacts include connected
   OpenAPI/actions/resources, server-side item provisioning, target-item
-  observation, equip slot selection, generated inventory equip, and generated
-  block break telemetry.
+  observation, equip slot selection, generated inventory equip, generated look,
+  and generated block break telemetry.
 
 Verification:
 

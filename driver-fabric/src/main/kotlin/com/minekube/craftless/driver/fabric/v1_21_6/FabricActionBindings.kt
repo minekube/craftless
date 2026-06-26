@@ -16,6 +16,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -101,6 +102,47 @@ internal fun fabricPlayerQueryDescriptor(): DriverActionDescriptor =
         id = "player.query",
         schemaVersion = "1",
         result = fabricObjectDataResultDescriptor(),
+    )
+
+internal object FabricPlayerLookActionBinding : FabricActionBinding {
+    override val descriptor: DriverActionDescriptor = fabricPlayerLookDescriptor()
+
+    override fun invoke(
+        clientId: String,
+        invocation: DriverActionInvocation,
+        context: FabricActionContext,
+    ): DriverActionResult {
+        val yaw = requireNotNull(invocation.arguments.numberArgument("yaw")) { "yaw is required" }
+        val pitch = requireNotNull(invocation.arguments.numberArgument("pitch")) { "pitch is required" }
+        require(pitch in MIN_PITCH..MAX_PITCH) { "look pitch must be between -90 and 90" }
+        context.executeOnClient {
+            val player = requireNotNull(player) { "client is not connected to a server" }
+            val yawFloat = yaw.toFloat()
+            player.setYaw(yawFloat)
+            player.setPitch(pitch.toFloat())
+            player.headYaw = yawFloat
+            player.bodyYaw = yawFloat
+        }
+        return DriverActionResult(
+            action = invocation.action,
+            status = DriverActionStatus.ACCEPTED,
+            message = "fabric ${context.modeId} action ${invocation.action} accepted",
+        )
+    }
+
+    private const val MIN_PITCH = -90.0
+    private const val MAX_PITCH = 90.0
+}
+
+internal fun fabricPlayerLookDescriptor(): DriverActionDescriptor =
+    DriverActionDescriptor(
+        id = "player.look",
+        schemaVersion = "1",
+        arguments =
+            mapOf(
+                "yaw" to DriverActionArgument("number", required = true),
+                "pitch" to DriverActionArgument("number", required = true),
+            ),
     )
 
 internal object FabricInventoryQueryActionBinding : FabricActionBinding {
@@ -239,6 +281,11 @@ internal object FabricPlayerRaycastActionBinding : FabricActionBinding {
 }
 
 private const val DEFAULT_MAX_DISTANCE = 5.0
+
+private fun Map<String, kotlinx.serialization.json.JsonElement>.numberArgument(name: String): Double? =
+    this[name]?.jsonPrimitive?.let { primitive ->
+        primitive.doubleOrNull ?: primitive.contentOrNull?.toDoubleOrNull()
+    }
 
 internal fun fabricRaycastDescriptor(): DriverActionDescriptor =
     DriverActionDescriptor(

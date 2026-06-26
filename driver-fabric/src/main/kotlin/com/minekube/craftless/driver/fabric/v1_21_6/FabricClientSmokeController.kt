@@ -163,6 +163,18 @@ data class FabricClientSmokeController(
                                 action = "inventory.equip",
                                 args = mapOf("slot" to JsonPrimitive(equipSlot)),
                             )
+                        val lookResult =
+                            http.runAvailableAction(
+                                api = api,
+                                clientId = SMOKE_CLIENT_ID,
+                                openApi = connectedOpenApi,
+                                action = "player.look",
+                                args =
+                                    mapOf(
+                                        "yaw" to JsonPrimitive(0.0),
+                                        "pitch" to JsonPrimitive(0.0),
+                                    ),
+                            )
                         val blockBreakResult =
                             http.runAvailableAction(
                                 api = api,
@@ -182,6 +194,7 @@ data class FabricClientSmokeController(
                                 },
                                 """{"event":"craftless-smoke-inventory-select","message":"selected slot $equipSlot for $equipItemName"}""",
                                 equipResult,
+                                lookResult,
                                 blockBreakResult,
                             )
                         writeLinesArtifact("gameplay-results.jsonl", smokeResults)
