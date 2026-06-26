@@ -63,6 +63,7 @@ data class FabricFinalGameplayPlan(
                     listOf(
                         "Graph-generated OpenAPI and action/resource projections are captured.",
                         "SSE evidence is captured from /clients/{id}/events:stream.",
+                        "Final completion uses no server-side item provisioning.",
                         "No static fallback bypass is used for gameplay breadth.",
                         "Robin writes in Minecraft chat that the goal may be completed.",
                     ),

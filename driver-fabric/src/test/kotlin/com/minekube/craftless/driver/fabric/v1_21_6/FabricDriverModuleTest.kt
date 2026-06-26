@@ -261,7 +261,9 @@ class FabricDriverModuleTest {
         assertTrue(plan.artifacts.contains("server-evidence.jsonl"))
         assertTrue(plan.completionGates.any { it.contains("Robin", ignoreCase = true) && it.contains("Minecraft chat", ignoreCase = true) })
         assertTrue(plan.completionGates.any { it.contains("SSE", ignoreCase = true) })
+        assertTrue(plan.completionGates.any { it.contains("no server-side item provisioning", ignoreCase = true) })
         assertTrue(plan.completionGates.none { it.contains("static fallback", ignoreCase = true) && !it.contains("no", ignoreCase = true) })
+        assertFalse(plan.artifacts.contains("provisioned-iron-sword"))
     }
 
     @Test

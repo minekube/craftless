@@ -289,7 +289,7 @@ Expected: PASS.
 - Modify: `docs/final-gameplay-runbook.md`
 - Test: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt`
 
-- [ ] **Step 1: Write failing harness tests**
+- [x] **Step 1: Write failing harness tests**
 
 Assert the final gameplay plan has a no-cheat mode and that completion evidence
 must not contain server item provisioning:
@@ -299,7 +299,7 @@ assertTrue(FabricFinalGameplayPlan.default().completionGates.any { it.contains("
 assertFalse(FabricFinalGameplayPlan.default().artifacts.contains("provisioned-iron-sword"))
 ```
 
-- [ ] **Step 2: Run focused test and verify RED**
+- [x] **Step 2: Run focused test and verify RED**
 
 Run:
 
@@ -309,13 +309,13 @@ mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.f
 
 Expected: FAIL until the final plan/runbook no-cheat gate is added.
 
-- [ ] **Step 3: Implement no-cheat harness mode**
+- [x] **Step 3: Implement no-cheat harness mode**
 
 Update `fabricFinalGameplay` defaults so final completion mode does not set
 `CRAFTLESS_SMOKE_PROVISION_ITEM_ID`. Keep provisioned-item smoke available only
 under a diagnostic task or explicit non-completion flag.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run:
 

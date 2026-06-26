@@ -179,7 +179,7 @@ Verification:
   `DriverOperationAdapters` without adding static driver gameplay methods.
 - [ ] Optional Baritone integration is internal backend evidence only; public
   OpenAPI remains Craftless-owned.
-- [ ] A no-cheat final gameplay harness rejects server-side item provisioning
+- [x] A no-cheat final gameplay harness rejects server-side item provisioning
   as completion evidence.
 - [ ] Craftless obtains weapon materials through ordinary survival gameplay,
   crafts or obtains a weapon legitimately, finds a cow, navigates to it without

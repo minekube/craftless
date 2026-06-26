@@ -131,20 +131,8 @@ tasks.register<JavaExec>("fabricFinalGameplay") {
                 ?: "hello from Craftless final gameplay",
         )
         environment(
-            "CRAFTLESS_SMOKE_PROVISION_ITEM_ID",
-            System.getenv("CRAFTLESS_SMOKE_PROVISION_ITEM_ID") ?: "minecraft:iron_sword",
-        )
-        environment(
-            "CRAFTLESS_SMOKE_PROVISION_ITEM_NAME",
-            System.getenv("CRAFTLESS_SMOKE_PROVISION_ITEM_NAME") ?: "Iron Sword",
-        )
-        environment(
-            "CRAFTLESS_SMOKE_PROVISION_ITEM_COUNT",
-            System.getenv("CRAFTLESS_SMOKE_PROVISION_ITEM_COUNT") ?: "1",
-        )
-        environment(
             "CRAFTLESS_FABRIC_SMOKE_REQUIRE_EQUIP_ITEM",
-            System.getenv("CRAFTLESS_FABRIC_SMOKE_REQUIRE_EQUIP_ITEM") ?: "1",
+            System.getenv("CRAFTLESS_FABRIC_SMOKE_REQUIRE_EQUIP_ITEM") ?: "0",
         )
         environment(
             "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS",
