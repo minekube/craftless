@@ -151,6 +151,7 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                         camera = cameraEntity != null || currentPlayer != null,
                         interactionManager = interactionManager != null,
                         world = world != null,
+                        recipes = currentPlayer?.recipeBook != null && networkHandler?.recipeManager != null,
                     )
                 }
             }
@@ -164,7 +165,8 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
         val inventoryAvailability = capabilities.inventoryAvailability()
         val cameraAvailability = capabilities.cameraAvailability()
         val worldAvailability = capabilities.worldAvailability()
-        val recipeAvailability = capabilities.recipeAvailability()
+        val recipeQueryAvailability = capabilities.recipeQueryAvailability()
+        val recipeCraftAvailability = capabilities.recipeCraftAvailability()
         val blockQueryAvailability = capabilities.blockQueryAvailability()
         val blockBreakAvailability = capabilities.blockBreakAvailability()
         val blockInteractAvailability = capabilities.blockInteractAvailability()
@@ -191,7 +193,7 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                             "limit" to RuntimeSchema("integer"),
                         ),
                     result = RuntimeSchema.objectSchema(),
-                    availability = recipeAvailability,
+                    availability = recipeQueryAvailability,
                 ),
                 RuntimeOperationNode(
                     id = "recipe.craft",
@@ -203,7 +205,7 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                             "count" to RuntimeSchema("integer"),
                         ),
                     result = RuntimeSchema.objectSchema(),
-                    availability = recipeAvailability,
+                    availability = recipeCraftAvailability,
                 ),
                 RuntimeOperationNode(
                     id = "entity.query",
@@ -255,7 +257,7 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                     RuntimeResourceNode("client", capabilities.connectedAvailability()),
                     RuntimeResourceNode("player", playerAvailability),
                     RuntimeResourceNode("inventory", inventoryAvailability),
-                    RuntimeResourceNode("recipe", recipeAvailability),
+                    RuntimeResourceNode("recipe", recipeQueryAvailability),
                     RuntimeResourceNode("world", worldAvailability),
                     RuntimeResourceNode("entity", capabilities.entityAvailability()),
                     RuntimeResourceNode("screen", RuntimeAvailability.available()),
@@ -273,7 +275,7 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                         id = "recipe.handle",
                         resource = "recipe",
                         schema = RuntimeSchema.objectSchema(),
-                        availability = recipeAvailability,
+                        availability = recipeQueryAvailability,
                     ),
                     RuntimeHandleNode(
                         id = "world.block.handle",
@@ -345,7 +347,9 @@ private fun FabricClientCapabilitySnapshot.playerAvailability(): RuntimeAvailabi
 
 private fun FabricClientCapabilitySnapshot.inventoryAvailability(): RuntimeAvailability = availability(inventoryReason())
 
-private fun FabricClientCapabilitySnapshot.recipeAvailability(): RuntimeAvailability = availability(recipeReason())
+private fun FabricClientCapabilitySnapshot.recipeQueryAvailability(): RuntimeAvailability = availability(recipeQueryReason())
+
+private fun FabricClientCapabilitySnapshot.recipeCraftAvailability(): RuntimeAvailability = availability(recipeCraftReason())
 
 private fun FabricClientCapabilitySnapshot.cameraAvailability(): RuntimeAvailability = availability(cameraReason())
 
@@ -392,10 +396,14 @@ private fun FabricClientCapabilitySnapshot.inventoryReason(): String? =
         else -> null
     }
 
-private fun FabricClientCapabilitySnapshot.recipeReason(): String? =
+private fun FabricClientCapabilitySnapshot.recipeQueryReason(): String? =
     playerReason()
         ?: inventoryReason()
-        ?: "recipe-discovery-unavailable"
+        ?: if (!recipes) "recipe-discovery-unavailable" else null
+
+private fun FabricClientCapabilitySnapshot.recipeCraftReason(): String? =
+    recipeQueryReason()
+        ?: "recipe-execution-unavailable"
 
 private fun FabricClientCapabilitySnapshot.cameraReason(): String? =
     when {

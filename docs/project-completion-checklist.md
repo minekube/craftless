@@ -706,13 +706,16 @@ Verification:
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-26-28-generic-recipe-crafting-plan.md`.
 - [~] Runtime graph discovery declares the Craftless-owned `recipe` resource,
-  `recipe.handle`, `recipe.query`, and `recipe.craft`, but marks them
-  unavailable with `recipe-discovery-unavailable` until a real live recipe,
-  inventory, screen, handler, and permission probe exists.
-- [~] `recipe.query` has a guarded Fabric operation adapter that refuses live
-  calls with `recipe-discovery-unavailable` instead of returning placeholder
-  recipe handles. Live recipe-display extraction, craftability calculation,
-  requirements, and outputs remain open.
+  `recipe.handle`, `recipe.query`, and `recipe.craft`. `recipe.query`,
+  `recipe`, and `recipe.handle` become available only when the live client
+  reports recipe-book state; otherwise they remain unavailable with
+  `recipe-discovery-unavailable`. `recipe.craft` remains unavailable with
+  `recipe-execution-unavailable` until a real executor exists.
+- [~] `recipe.query` has a guarded Fabric operation adapter that projects live
+  recipe-book display entries into opaque Craftless recipe handles, public
+  output/ingredient labels, categories, craftability, and query filters.
+  Broader live recipe requirements, screen/handler permission details, stale
+  handle validation, and real craft execution remain open.
 - [~] `recipe.craft` has public handle/count validation and a guarded Fabric
   operation adapter that refuses live calls with `recipe-execution-unavailable`.
   Real recipe execution, stale-handle validation, live craftability, and
@@ -727,6 +730,7 @@ Verification:
 Verification:
 
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest*'`
+- `mise exec -- gradle :driver-fabric:test --tests '*recipe*'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=120000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 - `mise run ci`

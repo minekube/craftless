@@ -36,6 +36,7 @@ import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.mob.HostileEntity
 import net.minecraft.entity.passive.PassiveEntity
+import net.minecraft.recipe.RecipeFinder
 import net.minecraft.registry.Registries
 import net.minecraft.registry.Registry
 import net.minecraft.registry.tag.BlockTags
@@ -260,7 +261,26 @@ class FabricDriverBackend private constructor(
 
     private fun queryRecipes(invocation: DriverOperationInvocation): DriverActionResult {
         val limit = invocation.arguments["limit"]?.jsonPrimitive?.intOrNull ?: DEFAULT_RECIPE_QUERY_LIMIT
+        val category =
+            invocation.arguments["category"]
+                ?.jsonPrimitive
+                ?.contentOrNull
+                ?.trim()
+                ?.lowercase()
+                ?.takeIf { it.isNotEmpty() }
+        val output =
+            invocation.arguments["output"]
+                ?.jsonPrimitive
+                ?.contentOrNull
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+        val craftable =
+            invocation.arguments["craftable"]
+                ?.jsonPrimitive
+                ?.contentOrNull
+                ?.toBooleanStrictOrNull()
         require(limit in RECIPE_QUERY_LIMIT_RANGE) { "recipe query limit must be between 1 and 256" }
+        invocation.unavailableRecipeOperationResult()?.let { result -> return result }
         val clientGateway = gateway
         if (clientGateway == null || !clientGateway.isConnected()) {
             return DriverActionResult(
@@ -269,10 +289,45 @@ class FabricDriverBackend private constructor(
                 message = "client-not-connected",
             )
         }
+        val data =
+            clientGateway.queryOnClient {
+                val currentPlayer = requireNotNull(player) { "client is not connected to a server" }
+                val recipeBook = currentPlayer.recipeBook
+                val finder = RecipeFinder()
+                currentPlayer.inventory.populateRecipeFinder(finder)
+                recipeBook.refresh()
+                val features = networkHandler?.enabledFeatures
+                val recipes =
+                    recipeBook
+                        .orderedResults
+                        .asSequence()
+                        .onEach { collection ->
+                            collection.populateRecipes(finder) { display ->
+                                features == null || display.isEnabled(features)
+                            }
+                        }.flatMap { collection ->
+                            collection.allRecipes.asSequence().map { entry ->
+                                craftlessRecipeRecord(entry, collection.isCraftable(entry.id()))
+                            }
+                        }.distinctBy { recipe -> recipe["handle"]?.jsonPrimitive?.contentOrNull }
+                        .filter { recipe -> recipe.matchesCraftlessRecipeQuery(category, output, craftable) }
+                        .take(limit)
+                        .toList()
+                buildJsonObject {
+                    put("count", recipes.size)
+                    put(
+                        "recipes",
+                        buildJsonArray {
+                            recipes.forEach { recipe -> add(recipe) }
+                        },
+                    )
+                }
+            }
         return DriverActionResult(
             action = invocation.operation.id,
-            status = DriverActionStatus.UNSUPPORTED,
-            message = "recipe-discovery-unavailable",
+            status = DriverActionStatus.ACCEPTED,
+            message = "fabric ${mode.id} action ${invocation.operation.id} queried",
+            data = data,
         )
     }
 
@@ -287,6 +342,7 @@ class FabricDriverBackend private constructor(
         require(handle.startsWith("recipe.handle:")) { "recipe target handle must use recipe.handle:<id>" }
         val count = invocation.arguments["count"]?.jsonPrimitive?.intOrNull ?: 1
         require(count in RECIPE_CRAFT_COUNT_RANGE) { "recipe craft count must be between 1 and 64" }
+        invocation.unavailableRecipeOperationResult()?.let { result -> return result }
         val clientGateway = gateway
         if (clientGateway == null || !clientGateway.isConnected()) {
             return DriverActionResult(
@@ -814,6 +870,17 @@ private fun String.entityHandleId(): Int? =
         ?.toIntOrNull()
 
 private fun String.fabricOperationAdapterKey(): String = "fabric.${replace(".", "-")}"
+
+private fun DriverOperationInvocation.unavailableRecipeOperationResult(): DriverActionResult? {
+    if (operation.availability.state != RuntimeAvailabilityState.UNAVAILABLE) {
+        return null
+    }
+    return DriverActionResult(
+        action = operation.id,
+        status = DriverActionStatus.UNSUPPORTED,
+        message = operation.availability.reason ?: "operation-unavailable",
+    )
+}
 
 private val fabricBackendJson = Json
 

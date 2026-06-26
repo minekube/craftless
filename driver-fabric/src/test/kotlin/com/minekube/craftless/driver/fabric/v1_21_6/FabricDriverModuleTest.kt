@@ -1309,6 +1309,42 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric recipe projection emits opaque Craftless handles and public item labels`() {
+        val recipe =
+            craftlessRecipeRecord(
+                CraftlessRecipeProjection(
+                    handleIndex = 42,
+                    kind = "shapeless-crafting",
+                    outputs =
+                        listOf(
+                            craftlessRecipeItem(
+                                rawName = "item.minecraft.wooden_sword",
+                                translationKey = "item.minecraft.wooden_sword",
+                            ),
+                        ),
+                    ingredients =
+                        listOf(
+                            craftlessRecipeItem("item.minecraft.oak_planks", "item.minecraft.oak_planks"),
+                            craftlessRecipeItem("item.minecraft.stick", "item.minecraft.stick"),
+                        ),
+                    station = craftlessRecipeItem("item.minecraft.crafting_table", "item.minecraft.crafting_table"),
+                ),
+                craftable = true,
+            )
+
+        assertEquals("recipe.handle:42", recipe["handle"]?.jsonPrimitive?.content)
+        assertEquals(true, recipe["craftable"]?.jsonPrimitive?.boolean)
+        val output = recipe["outputs"]?.jsonArray?.single()?.jsonObject ?: error("missing recipe output")
+        assertEquals("Wooden Sword", output["label"]?.jsonPrimitive?.content)
+        assertEquals("weapon", output["category"]?.jsonPrimitive?.content)
+        val publicPayload = recipe.toString().lowercase()
+        assertFalse(publicPayload.contains("minecraft"))
+        assertFalse(publicPayload.contains("fabric"))
+        assertFalse(publicPayload.contains("yarn"))
+        assertFalse(publicPayload.contains("wooden_sword"))
+    }
+
+    @Test
     fun `fabric runtime discovery keeps recipe operations unavailable until live recipe probes exist`() {
         val gateway = RecordingFabricClientGateway()
         gateway.connected = false
@@ -1367,6 +1403,29 @@ class FabricDriverModuleTest {
         assertEquals("object", craft.arguments["target"]?.type)
         assertEquals(true, craft.arguments["target"]?.required)
         assertEquals("integer", craft.arguments["count"]?.type)
+
+        gateway.capabilities =
+            FabricClientCapabilitySnapshot(
+                connected = true,
+                player = true,
+                inventory = true,
+                camera = true,
+                interactionManager = true,
+                world = true,
+                recipes = true,
+            )
+
+        val recipeReadyGraph = backend.runtimeGraph("alice")
+        val availableQuery = recipeReadyGraph.operations.single { it.id == "recipe.query" }
+        val executionUnavailableCraft = recipeReadyGraph.operations.single { it.id == "recipe.craft" }
+        val availableRecipeResource = recipeReadyGraph.resources.single { it.id == "recipe" }
+        val availableRecipeHandle = recipeReadyGraph.handles.single { it.id == "recipe.handle" }
+
+        assertEquals(RuntimeAvailabilityState.AVAILABLE, availableRecipeResource.availability.state)
+        assertEquals(RuntimeAvailabilityState.AVAILABLE, availableRecipeHandle.availability.state)
+        assertEquals(RuntimeAvailabilityState.AVAILABLE, availableQuery.availability.state)
+        assertEquals(RuntimeAvailabilityState.UNAVAILABLE, executionUnavailableCraft.availability.state)
+        assertEquals("recipe-execution-unavailable", executionUnavailableCraft.availability.reason)
     }
 
     @Test
@@ -1410,6 +1469,82 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric backend queries live recipe projection when recipe probe exists`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        gateway.capabilities =
+            FabricClientCapabilitySnapshot(
+                connected = true,
+                player = true,
+                inventory = true,
+                camera = true,
+                interactionManager = true,
+                world = true,
+                recipes = true,
+            )
+        gateway.queryResult =
+            buildJsonObject {
+                put("count", 1)
+                put(
+                    "recipes",
+                    buildJsonArray {
+                        add(
+                            craftlessRecipeRecord(
+                                CraftlessRecipeProjection(
+                                    handleIndex = 42,
+                                    kind = "shapeless-crafting",
+                                    outputs =
+                                        listOf(
+                                            craftlessRecipeItem(
+                                                rawName = "item.minecraft.wooden_sword",
+                                                translationKey = "item.minecraft.wooden_sword",
+                                            ),
+                                        ),
+                                ),
+                                craftable = true,
+                            ),
+                        )
+                    },
+                )
+            }
+        val backend =
+            FabricDriverBackend.real(
+                gateway = gateway,
+                runtimeMetadataProvider = blockQueryRuntimeMetadataProvider(),
+            )
+        val recipeQuery = backend.runtimeGraph("alice").operations.single { it.id == "recipe.query" }
+
+        val result =
+            backend.operationAdapters("alice").invoke(
+                DriverOperationInvocation(
+                    clientId = "alice",
+                    operation = recipeQuery,
+                    arguments =
+                        mapOf(
+                            "category" to JsonPrimitive("weapon"),
+                            "craftable" to JsonPrimitive(true),
+                            "limit" to JsonPrimitive(8),
+                        ),
+                ),
+            )
+
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        val queriedHandle =
+            result.data
+                .jsonObject
+                .get("recipes")
+                ?.jsonArray
+                ?.single()
+                ?.jsonObject
+                ?.get("handle")
+                ?.jsonPrimitive
+                ?.content
+        assertEquals("recipe.handle:42", queriedHandle)
+        assertEquals(listOf("client-query"), gateway.actions)
+        assertEquals(1, gateway.scheduled)
+    }
+
+    @Test
     fun `fabric backend refuses recipe craft until live recipe executor exists`() {
         val gateway = RecordingFabricClientGateway()
         gateway.connected = true
@@ -1421,6 +1556,7 @@ class FabricDriverModuleTest {
                 camera = true,
                 interactionManager = true,
                 world = true,
+                recipes = true,
             )
         val backend =
             FabricDriverBackend.real(

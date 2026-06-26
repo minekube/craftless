@@ -26,6 +26,7 @@ internal data class FabricClientCapabilitySnapshot(
     val camera: Boolean,
     val interactionManager: Boolean,
     val world: Boolean,
+    val recipes: Boolean = false,
 ) {
     companion object {
         fun disconnected(): FabricClientCapabilitySnapshot =
