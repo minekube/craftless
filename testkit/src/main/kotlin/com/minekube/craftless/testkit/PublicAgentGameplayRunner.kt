@@ -191,7 +191,7 @@ class PublicAgentGameplayRunner(
                     ?: return null
             for (waypoint in origin.explorationWaypoints()) {
                 if (navigateTo(position = waypoint.toJsonObject(), radius = 6.0) != null) {
-                    return null
+                    continue
                 }
                 queryAttackTarget()?.let { target -> return target }
             }

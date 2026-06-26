@@ -555,6 +555,46 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner continues generated attack exploration after a waypoint navigation miss`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
+                    navigationFollowResponses =
+                        listOf(
+                            NAVIGATION_SUCCEEDED_RESPONSE,
+                            NAVIGATION_SUCCEEDED_RESPONSE,
+                            NAVIGATION_FAILED_RESPONSE,
+                            NAVIGATION_SUCCEEDED_RESPONSE,
+                            NAVIGATION_SUCCEEDED_RESPONSE,
+                        ),
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            deadCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(result.actionLog.map { it.action }.contains("entity.attack"))
+            assertTrue(result.actionLog.map { it.action }.count { it == "navigation.follow" } >= 4)
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("entity.attack") &&
+                        it.contains(""""target":{"handle":"entity.handle-42"}""")
+                },
+            )
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner prefers vertically reachable public attack targets`() =
         runBlocking {
             val server =
@@ -1559,6 +1599,12 @@ private const val EMPTY_ENTITY_QUERY_RESPONSE =
 
 private const val EMPTY_INVENTORY_QUERY_RESPONSE =
     """{"action":"inventory.query","status":"ACCEPTED","data":{"slots":[]}}"""
+
+private const val NAVIGATION_SUCCEEDED_RESPONSE =
+    """{"action":"navigation.follow","status":"ACCEPTED","data":{"task-id":"task:navigation:public-agent","state":"succeeded"}}"""
+
+private const val NAVIGATION_FAILED_RESPONSE =
+    """{"action":"navigation.follow","status":"FAILED","data":{"task-id":"task:navigation:public-agent","state":"failed"}}"""
 
 private fun logInSlotOneInventoryQueryResponse(selectedSlot: Int): String =
     """

@@ -209,12 +209,14 @@ Verification:
   shows the public agent used generated `world.block.query`,
   `navigation.plan`, `navigation.follow`, `world.block.break`, `entity.query`,
   `inventory.query`, `inventory.equip`, `world.block.interact`,
-  `player.look`, and `entity.attack`; it mined a log, recovered material into
-  public inventory state, equipped it, placed/interacted with a block, followed
-  moving passive entities with generated navigation, attacked through generated
-  `entity.attack`, and finally observed `entity.handle-19` with `alive:false`
-  plus `Gray Wool`, `Raw Mutton`, and `Experience Orb` drops. Recipe progress,
-  held multiplayer observation, and Robin's Minecraft chat confirmation remain
+  `player.look`, `recipe.query`, `recipe.craft`, and `entity.attack`; it
+  mined a log, recovered material into public inventory state, crafted Oak
+  Planks through a public recipe handle, equipped material, placed/interacted
+  with a block, continued bounded generated-navigation exploration after a
+  waypoint miss, followed a moving cow with generated navigation, attacked
+  through generated `entity.attack`, and finally observed `entity.handle-25`
+  with `alive:false` plus `Raw Beef`, `Leather`, and `Experience Orb` drops.
+  Held multiplayer observation and Robin's Minecraft chat confirmation remain
   open.
 - [ ] Robin joins or observes the server session after a macOS `say` prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
@@ -252,9 +254,10 @@ Verification:
   Current evidence rejects the earlier false success and server-provisioned
   item path. The external public-agent no-hold smoke now proves ordinary
   material collection, placement, chat evidence, generated navigation, and
-  generic combat outcome evidence without static scenario APIs; it still has
-  not proven a legitimately crafted/obtained weapon, the exact cow/beef/leather
-  acceptance variant, or Robin's in-game completion confirmation.
+  generic combat outcome evidence without static scenario APIs, including the
+  exact cow/beef/leather acceptance variant; it still has not proven a
+  legitimately crafted/obtained weapon or Robin's in-game completion
+  confirmation.
 - [!] The final survival proof is reproduced by an external public-agent runner
   over generated OpenAPI/SSE/CLI/skills, not by hard-coding the scenario as a
   durable public `task.survival.*` API. The previous
@@ -763,11 +766,12 @@ Verification:
   `task.survival.honest-cow-hunt` or writes `survival-task-results.jsonl`.
 - [ ] Final live gameplay still must prove the scenario through generated
   public actions, SSE events, adaptive consumers, and Robin's Minecraft chat
-  confirmation. Latest live no-hold runs prove recipe/crafting and placement
-  through generated public actions, and combat-policy tests now keep the same
-  public entity handle while avoiding unnecessary re-navigation. The current
-  live blocker remains `insufficient-public-evidence:entity.query.attack-target`
-  when bounded exploration finds no attackable public entity.
+  confirmation. Latest live no-hold runs prove recipe/crafting, placement,
+  bounded attack-target exploration past a failed generated navigation
+  waypoint, and cow combat outcome evidence through generated public actions.
+  Remaining completion gates are honest weapon acquisition/composition as
+  required by the survival scenario, held multiplayer observation, any fixes
+  found there, and Robin's explicit Minecraft chat confirmation.
 
 Verification:
 
