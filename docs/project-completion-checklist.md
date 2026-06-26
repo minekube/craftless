@@ -607,8 +607,9 @@ Verification:
   `docs/superpowers/specs/2026-06-26-27-java-runtime-resolution-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-26-27-java-runtime-resolution-plan.md`.
-- [ ] Java runtime requirements are derived from Minecraft version metadata,
-  including Java 25 for Minecraft `26.2`.
+- [x] Java runtime requirements are derived from Minecraft version metadata,
+  including Java 25 for Minecraft `26.2`. Evidence:
+  `mise exec -- gradle :daemon:test --tests '*JavaRuntimeRequirementResolverTest*'`.
 - [ ] A Craftless-owned resolver validates and selects explicit, managed,
   mise-discovered, and system Java candidates through one internal interface.
 - [ ] `mise` is an optional Java provider for product runtime selection, not
