@@ -578,8 +578,11 @@ Verification:
   Evidence:
   `mise exec -- gradle :driver-fabric:test --tests '*FabricRuntimeProviderTest*'`
   and `mise exec -- gradle :driver-fabric:detekt :driver-fabric:ktlintCheck`.
-- [ ] Compatibility matrix and provider-selection tests cover the current lane
+- [x] Compatibility matrix and provider-selection tests cover the current lane
   plus at least one simulated or additional lane.
+  Evidence:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricCompatibilityMatrixTest*' --tests '*FabricCurrentLaneRuntimeProviderTest*'`
+  and `mise exec -- gradle :testkit:test --tests '*LocalMinecraftServerSmokeTest*'`.
 - [ ] Runtime probe metadata records version/provider support and unavailable
   reasons without leaking Fabric/Yarn/Minecraft names into public API.
 - [ ] Java runtime selection is version-aware; Minecraft `26.2` requires Java

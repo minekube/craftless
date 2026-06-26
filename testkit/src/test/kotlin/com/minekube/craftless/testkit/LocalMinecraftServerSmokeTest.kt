@@ -154,6 +154,45 @@ class LocalMinecraftServerSmokeTest {
     }
 
     @Test
+    fun `local server smoke records unsupported runtime lane without provisioning server`() {
+        val root = createTempDirectory("craftless-local-server-smoke-runtime-lane")
+        val config =
+            LocalMinecraftServerSmokeConfig.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_LOCAL_SERVER_SMOKE" to "1",
+                    "CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT" to root.toString(),
+                    "CRAFTLESS_SMOKE_RUNTIME_LANE_JSON" to
+                        """
+                        {
+                          "id": "fabric-simulated-26",
+                          "status": "UNSUPPORTED",
+                          "minecraftVersion": "26.2",
+                          "javaMajorVersion": 25,
+                          "providerId": "fabric-simulated-provider",
+                          "unsupportedReason": "runtime-lane-missing"
+                        }
+                        """.trimIndent(),
+                ),
+            )
+
+        var provisioned = false
+        val result =
+            LocalMinecraftServerSmoke.runWithServer(
+                config = config,
+                provisionServerJar = { _, _ ->
+                    provisioned = true
+                    root.resolve("server.jar")
+                },
+            )
+
+        assertEquals(LocalMinecraftServerSmokeStatus.UNSUPPORTED, result.status)
+        assertFalse(provisioned)
+        val evidence = requireNotNull(result.runtimeLaneEvidence)
+        assertEquals(root.resolve("artifacts").resolve("runtime-lane.json"), evidence)
+        assertTrue(Files.readString(evidence).contains("runtime-lane-missing"))
+    }
+
+    @Test
     fun `local server smoke is enabled by fabric client smoke gate`() {
         val config =
             LocalMinecraftServerSmokeConfig.fromEnvironment(

@@ -5,6 +5,7 @@ import com.minekube.craftless.protocol.JavaRuntimeSelection
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.net.ServerSocket
@@ -41,6 +42,17 @@ object LocalMinecraftServerSmoke {
         return runBlocking {
             HttpClient(CIO).use { http ->
                 val layout = LocalServerFixture(root = config.root, port = config.port).prepare()
+                val runtimeLaneEvidence = config.writeRuntimeLaneEvidence(layout)
+                if (config.runtimeLane?.status == LocalMinecraftSmokeRuntimeLaneStatus.UNSUPPORTED) {
+                    return@use LocalMinecraftServerSmokeResult(
+                        status = LocalMinecraftServerSmokeStatus.UNSUPPORTED,
+                        message =
+                            "local Minecraft server smoke unsupported for runtime lane " +
+                                "${config.runtimeLane.id}: ${config.runtimeLane.unsupportedReason}",
+                        root = config.root,
+                        runtimeLaneEvidence = runtimeLaneEvidence,
+                    )
+                }
                 val javaSelectionEvidence = config.writeJavaSelectionEvidence(layout)
                 val serverJar = provisionServerJar(layout, http)
                 val server =
@@ -80,6 +92,7 @@ object LocalMinecraftServerSmoke {
                     actionLog = commandResult?.log,
                     actionExitCode = commandResult?.exitCode,
                     javaSelectionEvidence = javaSelectionEvidence,
+                    runtimeLaneEvidence = runtimeLaneEvidence,
                     evidenceSummary = layout.assertExpectedEvidence(config),
                 )
             }
@@ -102,6 +115,7 @@ data class LocalMinecraftServerSmokeResult(
     val actionLog: Path? = null,
     val actionExitCode: Int? = null,
     val javaSelectionEvidence: Path? = null,
+    val runtimeLaneEvidence: Path? = null,
     val evidenceSummary: LocalMinecraftSmokeEvidenceSummary = LocalMinecraftSmokeEvidenceSummary(),
 )
 
@@ -114,6 +128,7 @@ data class LocalMinecraftSmokeEvidenceSummary(
 
 enum class LocalMinecraftServerSmokeStatus {
     SKIPPED,
+    UNSUPPORTED,
     RAN,
 }
 
@@ -125,10 +140,40 @@ fun main() {
     result.exitCode?.let { println("exitCode=$it") }
 }
 
+@Serializable
+data class LocalMinecraftSmokeRuntimeLane(
+    val id: String,
+    val status: LocalMinecraftSmokeRuntimeLaneStatus,
+    val minecraftVersion: String,
+    val javaMajorVersion: Int,
+    val providerId: String,
+    val unsupportedReason: String? = null,
+) {
+    init {
+        require(id.isNotBlank()) { "runtime lane id is required" }
+        require(minecraftVersion.isNotBlank()) { "runtime lane Minecraft version is required" }
+        require(javaMajorVersion > 0) { "runtime lane Java version must be positive" }
+        require(providerId.isNotBlank()) { "runtime lane provider id is required" }
+        if (status == LocalMinecraftSmokeRuntimeLaneStatus.UNSUPPORTED) {
+            require(!unsupportedReason.isNullOrBlank()) { "unsupported runtime lane requires reason" }
+        } else {
+            require(unsupportedReason == null) { "supported runtime lane must not declare unsupported reason" }
+        }
+    }
+}
+
+@Serializable
+enum class LocalMinecraftSmokeRuntimeLaneStatus {
+    SUPPORTED,
+    EXPERIMENTAL,
+    UNSUPPORTED,
+}
+
 data class LocalMinecraftServerSmokeConfig(
     val enabled: Boolean,
     val root: Path,
     val minecraftVersion: String = "1.21.6",
+    val runtimeLane: LocalMinecraftSmokeRuntimeLane? = null,
     val javaSelection: JavaRuntimeSelection? = null,
     val port: Int = DEFAULT_MINECRAFT_SERVER_PORT,
     val javaExecutable: Path =
@@ -166,6 +211,8 @@ data class LocalMinecraftServerSmokeConfig(
         private const val FABRIC_ENABLED = "CRAFTLESS_FABRIC_CLIENT_SMOKE"
         private const val ROOT = "CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT"
         private const val VERSION = "CRAFTLESS_SMOKE_MINECRAFT_VERSION"
+        private const val RUNTIME_LANE_JSON = "CRAFTLESS_SMOKE_RUNTIME_LANE_JSON"
+        private const val RUNTIME_LANE_FILE = "CRAFTLESS_SMOKE_RUNTIME_LANE_FILE"
         private const val JAVA_EXECUTABLE = "CRAFTLESS_SMOKE_JAVA_EXECUTABLE"
         private const val JAVA_SELECTION_JSON = "CRAFTLESS_SMOKE_JAVA_SELECTION_JSON"
         private const val JAVA_SELECTION_FILE = "CRAFTLESS_SMOKE_JAVA_SELECTION_FILE"
@@ -189,11 +236,13 @@ data class LocalMinecraftServerSmokeConfig(
                     ?.takeIf { it.isNotBlank() }
                     ?.let(Path::of)
                     ?: Path.of("build", "craftless-local-server-smoke")
+            val runtimeLane = env.runtimeLane()
             val javaSelection = env.javaSelection()
             return LocalMinecraftServerSmokeConfig(
                 enabled = enabled,
                 root = root,
                 minecraftVersion = env[VERSION]?.takeIf { it.isNotBlank() } ?: "1.21.6",
+                runtimeLane = runtimeLane,
                 javaSelection = javaSelection,
                 port =
                     env[CRAFTLESS_SMOKE_SERVER_PORT_ENV]?.toIntStrict(CRAFTLESS_SMOKE_SERVER_PORT_ENV)
@@ -249,6 +298,17 @@ data class LocalMinecraftServerSmokeConfig(
                 }
             }
             error("could not allocate a non-default Minecraft smoke server port")
+        }
+
+        private fun Map<String, String>.runtimeLane(): LocalMinecraftSmokeRuntimeLane? {
+            this[RUNTIME_LANE_JSON]
+                ?.takeIf { it.isNotBlank() }
+                ?.let { return smokeJson.decodeFromString<LocalMinecraftSmokeRuntimeLane>(it) }
+            return this[RUNTIME_LANE_FILE]
+                ?.takeIf { it.isNotBlank() }
+                ?.let(Path::of)
+                ?.let { path -> Files.readString(path) }
+                ?.let { document -> smokeJson.decodeFromString<LocalMinecraftSmokeRuntimeLane>(document) }
         }
 
         private fun Map<String, String>.javaSelection(): JavaRuntimeSelection? {
@@ -464,6 +524,14 @@ private fun LocalMinecraftServerSmokeConfig.writeJavaSelectionEvidence(layout: L
     Files.createDirectories(layout.artifactsDir)
     val evidence = layout.artifactsDir.resolve("java-runtime-selection.json")
     Files.writeString(evidence, smokeJson.encodeToString(selection) + "\n", CREATE, TRUNCATE_EXISTING)
+    return evidence
+}
+
+private fun LocalMinecraftServerSmokeConfig.writeRuntimeLaneEvidence(layout: LocalServerLayout): Path? {
+    val lane = runtimeLane ?: return null
+    Files.createDirectories(layout.artifactsDir)
+    val evidence = layout.artifactsDir.resolve("runtime-lane.json")
+    Files.writeString(evidence, smokeJson.encodeToString(lane) + "\n", CREATE, TRUNCATE_EXISTING)
     return evidence
 }
 
