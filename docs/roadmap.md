@@ -194,8 +194,10 @@ of mirroring the API by hand.
   emits HTTP `ETag` revalidation metadata for the live per-client spec;
   action/resource projections share the same validator;
   the Bun helper revalidates its process-local cached live spec with
-  `If-None-Match`; durable generated-client cache implementations remain
-  future work.
+  `If-None-Match`; `craftless clients <id> actions --openapi-cache <dir>` now
+  persists the live per-client OpenAPI body plus ETag and revalidates it
+  across CLI invocations. Broader durable generated-client and CLI cache
+  coverage remains future work.
 - Render dynamic CLI help from `/clients/{id}/openapi.json`, using
   `/clients/{id}/actions` only as a descriptor projection/availability view.
 - Export agent-tool manifests from `/clients/{id}/openapi.json` through

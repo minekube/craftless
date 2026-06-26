@@ -20,9 +20,13 @@ import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.application.call
 import io.ktor.server.engine.embeddedServer
+import io.ktor.server.request.header
+import io.ktor.server.response.header
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
@@ -841,6 +845,50 @@ class CraftlessCliTest {
         }
 
         val actions = Json.parseToJsonElement(output.toString().trim()).jsonArray
+        assertEquals(listOf("player.chat"), actions.map { it.jsonObject["id"]?.jsonPrimitive?.content })
+    }
+
+    @Test
+    fun `clients actions revalidates durable live openapi cache by etag`() {
+        val cacheDir = Files.createTempDirectory("craftless-cli-openapi-cache")
+        val firstOutput = StringBuilder()
+        val secondOutput = StringBuilder()
+
+        RevalidatingOpenApiServer().use { server ->
+            val firstExit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "actions",
+                        "--api",
+                        server.url,
+                        "--openapi-cache",
+                        cacheDir.toString(),
+                    ),
+                    stdout = { firstOutput.appendLine(it) },
+                )
+            val secondExit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "actions",
+                        "--api",
+                        server.url,
+                        "--openapi-cache",
+                        cacheDir.toString(),
+                    ),
+                    stdout = { secondOutput.appendLine(it) },
+                )
+
+            assertEquals(0, firstExit)
+            assertEquals(0, secondExit)
+            assertEquals(listOf(null, "etag-v1"), server.ifNoneMatchValues)
+        }
+
+        assertEquals(firstOutput.toString(), secondOutput.toString())
+        val actions = Json.parseToJsonElement(secondOutput.toString().trim()).jsonArray
         assertEquals(listOf("player.chat"), actions.map { it.jsonObject["id"]?.jsonPrimitive?.content })
     }
 
@@ -1764,6 +1812,79 @@ class CraftlessCliTest {
             private set
         var aliasCalled: Boolean = false
             private set
+
+        init {
+            server.start()
+        }
+
+        override fun close() {
+            server.stop(gracePeriodMillis = 250, timeoutMillis = 1_000)
+        }
+
+        private fun allocateLoopbackPort(): Int =
+            ServerSocket(0).use { socket ->
+                socket.reuseAddress = true
+                socket.localPort
+            }
+    }
+
+    private class RevalidatingOpenApiServer : AutoCloseable {
+        private val port = allocateLoopbackPort()
+        private val values = mutableListOf<String?>()
+        val ifNoneMatchValues: List<String?>
+            get() = values.toList()
+        private val server =
+            embeddedServer(ServerCIO, host = "127.0.0.1", port = port) {
+                routing {
+                    get("/clients/alice/openapi.json") {
+                        val ifNoneMatch = call.request.header(HttpHeaders.IfNoneMatch)
+                        values += ifNoneMatch
+                        if (ifNoneMatch == "etag-v1") {
+                            call.response.header(HttpHeaders.ETag, "etag-v1")
+                            call.respondText("", ContentType.Application.Json, HttpStatusCode.NotModified)
+                        } else {
+                            call.response.header(HttpHeaders.ETag, "etag-v1")
+                            call.respondText(
+                                """
+                                {
+                                  "openapi": "3.1.0",
+                                  "info": { "title": "Revalidating test API", "version": "1" },
+                                  "paths": {
+                                    "/clients/alice:run": {
+                                      "post": {
+                                        "operationId": "runClientAction",
+                                        "tags": ["clients"],
+                                        "responses": { "200": { "description": "OK" } },
+                                        "x-craftless": {
+                                          "x-craftless-owner": "clients",
+                                          "x-craftless-target": "client",
+                                          "x-craftless-return": "value",
+                                          "x-craftless-source": "action",
+                                          "x-craftless-member": "run"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "x-craftless": {
+                                    "x-craftless-runtime-fingerprint": "fingerprint-test"
+                                  },
+                                  "x-craftless-actions": [
+                                    {
+                                      "id": "player.chat",
+                                      "schemaVersion": "1",
+                                      "args": { "message": { "type": "string", "required": true } }
+                                    }
+                                  ],
+                                  "x-craftless-resources": []
+                                }
+                                """.trimIndent(),
+                                ContentType.Application.Json,
+                            )
+                        }
+                    }
+                }
+            }
+        val url = "http://127.0.0.1:$port"
 
         init {
             server.start()

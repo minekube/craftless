@@ -21,10 +21,13 @@ import com.minekube.craftless.protocol.Profile
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import kotlinx.serialization.Serializable
@@ -34,7 +37,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
+import java.nio.file.Files
 import java.nio.file.Path
+import java.security.MessageDigest
 import java.util.concurrent.CountDownLatch
 
 fun main(args: Array<String>) {
@@ -495,20 +500,20 @@ object CraftlessCli {
     ): Int {
         val clientId = args.getOrNull(0).orEmpty()
         if (clientId.isBlank()) {
-            stderr("error: usage is clients <id> actions [--api <url>]")
+            stderr("error: usage is clients <id> actions [--api <url>] [--openapi-cache <dir>]")
             return 2
         }
         val api = args.apiBaseUrl(env)
+        val openApiCache = args.optionValue("--openapi-cache")?.let(Path::of)
         return runCatching {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
-                    val response = http.get("${api.trimEnd('/')}/clients/$clientId/openapi.json")
-                    val body = response.bodyAsText()
-                    if (!response.status.isSuccess()) {
-                        stderr(body)
+                    val openApiBody = http.getClientOpenApiBody(api = api, clientId = clientId, cacheRoot = openApiCache)
+                    if (openApiBody == null) {
+                        stderr("error: live OpenAPI cache could not be revalidated for client $clientId")
                         return@runBlocking 1
                     }
-                    val openApi = json.decodeFromString<OpenApiDocument>(body)
+                    val openApi = json.decodeFromString<OpenApiDocument>(openApiBody)
                     stdout(json.encodeToString(openApi.actions))
                     0
                 }
@@ -517,6 +522,35 @@ object CraftlessCli {
             stderr("error: ${error.message ?: "failed to fetch actions"}")
             2
         }
+    }
+
+    private suspend fun HttpClient.getClientOpenApiBody(
+        api: String,
+        clientId: String,
+        cacheRoot: Path?,
+    ): String? {
+        val cacheEntry = cacheRoot?.readOpenApiCacheEntry(api = api, clientId = clientId)
+        val response =
+            get("${api.trimEnd('/')}/clients/$clientId/openapi.json") {
+                cacheEntry?.etag?.let { etag -> header(HttpHeaders.IfNoneMatch, etag) }
+            }
+        if (response.status == HttpStatusCode.NotModified) {
+            return cacheEntry?.body
+        }
+        val body = response.bodyAsText()
+        if (!response.status.isSuccess()) {
+            return null
+        }
+        cacheRoot?.writeOpenApiCacheEntry(
+            api = api,
+            clientId = clientId,
+            entry =
+                OpenApiCacheEntry(
+                    etag = response.headers[HttpHeaders.ETag],
+                    body = body,
+                ),
+        )
+        return body
     }
 
     private fun getClientResources(
@@ -856,6 +890,33 @@ object CraftlessCli {
             else -> toJsonArgument()
         }
 
+    private fun Path.readOpenApiCacheEntry(
+        api: String,
+        clientId: String,
+    ): OpenApiCacheEntry? =
+        runCatching {
+            json.decodeFromString<OpenApiCacheEntry>(Files.readString(openApiCacheFile(api, clientId)))
+        }.getOrNull()
+
+    private fun Path.writeOpenApiCacheEntry(
+        api: String,
+        clientId: String,
+        entry: OpenApiCacheEntry,
+    ) {
+        Files.createDirectories(this)
+        Files.writeString(openApiCacheFile(api, clientId), json.encodeToString(entry))
+    }
+
+    private fun Path.openApiCacheFile(
+        api: String,
+        clientId: String,
+    ): Path = resolve("${"$api\n$clientId".sha256Prefix()}.json")
+
+    private fun String.sha256Prefix(): String {
+        val digest = MessageDigest.getInstance("SHA-256").digest(encodeToByteArray())
+        return digest.joinToString("") { byte -> "%02x".format(byte) }.take(32)
+    }
+
     private suspend fun io.ktor.client.statement.HttpResponse.forwardActionResultBody(
         stdout: (String) -> Unit,
         stderr: (String) -> Unit,
@@ -927,6 +988,12 @@ data class ActionInvocationResponse(
     val action: String,
     val status: String,
     val message: String? = null,
+)
+
+@Serializable
+private data class OpenApiCacheEntry(
+    val etag: String? = null,
+    val body: String,
 )
 
 @Serializable
