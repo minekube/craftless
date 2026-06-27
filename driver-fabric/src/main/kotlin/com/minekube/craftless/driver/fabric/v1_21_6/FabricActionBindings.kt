@@ -10,7 +10,6 @@ import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.booleanArgument
 import com.minekube.craftless.driver.api.intArgument
-import com.minekube.craftless.driver.api.requireChatMessage
 import com.minekube.craftless.driver.api.stringArgument
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -745,8 +744,30 @@ private object FabricPlayerChatActionBinding : FabricActionBinding {
         invocation: DriverActionInvocation,
         context: FabricActionContext,
     ): DriverActionResult {
-        val message = requireNotNull(invocation.arguments.stringArgument("message")) { "message is required" }
-        requireChatMessage(message)
+        val message =
+            invocation.arguments.stringArgument("message")
+                ?: return DriverActionResult(
+                    action = invocation.action,
+                    status = DriverActionStatus.FAILED,
+                    message = "missing-message",
+                    data = actionFailure("missing-message", "sent"),
+                )
+        if (message.isBlank()) {
+            return DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.FAILED,
+                message = "blank-message",
+                data = actionFailure("blank-message", "sent"),
+            )
+        }
+        if (message.startsWith("/")) {
+            return DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.FAILED,
+                message = "minecraft-command-rejected",
+                data = actionFailure("minecraft-command-rejected", "sent"),
+            )
+        }
         context.record("chat $clientId $message")
         context.executeOnClient {
             val networkHandler = requireNotNull(networkHandler) { "client is not connected to a server" }

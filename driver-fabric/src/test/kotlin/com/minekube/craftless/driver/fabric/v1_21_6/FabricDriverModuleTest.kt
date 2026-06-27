@@ -2595,11 +2595,57 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric backend reports missing player chat message as action failure`() {
+        val gateway = RecordingFabricClientGateway()
+        val backend = FabricDriverBackend.real(gateway)
+
+        val result =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "player.chat",
+                    arguments = emptyMap(),
+                ),
+            )
+
+        assertEquals("player.chat", result.action)
+        assertEquals(DriverActionStatus.FAILED, result.status)
+        assertEquals("missing-message", result.message)
+        assertEquals(false, result.data["sent"]?.jsonPrimitive?.boolean)
+        assertEquals("missing-message", result.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(emptyList(), gateway.actions)
+        assertEquals(0, gateway.scheduled)
+    }
+
+    @Test
+    fun `fabric backend reports blank player chat message as action failure`() {
+        val gateway = RecordingFabricClientGateway()
+        val backend = FabricDriverBackend.real(gateway)
+
+        val result =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "player.chat",
+                    arguments = mapOf("message" to JsonPrimitive("  ")),
+                ),
+            )
+
+        assertEquals("player.chat", result.action)
+        assertEquals(DriverActionStatus.FAILED, result.status)
+        assertEquals("blank-message", result.message)
+        assertEquals(false, result.data["sent"]?.jsonPrimitive?.boolean)
+        assertEquals("blank-message", result.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(emptyList(), gateway.actions)
+        assertEquals(0, gateway.scheduled)
+    }
+
+    @Test
     fun `fabric backend rejects raw minecraft command strings as chat action input`() {
         val gateway = RecordingFabricClientGateway()
         val backend = FabricDriverBackend.real(gateway)
 
-        assertFailsWith<IllegalArgumentException> {
+        val result =
             backend.invoke(
                 "alice",
                 DriverActionInvocation(
@@ -2607,8 +2653,12 @@ class FabricDriverModuleTest {
                     arguments = mapOf("message" to JsonPrimitive("/server lobby")),
                 ),
             )
-        }
 
+        assertEquals("player.chat", result.action)
+        assertEquals(DriverActionStatus.FAILED, result.status)
+        assertEquals("minecraft-command-rejected", result.message)
+        assertEquals(false, result.data["sent"]?.jsonPrimitive?.boolean)
+        assertEquals("minecraft-command-rejected", result.data["reason"]?.jsonPrimitive?.content)
         assertEquals(emptyList(), gateway.actions)
         assertEquals(0, gateway.scheduled)
     }
