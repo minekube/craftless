@@ -484,6 +484,9 @@ Verification:
   machine-readable generated-action failures such as
   `invalid-target-handle` or `invalid-target-position` instead of throwing
   before public result data can be returned.
+- [x] Invalid `world.block.break` scalar arguments now return
+  machine-readable generated-action failures such as
+  `invalid-max-distance` or `invalid-ticks` before scheduling client work.
 - [x] Live no-hold evidence shows targeted break data and collected inventory
   state. Current evidence: `world.block.query` selected
   `world.block:57:77:-292`; `world.block.break` returned the same handle and
@@ -492,6 +495,7 @@ Verification:
 Verification:
 
 - `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric block break rejects malformed target handle' --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric block break rejects incomplete target position'`
+- `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric block break rejects invalid scalar arguments with machine readable failures'`
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest*'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
@@ -671,6 +675,9 @@ Verification:
   machine-readable generated-action failures such as
   `invalid-target-handle` with `accepted=false` instead of throwing before
   public result data can be returned.
+- [x] Invalid `world.block.interact` scalar arguments now return
+  machine-readable generated-action failures such as
+  `invalid-max-distance` or `invalid-side` before scheduling client work.
 - [x] Public-agent composition invokes targetable `world.block.interact` only
   when the generated action descriptor advertises `target`, refreshes public
   support block evidence after navigation, requires an unoccupied replaceable
@@ -689,6 +696,7 @@ Verification:
 
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric runtime discovery exposes block interact only from client state'`
 - `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric block interact rejects malformed target handle with machine readable failure'`
+- `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric block interact rejects invalid scalar arguments with machine readable failures'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=120000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 

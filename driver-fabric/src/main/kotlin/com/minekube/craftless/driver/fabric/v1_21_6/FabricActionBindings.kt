@@ -229,9 +229,23 @@ internal object FabricWorldBlockBreakActionBinding : FabricActionBinding {
         context: FabricActionContext,
     ): DriverActionResult {
         val maxDistance = invocation.arguments["max-distance"]?.jsonPrimitive?.doubleOrNull ?: DEFAULT_MAX_DISTANCE
-        require(maxDistance > 0.0) { "block break max-distance must be positive" }
+        if (maxDistance <= 0.0) {
+            return DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.FAILED,
+                message = "invalid-max-distance",
+                data = blockBreakFailure("invalid-max-distance"),
+            )
+        }
         val ticks = invocation.arguments.intArgument("ticks") ?: DEFAULT_BREAK_TICKS
-        require(ticks in 1..MAX_BREAK_TICKS) { "block break ticks must be between 1 and $MAX_BREAK_TICKS" }
+        if (ticks !in 1..MAX_BREAK_TICKS) {
+            return DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.FAILED,
+                message = "invalid-ticks",
+                data = blockBreakFailure("invalid-ticks"),
+            )
+        }
         val includeFluids = invocation.arguments.booleanArgument("include-fluids")
         val targetParse = invocation.arguments.blockBreakTarget()
         if (targetParse.reason != null) {
@@ -310,7 +324,14 @@ internal object FabricWorldBlockInteractActionBinding : FabricActionBinding {
         context: FabricActionContext,
     ): DriverActionResult {
         val maxDistance = invocation.arguments["max-distance"]?.jsonPrimitive?.doubleOrNull ?: DEFAULT_MAX_DISTANCE
-        require(maxDistance > 0.0) { "block interact max-distance must be positive" }
+        if (maxDistance <= 0.0) {
+            return DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.FAILED,
+                message = "invalid-max-distance",
+                data = blockInteractFailure("invalid-max-distance"),
+            )
+        }
         val includeFluids = invocation.arguments.booleanArgument("include-fluids")
         val targetParse = invocation.arguments.blockBreakTarget()
         if (targetParse.reason != null) {
@@ -322,7 +343,16 @@ internal object FabricWorldBlockInteractActionBinding : FabricActionBinding {
             )
         }
         val requestedTarget = targetParse.target
-        val requestedSide = invocation.arguments.blockSide(Direction.UP)
+        val sideParse = invocation.arguments.blockSide(Direction.UP)
+        if (sideParse.reason != null) {
+            return DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.FAILED,
+                message = sideParse.reason,
+                data = blockInteractFailure(sideParse.reason),
+            )
+        }
+        val requestedSide = sideParse.side
         val data =
             context.queryOnClient {
                 val player = requireNotNull(player) { "client is not connected to a server" }
@@ -515,16 +545,19 @@ private fun Map<String, JsonElement>.blockBreakTarget(): CraftlessBlockTargetPar
     )
 }
 
-private fun Map<String, JsonElement>.blockSide(default: Direction): Direction {
+private fun Map<String, JsonElement>.blockSide(default: Direction): CraftlessBlockSideParse {
     val side =
         this["side"]
             ?.jsonPrimitive
             ?.contentOrNull
             ?.trim()
             ?.takeIf { it.isNotEmpty() }
-            ?: return default
-    return Direction.entries.firstOrNull { direction -> direction.name.equals(side, ignoreCase = true) }
-        ?: error("block side must be one of down, up, north, south, west, east")
+            ?: return CraftlessBlockSideParse(side = default)
+    val direction = Direction.entries.firstOrNull { direction -> direction.name.equals(side, ignoreCase = true) }
+    return CraftlessBlockSideParse(
+        side = direction ?: default,
+        reason = if (direction == null) "invalid-side" else null,
+    )
 }
 
 private fun parseCraftlessBlockHandle(handle: String): BlockPos? {
@@ -562,6 +595,11 @@ private data class CraftlessBlockBreakTarget(
 private data class CraftlessBlockTargetParse(
     val reason: String? = null,
     val target: CraftlessBlockBreakTarget? = null,
+)
+
+private data class CraftlessBlockSideParse(
+    val side: Direction,
+    val reason: String? = null,
 )
 
 private fun blockBreakFailure(reason: String): JsonObject =

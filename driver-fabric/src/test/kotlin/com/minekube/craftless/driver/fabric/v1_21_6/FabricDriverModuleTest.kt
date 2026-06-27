@@ -1326,6 +1326,41 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric block break rejects invalid scalar arguments with machine readable failures`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        val backend = FabricDriverBackend.real(gateway)
+
+        val invalidDistance =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "world.block.break",
+                    arguments = mapOf("max-distance" to JsonPrimitive(0.0)),
+                ),
+            )
+        val invalidTicks =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "world.block.break",
+                    arguments = mapOf("ticks" to JsonPrimitive(0)),
+                ),
+            )
+
+        assertEquals(DriverActionStatus.FAILED, invalidDistance.status)
+        assertEquals("invalid-max-distance", invalidDistance.message)
+        assertEquals(false, invalidDistance.data["started"]?.jsonPrimitive?.boolean)
+        assertEquals("invalid-max-distance", invalidDistance.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(DriverActionStatus.FAILED, invalidTicks.status)
+        assertEquals("invalid-ticks", invalidTicks.message)
+        assertEquals(false, invalidTicks.data["started"]?.jsonPrimitive?.boolean)
+        assertEquals("invalid-ticks", invalidTicks.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(emptyList(), gateway.actions)
+        assertEquals(0, gateway.scheduled)
+    }
+
+    @Test
     fun `fabric runtime graph exposes block query from client state`() {
         val gateway = RecordingFabricClientGateway()
         gateway.connected = false
@@ -2246,6 +2281,41 @@ class FabricDriverModuleTest {
         assertEquals("invalid-target-handle", result.message)
         assertEquals(false, result.data["accepted"]?.jsonPrimitive?.boolean)
         assertEquals("invalid-target-handle", result.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(emptyList(), gateway.actions)
+        assertEquals(0, gateway.scheduled)
+    }
+
+    @Test
+    fun `fabric block interact rejects invalid scalar arguments with machine readable failures`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        val backend = FabricDriverBackend.real(gateway)
+
+        val invalidDistance =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "world.block.interact",
+                    arguments = mapOf("max-distance" to JsonPrimitive(0.0)),
+                ),
+            )
+        val invalidSide =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "world.block.interact",
+                    arguments = mapOf("side" to JsonPrimitive("diagonal")),
+                ),
+            )
+
+        assertEquals(DriverActionStatus.FAILED, invalidDistance.status)
+        assertEquals("invalid-max-distance", invalidDistance.message)
+        assertEquals(false, invalidDistance.data["accepted"]?.jsonPrimitive?.boolean)
+        assertEquals("invalid-max-distance", invalidDistance.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(DriverActionStatus.FAILED, invalidSide.status)
+        assertEquals("invalid-side", invalidSide.message)
+        assertEquals(false, invalidSide.data["accepted"]?.jsonPrimitive?.boolean)
+        assertEquals("invalid-side", invalidSide.data["reason"]?.jsonPrimitive?.content)
         assertEquals(emptyList(), gateway.actions)
         assertEquals(0, gateway.scheduled)
     }
