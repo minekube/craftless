@@ -1962,6 +1962,25 @@ Verification:
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric smoke controller extends final gameplay hold on chat activity*'`
 - `git diff --check`
 
+## Phase 63: Public Agent Partial Recipe Material
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-63-public-agent-partial-recipe-material-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-63-public-agent-partial-recipe-material-plan.md`.
+- [x] The external public-agent runner can continue into generic recipe
+  discovery/crafting after public inventory evidence proves at least one
+  material item and later collection navigation fails.
+- [x] The runner still uses generated generic actions only and adds no product
+  gameplay action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.PublicAgentGameplayRunnerTest' --rerun-tasks`
+- `git diff --check`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above are checked with current evidence; final

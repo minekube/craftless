@@ -400,6 +400,47 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner tries generated recipes with partial material evidence when later collection navigation fails`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + listOf("recipe.query", "recipe.craft"),
+                    inventoryResponses =
+                        listOf(
+                            EMPTY_INVENTORY_QUERY_RESPONSE,
+                            logCountInventoryResponse(count = 1),
+                            logCountInventoryResponse(count = 1),
+                            logCountInventoryResponse(count = 1),
+                            logCountInventoryResponse(count = 1),
+                            logCountInventoryResponse(count = 1),
+                            logCountInventoryResponse(count = 1),
+                            logCountInventoryResponse(count = 1),
+                            craftedMaterialInventoryResponse,
+                        ),
+                    navigationFollowResponses =
+                        listOf(
+                            NAVIGATION_SUCCEEDED_RESPONSE,
+                            NAVIGATION_SUCCEEDED_RESPONSE,
+                            NAVIGATION_FAILED_RESPONSE,
+                            NAVIGATION_FAILED_RESPONSE,
+                            NAVIGATION_FAILED_RESPONSE,
+                            NAVIGATION_FAILED_RESPONSE,
+                        ),
+                    recipeQueryResponse = materialRecipeQueryResponse,
+                    recipeCraftResponse = MATERIAL_RECIPE_CRAFT_RESPONSE,
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertTrue(result.actionLog.map { it.action }.contains("recipe.query"))
+            assertTrue(result.actionLog.map { it.action }.contains("recipe.craft"))
+            assertTrue(result.actionLog.map { it.action }.count { it == "world.block.break" } >= 2)
+            assertFalse(result.blocker == "insufficient-public-evidence:inventory.query.recipe-material", result.blocker)
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner invokes generic entity attack from discovered public handle when available`() =
         runBlocking {
             val server =

@@ -174,6 +174,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 60. final gameplay join handoff.
 61. local server action environment boundary.
 62. final gameplay activity hold.
+63. public-agent partial recipe material.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -454,6 +455,13 @@ Robin's explicit Minecraft chat confirmation, and must not add gameplay
 shortcuts, public gameplay actions, generated route families, CLI gameplay
 catalogs, Fabric descriptor/binding pairs, scenario shortcuts, new compiled
 lanes, public version-specific APIs, or new Minecraft support claims.
+Phase 63 lets the external public-agent runner continue from partial public
+material evidence into generic recipe discovery/crafting when the live client
+exposes `recipe.query` and `recipe.craft`. It must stay external agent policy,
+must require public inventory evidence before continuing, and must not add
+material-specific actions, gameplay shortcuts, generated route families, CLI
+gameplay catalogs, Fabric descriptor/binding pairs, scenario shortcuts, new
+compiled lanes, public version-specific APIs, or new Minecraft support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

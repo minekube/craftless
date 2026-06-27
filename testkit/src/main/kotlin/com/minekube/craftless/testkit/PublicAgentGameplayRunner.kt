@@ -480,24 +480,39 @@ class PublicAgentGameplayRunner(
                 }
             }
 
+            val recipeCompositionAvailable = "recipe.query" in actionIds && "recipe.craft" in actionIds
             val targetMaterialCount =
-                if ("recipe.query" in actionIds && "recipe.craft" in actionIds) {
+                if (recipeCompositionAvailable) {
                     MIN_RECIPE_COMPOSITION_MATERIAL_ITEMS
                 } else {
                     1
                 }
             var finalInventoryObject: JsonObject? = null
-            for (attempt in 1..MATERIAL_COLLECTION_ATTEMPTS) {
+            var materialCollectionBlocker: String? = null
+            var materialCollectionAttempt = 1
+            var materialCollectionComplete = false
+            while (!materialCollectionComplete && materialCollectionAttempt <= MATERIAL_COLLECTION_ATTEMPTS) {
                 val collection = collectMaterialInventory(finalInventoryObject?.logItemCount() ?: 0)
-                collection.blocker?.let { blocker -> return blockedAndWrite(blocker) }
-                finalInventoryObject = collection.inventory
-                if ((finalInventoryObject?.logItemCount() ?: 0) >= targetMaterialCount) {
-                    break
+                val provenLogCount = finalInventoryObject?.logItemCount() ?: 0
+                if (collection.blocker != null) {
+                    materialCollectionComplete = true
+                    if (!recipeCompositionAvailable || provenLogCount == 0) {
+                        materialCollectionBlocker = collection.blocker
+                    }
+                } else {
+                    finalInventoryObject = collection.inventory
+                    val currentLogCount = finalInventoryObject?.logItemCount() ?: 0
+                    materialCollectionComplete =
+                        currentLogCount >= targetMaterialCount ||
+                        (materialCollectionAttempt == MATERIAL_COLLECTION_ATTEMPTS && recipeCompositionAvailable && currentLogCount > 0)
+                    if (!materialCollectionComplete && materialCollectionAttempt == MATERIAL_COLLECTION_ATTEMPTS) {
+                        materialCollectionBlocker = "insufficient-public-evidence:inventory.query.recipe-material"
+                        materialCollectionComplete = true
+                    }
                 }
-                if (attempt == MATERIAL_COLLECTION_ATTEMPTS) {
-                    return blockedAndWrite("insufficient-public-evidence:inventory.query.recipe-material")
-                }
+                materialCollectionAttempt += 1
             }
+            materialCollectionBlocker?.let { blocker -> return blockedAndWrite(blocker) }
             val collectedInventory =
                 finalInventoryObject ?: return blockedAndWrite("insufficient-public-evidence:inventory.query.log")
             val logSlot =
