@@ -96,7 +96,7 @@ mise run ci
 
 Expected: all pass.
 
-- [ ] **Step 3: Re-run final gameplay**
+- [x] **Step 3: Re-run final gameplay**
 
 Run:
 
@@ -104,6 +104,8 @@ Run:
 CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS=720000 mise exec -- gradle :driver-fabric:fabricFinalGameplay
 ```
 
-Expected: the public agent either reaches `publicAgentState=RAN` and the
-ready window for Robin's confirmation, or writes a precise new generic public
-evidence blocker.
+Observed: the public agent reached `publicAgentState=RAN` and the harness wrote
+`final-gameplay-ready.json` for `127.0.0.1:60403`. Robin did not join or
+confirm in Minecraft chat before the hold expired, so
+`final-gameplay-confirmation.json` was not written and final completion remains
+open in `docs/project-completion-checklist.md`.

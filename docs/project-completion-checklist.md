@@ -262,7 +262,15 @@ Verification:
   `insufficient-public-evidence:inventory.query.recipe-material` because stale
   one-log inventory proof from the first material pickup was accepted as proof
   for the second material collection attempt; Phase 31 corrects this by
-  requiring public material count increase evidence.
+  requiring public material count increase evidence. The rerun after Phase 31
+  reached `publicAgentState=RAN`: it collected two logs with public count
+  increase proof, crafted planks, a crafting table, sticks, and a `Wooden Sword`,
+  attacked a public combat target, and proved loot pickup through
+  `inventory.query` showing `Raw Chicken` and `Feather`. The held session wrote
+  `final-gameplay-ready.json` for `127.0.0.1:60403`; `server-evidence.jsonl`
+  contains Craftless' `Player224` join, chat, and disconnect only. Robin did
+  not join or confirm in Minecraft chat, and no
+  `final-gameplay-confirmation.json` was written.
 - [ ] Robin joins or observes the server session after the harness ready prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.
@@ -895,7 +903,13 @@ Verification:
 - [x] Focused regression evidence proves stale one-log inventory does not
   satisfy the second recipe-material collection attempt and that the runner
   keeps querying generated pickup evidence until the public count reaches two.
-- [ ] Final live gameplay has not yet been rerun after this correction.
+- [x] Final live gameplay was rerun after this correction and reached
+  `publicAgentState=RAN`. Evidence:
+  `driver-fabric/build/craftless-final-gameplay/artifacts/public-agent-command.log`
+  reports `publicAgentState=RAN`; `final-gameplay-ready.json` was written for
+  `127.0.0.1:60403`; `server-evidence.jsonl` contains Craftless' `Player224`
+  join/chat/disconnect and no Robin confirmation chat; no
+  `final-gameplay-confirmation.json` was written before the hold expired.
 
 Verification:
 
