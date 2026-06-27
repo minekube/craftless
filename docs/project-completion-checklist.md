@@ -1564,7 +1564,10 @@ Verification:
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-27-50-latest-release-lane-evidence-plan.md`.
 - [x] The real latest-release `26.2` compatibility lane remains unsupported
-  Fabric client runtime evidence, not supported version breadth.
+  Fabric client runtime evidence, not supported version breadth. Refreshed
+  evidence on 2026-06-28 confirms the Mojang manifest still reports latest
+  release `26.2` and latest snapshot `26.3-snapshot-1`:
+  `docs/superpowers/evidence/2026-06-26-version-26-compatibility-probe.md`.
 - [x] The unsupported `26.2` lane id is `latest-release-26-2` instead of
   simulated wording.
 - [x] Runtime provider evidence uses `no-compatible-client-lane` and

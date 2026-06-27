@@ -12,6 +12,32 @@ The official Mojang version manifest reported:
 - latest release: `26.2`
 - latest snapshot: `26.3-snapshot-1`
 
+Refresh on 2026-06-28:
+
+```sh
+mise exec -- bun -e 'const manifest = await (await fetch("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json")).json(); console.log(JSON.stringify({latest: manifest.latest, firstRelease: manifest.versions.find(v => v.type === "release")}, null, 2));'
+```
+
+Output:
+
+```json
+{
+  "latest": {
+    "release": "26.2",
+    "snapshot": "26.3-snapshot-1"
+  },
+  "firstRelease": {
+    "id": "26.2",
+    "type": "release",
+    "url": "https://piston-meta.mojang.com/v1/packages/0089713c6ba08fdfed86b5dfde296f3f3f59c9ee/26.2.json",
+    "time": "2026-06-23T11:49:11+00:00",
+    "releaseTime": "2026-06-16T12:03:33+00:00",
+    "sha1": "0089713c6ba08fdfed86b5dfde296f3f3f59c9ee",
+    "complianceLevel": 1
+  }
+}
+```
+
 ## Commands
 
 Plain server smoke with repository-pinned Java 21:
