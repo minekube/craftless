@@ -40,6 +40,8 @@ confirmation still remain open.
 - [x] Run the focused test and confirm it fails because `fabric.recipe-query` has no adapter.
 - [x] Add `fabric.recipe-query` to `navigationTaskOperationAdapters`.
 - [x] Implement `queryRecipes(invocation)` on the client thread. It returns Craftless-owned handles, category, craftable state, required public ingredients, and produced public outputs.
+- [x] Emit spec-aligned `requires` and `produces` fields alongside
+  compatibility `ingredients` and `outputs` aliases.
 - [x] Ensure public recipe records do not expose raw registry ids or Minecraft/Fabric/Yarn names.
 - [x] Run the focused test and confirm it passes.
 

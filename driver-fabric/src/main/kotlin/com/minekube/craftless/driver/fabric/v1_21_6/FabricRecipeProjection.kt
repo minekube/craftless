@@ -40,27 +40,28 @@ internal fun RecipeDisplayEntry.craftlessOutputItems(): List<CraftlessRecipeItem
 internal fun craftlessRecipeRecord(
     recipe: CraftlessRecipeProjection,
     craftable: Boolean,
-): JsonObject =
-    buildJsonObject {
+): JsonObject {
+    val outputs =
+        buildJsonArray {
+            recipe.outputs.forEach { output -> add(output.toCraftlessRecipeItem()) }
+        }
+    val ingredients =
+        buildJsonArray {
+            recipe.ingredients.forEach { ingredient -> add(ingredient.toCraftlessRecipeItem()) }
+        }
+    return buildJsonObject {
         put("handle", "recipe.handle:${recipe.handleIndex}")
         put("kind", recipe.kind)
         put("craftable", craftable)
-        put(
-            "outputs",
-            buildJsonArray {
-                recipe.outputs.forEach { output -> add(output.toCraftlessRecipeItem()) }
-            },
-        )
-        put(
-            "ingredients",
-            buildJsonArray {
-                recipe.ingredients.forEach { ingredient -> add(ingredient.toCraftlessRecipeItem()) }
-            },
-        )
+        put("outputs", outputs)
+        put("ingredients", ingredients)
+        put("produces", outputs)
+        put("requires", ingredients)
         recipe.station?.let { station ->
             put("station", station.toCraftlessRecipeItem())
         }
     }
+}
 
 internal data class CraftlessRecipeProjection(
     val handleIndex: Int,

@@ -56,6 +56,10 @@ as `recipe-context-unavailable`, `recipe-not-craftable`, or
 - `produces`;
 - optional `reason` when not craftable.
 
+Recipe projections may retain compatibility aliases such as `ingredients` and
+`outputs`, but `requires` and `produces` are the spec-aligned public names
+agents should prefer.
+
 `recipe.craft` consumes a public recipe handle returned by `recipe.query`. It
 must validate stale handles, count bounds, current inventory/screen state, and
 post-action evidence. The result should include:
