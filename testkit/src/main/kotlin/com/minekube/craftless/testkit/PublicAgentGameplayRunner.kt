@@ -239,9 +239,21 @@ class PublicAgentGameplayRunner(
                     .responseObject()
                     ?.playerPosition()
                     ?: return FocusedAttackTarget(blocker = "insufficient-public-evidence:player.query.position")
+
+            suspend fun closeDistanceToAttackTarget(position: JsonObject): String? {
+                val navigationBlocker = navigateTo(position = position, radius = 2.5)
+                if (navigationBlocker == null) {
+                    return null
+                }
+                if ("player.move" !in actionIds) {
+                    return navigationBlocker
+                }
+                moveToward(position = position, ticks = COMBAT_MOVE_TICKS)?.let { blocker -> return blocker }
+                return null
+            }
             if (!focusedTarget.isReachableForAttack(combatPlayerPosition)) {
                 focusedTarget.position
-                    ?.let { position -> navigateTo(position = position, radius = 2.5) }
+                    ?.let { position -> closeDistanceToAttackTarget(position) }
                     ?.let { blocker -> return FocusedAttackTarget(blocker = blocker) }
                 combatPlayerPosition =
                     invokeGenerated("player.query")
@@ -252,7 +264,7 @@ class PublicAgentGameplayRunner(
             queryAttackTarget(radius = ATTACK_MAX_DISTANCE, preferredHandle = focusedTarget.handle)?.let { closeTarget ->
                 if (!closeTarget.isReachableForAttack(combatPlayerPosition)) {
                     closeTarget.position
-                        ?.let { position -> navigateTo(position = position, radius = 2.5) }
+                        ?.let { position -> closeDistanceToAttackTarget(position) }
                         ?.let { blocker -> return FocusedAttackTarget(blocker = blocker) }
                     combatPlayerPosition =
                         invokeGenerated("player.query")
@@ -290,6 +302,18 @@ class PublicAgentGameplayRunner(
                 )
             }
             return FocusedAttackTarget(target = focusedTarget)
+        }
+
+        suspend fun collectVisibleCombatLoot(combatEntityState: JsonObject): String? {
+            val lootPosition = combatEntityState.combatLootDropPosition() ?: return null
+            val navigationBlocker = navigateTo(position = lootPosition, radius = 1.0)
+            if (navigationBlocker == null) {
+                return null
+            }
+            if ("player.move" !in actionIds) {
+                return navigationBlocker
+            }
+            return moveToward(position = lootPosition, ticks = PICKUP_MOVE_TICKS)
         }
 
         suspend fun reachableMaterialTarget(): FocusedBlockTarget {
@@ -772,19 +796,29 @@ class PublicAgentGameplayRunner(
                     }
                     val combatEntityState = invokeGenerated("entity.query")
                     val combatInventoryState = invokeGenerated("inventory.query")
-                    if (
-                        combatEntityState.responseObject()?.entityNotAlive(currentAttackTarget.handle) == true ||
-                        combatInventoryState.responseObject()?.hasCombatLootItem() == true
-                    ) {
+                    val combatEntityStateObject = combatEntityState.responseObject()
+                    val combatInventoryStateObject = combatInventoryState.responseObject()
+                    if (combatInventoryStateObject?.hasCombatLootItem() == true) {
                         combatOutcomeProved = true
-                        break
+                    } else if (combatEntityStateObject?.combatLootDropPosition() != null) {
+                        val visibleLootBlocker = collectVisibleCombatLoot(combatEntityStateObject)
+                        if (visibleLootBlocker != null) {
+                            return blockedAndWrite(visibleLootBlocker)
+                        }
+                        val lootInventoryState = invokeGenerated("inventory.query")
+                        if (lootInventoryState.responseObject()?.hasCombatLootItem() == true) {
+                            combatOutcomeProved = true
+                        }
                     }
-                    if (combatAttempts < combatEvidenceAttempts) {
+                    if (!combatOutcomeProved && combatEntityStateObject?.entityNotAlive(currentAttackTarget.handle) == true) {
+                        combatOutcomeProved = true
+                    }
+                    if (!combatOutcomeProved && combatAttempts < combatEvidenceAttempts) {
                         combatPause()
                         val refreshedAttackTarget =
-                            combatEntityState.responseObject()?.attackTarget(preferredHandle = currentAttackTarget.handle)
+                            combatEntityStateObject?.attackTarget(preferredHandle = currentAttackTarget.handle)
                                 ?: queryAttackTarget(radius = 16.0, preferredHandle = currentAttackTarget.handle)
-                                ?: combatEntityState.responseObject()?.attackTarget()
+                                ?: combatEntityStateObject?.attackTarget()
                         if (refreshedAttackTarget != null) {
                             val focusedAttackTarget = focusAttackTarget(refreshedAttackTarget)
                             focusedAttackTarget.blocker?.let { blocker -> return blockedAndWrite(blocker) }
@@ -1140,6 +1174,23 @@ private fun JsonObject.materialDropPosition(): JsonObject? {
         ?.second
 }
 
+private fun JsonObject.combatLootDropPosition(): JsonObject? {
+    val data = this["data"] as? JsonObject ?: return null
+    val entities = data["entities"]?.jsonArray ?: return null
+    return entities
+        .mapNotNull { element ->
+            val entity = element as? JsonObject ?: return@mapNotNull null
+            val position = entity["position"] as? JsonObject ?: return@mapNotNull null
+            val label = entity["label"]?.jsonPrimitive?.contentOrNull.orEmpty()
+            if (combatLootNameParts.none { part -> label.contains(part, ignoreCase = true) }) {
+                return@mapNotNull null
+            }
+            val distance = entity.doubleField("distance") ?: Double.MAX_VALUE
+            distance to position
+        }.minByOrNull { (distance, _) -> distance }
+        ?.second
+}
+
 private fun JsonObject.attackTarget(preferredHandle: String? = null): PublicEntityTarget? {
     val data = this["data"] as? JsonObject ?: return null
     val entities = data["entities"]?.jsonArray ?: return null
@@ -1165,10 +1216,14 @@ private fun JsonObject.attackTarget(preferredHandle: String? = null): PublicEnti
             if (!alive) {
                 return@mapNotNull null
             }
+            val label = entity["label"]?.jsonPrimitive?.contentOrNull
+            if (!label.hasCombatEvidenceTargetName()) {
+                return@mapNotNull null
+            }
             val position = entity["position"] as? JsonObject
             PublicEntityTarget(
                 handle = handle,
-                label = entity["label"]?.jsonPrimitive?.contentOrNull,
+                label = label,
                 position = position,
                 distance = entity.doubleField("distance"),
             )
@@ -1284,6 +1339,9 @@ private fun JsonObject.hasUsefulRecipeOutput(stationLabels: Set<String> = emptyS
         label in stationLabels ||
         usefulCraftedItemNameParts.any { part -> label.contains(part, ignoreCase = true) }
 }
+
+private fun String?.hasCombatEvidenceTargetName(): Boolean =
+    combatEvidenceTargetNameParts.any { part -> orEmpty().contains(part, ignoreCase = true) }
 
 private fun JsonObject.recipePriority(stationLabels: Set<String> = emptySet()): Int {
     val category = this["category"]?.jsonPrimitive?.contentOrNull.orEmpty()
@@ -1587,6 +1645,7 @@ private data class CraftlessPoint(
 private const val EXPLORATION_STEP = 24.0
 private const val PICKUP_EVIDENCE_ATTEMPTS = 4
 private const val PICKUP_MOVE_TICKS = 24
+private const val COMBAT_MOVE_TICKS = 24
 private const val DEFAULT_COMBAT_EVIDENCE_ATTEMPTS = 12
 private const val DEFAULT_ACTION_REQUEST_TIMEOUT_MS = 300_000L
 private const val DEFAULT_CONNECT_TIMEOUT_MS = 30_000L

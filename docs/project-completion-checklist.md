@@ -217,17 +217,20 @@ Verification:
   before generated block interaction, verify placed-resource state through
   generated `world.block.query` target handles, skip unnecessary post-placement
   navigation when the placed resource is already reachable, and select an
-  empty public hotbar slot before opening a placed resource. The Fabric driver
+  empty public hotbar slot before opening a placed resource. It now also
+  filters unsuitable living targets, closes combat reach gaps with generated
+  navigation or `player.move`, and collects visible combat loot drops through
+  public `entity.query`, generated navigation, and `inventory.query`
+  verification. The Fabric driver
   now syncs generated `inventory.equip` through the selected-slot C2S packet
   so later interactions observe the equipped slot. The latest no-hold run
   opens the placed crafting station with public `screen.query` evidence
-  (`open=true`, `title="Crafting"`) and now blocks on
-  `insufficient-public-evidence:entity.query.attack-target.reachable`: after
-  generated navigation toward a living target, the public near-range
-  `entity.query` did not prove a reachable attack target. The next fix must
-  improve generic public combat target selection/navigation/requery evidence,
-  not add a combat, cow, weapon, or survival shortcut. Held multiplayer
-  observation and Robin's Minecraft chat confirmation remain open.
+  (`open=true`, `title="Crafting"`), attacks a discovered passive entity
+  through generated `entity.attack`, observes `Raw Mutton` and `White Wool`
+  drops through `entity.query`, navigates to the drop, and proves pickup
+  through a final `inventory.query` containing `Raw Mutton` and `White Wool`.
+  Held multiplayer observation, any fixes found there, and Robin's Minecraft
+  chat confirmation remain open.
 - [ ] Robin joins or observes the server session after a macOS `say` prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.
@@ -269,9 +272,11 @@ Verification:
   variant; it still has not proven a legitimately crafted/obtained weapon or
   Robin's in-game completion confirmation. Latest weapon-composition work
   fixes public-agent station ordering, station re-equip composition, stable
-  placed-resource verification, and reachable station opening in focused and
-  live evidence; the current live no-hold blocker is
-  `insufficient-public-evidence:entity.query.attack-target.reachable`.
+  placed-resource verification, reachable station opening, generic combat
+  target reach correction, and public combat loot pickup in focused and live
+  evidence; the remaining final gates are held multiplayer observation, any
+  fixes found there, honest weapon/tool composition as required by the final
+  scenario, and Robin's explicit Minecraft chat confirmation.
 - [!] The final survival proof is reproduced by an external public-agent runner
   over generated OpenAPI/SSE/CLI/skills, not by hard-coding the scenario as a
   durable public `task.survival.*` API. The previous
@@ -553,12 +558,17 @@ Verification:
   generated-navigation exploration when no target is visible, vertically
   offset target navigation, fresh close-range target revalidation before
   attack, target repositioning when a refreshed target moves, a bounded pause
-  between unproven attacks, and target refresh between unproven attacks.
+  between unproven attacks, target refresh between unproven attacks, filtering
+  unsuitable aquatic/living targets, generated `player.move` fallback when
+  combat navigation cannot close a reach gap, and pickup of visible public
+  combat loot drops before treating loot-visible combat as complete.
   Latest live no-hold evidence records generated combat outcome proof:
   `entity.attack` hit a passive entity, a follow-up `entity.query` reported
-  `entity.handle-19` with `alive:false`, and public entity perception showed
-  `Gray Wool`, `Raw Mutton`, and `Experience Orb` drops. The final project
-  remains open on recipe progress and Robin confirmation.
+  `entity.handle-34` with `alive:false`, public entity perception showed
+  `White Wool`, `Raw Mutton`, and `Experience Orb` drops, generated navigation
+  moved to the drop, and final `inventory.query` showed `Raw Mutton` plus
+  `White Wool`. The final project remains open on held Robin confirmation and
+  any remaining final-scenario gaps such as honest weapon/tool composition.
 
 Verification:
 
@@ -796,13 +806,12 @@ Verification:
 - [ ] Final live gameplay still must prove the scenario through generated
   public actions, SSE events, adaptive consumers, and Robin's Minecraft chat
   confirmation. Focused evidence now covers generated station-backed recipe
-  composition without `craft.sword` or station shortcuts. The current live
-  blocker is public material pickup navigation:
-  `insufficient-public-evidence:navigation.follow.succeeded` after breaking a
-  log and observing dropped material. Remaining completion gates are resilient
-  generic pickup/navigation, honest weapon acquisition/composition as required
-  by the survival scenario, held multiplayer observation, any fixes found
-  there, and Robin's explicit Minecraft chat confirmation.
+  composition without `craft.sword` or station shortcuts. Current live
+  no-hold evidence covers public material pickup, station placement/opening,
+  generic combat, and public combat loot pickup without `task.survival.*`.
+  Remaining completion gates are honest weapon acquisition/composition as
+  required by the survival scenario, held multiplayer observation, any fixes
+  found there, and Robin's explicit Minecraft chat confirmation.
 
 Verification:
 

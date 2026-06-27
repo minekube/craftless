@@ -710,6 +710,37 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner keeps exploring when only generic aquatic living targets are visible`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            reachableSalmonEntityQueryResponse,
+                            reachableSalmonEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            deadCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("entity.attack") &&
+                        it.contains(""""target":{"handle":"entity.handle-42"}""")
+                },
+            )
+            assertFalse(server.requestBodies.any { it.contains(""""target":{"handle":"entity.handle-salmon"}""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner revalidates public attack target after navigation before attacking`() =
         runBlocking {
             val server =
@@ -768,6 +799,83 @@ class PublicAgentGameplayRunnerTest {
             assertEquals(PublicAgentGameplayState.BLOCKED, result.state)
             assertEquals("insufficient-public-evidence:entity.query.attack-target.reachable", result.blocker)
             assertFalse(result.actionLog.map { it.action }.contains("entity.attack"))
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner uses generated player move when final combat navigation cannot close reach gap`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + listOf("entity.attack", "player.move"),
+                    navigationFollowResponses =
+                        listOf(
+                            NAVIGATION_SUCCEEDED_RESPONSE,
+                            NAVIGATION_SUCCEEDED_RESPONSE,
+                            NAVIGATION_FAILED_RESPONSE,
+                        ),
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            unreachableCloseCowEntityQueryResponse,
+                            reachableMovedCowEntityQueryResponse,
+                            deadMovedCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            assertTrue(result.actionLog.map { it.action }.contains("player.move"))
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("entity.attack") &&
+                        it.contains(""""target":{"handle":"entity.handle-42"}""")
+                },
+            )
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner picks up public combat loot entity before treating combat evidence as complete`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            deadCowWithRawBeefEntityQueryResponse,
+                        ),
+                    inventoryResponses =
+                        listOf(
+                            EMPTY_INVENTORY_QUERY_RESPONSE,
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 0),
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            rawBeefInventoryQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains(""""goal":{"kind":"block","position":{"x":14.8,"y":64.0,"z":-6.2}""")
+                },
+            )
+            assertTrue(
+                result.actionLog
+                    .last()
+                    .response
+                    .contains("Raw Beef"),
+            )
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 
@@ -2702,6 +2810,48 @@ private val deadCowEntityQueryResponse =
     }
     """.trimIndent()
 
+private val deadCowWithRawBeefEntityQueryResponse =
+    """
+    {
+      "action": "entity.query",
+      "status": "ACCEPTED",
+      "data": {
+        "entities": [
+          {
+            "handle": "entity.handle-42",
+            "label": "Cow",
+            "category": "passive",
+            "alive": false,
+            "distance": 3.0,
+            "position": {"x": 14.5, "y": 64.0, "z": -6.5}
+          },
+          {
+            "handle": "entity.handle-99",
+            "label": "Raw Beef",
+            "category": "object",
+            "distance": 2.5,
+            "position": {"x": 14.8, "y": 64.0, "z": -6.2}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val rawBeefInventoryQueryResponse =
+    """
+    {
+      "action": "inventory.query",
+      "status": "ACCEPTED",
+      "data": {
+        "selected-slot": 1,
+        "slots": [
+          {"slot": 1, "empty": false, "count": 2, "item-name": "Oak Log"},
+          {"slot": 2, "empty": false, "count": 1, "item-name": "Raw Beef"}
+        ]
+      }
+    }
+    """.trimIndent()
+
 private val movedCowEntityQueryResponse =
     """
     {
@@ -2938,6 +3088,27 @@ private val closeSquidAndReachableCowEntityQueryResponse =
             "alive": true,
             "distance": 3.0,
             "position": {"x": 14.5, "y": 64.0, "z": -6.5}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val reachableSalmonEntityQueryResponse =
+    """
+    {
+      "action": "entity.query",
+      "status": "ACCEPTED",
+      "data": {
+        "origin": {"x": 5.0, "y": 63.0, "z": -266.0},
+        "entities": [
+          {
+            "handle": "entity.handle-salmon",
+            "label": "Salmon",
+            "category": "living",
+            "alive": true,
+            "distance": 3.0,
+            "position": {"x": 12.5, "y": 64.0, "z": -5.5}
           }
         ]
       }
