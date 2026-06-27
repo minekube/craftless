@@ -85,6 +85,9 @@ class HmcBridgeDriverBackend(
                 else -> MoveIntent.FORWARD
             }
         val ticks = invocation.arguments.intArgument("ticks") ?: 20
+        if (ticks <= 0) {
+            return actionFailure(invocation.action, "invalid-ticks", "moved")
+        }
         val result = bridge.move(clientId, intent, ticks)
         require(result.action == ClientAction.MOVE) { "driver backend returned ${result.action} for move" }
         return DriverActionResult(
@@ -99,6 +102,12 @@ class HmcBridgeDriverBackend(
 private fun chatInputFailure(
     action: String,
     reason: String,
+): DriverActionResult = actionFailure(action, reason, "sent")
+
+private fun actionFailure(
+    action: String,
+    reason: String,
+    flag: String,
 ): DriverActionResult =
     DriverActionResult(
         action = action,
@@ -106,7 +115,7 @@ private fun chatInputFailure(
         message = reason,
         data =
             buildJsonObject {
-                put("sent", false)
+                put(flag, false)
                 put("reason", reason)
             },
     )

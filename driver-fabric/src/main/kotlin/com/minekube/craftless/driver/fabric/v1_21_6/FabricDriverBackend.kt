@@ -524,6 +524,7 @@ class FabricDriverBackend private constructor(
                 reason = "crafting-output-pending",
                 before = before,
                 syncId = expectedSyncId,
+                requestedCount = count,
                 attempt = 0,
             )
         repeat(CRAFTING_OUTPUT_WAIT_ATTEMPTS) { attempt ->
@@ -579,6 +580,7 @@ class FabricDriverBackend private constructor(
                             reason = "crafting-output-pending",
                             before = before,
                             syncId = currentScreenHandler.syncId,
+                            requestedCount = count,
                             attempt = attempt + 1,
                         )
                     }
@@ -1415,12 +1417,14 @@ private fun recipeCraftPending(
     reason: String,
     before: String,
     syncId: Int?,
+    requestedCount: Int,
     attempt: Int,
 ): JsonObject =
     buildJsonObject {
         put("handle", handle)
         put("accepted", true)
         put("changed", false)
+        put("requested-count", requestedCount)
         put("crafted-count", 0)
         put("inventory-before", before)
         put("inventory-after", before)

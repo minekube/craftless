@@ -434,12 +434,14 @@ Verification:
 - [x] Invalid generated `player.move` tick budgets now return
   machine-readable `invalid-ticks` failures before scheduling client work.
   Current evidence covers the Fabric backend and the reusable fake driver
-  session used by daemon/CLI/testkit consumers.
+  session used by daemon/CLI/testkit consumers, plus the temporary HMC bridge
+  backend before bridge commands are invoked.
 
 Verification:
 
 - `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric backend returns machine readable movement failure before scheduling gateway'`
 - `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.FakeDriverSessionTest'`
+- `mise exec -- gradle :driver-runtime:test --tests 'com.minekube.craftless.driver.runtime.BackendDriverSessionTest.hmc bridge backend adapts the temporary bridge to runtime backend actions'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 
@@ -892,6 +894,9 @@ Verification:
   `crafted-count` from the observed output slot stack count before quick-moving
   the output, then performs bounded follow-up fingerprint polling and reports
   `phase=crafting-inventory-confirmed` when public inventory evidence changes.
+  Pending output evidence now also carries `requested-count` so generated
+  clients can parse in-flight recipe results through the same schema as
+  failure and completion results.
   Target validation, stale-handle, craftability, output, and confirmation
   failure paths now keep schema-shaped public result evidence with
   `requested-count`, `crafted-count`, `phase`, and machine-readable `reason`
@@ -929,6 +934,7 @@ Verification:
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest*'`
 - `mise exec -- gradle :driver-fabric:test --tests '*recipe*'`
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend crafts a discovered recipe handle through runtime graph adapter*'`
+- `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric recipe craft execution takes generic crafting output after recipe fill'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=120000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 - `mise run ci`

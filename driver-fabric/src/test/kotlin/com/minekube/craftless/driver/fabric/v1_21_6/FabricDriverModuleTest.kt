@@ -2281,6 +2281,12 @@ class FabricDriverModuleTest {
         assertTrue(
             recipeCraftPendingSource.contains("put(\"phase\""),
         )
+        assertTrue(
+            recipeCraftPendingSource.contains("requestedCount: Int"),
+        )
+        assertTrue(
+            recipeCraftPendingSource.contains("put(\"requested-count\", requestedCount)"),
+        )
         assertTrue(craftRecipeSource.indexOf("clickRecipe(") < craftRecipeSource.indexOf("clickSlot("))
     }
 

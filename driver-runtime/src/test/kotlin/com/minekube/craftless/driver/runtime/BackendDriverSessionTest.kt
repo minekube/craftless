@@ -297,6 +297,18 @@ class BackendDriverSessionTest {
         assertEquals("minecraft-command-rejected", commandChatMessage.message)
         assertEquals(JsonPrimitive(false), commandChatMessage.data["sent"])
         assertEquals(JsonPrimitive("minecraft-command-rejected"), commandChatMessage.data["reason"])
+        val invalidMoveTicks =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "player.move",
+                    arguments = mapOf("forward" to JsonPrimitive(true), "ticks" to JsonPrimitive(0)),
+                ),
+            )
+        assertEquals(DriverActionStatus.FAILED, invalidMoveTicks.status)
+        assertEquals("invalid-ticks", invalidMoveTicks.message)
+        assertEquals(JsonPrimitive(false), invalidMoveTicks.data["moved"])
+        assertEquals(JsonPrimitive("invalid-ticks"), invalidMoveTicks.data["reason"])
         assertEquals(DriverBackendAction.STOP, backend.stop("alice").action)
     }
 
