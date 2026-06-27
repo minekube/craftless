@@ -1078,6 +1078,24 @@ Verification:
 - `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric smoke controller writes confirmation timeout artifact when Robin chat is not observed'`
 - `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric smoke controller stops final session after configured chat confirmation evidence' --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric smoke controller writes confirmation timeout artifact when Robin chat is not observed'`
 
+## Phase 36: Legacy Survival Task Namespace Guard
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-36-legacy-survival-task-namespace-guard-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-36-legacy-survival-task-namespace-guard-plan.md`.
+- [x] Protocol navigation tests no longer use `task.survival.*` as a positive
+  serialization example.
+- [x] `NavigationTaskRequest` rejects `task.survival.*` at the protocol
+  boundary.
+- [x] Fabric task-adapter evidence now uses a neutral generic task id and still
+  proves task execution remains unavailable without a generic executor.
+
+Verification:
+
+- `mise exec -- gradle :protocol:test --tests 'com.minekube.craftless.protocol.NavigationModelsTest'`
+- `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricNavigationDiscoveryTest.fabric backend task adapter keeps generic tasks unavailable without executor'`
+
 ## Final Completion Gate
 
 - [ ] All phases above are checked with current evidence.

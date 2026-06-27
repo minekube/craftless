@@ -36,10 +36,10 @@ class NavigationModelsTest {
             )
         val task =
             NavigationTaskRequest(
-                task = "task.survival.obtain-weapon",
+                task = "task.generic.obtain-materials",
                 args =
                     mapOf(
-                        "target" to JsonPrimitive("wooden_sword"),
+                        "target" to JsonPrimitive("logs"),
                     ),
             )
         val status =
@@ -65,7 +65,7 @@ class NavigationModelsTest {
 
         assertTrue(encodedPlan.contains("navigation.plan.alice.0001"))
         assertTrue(encodedPlan.contains("world.block.break"))
-        assertTrue(encodedTask.contains("task.survival.obtain-weapon"))
+        assertTrue(encodedTask.contains("task.generic.obtain-materials"))
         assertTrue(encodedEvent.contains("task.progress"))
         assertFalse(encodedPlan.contains("baritone", ignoreCase = true))
     }
@@ -86,6 +86,9 @@ class NavigationModelsTest {
         }
         assertFailsWith<IllegalArgumentException> {
             NavigationTaskRequest(task = "task.swarmbot.parkour", args = emptyMap())
+        }
+        assertFailsWith<IllegalArgumentException> {
+            NavigationTaskRequest(task = "task.survival.obtain-weapon", args = emptyMap())
         }
         assertFailsWith<IllegalArgumentException> {
             NavigationProgressEvent(

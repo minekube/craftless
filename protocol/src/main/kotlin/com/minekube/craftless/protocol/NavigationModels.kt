@@ -84,6 +84,7 @@ data class NavigationTaskRequest(
     init {
         require(task.isCraftlessActionId()) { "invalid navigation task id $task" }
         require(task.startsWith("task.")) { "navigation task id must be Craftless-owned" }
+        require(!task.startsWith("task.survival.")) { "navigation task id must not use legacy survival scenario namespace" }
         require(!task.hasRawNavigationBackendName()) { "navigation task id must not expose backend names" }
         args.keys.forEach { key ->
             require(key.isCraftlessActionArgumentName()) { "invalid navigation task argument $key" }

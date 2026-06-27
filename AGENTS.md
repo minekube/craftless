@@ -147,6 +147,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 33. combat reach fallback.
 34. incremental public-agent artifacts.
 35. final confirmation timeout artifact.
+36. legacy survival task namespace guard.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -261,6 +262,10 @@ matching Minecraft chat confirmation arrives before the configured deadline.
 It must write evidence only, must not mark Craftless complete, must not fail a
 successful public-agent gameplay run by itself, and must not bypass the
 required Robin chat confirmation.
+Phase 36 rejects removed `task.survival.*` scenario ids at the protocol task
+request boundary. It must keep generic future task ids valid as metadata, must
+not add a generic task executor, and must not reintroduce survival task
+macros as valid public API.
 
 ## Acceptance Scenarios Are Not Product APIs
 

@@ -183,11 +183,11 @@ class FabricNavigationDiscoveryTest {
     }
 
     @Test
-    fun `fabric backend task adapter refuses legacy survival tasks`() {
+    fun `fabric backend task adapter keeps generic tasks unavailable without executor`() {
         val backend = FabricDriverBackend.metadataOnly()
         val adapters = backend.operationAdapters("alice")
         val operations = backend.runtimeGraph("alice").operations.associateBy { it.id }
-        val request = NavigationTaskRequest(task = "task.survival.honest-cow-hunt")
+        val request = NavigationTaskRequest(task = "task.generic.obtain-materials")
 
         val runResult =
             adapters.invoke(
