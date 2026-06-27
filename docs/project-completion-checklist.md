@@ -1762,10 +1762,13 @@ Verification:
   timeout.
 - [x] `FabricClientSmokeController` parses a dedicated public-agent helper
   process timeout while keeping per-action generated HTTP timeout separate.
-- [ ] Held final gameplay has been rerun after this correction and exits with
-  either `final-gameplay-confirmation.json` or
+- [x] Held final gameplay has been rerun after this correction and exited with
   `final-gameplay-confirmation-timeout.json` instead of a Gradle process
-  timeout.
+  timeout. Current 2026-06-27 evidence has `publicAgentState=RAN`, no
+  `public-agent-blocked.json`, `final-gameplay-ready.json` for
+  `127.0.0.1:49973`, generated `entity.attack` killed a Sheep, final
+  `inventory.query` showed `Raw Mutton`, and the Gradle task exited
+  successfully after the configured hold without Robin's confirmation chat.
 - [x] This phase changes final-gameplay timeout/evidence plumbing only and adds
   no public gameplay action, generated route family, CLI gameplay catalog,
   Fabric descriptor/binding pair, scenario shortcut, new compiled lane, public
@@ -1778,20 +1781,21 @@ Verification:
 - `mise run lint`
 - `mise run architecture-check`
 - `mise run ci`
+- `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS=120000 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=1800000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 
 ## Final Completion Gate
 
 - [~] All implementation phases above are checked with current evidence; final
   completion remains open on Robin's Minecraft chat confirmation.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully before `mise run ci` after Phase 55 public-agent pickup
-  convergence.
+  successfully before `mise run ci` after Phase 56 final gameplay timeout
+  budget.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests after Phase 55
-  public-agent pickup convergence.
+  architecture tests and Bun Playwright helper tests after Phase 56 final
+  gameplay timeout budget.
 - [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
-  successfully after Phase 55 public-agent pickup convergence.
+  successfully after Phase 56 final gameplay timeout budget.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,
