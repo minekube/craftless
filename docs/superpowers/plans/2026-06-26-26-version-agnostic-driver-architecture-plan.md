@@ -151,11 +151,12 @@
   Add the existing 1.21.6 lane as supported with the current Fabric Loader,
   Fabric API, Java 21, and mapping fingerprint expectations.
 
-- [ ] **Step 3: Add a simulated non-current lane**
+- [ ] **Step 3: Add a latest-release unsupported non-current lane**
 
-  Add a test-only or metadata-only lane that proves provider selection and
+  Add a real latest-release metadata lane that proves provider selection and
   graph availability can vary by version without compiling a second full
-  Minecraft dependency lane in the first refactor.
+  Minecraft dependency lane in the first refactor. The lane must remain
+  unsupported until a compatible Fabric client runtime exists.
 
 - [ ] **Step 4: Make smoke version selection matrix-aware**
 

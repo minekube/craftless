@@ -161,6 +161,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 47. compiled Fabric resource metadata.
 48. stable Fabric entrypoint boundary.
 49. README current status alignment.
+50. latest release lane evidence.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -351,6 +352,11 @@ Phase 49 keeps README examples and status aligned with current implementation
 and final evidence. It must not present legacy diagnostic provisioning,
 removed SDK surfaces, bridge paths, or scenario tasks as active product
 behavior, and must not add gameplay actions.
+Phase 50 keeps latest-release compatibility evidence honest. A real latest
+Minecraft release such as `26.2` must be represented as a real runtime input
+with `UNSUPPORTED` and a machine-readable reason when no compatible Fabric
+client lane exists; it must not be described as simulated support, must not
+claim new version support, and must not add gameplay actions.
 
 ## Acceptance Scenarios Are Not Product APIs
 

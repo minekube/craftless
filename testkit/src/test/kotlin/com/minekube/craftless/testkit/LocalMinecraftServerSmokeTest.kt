@@ -224,11 +224,11 @@ class LocalMinecraftServerSmokeTest {
                     "CRAFTLESS_SMOKE_RUNTIME_LANE_JSON" to
                         """
                         {
-                          "id": "fabric-simulated-26",
+                          "id": "latest-release-26-2",
                           "status": "UNSUPPORTED",
                           "minecraftVersion": "26.2",
                           "javaMajorVersion": 25,
-                          "providerId": "fabric-simulated-provider",
+                          "providerId": "no-compatible-client-lane",
                           "unsupportedReason": "runtime-lane-missing"
                         }
                         """.trimIndent(),

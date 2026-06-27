@@ -119,11 +119,11 @@ fun fabricSmokeRuntimeLaneJson(minecraftVersion: String): String {
                 )
             "26.2" ->
                 mapOf(
-                    "id" to "fabric-simulated-26",
+                    "id" to "latest-release-26-2",
                     "status" to "UNSUPPORTED",
                     "minecraftVersion" to version,
                     "javaMajorVersion" to 25,
-                    "providerId" to "fabric-simulated-provider",
+                    "providerId" to "no-compatible-client-lane",
                     "unsupportedReason" to "runtime-lane-missing",
                 )
             else ->

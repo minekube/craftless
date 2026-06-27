@@ -171,7 +171,7 @@ evidence shows:
 - runtime graph discovery records selected version/provider metadata and
   explicit unavailable/failure reasons;
 - compatibility matrix tests cover at least the current lane and one additional
-  version lane or a simulated provider lane;
+  version lane or latest-release unsupported lane;
 - public generated OpenAPI remains Craftless-owned and graph-derived;
 - no new public gameplay breadth was added as a static descriptor/binding
   catalog;

@@ -31,8 +31,8 @@ Minecraft version support.
 - Make smoke/final gameplay plan defaults derive their Minecraft version from
   the same metadata object.
 - Preserve existing public generated OpenAPI action/resource ids and behavior.
-- Preserve unsupported `26.2` lane evidence as an explicit unsupported runtime
-  lane until a real compiled/runtime provider exists.
+- Preserve latest-release unsupported `26.2` lane evidence as an explicit
+  unsupported runtime lane until a real compiled/runtime provider exists.
 - Do not add public gameplay action ids, generated route families, CLI gameplay
   catalogs, Fabric descriptor/binding pairs, scenario shortcuts, or a new public
   version-specific API.

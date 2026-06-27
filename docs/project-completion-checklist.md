@@ -802,7 +802,7 @@ Verification:
   `mise exec -- gradle :driver-fabric:test --tests '*FabricRuntimeProviderTest*'`
   and `mise exec -- gradle :driver-fabric:detekt :driver-fabric:ktlintCheck`.
 - [x] Compatibility matrix and provider-selection tests cover the current lane
-  plus at least one simulated or additional lane.
+  plus at least one latest-release unsupported or additional lane.
   Evidence:
   `mise exec -- gradle :driver-fabric:test --tests '*FabricCompatibilityMatrixTest*' --tests '*FabricCurrentLaneRuntimeProviderTest*'`
   and `mise exec -- gradle :testkit:test --tests '*LocalMinecraftServerSmokeTest*'`.
@@ -1464,7 +1464,7 @@ Verification:
   plan wording are guarded against reintroducing duplicated compiled-lane
   string literals in product runtime code.
 - [x] This phase changes internal Fabric lane metadata only, preserves the
-  explicit unsupported `26.2` lane evidence, and adds no public gameplay action,
+  explicit latest-release unsupported `26.2` lane evidence, and adds no public gameplay action,
   generated route family, CLI gameplay catalog, Fabric descriptor/binding pair,
   scenario shortcut, new compiled lane, or public version-specific API.
 
@@ -1555,18 +1555,47 @@ Verification:
 - `mise run architecture-check`
 - `mise run ci`
 
+## Phase 50: Latest Release Lane Evidence
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-50-latest-release-lane-evidence-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-50-latest-release-lane-evidence-plan.md`.
+- [x] The real latest-release `26.2` compatibility lane remains unsupported
+  Fabric client runtime evidence, not supported version breadth.
+- [x] The unsupported `26.2` lane id is `latest-release-26-2` instead of
+  simulated wording.
+- [x] Runtime provider evidence uses `no-compatible-client-lane` and
+  `runtime-lane-missing`.
+- [x] Gradle-generated smoke `runtime-lane.json` uses the same latest-release
+  unsupported lane ids as the Kotlin compatibility matrix.
+- [x] Runtime capability evidence remains sanitized and does not expose
+  Fabric/Yarn/Minecraft names as public contracts.
+- [x] This phase changes compatibility evidence naming only and adds no public
+  gameplay action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, or public
+  version-specific API.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricCompatibilityMatrixTest*' --tests '*FabricCapabilityProbeTest.runtime metadata probe emits sanitized compatibility lane evidence*' :testkit:test --tests '*LocalMinecraftServerSmokeTest.local server smoke records unsupported runtime lane without provisioning server*'`
+- `git diff --check`
+- `mise run architecture-check`
+- `mise run ci`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above are checked with current evidence; final
   completion remains open on Robin's Minecraft chat confirmation.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully after the Phase 49 README current status alignment.
+  successfully inside `mise run ci` after the Phase 50 latest release lane
+  evidence cleanup.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests after the Phase 49 README
-  current status alignment.
+  architecture tests and Bun Playwright helper tests after the Phase 50 latest
+  release lane evidence cleanup.
 - [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
-  successfully after the Phase 49 README current status alignment.
+  successfully after the Phase 50 latest release lane evidence cleanup.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,
