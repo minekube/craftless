@@ -1,5 +1,7 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
+import com.minekube.craftless.driver.fabric.runtime.FabricCompiledLaneMetadata
+
 data class FabricFinalGameplayPlan(
     val environmentGate: String,
     val minecraftVersion: String,
@@ -14,7 +16,7 @@ data class FabricFinalGameplayPlan(
         fun default(): FabricFinalGameplayPlan =
             FabricFinalGameplayPlan(
                 environmentGate = "CRAFTLESS_FINAL_GAMEPLAY",
-                minecraftVersion = "1.21.6",
+                minecraftVersion = FabricCompiledLaneMetadata.MINECRAFT_VERSION,
                 gradleTasks = listOf(":driver-fabric:fabricFinalGameplay"),
                 artifactsDirectory = "driver-fabric/build/craftless-final-gameplay/artifacts",
                 steps =

@@ -8,6 +8,7 @@ import com.minekube.craftless.driver.api.DriverActionSource
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverOperationInvocation
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
+import com.minekube.craftless.driver.fabric.runtime.FabricCompiledLaneMetadata
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import com.minekube.craftless.protocol.RuntimeAvailabilityState
 import kotlinx.serialization.json.Json
@@ -323,7 +324,7 @@ class FabricDriverModuleTest {
         val plan = FabricClientSmokePlan.default()
 
         assertEquals("CRAFTLESS_FABRIC_CLIENT_SMOKE", plan.environmentGate)
-        assertEquals("1.21.6", plan.minecraftVersion)
+        assertEquals(FabricCompiledLaneMetadata.MINECRAFT_VERSION, plan.minecraftVersion)
         assertEquals(listOf(":driver-fabric:fabricClientSmoke"), plan.gradleTasks)
         assertTrue(plan.steps.any { it.kind == FabricSmokeStepKind.START_LOCAL_SERVER })
         assertTrue(plan.steps.any { it.description.contains("kept running", ignoreCase = true) })
@@ -347,7 +348,7 @@ class FabricDriverModuleTest {
         val plan = FabricFinalGameplayPlan.default()
 
         assertEquals("CRAFTLESS_FINAL_GAMEPLAY", plan.environmentGate)
-        assertEquals("1.21.6", plan.minecraftVersion)
+        assertEquals(FabricCompiledLaneMetadata.MINECRAFT_VERSION, plan.minecraftVersion)
         assertEquals(listOf(":driver-fabric:fabricFinalGameplay"), plan.gradleTasks)
         assertEquals("driver-fabric/build/craftless-final-gameplay/artifacts", plan.artifactsDirectory)
         assertTrue(plan.steps.any { it.kind == FabricFinalGameplayStepKind.START_LOCAL_SERVER })

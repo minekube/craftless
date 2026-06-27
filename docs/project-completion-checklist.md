@@ -1446,18 +1446,45 @@ Verification:
 - `mise run architecture-check`
 - `mise run ci`
 
+## Phase 46: Compiled Fabric Lane Metadata
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-46-compiled-fabric-lane-metadata-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-46-compiled-fabric-lane-metadata-plan.md`.
+- [x] Kotlin-side current compiled Fabric lane metadata is centralized in one
+  internal runtime object.
+- [x] The compatibility matrix derives the supported current lane from that
+  metadata object.
+- [x] The current-lane provider derives its provider id and supported Minecraft
+  version from that metadata object.
+- [x] Client smoke and final gameplay plan defaults derive their Minecraft
+  version from that metadata object.
+- [x] This phase changes internal Fabric lane metadata only, preserves the
+  explicit unsupported `26.2` lane evidence, and adds no public gameplay action,
+  generated route family, CLI gameplay catalog, Fabric descriptor/binding pair,
+  scenario shortcut, new compiled lane, or public version-specific API.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricCompatibilityMatrixTest*' --tests '*FabricCurrentLaneRuntimeProviderTest*' --tests '*FabricDriverModuleTest*'`
+- `mise exec -- gradle :driver-fabric:test`
+- `mise run lint`
+- `mise run architecture-check`
+- `mise run ci`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above are checked with current evidence; final
   completion remains open on Robin's Minecraft chat confirmation.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully after the Phase 45 descriptor-derived graph schema correction.
+  successfully after the Phase 46 compiled Fabric lane metadata correction.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests after the Phase 45
-  descriptor-derived graph schema correction.
+  architecture tests and Bun Playwright helper tests after the Phase 46
+  compiled Fabric lane metadata correction.
 - [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
-  successfully after the Phase 45 descriptor-derived graph schema correction.
+  successfully after the Phase 46 compiled Fabric lane metadata correction.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,

@@ -102,14 +102,14 @@ internal fun defaultFabricCompatibilityMatrix(): FabricCompatibilityMatrix =
         lanes =
             listOf(
                 FabricCompatibilityLane(
-                    id = "fabric-current-lane",
+                    id = FabricCompiledLaneMetadata.ID,
                     status = FabricCompatibilityStatus.SUPPORTED,
-                    gameVersion = "1.21.6",
-                    loaderVersion = "0.19.3",
-                    fabricApiVersion = "0.128.2+1.21.6",
-                    javaMajorVersion = 21,
-                    mappingsFingerprint = "craftless-fabric-bindings",
-                    providerId = "fabric-current-lane",
+                    gameVersion = FabricCompiledLaneMetadata.MINECRAFT_VERSION,
+                    loaderVersion = FabricCompiledLaneMetadata.LOADER_VERSION,
+                    fabricApiVersion = FabricCompiledLaneMetadata.FABRIC_API_VERSION,
+                    javaMajorVersion = FabricCompiledLaneMetadata.JAVA_MAJOR_VERSION,
+                    mappingsFingerprint = FabricCompiledLaneMetadata.MAPPINGS_FINGERPRINT,
+                    providerId = FabricCompiledLaneMetadata.PROVIDER_ID,
                 ),
                 FabricCompatibilityLane(
                     id = "fabric-simulated-26",

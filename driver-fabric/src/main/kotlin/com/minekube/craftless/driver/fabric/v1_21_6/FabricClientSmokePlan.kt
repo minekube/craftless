@@ -1,5 +1,7 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
+import com.minekube.craftless.driver.fabric.runtime.FabricCompiledLaneMetadata
+
 data class FabricClientSmokePlan(
     val environmentGate: String,
     val minecraftVersion: String,
@@ -11,7 +13,7 @@ data class FabricClientSmokePlan(
         fun default(): FabricClientSmokePlan =
             FabricClientSmokePlan(
                 environmentGate = "CRAFTLESS_FABRIC_CLIENT_SMOKE",
-                minecraftVersion = "1.21.6",
+                minecraftVersion = FabricCompiledLaneMetadata.MINECRAFT_VERSION,
                 gradleTasks =
                     listOf(
                         ":driver-fabric:fabricClientSmoke",

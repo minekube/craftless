@@ -1,5 +1,6 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
+import com.minekube.craftless.driver.fabric.runtime.FabricCompiledLaneMetadata
 import com.minekube.craftless.driver.fabric.runtime.FabricRuntimeIdentity
 import com.minekube.craftless.driver.fabric.runtime.FabricRuntimeSupportState
 import com.minekube.craftless.driver.fabric.runtime.selectFabricRuntimeProvider
@@ -15,6 +16,7 @@ class FabricCurrentLaneRuntimeProviderTest {
 
         val selection = selectFabricRuntimeProvider(identity, listOf(provider))
 
+        assertEquals(FabricCompiledLaneMetadata.PROVIDER_ID, provider.id)
         assertSame(provider, selection.provider)
         assertEquals(FabricRuntimeSupportState.SUPPORTED, selection.support.state)
         assertEquals("supported", selection.support.reason)
@@ -34,9 +36,9 @@ class FabricCurrentLaneRuntimeProviderTest {
 
     private fun currentLaneIdentity(): FabricRuntimeIdentity =
         FabricRuntimeIdentity(
-            gameVersion = "1.21.6",
-            loaderVersion = "0.19.3",
-            fabricApiVersion = "0.128.2+1.21.6",
+            gameVersion = FabricCompiledLaneMetadata.MINECRAFT_VERSION,
+            loaderVersion = FabricCompiledLaneMetadata.LOADER_VERSION,
+            fabricApiVersion = FabricCompiledLaneMetadata.FABRIC_API_VERSION,
             mappingsFingerprint = "mappings:current-lane",
             installedModsFingerprint = "mods:current-lane",
             registryFingerprint = "registries:current-lane",

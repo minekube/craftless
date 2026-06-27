@@ -12,13 +12,13 @@ class FabricCompatibilityMatrixTest {
 
         val lane = matrix.resolve(currentLaneIdentity())
 
-        assertEquals("fabric-current-lane", lane.id)
+        assertEquals(FabricCompiledLaneMetadata.ID, lane.id)
         assertEquals(FabricCompatibilityStatus.SUPPORTED, lane.status)
-        assertEquals(21, lane.javaMajorVersion)
-        assertEquals("0.19.3", lane.loaderVersion)
-        assertEquals("0.128.2+1.21.6", lane.fabricApiVersion)
-        assertEquals("craftless-fabric-bindings", lane.mappingsFingerprint)
-        assertEquals("fabric-current-lane", lane.providerId)
+        assertEquals(FabricCompiledLaneMetadata.JAVA_MAJOR_VERSION, lane.javaMajorVersion)
+        assertEquals(FabricCompiledLaneMetadata.LOADER_VERSION, lane.loaderVersion)
+        assertEquals(FabricCompiledLaneMetadata.FABRIC_API_VERSION, lane.fabricApiVersion)
+        assertEquals(FabricCompiledLaneMetadata.MAPPINGS_FINGERPRINT, lane.mappingsFingerprint)
+        assertEquals(FabricCompiledLaneMetadata.PROVIDER_ID, lane.providerId)
         assertEquals(null, lane.unsupportedReason)
     }
 
@@ -73,10 +73,10 @@ class FabricCompatibilityMatrixTest {
 
     private fun currentLaneIdentity(): FabricRuntimeIdentity =
         FabricRuntimeIdentity(
-            gameVersion = "1.21.6",
-            loaderVersion = "0.19.3",
-            fabricApiVersion = "0.128.2+1.21.6",
-            mappingsFingerprint = "craftless-fabric-bindings",
+            gameVersion = FabricCompiledLaneMetadata.MINECRAFT_VERSION,
+            loaderVersion = FabricCompiledLaneMetadata.LOADER_VERSION,
+            fabricApiVersion = FabricCompiledLaneMetadata.FABRIC_API_VERSION,
+            mappingsFingerprint = FabricCompiledLaneMetadata.MAPPINGS_FINGERPRINT,
             installedModsFingerprint = "mods:current-lane",
             registryFingerprint = "registries:current-lane",
             serverFeatureFingerprint = "server-features:local",

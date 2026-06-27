@@ -157,6 +157,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 43. client logging config.
 44. asset index id.
 45. descriptor-derived graph schemas.
+46. compiled Fabric lane metadata.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -328,6 +329,11 @@ It must reduce duplicate schema metadata in graph projection, preserve
 specialized runtime-only schemas, and must not add public gameplay actions,
 generated route families, CLI gameplay catalogs, Fabric descriptor/binding
 pairs, or scenario shortcuts.
+Phase 46 centralizes Kotlin-side metadata for the current compiled Fabric lane
+so runtime matrix, provider selection, and smoke/final gameplay plans do not
+drift independently. It must not parameterize Loom compilation, claim new
+Minecraft version support, add public version-specific APIs, or add gameplay
+actions.
 
 ## Acceptance Scenarios Are Not Product APIs
 

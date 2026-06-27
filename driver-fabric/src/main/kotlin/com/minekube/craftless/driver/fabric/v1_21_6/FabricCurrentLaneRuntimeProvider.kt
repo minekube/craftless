@@ -1,6 +1,7 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
 import com.minekube.craftless.driver.fabric.runtime.FabricClientStateAccess
+import com.minekube.craftless.driver.fabric.runtime.FabricCompiledLaneMetadata
 import com.minekube.craftless.driver.fabric.runtime.FabricEntityAccess
 import com.minekube.craftless.driver.fabric.runtime.FabricEventAccess
 import com.minekube.craftless.driver.fabric.runtime.FabricInteractionAccess
@@ -15,20 +16,16 @@ import com.minekube.craftless.driver.fabric.runtime.FabricTargetingAccess
 import com.minekube.craftless.driver.fabric.runtime.FabricWorldAccess
 
 internal class FabricCurrentLaneRuntimeProvider : FabricRuntimeProvider {
-    override val id: String = "fabric-current-lane"
+    override val id: String = FabricCompiledLaneMetadata.PROVIDER_ID
 
     override fun support(identity: FabricRuntimeIdentity): FabricRuntimeSupport =
-        if (identity.gameVersion == MINECRAFT_VERSION) {
+        if (identity.gameVersion == FabricCompiledLaneMetadata.MINECRAFT_VERSION) {
             FabricRuntimeSupport.supported()
         } else {
             FabricRuntimeSupport.unsupported("unsupported-version")
         }
 
     override fun createAccess(identity: FabricRuntimeIdentity): FabricRuntimeAccess = FabricCurrentLaneRuntimeAccess(identity)
-
-    private companion object {
-        const val MINECRAFT_VERSION = "1.21.6"
-    }
 }
 
 private class FabricCurrentLaneRuntimeAccess(
