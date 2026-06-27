@@ -963,8 +963,9 @@ Verification:
   reports `publicAgentState=RAN`; the public agent collected material,
   crafted/equipped a `Wooden Sword`, attacked a generated public Pig target,
   picked up `Raw Porkchop`, and wrote `final-gameplay-ready.json` for
-  `127.0.0.1:52826`. Robin confirmation is still pending while the hold window
-  remains open.
+  `127.0.0.1:52826`. `server-evidence.jsonl` contains Craftless'
+  `Player632` join/chat/disconnect and no Robin confirmation chat; no
+  `final-gameplay-confirmation.json` was written before the hold expired.
 
 Verification:
 
