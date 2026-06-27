@@ -136,6 +136,7 @@ Verification:
 - [x] `/clients/{id}/actions` and `/clients/{id}/resources` are projections of
   the same graph-generated OpenAPI.
 - [x] Generated aliases, nested argument schemas, nested result schemas,
+  nested resource schemas, nested handle schemas, nested event payload schemas,
   resource metadata, handle metadata, event stream metadata, and fingerprints
   come from graph projection.
 - [x] Public API policy tests reject Fabric/Yarn/intermediary/raw Minecraft

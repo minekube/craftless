@@ -198,6 +198,7 @@ data class OpenApiResource(
     val availability: OpenApiResourceAvailability,
     val availabilityReasons: List<String>,
     val actionDescriptors: List<OpenApiResourceActionDescriptor>,
+    val schema: OpenApiActionSchema = OpenApiActionSchema("object"),
 ) {
     init {
         require(id.isCraftlessResourceId()) { "invalid resource id $id" }
@@ -441,6 +442,7 @@ private fun RuntimeCapabilityGraph.toOpenApiResources(actions: List<OpenApiActio
                 },
             availabilityReasons = availabilityReasons,
             actionDescriptors = resourceActions.map { it.toOpenApiResourceActionDescriptor() },
+            schema = resourceNode?.schema?.toOpenApiActionSchema() ?: OpenApiActionSchema("object"),
         )
     }
 }
@@ -513,7 +515,7 @@ private fun RuntimeOperationNode.toOpenApiAction(): OpenApiAction =
 private fun RuntimeEventNode.toOpenApiEvent(): OpenApiEvent =
     OpenApiEvent(
         id = id,
-        payload = OpenApiActionSchema(payload.type),
+        payload = payload.toOpenApiActionSchema(),
         availability = availability.toOpenApiActionAvailability(),
         availabilityReason = availability.reason,
     )
@@ -522,7 +524,7 @@ private fun RuntimeHandleNode.toOpenApiHandle(): OpenApiHandle =
     OpenApiHandle(
         id = id,
         resource = resource,
-        schema = OpenApiActionSchema(schema.type),
+        schema = schema.toOpenApiActionSchema(),
         availability = availability.toOpenApiActionAvailability(),
         availabilityReason = availability.reason,
     )

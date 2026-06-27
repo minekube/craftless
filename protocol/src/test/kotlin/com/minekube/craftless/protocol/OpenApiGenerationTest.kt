@@ -317,7 +317,28 @@ class OpenApiGenerationTest {
                     listOf(
                         RuntimeResourceNode("runtime", RuntimeAvailability.available()),
                         RuntimeResourceNode("player", RuntimeAvailability.available()),
-                        RuntimeResourceNode("entity", RuntimeAvailability.available()),
+                        RuntimeResourceNode(
+                            id = "entity",
+                            availability = RuntimeAvailability.available(),
+                            schema =
+                                RuntimeSchema(
+                                    type = "object",
+                                    properties =
+                                        mapOf(
+                                            "handle" to RuntimeSchema("string"),
+                                            "position" to
+                                                RuntimeSchema(
+                                                    type = "object",
+                                                    properties =
+                                                        mapOf(
+                                                            "x" to RuntimeSchema("number"),
+                                                            "y" to RuntimeSchema("number"),
+                                                            "z" to RuntimeSchema("number"),
+                                                        ),
+                                                ),
+                                        ),
+                                ),
+                        ),
                     ),
                 operations =
                     listOf(
@@ -356,7 +377,15 @@ class OpenApiGenerationTest {
                         RuntimeHandleNode(
                             id = "entity.handle",
                             resource = "entity",
-                            schema = RuntimeSchema.objectSchema(),
+                            schema =
+                                RuntimeSchema(
+                                    type = "object",
+                                    properties =
+                                        mapOf(
+                                            "handle" to RuntimeSchema("string"),
+                                            "kind" to RuntimeSchema("string"),
+                                        ),
+                                ),
                             availability = RuntimeAvailability.available(),
                         ),
                     ),
@@ -365,7 +394,23 @@ class OpenApiGenerationTest {
                         RuntimeEventNode(
                             id = "player.chat.received",
                             resource = "player",
-                            payload = RuntimeSchema.objectSchema(),
+                            payload =
+                                RuntimeSchema(
+                                    type = "object",
+                                    properties =
+                                        mapOf(
+                                            "message" to RuntimeSchema("string"),
+                                            "sender" to
+                                                RuntimeSchema(
+                                                    type = "object",
+                                                    properties =
+                                                        mapOf(
+                                                            "name" to RuntimeSchema("string"),
+                                                            "handle" to RuntimeSchema("string"),
+                                                        ),
+                                                ),
+                                        ),
+                                ),
                             availability = RuntimeAvailability.available(),
                         ),
                     ),
@@ -402,6 +447,22 @@ class OpenApiGenerationTest {
         assertEquals("object", movePositionSchema?.type)
         assertEquals("integer", movePositionSchema?.properties?.get("x")?.type)
         assertEquals(listOf("runtime", "player", "entity"), document.resources.map { it.id })
+        val entityResource = document.resources.single { it.id == "entity" }
+        assertEquals("object", entityResource.schema.type)
+        assertEquals("string", entityResource.schema.properties["handle"]?.type)
+        val entityPositionSchema = entityResource.schema.properties["position"]
+        assertEquals("object", entityPositionSchema?.type)
+        assertEquals("number", entityPositionSchema?.properties?.get("x")?.type)
+        val projectedEntityHandle = document.handles.single { it.id == "entity.handle" }
+        assertEquals("object", projectedEntityHandle.schema.type)
+        assertEquals("string", projectedEntityHandle.schema.properties["handle"]?.type)
+        assertEquals("string", projectedEntityHandle.schema.properties["kind"]?.type)
+        val chatEvent = document.events.single { it.id == "player.chat.received" }
+        assertEquals("object", chatEvent.payload.type)
+        assertEquals("string", chatEvent.payload.properties["message"]?.type)
+        val senderSchema = chatEvent.payload.properties["sender"]
+        assertEquals("object", senderSchema?.type)
+        assertEquals("string", senderSchema?.properties?.get("name")?.type)
         assertEquals(emptyList(), document.resources.single { it.id == "runtime" }.actions)
         assertEquals(listOf("player.move"), document.resources.single { it.id == "player" }.actions)
         assertEquals(listOf("entity.handle"), document.handles.map { it.id })
