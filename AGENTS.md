@@ -153,6 +153,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 39. Fabric library replacement.
 40. rule-selected native libraries.
 41. launch argument placeholders.
+42. standard asset object layout.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -299,6 +300,12 @@ argument placeholders that depend on the selected profile and instance files.
 It must resolve launch-time placeholders in the supervisor/client-runtime
 layer, omit optional empty quick-play flags, and must not add gameplay API
 breadth, Fabric action descriptors, or static CLI gameplay behavior.
+Phase 42 keeps supervisor-prepared Minecraft assets compatible with the
+standard client asset resolver by storing asset objects at
+`assets/objects/<first-two-hash-chars>/<hash>`. It must derive paths from the
+Mojang asset index hash, validate hashes before using them as handles, and
+must not add public gameplay API, Fabric action descriptors, or custom asset
+serving routes.
 
 ## Acceptance Scenarios Are Not Product APIs
 

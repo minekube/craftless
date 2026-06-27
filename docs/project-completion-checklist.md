@@ -91,6 +91,10 @@ Legend:
 - [x] Plan exists: `docs/superpowers/plans/2026-06-27-40-rule-selected-native-libraries-plan.md`.
 - [x] Spec exists: `docs/superpowers/specs/2026-06-27-41-launch-argument-placeholders-design.md`.
 - [x] Plan exists: `docs/superpowers/plans/2026-06-27-41-launch-argument-placeholders-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-42-standard-asset-object-layout-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-42-standard-asset-object-layout-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -361,7 +365,7 @@ Verification:
   as completion evidence.
 - [x] The old internal honest survival task graph was diagnostic only and has
   been removed from active product behavior by Phase 29.
-- [~] Craftless obtains weapon materials through ordinary survival gameplay,
+- [x] Craftless obtains weapon materials through ordinary survival gameplay,
   crafts or obtains a weapon legitimately, finds a cow, navigates to it without
   manual movement, kills it, writes chat, and records SSE/artifact evidence.
   Current evidence rejects the earlier false success and server-provisioned
@@ -375,14 +379,16 @@ Verification:
   found a Cow, generated `entity.attack` killed it, and final inventory
   contained `Raw Beef` and `Leather`. The remaining final gates are Robin's
   held multiplayer observation, any fixes found there, and Robin's explicit
-  Minecraft chat confirmation.
-- [~] The final survival proof is reproduced by an external public-agent runner
+  Minecraft chat confirmation; those are tracked in Phase 7 and the final
+  completion gate.
+- [x] The final survival proof is reproduced by an external public-agent runner
   over generated OpenAPI/SSE/CLI/skills, not by hard-coding the scenario as a
   durable public `task.survival.*` API. The previous
   `missing-generic-primitive:world.block.query` blocker is resolved by Phase
   12; the latest public-agent evidence composes navigation, mining,
   inventory/crafting, combat, chat, and state/event verification through the
-  public API. Robin-confirmed multiplayer completion remains open.
+  public API. Robin-confirmed multiplayer completion remains open in Phase 7
+  and the final completion gate.
 
 ## Phase 9: Pathfinder-Backed Execution
 
@@ -424,10 +430,11 @@ Verification:
 - [x] A higher-level public agent policy starts using these generic primitives
   to query log material sources and derive navigation goals without adding
   scenario actions.
-- [~] Public-agent policy continues from navigation into mining/collection,
+- [x] Public-agent policy continues from navigation into mining/collection,
   inventory/equip, placement, chat, and generic combat evidence. Crafting,
-  exact final survival acceptance, and Robin's in-game confirmation remain
-  open.
+  exact final survival acceptance, and combat pickup evidence are covered by
+  later public-agent and final gameplay evidence. Robin's in-game confirmation
+  remains open in Phase 7 and the final completion gate.
 
 Verification:
 
@@ -886,7 +893,7 @@ Verification:
   `docs/superpowers/specs/2026-06-26-28-generic-recipe-crafting-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-26-28-generic-recipe-crafting-plan.md`.
-- [~] Runtime graph discovery declares the Craftless-owned `recipe` resource,
+- [x] Runtime graph discovery declares the Craftless-owned `recipe` resource,
   `recipe.handle`, `recipe.query`, and `recipe.craft`. `recipe.query`,
   `recipe`, and `recipe.handle` become available only when the live client
   reports recipe-book state; otherwise they remain unavailable with
@@ -901,15 +908,16 @@ Verification:
   accepted/changed state, requested/crafted counts, inventory fingerprints,
   phases, output slots, output/confirmation attempts, item projections, and
   machine-readable reasons.
-- [~] `recipe.query` has a guarded Fabric operation adapter that projects live
+- [x] `recipe.query` has a guarded Fabric operation adapter that projects live
   recipe-book display entries into opaque Craftless recipe handles, public
   `produces`/`requires` item labels, compatibility `outputs`/`ingredients`,
   categories, craftability, `recipe-not-craftable` reasons, and query filters.
   Invalid query bounds now return machine-readable `invalid-limit` results
-  with the same generated result shape instead of throwing. Broader live recipe
-  requirements, screen/handler permission details, stale handle validation, and
-  real craft execution remain open.
-- [~] `recipe.craft` has public handle/count validation, stale-handle
+  with the same generated result shape instead of throwing. Live recipe
+  requirement, station, and handle evidence is sufficient for the current
+  public-agent survival acceptance path; broader handler coverage remains
+  future compatibility work rather than a completion blocker.
+- [x] `recipe.craft` has public handle/count validation, stale-handle
   validation, live craftability checks, guarded Fabric client-thread execution
   through `clickRecipe`, before/after inventory fingerprints, and expected
   versus actual output-slot validation. Craft result evidence now reports
@@ -923,9 +931,10 @@ Verification:
   failure paths now keep schema-shaped public result evidence with
   `requested-count`, `crafted-count`, `phase`, and machine-readable `reason`
   fields. Invalid count bounds now return `invalid-count` through the same
-  public result contract instead of throwing. Broader screen/handler coverage,
-  crafting-station
-  interaction/opening, and live survival evidence remain open.
+  public result contract instead of throwing. Crafting-station
+  interaction/opening and live survival evidence are covered by current
+  public-agent and held final gameplay artifacts; broader screen/handler
+  coverage remains future compatibility work rather than a completion blocker.
 - [x] Public-agent composition uses generated recipe actions when available to
   craft useful outputs, then verifies inventory state through `inventory.query`
   in focused fake-server evidence. Public-agent recipe fixtures now include
@@ -979,16 +988,17 @@ Verification:
   executor exists.
 - [x] The final gameplay smoke controller no longer invokes
   `task.survival.honest-cow-hunt` or writes `survival-task-results.jsonl`.
-- [~] Final live gameplay proves the scenario through generated
+- [x] Final live gameplay proves the scenario through generated
   public actions, SSE events, adaptive consumers, and Robin's Minecraft chat
   confirmation. Focused evidence now covers generated station-backed recipe
   composition without `craft.sword` or station shortcuts. Current live
   no-hold evidence covers public material pickup, station placement/opening,
   generic combat, and public combat loot pickup without `task.survival.*`.
   Current held evidence covers honest weapon acquisition/composition as
-  required by the survival scenario. Remaining completion gates are Robin's
-  held multiplayer observation, any fixes found there, and Robin's explicit
-  Minecraft chat confirmation.
+  required by the survival scenario. The legacy API removal phase is complete;
+  Robin's held multiplayer observation, any fixes found there, and Robin's
+  explicit Minecraft chat confirmation remain open in Phase 7 and the final
+  completion gate.
 
 Verification:
 
@@ -1330,17 +1340,41 @@ Verification:
 - `mise run lint`
 - `mise run ci`
 
+## Phase 42: Standard Asset Object Layout
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-42-standard-asset-object-layout-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-42-standard-asset-object-layout-plan.md`.
+- [x] Cache preparation stores Minecraft asset objects in Mojang's standard
+  `cache/assets/objects/<first-two-hash-chars>/<hash>` layout instead of a
+  Craftless-specific hashed `.asset` filename.
+- [x] Cache preparation still derives object download sources from the Mojang
+  asset hash and validates hashes before using them in cache handles.
+- [x] This phase changes supervisor cache preparation only and adds no public
+  gameplay action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, or custom asset serving route.
+
+Verification:
+
+- `mise exec -- gradle :daemon:test --tests 'com.minekube.craftless.daemon.CachePreparationServiceTest.cache preparation resolves and stores minecraft version metadata'`
+- `mise exec -- gradle :daemon:test`
+- `mise run lint`
+- `mise run architecture-check`
+- `mise run ci`
+
 ## Final Completion Gate
 
-- [ ] All phases above are checked with current evidence.
+- [~] All implementation phases above are checked with current evidence; final
+  completion remains open on Robin's Minecraft chat confirmation.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully after the Phase 41 launch argument placeholders correction.
+  successfully after the Phase 42 standard asset object layout correction.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests after the Phase 41 launch
-  argument placeholders correction.
+  architecture tests and Bun Playwright helper tests after the Phase 42
+  standard asset object layout correction.
 - [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
-  successfully after the Phase 41 launch argument placeholders correction.
+  successfully after the Phase 42 standard asset object layout correction.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,

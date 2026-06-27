@@ -937,7 +937,7 @@ private data class MinecraftAssetObject(
     val artifact: CachePreparedArtifact =
         CachePreparedArtifact(
             kind = CachePreparedArtifactKind.MINECRAFT_ASSET_OBJECT,
-            handle = "cache/assets/objects/${hash.sha256Hex()}.asset",
+            handle = "cache/assets/objects/${hash.take(2)}/$hash",
             source = source,
             status = CachePreparedArtifactStatus.CACHED,
         )

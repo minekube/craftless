@@ -418,7 +418,10 @@ class CachePreparationServiceTest {
             assertEquals("cache/prepared/1.21.6-fabric-0.17.2.launch.json", launchArguments.handle)
             val assetObject = result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_ASSET_OBJECT }
             assertEquals(assetObjectUrl, assetObject.source)
-            assertTrue(assetObject.handle.startsWith("cache/assets/objects/"))
+            assertEquals(
+                "cache/assets/objects/ab/abcdef0123456789abcdef0123456789abcdef01",
+                assetObject.handle,
+            )
             assertEquals("CACHED", assetObject.status.name)
             val minecraftLibrary = result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_LIBRARY }
             assertEquals(minecraftLibraryUrl, minecraftLibrary.source)
