@@ -1728,9 +1728,11 @@ Verification:
   meaningfully above the player.
 - [x] Existing bounded material pickup evidence remains based on public
   inventory proof; accepted movement alone is not completion evidence.
-- [ ] Final gameplay has been rerun after this pickup convergence correction,
-  with either a ready-for-Robin hold or preserved blocker artifacts from the
-  next concrete public-agent failure.
+- [x] Final gameplay has been rerun after this pickup convergence correction.
+  Current 2026-06-27 held evidence has `publicAgentState=RAN`, no
+  `public-agent-blocked.json`, `final-gameplay-ready.json` for
+  `127.0.0.1:61963`, generated `entity.attack` killed a Sheep, and final
+  `inventory.query` showed `White Wool` and `Raw Mutton`.
 - [x] This phase changes public-agent acceptance policy only and adds no
   public gameplay action, generated route family, CLI gameplay catalog, Fabric
   descriptor/binding pair, scenario shortcut, new compiled lane, public
