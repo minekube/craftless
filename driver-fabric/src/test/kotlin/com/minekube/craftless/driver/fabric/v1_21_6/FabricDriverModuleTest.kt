@@ -2988,6 +2988,7 @@ class FabricDriverModuleTest {
                     "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS" to "0",
                     "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS" to "1",
                     "CRAFTLESS_SMOKE_ARTIFACTS_DIR" to artifactsDir.toString(),
+                    "CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS" to "goal may be completed",
                     "CRAFTLESS_PUBLIC_AGENT_COMMAND_JSON" to """["/bin/sh","-c","printf public-agent-ready > /dev/null"]""",
                     "CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON" to
                         """["/bin/sh","-c","printf '%s\n%s\n%s\n%s\n%s\n%s\n' \"${'$'}CRAFTLESS_FABRIC_SMOKE_READY_BASE_URL\" \"${'$'}CRAFTLESS_FABRIC_SMOKE_READY_CLIENT_ID\" \"${'$'}CRAFTLESS_FABRIC_SMOKE_READY_SERVER_HOST\" \"${'$'}CRAFTLESS_FABRIC_SMOKE_READY_SERVER_PORT\" \"${'$'}CRAFTLESS_FABRIC_SMOKE_READY_ARTIFACTS_DIR\" \"${'$'}CRAFTLESS_FABRIC_SMOKE_READY_HOLD_MS\" > '$readyOutput'"]""",
@@ -3008,6 +3009,11 @@ class FabricDriverModuleTest {
         val readyArtifact = readArtifact(artifactsDir, "final-gameplay-ready.json")
         assertTrue(readyArtifact.contains("\"event\":\"final-gameplay-ready\""))
         assertTrue(readyArtifact.contains("\"server\":\"localhost:25567\""))
+        assertTrue(readyArtifact.contains("\"confirmation-contains\":\"goal may be completed\""))
+        val joinInstructions = readArtifact(artifactsDir, "final-gameplay-join-instructions.txt")
+        assertTrue(joinInstructions.contains("Server: localhost:25567"))
+        assertTrue(joinInstructions.contains("Confirmation phrase: goal may be completed"))
+        assertTrue(joinInstructions.contains("Client id: fabric-smoke"))
         assertTrue(Files.exists(artifactsDir.resolve("final-gameplay-ready-command.log")))
     }
 

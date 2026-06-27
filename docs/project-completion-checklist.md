@@ -1885,19 +1885,45 @@ Verification:
 - `mise run ci`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS=120000 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=1800000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 
+## Phase 60: Final Gameplay Join Handoff
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-60-final-gameplay-join-handoff-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-60-final-gameplay-join-handoff-plan.md`.
+- [x] `final-gameplay-ready.json` includes the configured confirmation phrase
+  when the final gameplay hold requires Robin's Minecraft chat confirmation.
+- [x] `final-gameplay-join-instructions.txt` is written at the same ready
+  boundary with the server address, client id, base URL, artifacts directory,
+  hold duration, and exact confirmation phrase.
+- [x] Existing final confirmation and timeout semantics remain unchanged: the
+  join handoff does not mark completion, bypass Robin's chat confirmation, or
+  treat a timeout as success.
+- [x] This phase changes final-gameplay handoff evidence only and adds no
+  public gameplay action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric smoke controller runs ready notification command with live session context*'`
+- `git diff --check`
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric smoke controller runs ready notification command with live session context*' --tests '*FabricDriverModuleTest.fabric smoke controller stops final session after configured chat confirmation evidence*' --tests '*FabricDriverModuleTest.fabric smoke controller writes confirmation timeout artifact when Robin chat is not observed*'`
+- `mise run architecture-check`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above are checked with current evidence; final
   completion remains open on Robin's Minecraft chat confirmation.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully before `mise run ci` after Phase 56 final gameplay timeout
-  budget.
+  successfully as part of `mise run ci` after Phase 60 final gameplay join
+  handoff.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests after Phase 56 final
-  gameplay timeout budget.
+  architecture tests and Bun Playwright helper tests after Phase 60 final
+  gameplay join handoff.
 - [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
-  successfully after Phase 56 final gameplay timeout budget.
+  successfully after Phase 60 final gameplay join handoff.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,

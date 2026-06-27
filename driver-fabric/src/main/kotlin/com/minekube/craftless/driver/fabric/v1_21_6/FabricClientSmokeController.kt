@@ -381,6 +381,7 @@ data class FabricClientSmokeController(
 
     private fun runReadyNotificationCommand(baseUrl: String) {
         writeArtifact("final-gameplay-ready.json", readyNotificationArtifact(baseUrl))
+        writeArtifact("final-gameplay-join-instructions.txt", finalGameplayJoinInstructions(baseUrl))
         if (readyNotificationCommand.isEmpty()) {
             return
         }
@@ -463,8 +464,20 @@ data class FabricClientSmokeController(
                 "server" to "${target.host}:${target.port}",
                 "artifacts-dir" to (artifactsDir?.toString() ?: ""),
                 "hold-ms" to holdAfterActions.inWholeMilliseconds.toString(),
+                "confirmation-contains" to (confirmationChatContains ?: ""),
             ),
         )
+
+    private fun finalGameplayJoinInstructions(baseUrl: String): String =
+        buildString {
+            appendLine("Craftless final gameplay is ready.")
+            appendLine("Server: ${target.host}:${target.port}")
+            appendLine("Client id: $SMOKE_CLIENT_ID")
+            appendLine("Base URL: $baseUrl")
+            appendLine("Artifacts: ${artifactsDir?.toString() ?: ""}")
+            appendLine("Hold ms: ${holdAfterActions.inWholeMilliseconds}")
+            appendLine("Confirmation phrase: ${confirmationChatContains ?: ""}")
+        }
 
     private fun finalGameplayConfirmationArtifact(
         baseUrl: String,
