@@ -778,6 +778,37 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner continues bounded generated attack exploration beyond first waypoint ring`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
+                    entityQueryResponses =
+                        listOf(EMPTY_ENTITY_QUERY_RESPONSE) +
+                            List(24) { reachableSalmonEntityQueryResponse } +
+                            listOf(
+                                aliveCowEntityQueryResponse,
+                                aliveCowEntityQueryResponse,
+                                deadCowEntityQueryResponse,
+                            ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            assertTrue(result.actionLog.map { it.action }.count { it == "entity.query" } >= 27)
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("entity.attack") &&
+                        it.contains(""""target":{"handle":"entity.handle-42"}""")
+                },
+            )
+            assertFalse(server.requestBodies.any { it.contains(""""target":{"handle":"entity.handle-salmon"}""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner revalidates public attack target after navigation before attacking`() =
         runBlocking {
             val server =

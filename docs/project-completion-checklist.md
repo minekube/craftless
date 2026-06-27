@@ -838,6 +838,33 @@ Verification:
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest*' --tests '*FabricNavigationDiscoveryTest*'`
 - `mise run ci`
 
+## Phase 30: Bounded Attack Exploration
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-30-bounded-attack-exploration-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-30-bounded-attack-exploration-plan.md`.
+- [x] The 2026-06-27 final gameplay run reached the ready window but the
+  process-external public agent blocked with
+  `insufficient-public-evidence:entity.query.attack-target` after crafting a
+  `Wooden Sword` and finding only dropped items plus vertically distant Cod and
+  Salmon through generated `entity.query`.
+- [x] The public-agent policy now performs bounded multi-ring attack
+  exploration through generated `navigation.plan`, `navigation.follow`, and
+  `entity.query` before reporting that attack target evidence is missing.
+- [x] Focused regression evidence proves the runner keeps ignoring aquatic
+  living entities as completion evidence, continues beyond the first waypoint
+  ring, and attacks a later valid Cow handle without scenario shortcuts.
+- [ ] Final live gameplay must be rerun after this correction and must reach
+  `publicAgentState=RAN` before the Robin confirmation hold is considered
+  valid.
+
+Verification:
+
+- `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.PublicAgentGameplayRunnerTest.runner continues bounded generated attack exploration beyond first waypoint ring'`
+- `mise exec -- gradle :testkit:test`
+- `mise run ci`
+
 ## Final Completion Gate
 
 - [ ] All phases above are checked with current evidence.

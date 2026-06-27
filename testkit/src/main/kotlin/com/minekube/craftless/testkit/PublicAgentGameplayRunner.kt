@@ -223,7 +223,7 @@ class PublicAgentGameplayRunner(
             val origin =
                 player.responseObject()?.playerPosition()
                     ?: return null
-            for (waypoint in origin.explorationWaypoints()) {
+            for (waypoint in origin.explorationWaypoints(rings = ATTACK_EXPLORATION_RINGS)) {
                 if (navigateTo(position = waypoint.toJsonObject(), radius = 6.0) != null) {
                     continue
                 }
@@ -1672,17 +1672,20 @@ private data class CraftlessPoint(
             put("z", JsonPrimitive(z))
         }
 
-    fun explorationWaypoints(): List<CraftlessPoint> =
-        listOf(
-            copy(x = x + EXPLORATION_STEP),
-            copy(z = z + EXPLORATION_STEP),
-            copy(x = x - EXPLORATION_STEP),
-            copy(z = z - EXPLORATION_STEP),
-            copy(x = x + EXPLORATION_STEP, z = z + EXPLORATION_STEP),
-            copy(x = x - EXPLORATION_STEP, z = z + EXPLORATION_STEP),
-            copy(x = x + EXPLORATION_STEP, z = z - EXPLORATION_STEP),
-            copy(x = x - EXPLORATION_STEP, z = z - EXPLORATION_STEP),
-        )
+    fun explorationWaypoints(rings: Int = 1): List<CraftlessPoint> =
+        (1..rings).flatMap { ring ->
+            val step = EXPLORATION_STEP * ring
+            listOf(
+                copy(x = x + step),
+                copy(z = z + step),
+                copy(x = x - step),
+                copy(z = z - step),
+                copy(x = x + step, z = z + step),
+                copy(x = x - step, z = z + step),
+                copy(x = x + step, z = z - step),
+                copy(x = x - step, z = z - step),
+            )
+        }
 
     fun lookAt(target: CraftlessPoint): CraftlessLook {
         val dx = target.x - x
@@ -1709,6 +1712,7 @@ private const val MIN_RECIPE_COMPOSITION_MATERIAL_ITEMS = 2
 private const val PICKUP_MOVE_TICKS = 24
 private const val COMBAT_MOVE_TICKS = 24
 private const val COMBAT_FOCUS_ATTEMPTS = 3
+private const val ATTACK_EXPLORATION_RINGS = 3
 private const val DEFAULT_COMBAT_EVIDENCE_ATTEMPTS = 12
 private const val DEFAULT_ACTION_REQUEST_TIMEOUT_MS = 300_000L
 private const val DEFAULT_CONNECT_TIMEOUT_MS = 30_000L
