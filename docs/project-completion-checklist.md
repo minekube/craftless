@@ -855,9 +855,13 @@ Verification:
 - [x] Focused regression evidence proves the runner keeps ignoring aquatic
   living entities as completion evidence, continues beyond the first waypoint
   ring, and attacks a later valid Cow handle without scenario shortcuts.
-- [ ] Final live gameplay must be rerun after this correction and must reach
-  `publicAgentState=RAN` before the Robin confirmation hold is considered
-  valid.
+- [x] Final live gameplay was rerun after this correction and reached
+  `publicAgentState=RAN`. Evidence:
+  `driver-fabric/build/craftless-final-gameplay/artifacts/public-agent-command.log`
+  reports `publicAgentState=RAN`; `final-gameplay-ready.json` was written for
+  `127.0.0.1:56513`; `server-evidence.jsonl` contains only Craftless'
+  `Player50` join/chat/disconnect and no Robin confirmation chat; no
+  `final-gameplay-confirmation.json` was written before the hold expired.
 
 Verification:
 
