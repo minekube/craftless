@@ -1706,6 +1706,8 @@ Verification:
 - `mise run lint`
 - `mise run architecture-check`
 - `mise run ci`
+- Remote GitHub Actions `ci` run `28294009718` passed for implementation
+  commit `ef388b9`.
 
 ## Final Completion Gate
 

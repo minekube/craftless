@@ -121,7 +121,7 @@
   the public agent blocks, preserve the artifacts and fix the next concrete
   blocker.
 
-- [ ] **Step 3: Commit and push**
+- [x] **Step 3: Commit and push**
 
   Run:
 
@@ -131,7 +131,7 @@
   git push origin main
   ```
 
-- [ ] **Step 4: Verify remote CI**
+- [x] **Step 4: Verify remote CI**
 
   Run:
 
