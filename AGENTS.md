@@ -150,6 +150,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 36. legacy survival task namespace guard.
 37. scenario shortcut action guard.
 38. combat miss retry.
+39. Fabric library replacement.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -279,6 +280,12 @@ refresh public `entity.query` evidence, re-focus through generated navigation
 and optional `player.move`, retry only within the configured evidence budget,
 and must not add `kill.cow`, combat macros, scenario shortcuts, or any new
 product gameplay action.
+Phase 39 keeps Fabric launch preparation version-aware by allowing Fabric
+loader-profile libraries to replace duplicate Minecraft libraries with the same
+Maven group and artifact. It must affect cache preparation and launch
+classpath construction only, must preserve non-duplicate Minecraft libraries,
+and must not encode one Minecraft version, one Fabric loader version, or any
+public gameplay behavior into daemon logic.
 
 ## Acceptance Scenarios Are Not Product APIs
 

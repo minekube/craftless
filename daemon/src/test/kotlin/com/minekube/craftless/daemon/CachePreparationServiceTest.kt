@@ -24,6 +24,101 @@ import kotlin.test.assertTrue
 
 class CachePreparationServiceTest {
     @Test
+    fun `fabric cache preparation lets fabric libraries replace duplicate minecraft libraries`() =
+        runBlocking {
+            val workspace = Files.createTempDirectory("craftless-cache-fabric-library-dedupe")
+            val versionUrl = "https://metadata.test/1.21.6.json"
+            val clientJarUrl = "https://metadata.test/client.jar"
+            val minecraftAsmUrl = "https://libraries.minecraft.net/org/ow2/asm/asm/9.6/asm-9.6.jar"
+            val minecraftAuthlibUrl = "https://libraries.minecraft.net/com/mojang/authlib/6.0.54/authlib-6.0.54.jar"
+            val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
+            val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
+            val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.17.2/profile/json"
+            val fabricAsmUrl = "https://maven.fabricmc.net/org/ow2/asm/asm/9.10.1/asm-9.10.1.jar"
+            val fabricLoaderUrl = "https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.17.2/fabric-loader-0.17.2.jar"
+            val service =
+                CachePreparationService(
+                    workspaceRoot = workspace,
+                    metadataFetcher =
+                        StaticCacheMetadataFetcher(
+                            mapOf(
+                                MINECRAFT_VERSION_INDEX_URL to
+                                    """
+                                    { "versions": [{ "id": "1.21.6", "url": "$versionUrl" }] }
+                                    """.trimIndent(),
+                                versionUrl to
+                                    """
+                                    {
+                                      "id": "1.21.6",
+                                      "assetIndex": {
+                                        "id": "1.21.6",
+                                        "url": "$assetIndexUrl"
+                                      },
+                                      "libraries": [
+                                        {
+                                          "name": "org.ow2.asm:asm:9.6",
+                                          "downloads": { "artifact": { "url": "$minecraftAsmUrl" } }
+                                        },
+                                        {
+                                          "name": "com.mojang:authlib:6.0.54",
+                                          "downloads": { "artifact": { "url": "$minecraftAuthlibUrl" } }
+                                        }
+                                      ],
+                                      "downloads": {
+                                        "client": { "url": "$clientJarUrl" }
+                                      }
+                                    }
+                                    """.trimIndent(),
+                                assetIndexUrl to """{"objects":{}}""",
+                                loaderVersionsUrl to """[{ "loader": { "version": "0.17.2", "stable": true } }]""",
+                                loaderProfileUrl to
+                                    """
+                                    {
+                                      "id": "fabric-loader-0.17.2-1.21.6",
+                                      "libraries": [
+                                        {
+                                          "name": "org.ow2.asm:asm:9.10.1",
+                                          "url": "https://maven.fabricmc.net/"
+                                        },
+                                        {
+                                          "name": "net.fabricmc:fabric-loader:0.17.2",
+                                          "url": "https://maven.fabricmc.net/"
+                                        }
+                                      ]
+                                    }
+                                    """.trimIndent(),
+                            ),
+                            binaryResponses =
+                                mapOf(
+                                    clientJarUrl to "client-jar".encodeToByteArray(),
+                                    minecraftAsmUrl to "minecraft-asm".encodeToByteArray(),
+                                    minecraftAuthlibUrl to "minecraft-authlib".encodeToByteArray(),
+                                    fabricAsmUrl to "fabric-asm".encodeToByteArray(),
+                                    fabricLoaderUrl to "fabric-loader".encodeToByteArray(),
+                                ),
+                        ),
+                )
+
+            val result = service.prepare(CachePrepareRequest("1.21.6", Loader.FABRIC))
+
+            assertTrue(result.launch.classpath.none { it.contains(minecraftAsmUrl.sha256HexForTest()) })
+            assertEquals(2, result.launch.classpath.count { it.startsWith("cache/libraries/fabric/") })
+            assertEquals(1, result.launch.classpath.count { it.startsWith("cache/libraries/minecraft/") })
+            assertEquals(
+                "minecraft-authlib",
+                Files.readString(
+                    workspace.resolve(
+                        result.artifacts
+                            .single {
+                                it.kind == CachePreparedArtifactKind.MINECRAFT_LIBRARY &&
+                                    it.source == minecraftAuthlibUrl
+                            }.handle,
+                    ),
+                ),
+            )
+        }
+
+    @Test
     fun `cache preparation resolves and stores minecraft version metadata`() =
         runBlocking {
             val workspace = Files.createTempDirectory("craftless-cache-resolution")
@@ -580,6 +675,12 @@ private fun fakeJavaBytes(version: String): ByteArray =
     echo 'Eclipse Temurin Runtime Environment' >&2
     echo '    os.arch = aarch64' >&2
     """.trimIndent().encodeToByteArray()
+
+private fun String.sha256HexForTest(): String =
+    java.security.MessageDigest
+        .getInstance("SHA-256")
+        .digest(encodeToByteArray())
+        .joinToString("") { byte -> "%02x".format(byte) }
 
 private fun javaRuntimeIndexJson(manifestUrl: String): String =
     """

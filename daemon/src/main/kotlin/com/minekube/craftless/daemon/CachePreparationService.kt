@@ -63,6 +63,7 @@ class CachePreparationService(
         val javaRuntime = resolveJavaRuntime(versionManifest)
         val fabricMetadata = resolveFabricMetadata(request)
         val fabricLibraries = fabricMetadata?.profile?.fabricLibraries().orEmpty()
+        val effectiveMinecraftLibraries = minecraftLibraries.withoutLibrariesReplacedBy(fabricLibraries)
         val baseResult = CachePrepareResult.forRequest(request, fabricMetadata?.loaderVersion)
         val launchArgumentsArtifact =
             baseResult.launchArgumentsArtifact(
@@ -90,7 +91,7 @@ class CachePreparationService(
             coreArtifacts +
                 javaRuntime?.artifacts.orEmpty() +
                 listOfNotNull(launchArgumentsArtifact) +
-                minecraftLibraries.map { it.artifact } +
+                effectiveMinecraftLibraries.map { it.artifact } +
                 minecraftNativeLibraries.flatMap { native -> listOf(native.libraryArtifact, native.directoryArtifact) } +
                 loaderMetadataArtifacts +
                 assetObjects.map { it.artifact } +
@@ -146,7 +147,7 @@ class CachePreparationService(
                 if (file.executable) target.toFile().setExecutable(true, true)
             }
         }
-        minecraftLibraries.forEach { library ->
+        effectiveMinecraftLibraries.forEach { library ->
             writeFetchedBytesArtifact(library.artifact, library.source)
         }
         minecraftNativeLibraries.forEach { native ->
@@ -743,18 +744,19 @@ private fun String.fabricLibraries(): List<FabricLibraryArtifact> =
         .orEmpty()
         .mapNotNull { library ->
             val item = library.jsonObject
+            val name = item["name"]?.jsonPrimitive?.content
             item["downloads"]
                 ?.jsonObject
                 ?.get("artifact")
                 ?.jsonObject
                 ?.let { artifact ->
                     val url = artifact["url"]?.jsonPrimitive?.content ?: return@let null
-                    return@mapNotNull FabricLibraryArtifact(url)
+                    return@mapNotNull FabricLibraryArtifact(url, name?.mavenLibraryKey())
                 }
-            val name = item["name"]?.jsonPrimitive?.content ?: return@mapNotNull null
+            name ?: return@mapNotNull null
             val baseUrl = item["url"]?.jsonPrimitive?.content ?: return@mapNotNull null
             val path = name.mavenPath()
-            FabricLibraryArtifact(baseUrl.trimEnd('/') + "/$path")
+            FabricLibraryArtifact(baseUrl.trimEnd('/') + "/$path", name.mavenLibraryKey())
         }
 
 private fun String.minecraftLibraries(): List<MinecraftLibraryArtifact> =
@@ -765,6 +767,7 @@ private fun String.minecraftLibraries(): List<MinecraftLibraryArtifact> =
         .orEmpty()
         .mapNotNull { library ->
             val item = library.jsonObject
+            val key = item["name"]?.jsonPrimitive?.content?.mavenLibraryKey()
             item["downloads"]
                 ?.jsonObject
                 ?.get("artifact")
@@ -772,8 +775,16 @@ private fun String.minecraftLibraries(): List<MinecraftLibraryArtifact> =
                 ?.get("url")
                 ?.jsonPrimitive
                 ?.content
-                ?.let(::MinecraftLibraryArtifact)
+                ?.let { source -> MinecraftLibraryArtifact(source, key) }
         }
+
+private fun List<MinecraftLibraryArtifact>.withoutLibrariesReplacedBy(
+    fabricLibraries: List<FabricLibraryArtifact>,
+): List<MinecraftLibraryArtifact> {
+    val fabricKeys = fabricLibraries.mapNotNull { it.key }.toSet()
+    if (fabricKeys.isEmpty()) return this
+    return filter { library -> library.key !in fabricKeys }
+}
 
 private fun String.minecraftNativeLibraries(): List<MinecraftNativeLibraryArtifact> =
     Json
@@ -841,6 +852,7 @@ private const val MINECRAFT_ASSET_BASE_URL = "https://resources.download.minecra
 
 private data class MinecraftLibraryArtifact(
     val source: String,
+    val key: MavenLibraryKey?,
 ) {
     private val handle: String = "cache/libraries/minecraft/${source.sha256Hex()}.jar"
 
@@ -903,6 +915,7 @@ private data class JavaRuntimeFileArtifact(
 
 private data class FabricLibraryArtifact(
     val source: String,
+    val key: MavenLibraryKey?,
 ) {
     private val handle: String = "cache/libraries/fabric/${source.sha256Hex()}.jar"
 
@@ -912,6 +925,17 @@ private data class FabricLibraryArtifact(
             handle = handle,
             status = CachePreparedArtifactStatus.CACHED,
         )
+}
+
+private data class MavenLibraryKey(
+    val group: String,
+    val artifact: String,
+)
+
+private fun String.mavenLibraryKey(): MavenLibraryKey? {
+    val parts = split(':')
+    if (parts.size < 2) return null
+    return MavenLibraryKey(parts[0], parts[1])
 }
 
 private fun String.sha256Hex(): String =

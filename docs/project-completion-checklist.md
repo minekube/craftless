@@ -1236,17 +1236,42 @@ Verification:
 
 - `mise exec -- gradle :testkit:test --rerun-tasks --tests 'com.minekube.craftless.testkit.PublicAgentGameplayRunnerTest.runner revalidates public attack target after generated attack misses'`
 
+## Phase 39: Fabric Library Replacement
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-39-fabric-library-replacement-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-39-fabric-library-replacement-plan.md`.
+- [x] Fabric cache preparation now derives Maven module keys from fetched
+  Minecraft version manifests and Fabric loader profiles.
+- [x] Fabric loader-profile libraries replace duplicate Minecraft libraries
+  with the same Maven group and artifact before prepared artifacts and launch
+  classpath are built.
+- [x] Non-duplicate Minecraft libraries remain cached and present on the launch
+  classpath.
+- [x] This phase changes daemon launch/cache preparation only and adds no
+  public gameplay action, route, CLI gameplay command, or version-specific
+  hard-coded library list.
+
+Verification:
+
+- `mise exec -- gradle :daemon:test --tests 'com.minekube.craftless.daemon.CachePreparationServiceTest.fabric cache preparation lets fabric libraries replace duplicate minecraft libraries'`
+- `mise exec -- gradle :daemon:test`
+- `mise run lint`
+- `mise run architecture-check`
+- `mise run ci`
+
 ## Final Completion Gate
 
 - [ ] All phases above are checked with current evidence.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully after the Phase 38 combat miss retry correction.
+  successfully after the Phase 39 Fabric library replacement correction.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests after the Phase 38 combat
-  miss retry correction.
+  architecture tests and Bun Playwright helper tests after the Phase 39 Fabric
+  library replacement correction.
 - [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
-  successfully after the Phase 38 combat miss retry correction.
+  successfully after the Phase 39 Fabric library replacement correction.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,
