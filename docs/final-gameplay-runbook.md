@@ -38,6 +38,11 @@ public-agent execution, the full human hold window, and shutdown. The
 with `CRAFTLESS_LOCAL_SERVER_SMOKE_ACTION_TIMEOUT_MS` when a longer held session
 is needed.
 
+During the hold window the final harness watches `server-evidence.jsonl` for
+Robin's Minecraft chat confirmation. The default confirmation phrase is
+`goal may be completed`; override it with
+`CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS` when needed.
+
 The old provisioned-item smoke is diagnostic only. It must not be used as final
 completion evidence. The final run must start with empty or ordinary survival
 inventory and obtain equipment through normal gameplay.
@@ -82,6 +87,7 @@ Required artifacts:
 - `public-agent-gameplay-results.jsonl`
 - `public-agent-state.jsonl`
 - `final-gameplay-ready.json`
+- `final-gameplay-confirmation.json`
 - `runtime-metadata.json`
 
 ## Invite Robin
@@ -110,6 +116,12 @@ visible client to verify chat, inventory/tool equip, movement, block
 interaction, mining, and a small build/place action. Any failures found here
 must be fixed and reverified before completion.
 
+When Robin writes the configured confirmation phrase in Minecraft chat, the
+server fixture imports that chat line into `server-evidence.jsonl` while the
+server is still running. The Fabric final harness then writes
+`final-gameplay-confirmation.json` and may stop the client before the maximum
+hold timeout expires.
+
 ## Completion Rule
 
 Do not call `update_goal(status = "complete")` until all of these are true:
@@ -130,3 +142,5 @@ Do not call `update_goal(status = "complete")` until all of these are true:
   with Cow preferred when visible, navigated to it, and killed it through
   discovered capabilities.
 - Robin writes in Minecraft chat that the goal may be completed.
+- `final-gameplay-confirmation.json` records Robin's chat confirmation from
+  live server evidence.

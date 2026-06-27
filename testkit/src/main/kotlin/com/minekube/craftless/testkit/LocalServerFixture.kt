@@ -11,6 +11,7 @@ import java.util.Collections
 import java.util.Comparator
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
 import kotlin.io.path.readLines
 import kotlin.io.path.writeText
@@ -79,6 +80,7 @@ data class LocalServerLayout(
     val serverLog: Path,
     val evidenceLog: Path,
 ) {
+    @Synchronized
     fun recordEvidence(evidence: LocalServerEvidence) {
         Files.createDirectories(evidenceLog.parent)
         Files.writeString(
@@ -189,12 +191,16 @@ data class LocalServerLayout(
                 .redirectErrorStream(true)
                 .start()
         val output = Collections.synchronizedList(mutableListOf<String>())
+        val liveEvidenceCount = AtomicInteger()
         val ready = CountDownLatch(1)
         val outputReader =
             thread(name = "craftless-minecraft-server-output") {
                 process.inputStream.bufferedReader().useLines { lines ->
                     lines.forEach { line ->
                         output += line
+                        if (recordEvidenceFromLogLine(line)) {
+                            liveEvidenceCount.incrementAndGet()
+                        }
                         if (line.isMinecraftServerReadyLine()) {
                             ready.countDown()
                         }
@@ -205,7 +211,7 @@ data class LocalServerLayout(
         fun stopAndCollect(message: String): Nothing {
             process.destroyForcibly()
             outputReader.join(1_000)
-            persistProcessOutput(output.snapshot())
+            persistProcessOutput(output.snapshot(), importEvidence = false)
             error(message)
         }
 
@@ -219,6 +225,7 @@ data class LocalServerLayout(
             outputReader = outputReader,
             output = output,
             shutdownTimeoutMillis = shutdownTimeoutMillis,
+            liveEvidenceCount = liveEvidenceCount,
         )
     }
 
@@ -252,8 +259,14 @@ data class LocalServerLayout(
             .map { line -> localServerEvidenceJson.decodeFromString<LocalServerEvidence>(line) }
     }
 
-    internal fun persistProcessOutput(output: List<String>): Int {
+    internal fun persistProcessOutput(
+        output: List<String>,
+        importEvidence: Boolean = true,
+    ): Int {
         Files.writeString(serverLog, output.joinToString("\n", postfix = "\n"), CREATE, APPEND)
+        if (!importEvidence) {
+            return 0
+        }
         var imported = 0
         output.forEach { line ->
             if (recordEvidenceFromLogLine(line)) {
@@ -270,6 +283,7 @@ class LocalMinecraftServerHandle internal constructor(
     private val outputReader: Thread,
     private val output: MutableList<String>,
     private val shutdownTimeoutMillis: Long,
+    private val liveEvidenceCount: AtomicInteger,
 ) {
     private var collected = false
     private val commandLock = Any()
@@ -327,18 +341,18 @@ class LocalMinecraftServerHandle internal constructor(
             if (!exited) {
                 process.destroyForcibly()
                 outputReader.join(1_000)
-                layout.persistProcessOutput(output.snapshot())
+                layout.persistProcessOutput(output.snapshot(), importEvidence = false)
                 collected = true
                 error("minecraft server did not stop after ${shutdownTimeoutMillis}ms")
             }
         }
 
         outputReader.join()
-        val imported = layout.persistProcessOutput(output.snapshot())
+        layout.persistProcessOutput(output.snapshot(), importEvidence = false)
         collected = true
         return LocalServerProcessResult(
             exitCode = process.exitValue(),
-            evidenceCount = imported,
+            evidenceCount = liveEvidenceCount.get(),
         )
     }
 }

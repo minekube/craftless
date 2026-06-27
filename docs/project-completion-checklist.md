@@ -249,7 +249,11 @@ Verification:
   generated `entity.query`, closed distance with generated navigation, attacked
   through generated `entity.attack`, observed Raw Beef as a public entity drop,
   moved to the drop, and proved pickup through `inventory.query`; Robin did not
-  join or confirm in Minecraft chat before the hold ended.
+  join or confirm in Minecraft chat before the hold ended. The final harness now
+  imports server evidence while the server is still running, watches
+  `server-evidence.jsonl` for the configured Robin confirmation phrase during
+  the hold window, and writes `final-gameplay-confirmation.json` when the chat
+  confirmation is observed.
 - [ ] Robin joins or observes the server session after the harness ready prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.

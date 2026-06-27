@@ -38,6 +38,11 @@ import kotlin.concurrent.thread
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
+private data class FinalGameplayConfirmationEvidence(
+    val player: String,
+    val message: String,
+)
+
 data class FabricClientSmokeController(
     val enabled: Boolean,
     val target: ConnectionTarget = ConnectionTarget("127.0.0.1", 25565),
@@ -51,6 +56,7 @@ data class FabricClientSmokeController(
     val artifactsDir: Path? = null,
     val publicAgentCommand: List<String> = emptyList(),
     val readyNotificationCommand: List<String> = emptyList(),
+    val confirmationChatContains: String? = null,
 ) {
     init {
         require(!startupSettleDelay.isNegative()) { "fabric smoke startup settle delay must not be negative" }
@@ -58,6 +64,9 @@ data class FabricClientSmokeController(
         require(actionTimeout.isPositive()) { "fabric smoke action timeout must be positive" }
         require(publicAgentCommand.none { it.isBlank() }) { "fabric smoke public agent command entries must not be blank" }
         require(readyNotificationCommand.none { it.isBlank() }) { "fabric smoke ready notification command entries must not be blank" }
+        require(confirmationChatContains == null || confirmationChatContains.isNotBlank()) {
+            "fabric smoke confirmation chat phrase must not be blank"
+        }
     }
 
     fun start(
@@ -271,8 +280,7 @@ data class FabricClientSmokeController(
                     val eventStream = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/events:stream"))
                     writeArtifact("client-events-stream.sse", eventStream)
                     if (holdAfterActions.isPositive()) {
-                        runReadyNotificationCommand(api.url(""))
-                        delay(holdAfterActions)
+                        waitForFinalGameplayConfirmation(api.url(""), pollInterval)
                     }
                     http.post(api.url("/clients/$SMOKE_CLIENT_ID:stop")).expectSuccess()
                 }
@@ -366,6 +374,39 @@ data class FabricClientSmokeController(
         }
     }
 
+    private suspend fun waitForFinalGameplayConfirmation(
+        baseUrl: String,
+        pollInterval: Duration,
+    ) {
+        runReadyNotificationCommand(baseUrl)
+        val phrase = confirmationChatContains?.takeIf { it.isNotBlank() }
+        if (phrase == null) {
+            delay(holdAfterActions)
+            return
+        }
+        val pollDelay = pollInterval.takeIf { it.isPositive() } ?: 250.milliseconds
+        val deadline = System.nanoTime() + holdAfterActions.inWholeNanoseconds
+        while (System.nanoTime() < deadline) {
+            findConfirmationEvidence(phrase)?.let { evidence ->
+                writeArtifact("final-gameplay-confirmation.json", finalGameplayConfirmationArtifact(baseUrl, evidence))
+                return
+            }
+            delay(pollDelay)
+        }
+    }
+
+    private fun findConfirmationEvidence(phrase: String): FinalGameplayConfirmationEvidence? {
+        val evidenceLog = artifactsDir?.resolve("server-evidence.jsonl") ?: return null
+        if (!Files.isRegularFile(evidenceLog)) {
+            return null
+        }
+        return Files
+            .readAllLines(evidenceLog)
+            .asSequence()
+            .mapNotNull { line -> line.toFinalGameplayConfirmationEvidenceOrNull() }
+            .firstOrNull { evidence -> evidence.message.contains(phrase, ignoreCase = true) }
+    }
+
     private fun readyNotificationArtifact(baseUrl: String): String =
         smokeJson.encodeToString(
             mapOf(
@@ -377,6 +418,35 @@ data class FabricClientSmokeController(
                 "hold-ms" to holdAfterActions.inWholeMilliseconds.toString(),
             ),
         )
+
+    private fun finalGameplayConfirmationArtifact(
+        baseUrl: String,
+        evidence: FinalGameplayConfirmationEvidence,
+    ): String =
+        smokeJson.encodeToString(
+            mapOf(
+                "event" to "final-gameplay-confirmed",
+                "base-url" to baseUrl,
+                "client-id" to SMOKE_CLIENT_ID,
+                "server" to "${target.host}:${target.port}",
+                "player" to evidence.player,
+                "message" to evidence.message,
+                "artifacts-dir" to (artifactsDir?.toString() ?: ""),
+            ),
+        )
+
+    private fun String.toFinalGameplayConfirmationEvidenceOrNull(): FinalGameplayConfirmationEvidence? =
+        runCatching {
+            val entry = smokeJson.parseToJsonElement(this).jsonObject
+            val type = entry["type"]?.jsonPrimitive?.content ?: return null
+            if (!type.equals("CHAT", ignoreCase = true)) {
+                return null
+            }
+            FinalGameplayConfirmationEvidence(
+                player = entry["player"]?.jsonPrimitive?.content ?: return null,
+                message = entry["message"]?.jsonPrimitive?.content ?: return null,
+            )
+        }.getOrNull()
 
     companion object {
         private const val ENABLED = "CRAFTLESS_FABRIC_CLIENT_SMOKE"
@@ -393,6 +463,7 @@ data class FabricClientSmokeController(
         private const val ARTIFACTS_DIR = "CRAFTLESS_SMOKE_ARTIFACTS_DIR"
         private const val PUBLIC_AGENT_COMMAND_JSON = "CRAFTLESS_PUBLIC_AGENT_COMMAND_JSON"
         private const val READY_COMMAND_JSON = "CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON"
+        private const val CONFIRM_CHAT_CONTAINS = "CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS"
         private const val SMOKE_CLIENT_ID = "fabric-smoke"
         private const val SMOKE_PROFILE = "CraftlessSmoke"
         private const val MINECRAFT_VERSION = "1.21.6"
@@ -431,6 +502,7 @@ data class FabricClientSmokeController(
                         ?.takeIf { it.isNotBlank() }
                         ?.let { smokeJson.decodeFromString<List<String>>(it) }
                         ?: emptyList(),
+                confirmationChatContains = env[CONFIRM_CHAT_CONTAINS]?.takeIf { it.isNotBlank() },
             )
         }
 

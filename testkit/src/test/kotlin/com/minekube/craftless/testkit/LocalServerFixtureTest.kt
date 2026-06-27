@@ -347,20 +347,81 @@ class LocalServerFixtureTest {
             layout.readEvidence(),
         )
     }
+
+    @Test
+    fun `fixture records minecraft server evidence while server is still running`() {
+        val root = Files.createTempDirectory("craftless-minecraft-server-live-evidence")
+        val layout = LocalServerFixture(root = root, port = 25567).prepare()
+        val fakeJava = root.resolve("fake-java")
+        val fakeServerJar = root.resolve("server.jar")
+        Files.writeString(fakeServerJar, "fake")
+        Files.writeString(
+            fakeJava,
+            """
+            #!/bin/sh
+            echo '[12:00:00] [Server thread/INFO]: Done (1.000s)! For help, type "help"'
+            touch server-is-ready
+            sleep 0.1
+            echo '[12:00:01] [Server thread/INFO]: <Robin> goal may be completed'
+            read command
+            printf '%s\n' "${'$'}command" > minecraft-server-stdin.txt
+            """.trimIndent() + "\n",
+        )
+        assertTrue(fakeJava.toFile().setExecutable(true))
+
+        val handle =
+            layout.startMinecraftServer(
+                serverJar = fakeServerJar,
+                javaExecutable = fakeJava,
+                minHeap = "256M",
+                maxHeap = "512M",
+                readinessTimeoutMillis = 5_000,
+                shutdownTimeoutMillis = 5_000,
+            )
+
+        assertTrue(handle.isRunning())
+        assertTrue(waitUntilExists(root.resolve("server-is-ready")))
+        assertTrue(
+            waitUntil {
+                layout.readEvidence().any {
+                    it.type == LocalServerEvidenceType.CHAT &&
+                        it.player == "Robin" &&
+                        it.message == "goal may be completed"
+                }
+            },
+        )
+
+        val result = handle.stopAndCollect()
+
+        assertEquals(0, result.exitCode)
+        assertFalse(handle.isRunning())
+        assertEquals(
+            listOf(LocalServerEvidence(type = LocalServerEvidenceType.CHAT, player = "Robin", message = "goal may be completed")),
+            layout.readEvidence(),
+        )
+    }
 }
 
 private fun waitUntilExists(
     path: Path,
     timeoutMillis: Long = 1_000,
+): Boolean =
+    waitUntil(timeoutMillis) {
+        Files.exists(path)
+    }
+
+private fun waitUntil(
+    timeoutMillis: Long = 1_000,
+    predicate: () -> Boolean,
 ): Boolean {
     val deadline = System.nanoTime() + timeoutMillis * 1_000_000
     while (System.nanoTime() < deadline) {
-        if (Files.exists(path)) {
+        if (predicate()) {
             return true
         }
         Thread.sleep(10)
     }
-    return Files.exists(path)
+    return predicate()
 }
 
 private object LocalServerLogEmitter {
