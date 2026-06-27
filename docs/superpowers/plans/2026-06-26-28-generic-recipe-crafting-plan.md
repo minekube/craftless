@@ -44,6 +44,10 @@ confirmation still remain open.
   compatibility `ingredients` and `outputs` aliases.
 - [x] Emit `reason=recipe-not-craftable` on discovered recipe records when
   `craftable=false`.
+- [x] Project `recipe.query` nested result schema metadata through the runtime
+  graph and generated OpenAPI so agents can discover `count`, `recipes`,
+  handles, item labels/counts/categories, station metadata, and non-craftable
+  reasons from the live spec.
 - [x] Ensure public recipe records do not expose raw registry ids or Minecraft/Fabric/Yarn names.
 - [x] Run the focused test and confirm it passes.
 

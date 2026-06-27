@@ -337,9 +337,14 @@ data class OpenApiActionResult(
 @Serializable
 data class OpenApiActionSchema(
     val type: String,
+    val properties: Map<String, OpenApiActionSchema> = emptyMap(),
+    val items: OpenApiActionSchema? = null,
 ) {
     init {
         require(type.isCraftlessActionArgumentType()) { "unsupported action result property type $type" }
+        properties.keys.forEach { name ->
+            require(name.isCraftlessActionArgumentName()) { "invalid action schema property $name" }
+        }
     }
 }
 
@@ -491,7 +496,7 @@ private fun RuntimeOperationNode.toOpenApiAction(): OpenApiAction =
                         "action" to OpenApiActionSchema("string"),
                         "status" to OpenApiActionSchema("string"),
                         "message" to OpenApiActionSchema("string"),
-                        "data" to OpenApiActionSchema(result.type),
+                        "data" to result.toOpenApiActionSchema(),
                     ),
                 required = listOf("action", "status"),
             ),
@@ -1114,7 +1119,19 @@ private fun OpenApiActionResult.toOpenApiSchema(): OpenApiSchema =
         required = required,
     )
 
-private fun OpenApiActionSchema.toOpenApiSchema(): OpenApiSchema = OpenApiSchema(type = type)
+private fun OpenApiActionSchema.toOpenApiSchema(): OpenApiSchema =
+    OpenApiSchema(
+        type = type,
+        properties = properties.mapValues { (_, schema) -> schema.toOpenApiSchema() },
+        items = items?.toOpenApiSchema(),
+    )
+
+private fun RuntimeSchema.toOpenApiActionSchema(): OpenApiActionSchema =
+    OpenApiActionSchema(
+        type = type,
+        properties = properties.mapValues { (_, schema) -> schema.toOpenApiActionSchema() },
+        items = items?.toOpenApiActionSchema(),
+    )
 
 private fun defaultOpenApiActionResultProperties(): Map<String, OpenApiActionSchema> =
     mapOf(

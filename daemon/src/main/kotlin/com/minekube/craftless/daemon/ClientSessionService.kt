@@ -3,6 +3,7 @@ package com.minekube.craftless.daemon
 import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.api.DriverActionAvailability
 import com.minekube.craftless.driver.api.DriverActionDescriptor
+import com.minekube.craftless.driver.api.DriverActionResultProperty
 import com.minekube.craftless.driver.api.DriverActionSource
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.api.DriverSession
@@ -126,7 +127,7 @@ class ClientSessionService private constructor(
                             OpenApiActionResult(
                                 properties =
                                     action.result.properties.mapValues { (_, property) ->
-                                        OpenApiActionSchema(property.type)
+                                        property.toOpenApiActionSchema()
                                     },
                                 required = action.result.required,
                             ),
@@ -308,7 +309,7 @@ private fun DriverActionDescriptor.fingerprintPart(): String {
             .sortedBy { it.key }
             .joinToString(",") { (name, property) ->
                 val required = if (name in result.required) "!" else ""
-                "$name:${property.type}$required"
+                "$name:${property.fingerprintPart()}$required"
             }
     val availabilityFingerprint =
         when (availability) {
@@ -316,6 +317,25 @@ private fun DriverActionDescriptor.fingerprintPart(): String {
             DriverActionAvailability.UNAVAILABLE -> "${availability.fingerprintValue()}:${availabilityReason.orEmpty()}"
         }
     return "$id:$schemaVersion:${source.fingerprintValue()}:$availabilityFingerprint($argumentFingerprint)->($resultFingerprint)"
+}
+
+private fun DriverActionResultProperty.toOpenApiActionSchema(): OpenApiActionSchema =
+    OpenApiActionSchema(
+        type = type,
+        properties = properties.mapValues { (_, property) -> property.toOpenApiActionSchema() },
+        items = items?.toOpenApiActionSchema(),
+    )
+
+private fun DriverActionResultProperty.fingerprintPart(): String {
+    if (properties.isEmpty() && items == null) {
+        return type
+    }
+    val propertyFingerprint =
+        properties.entries
+            .sortedBy { it.key }
+            .joinToString(",") { (name, property) -> "$name=${property.fingerprintPart()}" }
+    val itemFingerprint = items?.fingerprintPart().orEmpty()
+    return "$type:{$propertyFingerprint}:[$itemFingerprint]"
 }
 
 private fun DriverActionSource.fingerprintValue(): String =

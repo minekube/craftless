@@ -38,7 +38,19 @@ class OpenApiGenerationTest {
                                     properties =
                                         mapOf(
                                             "action" to OpenApiActionSchema("string"),
-                                            "blocks" to OpenApiActionSchema("array"),
+                                            "blocks" to
+                                                OpenApiActionSchema(
+                                                    type = "array",
+                                                    items =
+                                                        OpenApiActionSchema(
+                                                            type = "object",
+                                                            properties =
+                                                                mapOf(
+                                                                    "handle" to OpenApiActionSchema("string"),
+                                                                    "category" to OpenApiActionSchema("string"),
+                                                                ),
+                                                        ),
+                                                ),
                                             "status" to OpenApiActionSchema("string"),
                                         ),
                                     required = listOf("action", "status", "blocks"),
@@ -89,7 +101,12 @@ class OpenApiGenerationTest {
                 ?.schema
         assertNotNull(aliasResponseSchema)
         assertEquals(listOf("action", "status", "blocks"), aliasResponseSchema.required)
-        assertEquals("array", aliasResponseSchema.properties["blocks"]?.type)
+        val aliasBlocksSchema = aliasResponseSchema.properties["blocks"]
+        val aliasBlockItemSchema = aliasBlocksSchema?.items
+        assertEquals("array", aliasBlocksSchema?.type)
+        assertEquals("object", aliasBlockItemSchema?.type)
+        assertEquals("string", aliasBlockItemSchema?.properties?.get("handle")?.type)
+        assertEquals("string", aliasBlockItemSchema?.properties?.get("category")?.type)
     }
 
     @Test

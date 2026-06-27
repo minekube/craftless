@@ -49,16 +49,19 @@ as `recipe-context-unavailable`, `recipe-not-craftable`, or
 `recipe.query` is read-only and returns public recipe records:
 
 - `handle`;
-- `label`;
-- `category`;
+- `kind`;
 - `craftable`;
-- `requires`;
-- `produces`;
+- `requires` and `produces` arrays whose items expose public `label`,
+  `count`, and `category`;
+- optional `station` item metadata;
 - optional `reason` when not craftable.
 
 Recipe projections may retain compatibility aliases such as `ingredients` and
 `outputs`, but `requires` and `produces` are the spec-aligned public names
 agents should prefer.
+The runtime graph result schema and generated per-client OpenAPI should
+describe this nested response shape so adaptive agents do not need hard-coded
+recipe response assumptions.
 When a recipe is discovered but not currently craftable, the projection should
 include `reason=recipe-not-craftable` so agents can distinguish known
 unavailable recipes from malformed or missing records.

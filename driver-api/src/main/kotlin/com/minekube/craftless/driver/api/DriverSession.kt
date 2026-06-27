@@ -113,9 +113,14 @@ data class DriverActionResultDescriptor(
 @Serializable
 data class DriverActionResultProperty(
     val type: String,
+    val properties: Map<String, DriverActionResultProperty> = emptyMap(),
+    val items: DriverActionResultProperty? = null,
 ) {
     init {
         require(type.isCraftlessActionArgumentType()) { "unsupported action result property type $type" }
+        properties.keys.forEach { name ->
+            require(name.isCraftlessActionArgumentName()) { "invalid action result property schema name $name" }
+        }
     }
 }
 

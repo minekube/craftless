@@ -183,12 +183,29 @@ enum class RuntimeAvailabilityState {
 data class RuntimeSchema(
     val type: String,
     val required: Boolean = false,
+    val properties: Map<String, RuntimeSchema> = emptyMap(),
+    val items: RuntimeSchema? = null,
 ) {
     init {
         require(type.isCraftlessActionArgumentType()) { "unsupported runtime schema type $type" }
+        properties.keys.forEach { name ->
+            require(name.isCraftlessActionArgumentName()) { "invalid runtime schema property $name" }
+        }
     }
 
-    fun canonical(): String = "$type:${if (required) "required" else "optional"}"
+    fun canonical(): String {
+        if (properties.isEmpty() && items == null) {
+            return "$type:${if (required) "required" else "optional"}"
+        }
+        val requiredMarker = if (required) "required" else "optional"
+        val propertyMarker =
+            properties
+                .toSortedMap()
+                .map { (name, schema) -> "$name=${schema.canonical()}" }
+                .joinToString(",")
+        val itemMarker = items?.canonical().orEmpty()
+        return "$type:$requiredMarker:{$propertyMarker}:[$itemMarker]"
+    }
 
     companion object {
         fun objectSchema(): RuntimeSchema = RuntimeSchema("object")

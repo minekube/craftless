@@ -193,7 +193,7 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                             "craftable" to RuntimeSchema("boolean"),
                             "limit" to RuntimeSchema("integer"),
                         ),
-                    result = RuntimeSchema.objectSchema(),
+                    result = recipeQueryResultSchema(),
                     availability = recipeQueryAvailability,
                 ),
                 RuntimeOperationNode(
@@ -325,6 +325,44 @@ private fun RuntimeOperationNode.toEventNode(): RuntimeEventNode =
         payload = RuntimeSchema.objectSchema(),
         availability = availability,
         sourceEvidence = sourceEvidence,
+    )
+
+private fun recipeQueryResultSchema(): RuntimeSchema =
+    RuntimeSchema(
+        type = "object",
+        properties =
+            mapOf(
+                "count" to RuntimeSchema("integer"),
+                "recipes" to RuntimeSchema("array", items = recipeRecordSchema()),
+            ),
+    )
+
+private fun recipeRecordSchema(): RuntimeSchema =
+    RuntimeSchema(
+        type = "object",
+        properties =
+            mapOf(
+                "handle" to RuntimeSchema("string"),
+                "kind" to RuntimeSchema("string"),
+                "craftable" to RuntimeSchema("boolean"),
+                "outputs" to RuntimeSchema("array", items = recipeItemSchema()),
+                "ingredients" to RuntimeSchema("array", items = recipeItemSchema()),
+                "produces" to RuntimeSchema("array", items = recipeItemSchema()),
+                "requires" to RuntimeSchema("array", items = recipeItemSchema()),
+                "station" to recipeItemSchema(),
+                "reason" to RuntimeSchema("string"),
+            ),
+    )
+
+private fun recipeItemSchema(): RuntimeSchema =
+    RuntimeSchema(
+        type = "object",
+        properties =
+            mapOf(
+                "label" to RuntimeSchema("string"),
+                "count" to RuntimeSchema("integer"),
+                "category" to RuntimeSchema("string"),
+            ),
     )
 
 private fun fabricBootstrapDescriptor(id: String) =

@@ -813,7 +813,10 @@ Verification:
   `recipe-discovery-unavailable`. `recipe.craft` becomes available only when
   the live client also reports a craft execution context; otherwise it remains
   unavailable with `recipe-context-unavailable` or another machine-readable
-  runtime reason.
+  runtime reason. `recipe.query` now also projects nested result schema
+  metadata for `count`, `recipes`, recipe handles, craftability,
+  `requires`/`produces`, compatibility `outputs`/`ingredients`, station
+  metadata, and non-craftable reasons into generated OpenAPI.
 - [~] `recipe.query` has a guarded Fabric operation adapter that projects live
   recipe-book display entries into opaque Craftless recipe handles, public
   `produces`/`requires` item labels, compatibility `outputs`/`ingredients`,
