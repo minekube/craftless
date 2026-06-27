@@ -951,10 +951,10 @@ Verification:
   `28278536387` passed `mise run ci` on `main` for commit `aa54ade`.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
-- [~] Docker runtime smoke remains dependent on a local Docker daemon. Current
-  local Docker verification is unavailable because the configured OrbStack
-  Docker socket is missing; distribution files remain covered by Playwright
-  distribution tests and CI.
+- [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,
+  `docker build -t craftless:local .` succeeded, and
+  `docker run --rm craftless:local /opt/craftless/bin/craftless server start --once --port 0 --workspace /tmp/craftless`
+  returned `{"ok":true,...}` with a generated localhost server URL.
 - [x] Final real gameplay evidence is captured without server-provisioned
   inventory or manual movement for Craftless.
 - [ ] Robin confirms in Minecraft chat that the goal may be completed.
