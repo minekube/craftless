@@ -233,7 +233,16 @@ internal object FabricWorldBlockBreakActionBinding : FabricActionBinding {
         val ticks = invocation.arguments.intArgument("ticks") ?: DEFAULT_BREAK_TICKS
         require(ticks in 1..MAX_BREAK_TICKS) { "block break ticks must be between 1 and $MAX_BREAK_TICKS" }
         val includeFluids = invocation.arguments.booleanArgument("include-fluids")
-        val requestedTarget = invocation.arguments.blockBreakTarget()
+        val targetParse = invocation.arguments.blockBreakTarget()
+        if (targetParse.reason != null) {
+            return DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.FAILED,
+                message = targetParse.reason,
+                data = blockBreakFailure(targetParse.reason),
+            )
+        }
+        val requestedTarget = targetParse.target
         val data =
             context.queryOnClient {
                 val player = requireNotNull(player) { "client is not connected to a server" }
@@ -303,7 +312,16 @@ internal object FabricWorldBlockInteractActionBinding : FabricActionBinding {
         val maxDistance = invocation.arguments["max-distance"]?.jsonPrimitive?.doubleOrNull ?: DEFAULT_MAX_DISTANCE
         require(maxDistance > 0.0) { "block interact max-distance must be positive" }
         val includeFluids = invocation.arguments.booleanArgument("include-fluids")
-        val requestedTarget = invocation.arguments.blockBreakTarget()
+        val targetParse = invocation.arguments.blockBreakTarget()
+        if (targetParse.reason != null) {
+            return DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.FAILED,
+                message = targetParse.reason,
+                data = blockInteractFailure(targetParse.reason),
+            )
+        }
+        val requestedTarget = targetParse.target
         val requestedSide = invocation.arguments.blockSide(Direction.UP)
         val data =
             context.queryOnClient {
@@ -478,14 +496,23 @@ private fun Map<String, kotlinx.serialization.json.JsonElement>.numberArgument(n
         primitive.doubleOrNull ?: primitive.contentOrNull?.toDoubleOrNull()
     }
 
-private fun Map<String, JsonElement>.blockBreakTarget(): CraftlessBlockBreakTarget? {
-    val target = this["target"] as? JsonObject ?: return null
+private fun Map<String, JsonElement>.blockBreakTarget(): CraftlessBlockTargetParse {
+    val target = this["target"] as? JsonObject ?: return CraftlessBlockTargetParse(target = null)
     target["handle"]?.jsonPrimitive?.contentOrNull?.let { handle ->
-        return CraftlessBlockBreakTarget(parseCraftlessBlockHandle(handle), handle)
+        val position = parseCraftlessBlockHandle(handle) ?: return CraftlessBlockTargetParse("invalid-target-handle")
+        return CraftlessBlockTargetParse(target = CraftlessBlockBreakTarget(position, handle))
     }
     val position = target["position"]
-    require(position is JsonObject) { "block target requires handle or position" }
-    return CraftlessBlockBreakTarget(position.toBlockPos(), null)
+    if (position !is JsonObject) {
+        return CraftlessBlockTargetParse("invalid-target")
+    }
+    val blockPosition = position.toBlockPos()
+    return CraftlessBlockTargetParse(
+        target =
+            blockPosition
+                ?.let { CraftlessBlockBreakTarget(it, null) },
+        reason = if (blockPosition == null) "invalid-target-position" else null,
+    )
 }
 
 private fun Map<String, JsonElement>.blockSide(default: Direction): Direction {
@@ -500,20 +527,24 @@ private fun Map<String, JsonElement>.blockSide(default: Direction): Direction {
         ?: error("block side must be one of down, up, north, south, west, east")
 }
 
-private fun parseCraftlessBlockHandle(handle: String): BlockPos {
+private fun parseCraftlessBlockHandle(handle: String): BlockPos? {
     val parts = handle.split(":")
-    require(parts.size == 4 && parts[0] == "world.block") { "block target handle must use world.block:x:y:z" }
-    val x = requireNotNull(parts[1].toIntOrNull()) { "block target handle must use world.block:x:y:z" }
-    val y = requireNotNull(parts[2].toIntOrNull()) { "block target handle must use world.block:x:y:z" }
-    val z = requireNotNull(parts[3].toIntOrNull()) { "block target handle must use world.block:x:y:z" }
+    if (parts.size != 4 || parts[0] != "world.block") {
+        return null
+    }
+    val x = parts[1].toIntOrNull() ?: return null
+    val y = parts[2].toIntOrNull() ?: return null
+    val z = parts[3].toIntOrNull() ?: return null
     return BlockPos(x, y, z)
 }
 
-private fun JsonObject.toBlockPos(): BlockPos {
+private fun JsonObject.toBlockPos(): BlockPos? {
     val x = blockCoordinate("x")
     val y = blockCoordinate("y")
     val z = blockCoordinate("z")
-    require(x != null && y != null && z != null) { "block target position requires x, y, and z" }
+    if (x == null || y == null || z == null) {
+        return null
+    }
     return BlockPos(x, y, z)
 }
 
@@ -527,6 +558,25 @@ private data class CraftlessBlockBreakTarget(
     val position: BlockPos,
     val handle: String?,
 )
+
+private data class CraftlessBlockTargetParse(
+    val reason: String? = null,
+    val target: CraftlessBlockBreakTarget? = null,
+)
+
+private fun blockBreakFailure(reason: String): JsonObject =
+    buildJsonObject {
+        put("started", false)
+        put("changed", false)
+        put("reason", reason)
+    }
+
+private fun blockInteractFailure(reason: String): JsonObject =
+    buildJsonObject {
+        put("accepted", false)
+        put("changed", false)
+        put("reason", reason)
+    }
 
 internal fun fabricRaycastDescriptor(): DriverActionDescriptor =
     DriverActionDescriptor(

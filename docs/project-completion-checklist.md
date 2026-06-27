@@ -480,6 +480,10 @@ Verification:
 - [x] `world.block.break` accepts public target evidence from
   `world.block.query` so public agents can break the block they discovered
   instead of relying only on current camera raycast.
+- [x] Malformed `world.block.break` target handles or positions now return
+  machine-readable generated-action failures such as
+  `invalid-target-handle` or `invalid-target-position` instead of throwing
+  before public result data can be returned.
 - [x] Live no-hold evidence shows targeted break data and collected inventory
   state. Current evidence: `world.block.query` selected
   `world.block:57:77:-292`; `world.block.break` returned the same handle and
@@ -487,6 +491,7 @@ Verification:
 
 Verification:
 
+- `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric block break rejects malformed target handle' --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric block break rejects incomplete target position'`
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest*'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
@@ -662,6 +667,10 @@ Verification:
 - [x] `world.block.interact` accepts public block handles or positions plus a
   side, invokes the Fabric client-thread interaction manager, and returns
   `accepted` plus state-change evidence.
+- [x] Malformed `world.block.interact` target handles now return
+  machine-readable generated-action failures such as
+  `invalid-target-handle` with `accepted=false` instead of throwing before
+  public result data can be returned.
 - [x] Public-agent composition invokes targetable `world.block.interact` only
   when the generated action descriptor advertises `target`, refreshes public
   support block evidence after navigation, requires an unoccupied replaceable
@@ -679,6 +688,7 @@ Verification:
 Verification:
 
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric runtime discovery exposes block interact only from client state'`
+- `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric block interact rejects malformed target handle with machine readable failure'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=120000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 

@@ -1267,24 +1267,25 @@ class FabricDriverModuleTest {
         gateway.connected = true
         val backend = FabricDriverBackend.real(gateway)
 
-        val error =
-            assertFailsWith<IllegalArgumentException> {
-                backend.invoke(
-                    "alice",
-                    DriverActionInvocation(
-                        action = "world.block.break",
-                        arguments =
-                            mapOf(
-                                "target" to
-                                    buildJsonObject {
-                                        put("handle", "minecraft:oak_log")
-                                    },
-                            ),
-                    ),
-                )
-            }
+        val result =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "world.block.break",
+                    arguments =
+                        mapOf(
+                            "target" to
+                                buildJsonObject {
+                                    put("handle", "minecraft:oak_log")
+                                },
+                        ),
+                ),
+            )
 
-        assertEquals("block target handle must use world.block:x:y:z", error.message)
+        assertEquals(DriverActionStatus.FAILED, result.status)
+        assertEquals("invalid-target-handle", result.message)
+        assertEquals(false, result.data["started"]?.jsonPrimitive?.boolean)
+        assertEquals("invalid-target-handle", result.data["reason"]?.jsonPrimitive?.content)
         assertEquals(emptyList(), gateway.actions)
         assertEquals(0, gateway.scheduled)
     }
@@ -1295,30 +1296,31 @@ class FabricDriverModuleTest {
         gateway.connected = true
         val backend = FabricDriverBackend.real(gateway)
 
-        val error =
-            assertFailsWith<IllegalArgumentException> {
-                backend.invoke(
-                    "alice",
-                    DriverActionInvocation(
-                        action = "world.block.break",
-                        arguments =
-                            mapOf(
-                                "target" to
-                                    buildJsonObject {
-                                        put(
-                                            "position",
-                                            buildJsonObject {
-                                                put("x", 1)
-                                                put("y", 64)
-                                            },
-                                        )
-                                    },
-                            ),
-                    ),
-                )
-            }
+        val result =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "world.block.break",
+                    arguments =
+                        mapOf(
+                            "target" to
+                                buildJsonObject {
+                                    put(
+                                        "position",
+                                        buildJsonObject {
+                                            put("x", 1)
+                                            put("y", 64)
+                                        },
+                                    )
+                                },
+                        ),
+                ),
+            )
 
-        assertEquals("block target position requires x, y, and z", error.message)
+        assertEquals(DriverActionStatus.FAILED, result.status)
+        assertEquals("invalid-target-position", result.message)
+        assertEquals(false, result.data["started"]?.jsonPrimitive?.boolean)
+        assertEquals("invalid-target-position", result.data["reason"]?.jsonPrimitive?.content)
         assertEquals(emptyList(), gateway.actions)
         assertEquals(0, gateway.scheduled)
     }
@@ -2217,6 +2219,35 @@ class FabricDriverModuleTest {
         assertEquals("world.block:1:65:1", result.data["adjacent-handle"]?.jsonPrimitive?.content)
         assertEquals(listOf("client-query"), gateway.actions)
         assertEquals(1, gateway.scheduled)
+    }
+
+    @Test
+    fun `fabric block interact rejects malformed target handle with machine readable failure`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        val backend = FabricDriverBackend.real(gateway)
+
+        val result =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "world.block.interact",
+                    arguments =
+                        mapOf(
+                            "target" to
+                                buildJsonObject {
+                                    put("handle", "minecraft:oak_log")
+                                },
+                        ),
+                ),
+            )
+
+        assertEquals(DriverActionStatus.FAILED, result.status)
+        assertEquals("invalid-target-handle", result.message)
+        assertEquals(false, result.data["accepted"]?.jsonPrimitive?.boolean)
+        assertEquals("invalid-target-handle", result.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(emptyList(), gateway.actions)
+        assertEquals(0, gateway.scheduled)
     }
 
     @Test
