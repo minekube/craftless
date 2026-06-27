@@ -263,9 +263,9 @@ It must write evidence only, must not mark Craftless complete, must not fail a
 successful public-agent gameplay run by itself, and must not bypass the
 required Robin chat confirmation.
 Phase 36 rejects removed `task.survival.*` scenario ids at the protocol task
-request boundary. It must keep generic future task ids valid as metadata, must
-not add a generic task executor, and must not reintroduce survival task
-macros as valid public API.
+request and progress-event boundaries. It must keep generic future task ids
+valid as metadata, must not add a generic task executor, and must not
+reintroduce survival task macros as valid public API.
 
 ## Acceptance Scenarios Are Not Product APIs
 

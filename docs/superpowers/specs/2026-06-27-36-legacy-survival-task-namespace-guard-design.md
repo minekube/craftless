@@ -10,7 +10,10 @@ through generated actions and state evidence.
 
 ## Design
 
-Reject `task.survival.*` in `NavigationTaskRequest` validation.
+Reject `task.survival.*` in `NavigationTaskRequest` validation and in
+`NavigationProgressEvent.type` validation so the removed scenario namespace is
+not accepted as either client-supplied task data or server-emitted progress
+metadata.
 
 This is a protocol guardrail only:
 
@@ -28,6 +31,8 @@ assert absence of `task.survival.*` in generated requests/artifacts.
 ## Acceptance
 
 - `NavigationTaskRequest(task = "task.survival.obtain-weapon")` fails
+  validation.
+- `NavigationProgressEvent(type = "task.survival.progress")` fails
   validation.
 - Navigation serialization tests use a neutral generic task id.
 - Fabric task-adapter tests no longer construct a valid `task.survival.*`

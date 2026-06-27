@@ -1088,6 +1088,9 @@ Verification:
   serialization example.
 - [x] `NavigationTaskRequest` rejects `task.survival.*` at the protocol
   boundary.
+- [x] `NavigationProgressEvent.type` rejects `task.survival.*` so legacy
+  scenario namespaces cannot leak back through server-emitted progress
+  metadata.
 - [x] Fabric task-adapter evidence now uses a neutral generic task id and still
   proves task execution remains unavailable without a generic executor.
 

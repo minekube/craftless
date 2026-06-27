@@ -41,6 +41,10 @@ is still accepted.
 
 Reject `task.survival.*` in `NavigationTaskRequest`.
 
+- [x] **Step 4a: Add progress-event validation**
+
+Reject `task.survival.*` in `NavigationProgressEvent.type`.
+
 - [x] **Step 5: Run focused protocol test for GREEN**
 
 Run:

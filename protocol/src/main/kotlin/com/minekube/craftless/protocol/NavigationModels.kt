@@ -119,6 +119,9 @@ data class NavigationProgressEvent(
         require(type.startsWith("task.") || type.startsWith("navigation.")) {
             "navigation progress event type must be Craftless-owned"
         }
+        require(!type.startsWith("task.survival.")) {
+            "navigation progress event type must not use legacy survival scenario namespace"
+        }
         require(!type.hasRawNavigationBackendName()) { "navigation progress event type must not expose backend names" }
         require(message.isNotBlank()) { "navigation progress event message is required" }
         payload.keys.forEach { key ->

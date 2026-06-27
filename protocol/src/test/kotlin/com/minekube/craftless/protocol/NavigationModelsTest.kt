@@ -97,6 +97,13 @@ class NavigationModelsTest {
                 message = "raw entity event",
             )
         }
+        assertFailsWith<IllegalArgumentException> {
+            NavigationProgressEvent(
+                taskId = "task:alice:0001",
+                type = "task.survival.progress",
+                message = "legacy survival task event",
+            )
+        }
     }
 
     @Test
