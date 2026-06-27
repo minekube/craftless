@@ -210,7 +210,8 @@ Verification:
   `navigation.plan`, `navigation.follow`, `world.block.break`, `entity.query`,
   `inventory.query`, `inventory.equip`, `world.block.interact`,
   `player.look`, `recipe.query`, `recipe.craft`, and `screen.query`; it can
-  craft planks, recognize station-backed recipe requirements, prefer a
+  collect a bounded material buffer before recipe composition, craft planks,
+  recognize station-backed recipe requirements, prefer a
   station-producing recipe before a station-backed weapon when the station is
   missing, recover dropped material through generated `player.move`, retry
   alternate public station-placement support targets, re-equip the station
@@ -218,19 +219,19 @@ Verification:
   generated `world.block.query` target handles, skip unnecessary post-placement
   navigation when the placed resource is already reachable, and select an
   empty public hotbar slot before opening a placed resource. It now also
-  filters unsuitable living targets, closes combat reach gaps with generated
-  navigation or `player.move`, and collects visible combat loot drops through
-  public `entity.query`, generated navigation, and `inventory.query`
-  verification. The Fabric driver
+  reuses generated material recipe handles after opening a station, filters
+  unsuitable living targets, closes combat reach gaps with generated navigation
+  or `player.move`, re-equips the generated combat slot after navigation slot
+  drift, and collects visible combat loot drops through public `entity.query`,
+  generated navigation, and `inventory.query` verification. The Fabric driver
   now syncs generated `inventory.equip` through the selected-slot C2S packet
-  so later interactions observe the equipped slot. The latest no-hold run
-  opens the placed crafting station with public `screen.query` evidence
-  (`open=true`, `title="Crafting"`), attacks a discovered passive entity
-  through generated `entity.attack`, observes `Raw Mutton` and `White Wool`
-  drops through `entity.query`, navigates to the drop, and proves pickup
-  through a final `inventory.query` containing `Raw Mutton` and `White Wool`.
-  Held multiplayer observation, any fixes found there, and Robin's Minecraft
-  chat confirmation remain open.
+  so later interactions observe the equipped slot. The latest no-hold run has
+  `publicAgentState=RAN`: it collected logs, crafted and opened a crafting
+  table, crafted a `Wooden Sword`, re-equipped it before generated
+  `entity.attack`, killed a Pig, observed `Raw Porkchop` through public
+  `entity.query`, navigated to the drop, and proved pickup through a final
+  `inventory.query` containing `Raw Porkchop`. Held multiplayer observation,
+  any fixes found there, and Robin's Minecraft chat confirmation remain open.
 - [ ] Robin joins or observes the server session after a macOS `say` prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.
@@ -261,7 +262,7 @@ Verification:
   as completion evidence.
 - [x] The old internal honest survival task graph was diagnostic only and has
   been removed from active product behavior by Phase 29.
-- [!] Craftless obtains weapon materials through ordinary survival gameplay,
+- [~] Craftless obtains weapon materials through ordinary survival gameplay,
   crafts or obtains a weapon legitimately, finds a cow, navigates to it without
   manual movement, kills it, writes chat, and records SSE/artifact evidence.
   Current evidence rejects the earlier false success and server-provisioned
@@ -269,20 +270,21 @@ Verification:
   material collection, placement, chat evidence, generated navigation, placed
   station verification/opening, and generic combat outcome evidence without
   static scenario APIs, including the exact cow/beef/leather acceptance
-  variant; it still has not proven a legitimately crafted/obtained weapon or
-  Robin's in-game completion confirmation. Latest weapon-composition work
-  fixes public-agent station ordering, station re-equip composition, stable
-  placed-resource verification, reachable station opening, generic combat
-  target reach correction, and public combat loot pickup in focused and live
-  evidence; the remaining final gates are held multiplayer observation, any
-  fixes found there, honest weapon/tool composition as required by the final
-  scenario, and Robin's explicit Minecraft chat confirmation.
-- [!] The final survival proof is reproduced by an external public-agent runner
+  variant. The latest no-hold evidence also proves legitimate weapon
+  composition through generated recipe actions: logs were collected, a crafting
+  table was crafted/opened, a `Wooden Sword` was crafted, public navigation
+  found a Pig, generated `entity.attack` killed it, and final inventory
+  contained `Raw Porkchop`. The remaining final gates are held multiplayer
+  observation, any fixes found there, an exact cow variant if Robin still
+  requires cow-specific evidence, and Robin's explicit Minecraft chat
+  confirmation.
+- [~] The final survival proof is reproduced by an external public-agent runner
   over generated OpenAPI/SSE/CLI/skills, not by hard-coding the scenario as a
   durable public `task.survival.*` API. The previous
-  `missing-generic-primitive:world.block.query` blocker is resolved by Phase 12;
-  remaining work is to compose navigation, mining, inventory/crafting, combat,
-  chat, and state/event verification through the public API.
+  `missing-generic-primitive:world.block.query` blocker is resolved by Phase
+  12; the latest public-agent evidence composes navigation, mining,
+  inventory/crafting, combat, chat, and state/event verification through the
+  public API. Robin-confirmed multiplayer completion remains open.
 
 ## Phase 9: Pathfinder-Backed Execution
 
@@ -482,14 +484,12 @@ Verification:
   `world.block.query` data. Focused tests cover lower-target selection.
 - [x] Public-agent runner composes pickup movement with `navigation.plan` and
   `navigation.follow` after `world.block.break` reports `changed = true`.
-- [!] Live no-hold evidence can reach inventory material proof after pickup
-  movement/drop perception in prior runs, but the latest no-hold run blocked
-  at `insufficient-public-evidence:navigation.follow.succeeded` while trying
-  to recover a dropped log through public navigation/drop evidence. Focused
-  regression evidence covers continuing bounded material exploration when
-  navigation to an initially discovered material target fails; remaining work
-  is to make public material pickup navigation more resilient without adding a
-  pickup shortcut.
+- [x] Live no-hold evidence reaches inventory material proof after public
+  pickup movement/drop perception paths without adding a pickup shortcut. The
+  latest no-hold run collected multiple ordinary materials through generated
+  `world.block.query`, `navigation.plan`, `navigation.follow`,
+  `world.block.break`, `entity.query`, and `inventory.query` before recipe
+  composition.
 
 Verification:
 
@@ -505,11 +505,10 @@ Verification:
   movement, optionally navigates to observed material drop positions, and still
   verifies pickup through `inventory.query`. Focused tests cover public material
   drop navigation.
-- [~] Live no-hold evidence runs `entity.query` after material break and uses
+- [x] Live no-hold evidence runs `entity.query` after material break and uses
   public drop perception when block-target pickup navigation is insufficient.
-  Prior runs reached inventory material proof without a pickup shortcut; the
-  latest run still blocks on generated navigation follow while recovering the
-  dropped material.
+  Latest and prior runs reached inventory material proof without a pickup
+  shortcut.
 
 Verification:
 
@@ -524,11 +523,10 @@ Verification:
 - [x] Public-agent runner uses shorter overlapping generated-navigation
   waypoints after an empty local `world.block.query`. Focused tests verify the
   first exploration waypoint is 24 blocks rather than the previous 48.
-- [~] Live no-hold evidence progressed through bounded material exploration in
-  prior runs. The latest run found and broke material but blocks during public
-  pickup recovery with `insufficient-public-evidence:navigation.follow.succeeded`.
-  Focused regression evidence covers retrying material exploration when a
-  discovered target is not navigable.
+- [x] Live no-hold evidence progressed through bounded material exploration in
+  prior runs and the latest run reached repeated material collection plus
+  recipe composition. Focused regression evidence covers retrying material
+  exploration when a discovered target is not navigable.
 
 Verification:
 
@@ -562,13 +560,14 @@ Verification:
   unsuitable aquatic/living targets, generated `player.move` fallback when
   combat navigation cannot close a reach gap, and pickup of visible public
   combat loot drops before treating loot-visible combat as complete.
-  Latest live no-hold evidence records generated combat outcome proof:
-  `entity.attack` hit a passive entity, a follow-up `entity.query` reported
-  `entity.handle-34` with `alive:false`, public entity perception showed
-  `White Wool`, `Raw Mutton`, and `Experience Orb` drops, generated navigation
-  moved to the drop, and final `inventory.query` showed `Raw Mutton` plus
-  `White Wool`. The final project remains open on held Robin confirmation and
-  any remaining final-scenario gaps such as honest weapon/tool composition.
+  Latest live no-hold evidence records generated combat outcome proof with a
+  legitimate weapon: the runner crafted a `Wooden Sword`, re-equipped its
+  generated inventory slot after navigation drift, `entity.attack` hit a Pig,
+  follow-up `entity.query` reported a `Raw Porkchop` drop and the passive
+  entity no longer alive, generated navigation moved to the drop, and final
+  `inventory.query` showed `Raw Porkchop`. The final project remains open on
+  held Robin confirmation and any exact scenario variant Robin still wants to
+  observe live.
 
 Verification:
 

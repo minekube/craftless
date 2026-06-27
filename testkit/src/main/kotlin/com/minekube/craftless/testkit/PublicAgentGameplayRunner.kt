@@ -349,87 +349,115 @@ class PublicAgentGameplayRunner(
 
         try {
             invokeGenerated("inventory.query")
-            val materialTarget = reachableMaterialTarget()
-            materialTarget.blocker?.let { blocker -> return blockedAndWrite(blocker) }
-            val discoveredMaterialTarget =
-                materialTarget.target
-                    ?: return blockedAndWrite("insufficient-public-evidence:world.block.query.log")
-            val discoveredMaterialPosition = discoveredMaterialTarget.position
-            val materialPoint =
-                discoveredMaterialPosition.toCraftlessPoint()
-                    ?: return blockedAndWrite("insufficient-public-evidence:world.block.query.position")
-            val player =
-                invokeGenerated("player.query")
-            val playerPosition =
-                player.responseObject()?.playerPosition()
-                    ?: return blockedAndWrite("insufficient-public-evidence:player.query.position")
-            val look = playerPosition.lookAt(materialPoint.centered())
-            invokeGenerated(
-                action = "player.look",
-                args =
-                    buildJsonObject {
-                        put("yaw", JsonPrimitive(look.yaw))
-                        put("pitch", JsonPrimitive(look.pitch))
-                    },
-            )
-            invokeGenerated(
-                action = "player.raycast",
-                args =
-                    buildJsonObject {
-                        put("max-distance", JsonPrimitive(6.0))
-                        put("include-fluids", JsonPrimitive(false))
-                    },
-            )
-            val breakResult =
+
+            suspend fun collectMaterialInventory(): MaterialCollectionAttempt {
+                val materialTarget = reachableMaterialTarget()
+                materialTarget.blocker?.let { blocker -> return MaterialCollectionAttempt(blocker = blocker) }
+                val discoveredMaterialTarget =
+                    materialTarget.target
+                        ?: return MaterialCollectionAttempt(blocker = "insufficient-public-evidence:world.block.query.log")
+                val discoveredMaterialPosition = discoveredMaterialTarget.position
+                val materialPoint =
+                    discoveredMaterialPosition.toCraftlessPoint()
+                        ?: return MaterialCollectionAttempt(blocker = "insufficient-public-evidence:world.block.query.position")
+                val player =
+                    invokeGenerated("player.query")
+                val playerPosition =
+                    player.responseObject()?.playerPosition()
+                        ?: return MaterialCollectionAttempt(blocker = "insufficient-public-evidence:player.query.position")
+                val look = playerPosition.lookAt(materialPoint.centered())
                 invokeGenerated(
-                    action = "world.block.break",
+                    action = "player.look",
+                    args =
+                        buildJsonObject {
+                            put("yaw", JsonPrimitive(look.yaw))
+                            put("pitch", JsonPrimitive(look.pitch))
+                        },
+                )
+                invokeGenerated(
+                    action = "player.raycast",
                     args =
                         buildJsonObject {
                             put("max-distance", JsonPrimitive(6.0))
                             put("include-fluids", JsonPrimitive(false))
-                            put("ticks", JsonPrimitive(80))
-                            put("target", discoveredMaterialTarget.toJsonObject())
                         },
                 )
-            if (breakResult.responseObject()?.dataBoolean("changed") == false) {
-                return blockedAndWrite("insufficient-public-evidence:world.block.break.changed")
-            }
-            var pickupNavigationBlocker = navigateTo(position = discoveredMaterialPosition, radius = 1.5)
-            var finalInventory: PublicAgentActionLog? = null
-            for (attempt in 1..PICKUP_EVIDENCE_ATTEMPTS) {
-                val materialDrop =
+                val breakResult =
                     invokeGenerated(
-                        action = "entity.query",
+                        action = "world.block.break",
                         args =
                             buildJsonObject {
-                                put("radius", JsonPrimitive(16.0))
-                                put("limit", JsonPrimitive(20))
+                                put("max-distance", JsonPrimitive(6.0))
+                                put("include-fluids", JsonPrimitive(false))
+                                put("ticks", JsonPrimitive(80))
+                                put("target", discoveredMaterialTarget.toJsonObject())
                             },
                     )
-                materialDrop.responseObject()?.materialDropPosition()?.let { dropPosition ->
-                    val dropNavigationBlocker = navigateTo(position = dropPosition, radius = 1.0)
-                    pickupNavigationBlocker =
-                        if (dropNavigationBlocker != null && "player.move" in actionIds) {
-                            moveToward(position = dropPosition, ticks = PICKUP_MOVE_TICKS)
-                        } else {
-                            dropNavigationBlocker
-                        }
+                if (breakResult.responseObject()?.dataBoolean("changed") == false) {
+                    return MaterialCollectionAttempt(blocker = "insufficient-public-evidence:world.block.break.changed")
                 }
-                finalInventory = invokeGenerated("inventory.query")
-                if (finalInventory.responseObject()?.hasLogItem() == true) {
+                var pickupNavigationBlocker = navigateTo(position = discoveredMaterialPosition, radius = 1.5)
+                var finalInventory: PublicAgentActionLog? = null
+                for (attempt in 1..PICKUP_EVIDENCE_ATTEMPTS) {
+                    val materialDrop =
+                        invokeGenerated(
+                            action = "entity.query",
+                            args =
+                                buildJsonObject {
+                                    put("radius", JsonPrimitive(16.0))
+                                    put("limit", JsonPrimitive(20))
+                                },
+                        )
+                    materialDrop.responseObject()?.materialDropPosition()?.let { dropPosition ->
+                        val dropNavigationBlocker = navigateTo(position = dropPosition, radius = 1.0)
+                        pickupNavigationBlocker =
+                            if (dropNavigationBlocker != null && "player.move" in actionIds) {
+                                moveToward(position = dropPosition, ticks = PICKUP_MOVE_TICKS)
+                            } else {
+                                dropNavigationBlocker
+                            }
+                    }
+                    finalInventory = invokeGenerated("inventory.query")
+                    if (finalInventory.responseObject()?.hasLogItem() == true) {
+                        break
+                    }
+                    if (attempt < PICKUP_EVIDENCE_ATTEMPTS) {
+                        val retryNavigationBlocker = navigateTo(position = discoveredMaterialPosition, radius = 1.0)
+                        pickupNavigationBlocker = retryNavigationBlocker
+                    }
+                }
+                val finalInventoryObject = finalInventory?.responseObject()
+                return if (finalInventoryObject?.hasLogItem() == true) {
+                    MaterialCollectionAttempt(inventory = finalInventoryObject)
+                } else {
+                    MaterialCollectionAttempt(
+                        blocker = pickupNavigationBlocker ?: "insufficient-public-evidence:inventory.query.log",
+                    )
+                }
+            }
+
+            val targetMaterialCount =
+                if ("recipe.query" in actionIds && "recipe.craft" in actionIds) {
+                    MIN_RECIPE_COMPOSITION_MATERIAL_ITEMS
+                } else {
+                    1
+                }
+            var finalInventoryObject: JsonObject? = null
+            for (attempt in 1..MATERIAL_COLLECTION_ATTEMPTS) {
+                val collection = collectMaterialInventory()
+                collection.blocker?.let { blocker -> return blockedAndWrite(blocker) }
+                finalInventoryObject = collection.inventory
+                if ((finalInventoryObject?.logItemCount() ?: 0) >= targetMaterialCount) {
                     break
                 }
-                if (attempt < PICKUP_EVIDENCE_ATTEMPTS) {
-                    val retryNavigationBlocker = navigateTo(position = discoveredMaterialPosition, radius = 1.0)
-                    pickupNavigationBlocker = retryNavigationBlocker
+                if (attempt == MATERIAL_COLLECTION_ATTEMPTS) {
+                    return blockedAndWrite("insufficient-public-evidence:inventory.query.recipe-material")
                 }
             }
-            val finalInventoryObject = finalInventory?.responseObject()
-            if (finalInventoryObject?.hasLogItem() != true) {
-                return blockedAndWrite(pickupNavigationBlocker ?: "insufficient-public-evidence:inventory.query.log")
-            }
+            val collectedInventory =
+                finalInventoryObject ?: return blockedAndWrite("insufficient-public-evidence:inventory.query.log")
             val logSlot =
-                finalInventoryObject.logHotbarSlot()
+                collectedInventory.logHotbarSlot()
                     ?: return blockedAndWrite("insufficient-public-evidence:inventory.query.hotbar-log")
             invokeGenerated(
                 action = "inventory.equip",
@@ -445,6 +473,22 @@ class PublicAgentGameplayRunner(
             var combatReadySlot: Int? = null
             var latestInventoryObject = equippedInventory.responseObject()
             val openedStationLabels = mutableSetOf<String>()
+
+            suspend fun equipVerifiedSlot(slot: Int): String? {
+                invokeGenerated(
+                    action = "inventory.equip",
+                    args =
+                        buildJsonObject {
+                            put("slot", JsonPrimitive(slot))
+                        },
+                )
+                val inventory = invokeGenerated("inventory.query")
+                if (inventory.responseObject()?.selectedSlot() != slot) {
+                    return "insufficient-public-evidence:inventory.equip.selected-slot"
+                }
+                latestInventoryObject = inventory.responseObject()
+                return null
+            }
 
             suspend fun openStationFromInventory(
                 stationLabel: String,
@@ -634,7 +678,9 @@ class PublicAgentGameplayRunner(
                                 openedStationLabels = openedStationLabels,
                             )
                             ?: return@repeat
-                    craftedRecipeHandles += recipe.handle
+                    if (recipe.priority != MATERIAL_RECIPE_PRIORITY) {
+                        craftedRecipeHandles += recipe.handle
+                    }
                     if (recipe.priority == COMBAT_RECIPE_PRIORITY) {
                         recipe.stationLabel?.let { station ->
                             openStationFromInventory(stationLabel = station, inventory = latestInventoryObject)
@@ -753,17 +799,7 @@ class PublicAgentGameplayRunner(
             }
             if ("entity.attack" in actionIds) {
                 combatReadySlot?.let { slot ->
-                    invokeGenerated(
-                        action = "inventory.equip",
-                        args =
-                            buildJsonObject {
-                                put("slot", JsonPrimitive(slot))
-                            },
-                    )
-                    val combatInventory = invokeGenerated("inventory.query")
-                    if (combatInventory.responseObject()?.selectedSlot() != slot) {
-                        return blockedAndWrite("insufficient-public-evidence:inventory.equip.selected-slot")
-                    }
+                    equipVerifiedSlot(slot)?.let { blocker -> return blockedAndWrite(blocker) }
                 }
                 val attackTarget =
                     exploreAttackTarget()
@@ -777,6 +813,9 @@ class PublicAgentGameplayRunner(
                 var combatAttempts = 0
                 while (!combatOutcomeProved && combatAttempts < combatEvidenceAttempts) {
                     combatAttempts += 1
+                    combatReadySlot?.let { slot ->
+                        equipVerifiedSlot(slot)?.let { blocker -> return blockedAndWrite(blocker) }
+                    }
                     val attackResult =
                         invokeGenerated(
                             action = "entity.attack",
@@ -1250,6 +1289,29 @@ private fun JsonObject.hasLogItem(): Boolean {
     }
 }
 
+private fun JsonObject.logItemCount(): Int {
+    val data = this["data"] as? JsonObject ?: return 0
+    val slots = data["slots"]?.jsonArray ?: return 0
+    return slots.sumOf { element ->
+        val slot = element as? JsonObject ?: return@sumOf 0
+        val empty =
+            slot["empty"]
+                ?.jsonPrimitive
+                ?.contentOrNull
+                ?.toBooleanStrictOrNull()
+                ?: false
+        if (empty || !slot.containsItemName("log")) {
+            0
+        } else {
+            slot["count"]
+                ?.jsonPrimitive
+                ?.contentOrNull
+                ?.toIntOrNull()
+                ?: 1
+        }
+    }
+}
+
 private fun JsonObject.hasCombatLootItem(): Boolean {
     val data = this["data"] as? JsonObject ?: return false
     val slots = data["slots"]?.jsonArray ?: return false
@@ -1644,6 +1706,8 @@ private data class CraftlessPoint(
 
 private const val EXPLORATION_STEP = 24.0
 private const val PICKUP_EVIDENCE_ATTEMPTS = 4
+private const val MATERIAL_COLLECTION_ATTEMPTS = 2
+private const val MIN_RECIPE_COMPOSITION_MATERIAL_ITEMS = 2
 private const val PICKUP_MOVE_TICKS = 24
 private const val COMBAT_MOVE_TICKS = 24
 private const val DEFAULT_COMBAT_EVIDENCE_ATTEMPTS = 12
@@ -1651,7 +1715,7 @@ private const val DEFAULT_ACTION_REQUEST_TIMEOUT_MS = 300_000L
 private const val DEFAULT_CONNECT_TIMEOUT_MS = 30_000L
 private const val DEFAULT_COMBAT_RETRY_DELAY_MS = 700L
 private const val PLACEMENT_TARGET_ATTEMPTS = 6
-private const val MAX_RECIPE_COMPOSITION_STEPS = 4
+private const val MAX_RECIPE_COMPOSITION_STEPS = 6
 private const val STATION_OPEN_REACH_DISTANCE = 6.0
 private const val ATTACK_MAX_DISTANCE = 4.5
 private const val ATTACK_VERTICAL_REACH = 4.5
@@ -1676,6 +1740,11 @@ private data class PublicBlockTarget(
 
 private data class FocusedBlockTarget(
     val target: PublicBlockTarget? = null,
+    val blocker: String? = null,
+)
+
+private data class MaterialCollectionAttempt(
+    val inventory: JsonObject? = null,
     val blocker: String? = null,
 )
 

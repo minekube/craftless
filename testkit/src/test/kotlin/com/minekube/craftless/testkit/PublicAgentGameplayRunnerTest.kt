@@ -770,6 +770,61 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner re-equips generated combat slot after navigation before attacking`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + listOf("recipe.query", "recipe.craft", "entity.attack"),
+                    inventoryResponses =
+                        listOf(
+                            EMPTY_INVENTORY_QUERY_RESPONSE,
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            craftedMaterialInventoryResponse,
+                            craftedWeaponInventoryResponse(selectedSlot = 1),
+                            craftedWeaponInventoryResponse(selectedSlot = 2),
+                            craftedWeaponInventoryResponse(selectedSlot = 2),
+                        ),
+                    recipeQueryResponses =
+                        listOf(
+                            materialRecipeQueryResponse,
+                            stationlessWeaponRecipeQueryResponse,
+                        ),
+                    recipeCraftResponses =
+                        listOf(
+                            MATERIAL_RECIPE_CRAFT_RESPONSE,
+                            WEAPON_RECIPE_CRAFT_RESPONSE,
+                        ),
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveFarSheepEntityQueryResponse,
+                            reachableSheepEntityQueryResponse,
+                            deadSheepEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            val firstAttackIndex = server.requestBodies.indexOfFirst { it.contains("entity.attack") }
+            val lastNavigationIndex =
+                server.requestBodies
+                    .take(firstAttackIndex)
+                    .indexOfLast { it.contains("navigation.follow") }
+            val equippedAfterNavigation =
+                server.requestBodies
+                    .subList(lastNavigationIndex + 1, firstAttackIndex)
+                    .any { body ->
+                        body.contains("inventory.equip") &&
+                            body.contains(""""slot":2""")
+                    }
+            assertTrue(equippedAfterNavigation)
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner does not attack public entity target that remains outside generated attack range`() =
         runBlocking {
             val server =
@@ -1167,6 +1222,184 @@ class PublicAgentGameplayRunnerTest {
                         it.contains(""""slot":8""")
                 } >= 2,
             )
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner collects more generated material before station backed recipe composition`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions =
+                        completeActionCatalog() +
+                            listOf(
+                                "recipe.query",
+                                "recipe.craft",
+                                "world.block.interact",
+                                "screen.query",
+                                "entity.attack",
+                            ),
+                    actionArguments =
+                        mapOf(
+                            "world.block.interact" to listOf("target", "side", "max-distance"),
+                        ),
+                    blockQueryResponses =
+                        listOf(
+                            logBlockQueryResponse,
+                            reachableExplorationLogBlockQueryResponse,
+                            placementSupportBlockQueryResponse,
+                        ),
+                    inventoryResponses =
+                        listOf(
+                            EMPTY_INVENTORY_QUERY_RESPONSE,
+                            singleLogInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            logAndPlanksInventoryResponse,
+                            logAndStationInventoryResponse(selectedSlot = 1),
+                            logAndStationInventoryResponse(selectedSlot = 8),
+                            logAndStationInventoryResponse(selectedSlot = 8),
+                            logOnlyInventoryResponse(selectedSlot = 8),
+                            logOnlyInventoryResponse(selectedSlot = 0),
+                            craftedMaterialInventoryResponse,
+                            craftedStickInventoryResponse,
+                            craftedWeaponInventoryResponse(selectedSlot = 2),
+                            craftedWeaponInventoryResponse(selectedSlot = 2),
+                        ),
+                    recipeQueryResponses =
+                        listOf(
+                            materialRecipeQueryResponse,
+                            stationAndWeaponRecipeQueryResponse,
+                            materialRecipeQueryResponse,
+                            stickRecipeQueryResponse,
+                            weaponRecipeQueryResponse,
+                        ),
+                    recipeCraftResponses =
+                        listOf(
+                            MATERIAL_RECIPE_CRAFT_RESPONSE,
+                            STATION_RECIPE_CRAFT_RESPONSE,
+                            MATERIAL_RECIPE_CRAFT_RESPONSE,
+                            STICK_RECIPE_CRAFT_RESPONSE,
+                            WEAPON_RECIPE_CRAFT_RESPONSE,
+                        ),
+                    blockInteractResponses =
+                        listOf(
+                            stationPlaceInteractResponse,
+                            stationOpenInteractResponse,
+                        ),
+                    screenQueryResponses =
+                        listOf(
+                            SCREEN_CLOSED_RESPONSE,
+                            SCREEN_OPEN_CRAFTING_TABLE_RESPONSE,
+                        ),
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            deadCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            val actionsBeforeFirstRecipeCraft = result.actionLog.map { it.action }.takeWhile { it != "recipe.craft" }
+            assertEquals(2, actionsBeforeFirstRecipeCraft.count { it == "world.block.break" })
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("world.block.break") &&
+                        it.contains(""""handle":"world.block:24:64:-12"""")
+                },
+            )
+            assertTrue(server.requestBodies.any { it.contains(""""target":{"handle":"recipe.handle:weapon-1"}""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner can reuse generated material recipe handles after opening a station`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions =
+                        completeActionCatalog() +
+                            listOf(
+                                "recipe.query",
+                                "recipe.craft",
+                                "world.block.interact",
+                                "screen.query",
+                                "entity.attack",
+                            ),
+                    actionArguments =
+                        mapOf(
+                            "world.block.interact" to listOf("target", "side", "max-distance"),
+                        ),
+                    blockQueryResponses =
+                        listOf(
+                            logBlockQueryResponse,
+                            placementSupportBlockQueryResponse,
+                        ),
+                    inventoryResponses =
+                        listOf(
+                            EMPTY_INVENTORY_QUERY_RESPONSE,
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            logAndPlanksInventoryResponse,
+                            logAndStationInventoryResponse(selectedSlot = 1),
+                            logAndStationInventoryResponse(selectedSlot = 8),
+                            logAndStationInventoryResponse(selectedSlot = 8),
+                            logOnlyInventoryResponse(selectedSlot = 8),
+                            logOnlyInventoryResponse(selectedSlot = 0),
+                            craftedMaterialInventoryResponse,
+                            craftedStickInventoryResponse,
+                            craftedWeaponInventoryResponse(selectedSlot = 2),
+                            craftedWeaponInventoryResponse(selectedSlot = 2),
+                        ),
+                    recipeQueryResponses =
+                        listOf(
+                            materialRecipeQueryResponse,
+                            stationAndWeaponRecipeQueryResponse,
+                            materialRecipeQueryResponse,
+                            stickRecipeQueryResponse,
+                            weaponRecipeQueryResponse,
+                        ),
+                    recipeCraftResponses =
+                        listOf(
+                            MATERIAL_RECIPE_CRAFT_RESPONSE,
+                            STATION_RECIPE_CRAFT_RESPONSE,
+                            MATERIAL_RECIPE_CRAFT_RESPONSE,
+                            STICK_RECIPE_CRAFT_RESPONSE,
+                            WEAPON_RECIPE_CRAFT_RESPONSE,
+                        ),
+                    blockInteractResponses =
+                        listOf(
+                            stationPlaceInteractResponse,
+                            stationOpenInteractResponse,
+                        ),
+                    screenQueryResponses =
+                        listOf(
+                            SCREEN_CLOSED_RESPONSE,
+                            SCREEN_OPEN_CRAFTING_TABLE_RESPONSE,
+                        ),
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            deadCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            assertEquals(
+                2,
+                server.requestBodies.count { it.contains(""""target":{"handle":"recipe.handle:material-1"}""") },
+            )
+            assertTrue(server.requestBodies.any { it.contains(""""target":{"handle":"recipe.handle:weapon-1"}""") })
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 
@@ -2541,6 +2774,21 @@ private fun logInSlotOneInventoryQueryResponse(selectedSlot: Int): String =
     }
     """.trimIndent()
 
+private fun singleLogInSlotOneInventoryQueryResponse(selectedSlot: Int): String =
+    """
+    {
+      "action": "inventory.query",
+      "status": "ACCEPTED",
+      "data": {
+        "selected-slot": $selectedSlot,
+        "slots": [
+          {"slot": 0, "empty": false, "count": 1, "item-name": "Oak Sapling"},
+          {"slot": 1, "empty": false, "count": 1, "item-name": "Oak Log"}
+        ]
+      }
+    }
+    """.trimIndent()
+
 private val craftedToolInventoryResponse =
     """
     {
@@ -2566,6 +2814,52 @@ private val craftedMaterialInventoryResponse =
         "slots": [
           {"slot": 0, "empty": false, "count": 1, "item-name": "Oak Sapling"},
           {"slot": 1, "empty": false, "count": 4, "item-name": "Oak Planks"}
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val logAndPlanksInventoryResponse =
+    """
+    {
+      "action": "inventory.query",
+      "status": "ACCEPTED",
+      "data": {
+        "selected-slot": 1,
+        "slots": [
+          {"slot": 1, "empty": false, "count": 1, "item-name": "Oak Log"},
+          {"slot": 8, "empty": false, "count": 4, "item-name": "Oak Planks"}
+        ]
+      }
+    }
+    """.trimIndent()
+
+private fun logAndStationInventoryResponse(selectedSlot: Int): String =
+    """
+    {
+      "action": "inventory.query",
+      "status": "ACCEPTED",
+      "data": {
+        "selected-slot": $selectedSlot,
+        "slots": [
+          {"slot": 0, "empty": true},
+          {"slot": 1, "empty": false, "count": 1, "item-name": "Oak Log"},
+          {"slot": 8, "empty": false, "count": 1, "item-name": "Crafting Table"}
+        ]
+      }
+    }
+    """.trimIndent()
+
+private fun logOnlyInventoryResponse(selectedSlot: Int): String =
+    """
+    {
+      "action": "inventory.query",
+      "status": "ACCEPTED",
+      "data": {
+        "selected-slot": $selectedSlot,
+        "slots": [
+          {"slot": 0, "empty": true},
+          {"slot": 1, "empty": false, "count": 1, "item-name": "Oak Log"}
         ]
       }
     }
