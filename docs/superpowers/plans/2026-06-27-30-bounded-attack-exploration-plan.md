@@ -75,12 +75,12 @@ Expected after implementation: PASS.
 **Files:**
 - Modify: `docs/project-completion-checklist.md`
 
-- [ ] **Step 1: Record the live blocker and correction**
+- [x] **Step 1: Record the live blocker and correction**
 
 Document the 2026-06-27 final run blocker and the bounded generated attack
 exploration correction in the Phase 7 checklist.
 
-- [ ] **Step 2: Run gates**
+- [x] **Step 2: Run gates**
 
 Run:
 
@@ -94,7 +94,7 @@ mise run ci
 
 Expected: all pass.
 
-- [ ] **Step 3: Re-run final gameplay**
+- [x] **Step 3: Re-run final gameplay**
 
 Run:
 
@@ -102,7 +102,7 @@ Run:
 CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS=720000 mise exec -- gradle :driver-fabric:fabricFinalGameplay
 ```
 
-Expected: the public agent reaches `publicAgentState=RAN`, the harness writes
-`final-gameplay-ready.json`, Robin joins or observes, Robin writes the
-configured confirmation phrase in Minecraft chat, and the harness writes
-`final-gameplay-confirmation.json`.
+Observed: the public agent reached `publicAgentState=RAN` and the harness wrote
+`final-gameplay-ready.json`. Robin did not join or confirm in Minecraft chat
+before the hold expired, so `final-gameplay-confirmation.json` was not written
+and final completion remains open in `docs/project-completion-checklist.md`.

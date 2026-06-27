@@ -108,9 +108,9 @@ The source design is
 the client-management boundary, route generation rules, and OpenAPI
 requirements sections.
 
-The active product-completion sequence is the spec/plan pairs dated
-2026-06-26 under `docs/superpowers/specs/` and `docs/superpowers/plans/`.
-Follow them in order:
+The active product-completion sequence is the spec/plan pairs dated 2026-06-26
+and 2026-06-27 under `docs/superpowers/specs/` and
+`docs/superpowers/plans/`. Follow them in order:
 
 1. truth and guardrails;
 2. runtime capability graph;
@@ -141,6 +141,7 @@ Follow them in order:
 27. Java runtime resolution.
 28. generic recipe and crafting.
 29. legacy survival task API removal.
+30. bounded attack exploration.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -224,6 +225,11 @@ survival acceptance scenario must be composed outside the driver through the
 generated public API, adaptive CLI, SSE events, and agent skills. Do not keep
 `task.survival.honest-cow-hunt`, survival resource handles, cow-hunt task
 executors, or smoke-run invocations as active product behavior.
+Phase 30 makes public-agent combat search continue through bounded generated
+navigation and `entity.query` rings when the first waypoint ring finds only
+dropped items or non-evidence aquatic entities. It must stay external agent
+policy and must not add `find.cow`, `kill.cow`, `hunt.animal`, aquatic combat
+shortcuts, survival macros, or any new product gameplay action.
 
 ## Acceptance Scenarios Are Not Product APIs
 
