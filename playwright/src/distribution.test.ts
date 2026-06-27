@@ -74,6 +74,16 @@ describe("distribution surface", () => {
     expect(readme.toLowerCase()).not.toContain("brew install");
   });
 
+  test("README does not present legacy diagnostic gameplay setup as product status", () => {
+    const readme = read("README.md");
+
+    expect(readme).not.toContain("--loader-version 0.17.2");
+    expect(readme).not.toContain("provisions an `Iron Sword`");
+    expect(readme).not.toContain("target-item provisioning");
+    expect(readme).not.toContain("CRAFTLESS_SMOKE_PROVISION_ITEM");
+    expect(readme).toContain("without server-provisioned inventory");
+  });
+
   test("installer and release workflow do not require Homebrew", () => {
     const install = read("install.sh");
     const workflow = read(".github/workflows/release.yml");

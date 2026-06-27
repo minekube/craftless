@@ -1528,18 +1528,45 @@ Verification:
 - `mise run architecture-check`
 - `mise run ci`
 
+## Phase 49: README Current Status Alignment
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-49-readme-current-status-alignment-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-49-readme-current-status-alignment-plan.md`.
+- [x] README cache-prepare examples use the current compiled Fabric Loader
+  lane instead of stale loader metadata.
+- [x] README active status no longer presents diagnostic server-side item
+  provisioning as current product evidence.
+- [x] README documents final gameplay evidence as public-agent generated API
+  composition without server-provisioned inventory or manual movement for
+  Craftless.
+- [x] Bun distribution tests guard README quickstarts and reject stale
+  provisioning/status wording.
+- [x] This phase changes README/product docs only and adds no public gameplay
+  action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, or public
+  version-specific API.
+
+Verification:
+
+- `mise exec -- bun test playwright/src/distribution.test.ts`
+- `git diff --check`
+- `mise run architecture-check`
+- `mise run ci`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above are checked with current evidence; final
   completion remains open on Robin's Minecraft chat confirmation.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully after the Phase 48 stable Fabric entrypoint boundary correction.
+  successfully after the Phase 49 README current status alignment.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests after the Phase 48 stable
-  Fabric entrypoint boundary correction.
+  architecture tests and Bun Playwright helper tests after the Phase 49 README
+  current status alignment.
 - [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
-  successfully after the Phase 48 stable Fabric entrypoint boundary correction.
+  successfully after the Phase 49 README current status alignment.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,

@@ -106,7 +106,7 @@ permissions, and driver runtime.
 ```sh
 # Prepare repeatable cache handles for the Minecraft/Fabric setup state.
 # This resolves metadata, caches jars/assets, and emits launch classpath handles.
-craftless cache prepare --mc 1.21.6 --loader fabric --loader-version 0.17.2 --workspace .craftless
+craftless cache prepare --mc 1.21.6 --loader fabric --loader-version 0.19.3 --workspace .craftless
 
 # Start the local Craftless supervisor API with a repeatable client workspace.
 craftless server start --port 8080 --workspace .craftless
@@ -154,7 +154,7 @@ Legend: 🟢 yes, 🟡 partial or limited, 🔵 planned, 🔴 no.
 
 | Area | Craftless | [Mineflayer](https://github.com/PrismarineJS/mineflayer) | [Baritone](https://github.com/cabaletta/baritone) |
 | --- | --- | --- | --- |
-| Real Minecraft Java client | 🟢 Fabric smoke proven for join/chat, target item acquisition/equip, block action, and driver-side movement telemetry | 🔴 protocol bot | 🟢 |
+| Real Minecraft Java client | 🟢 Fabric smoke and final gameplay evidence use real clients | 🔴 protocol bot | 🟢 |
 | Headless and visible operation | 🟡 supervisor API now; visible Fabric smoke proven | 🔴 | 🟡 visible client |
 | Live per-client OpenAPI/action schema | 🟢 | 🔴 | 🔴 |
 | Runtime discovery from version, mods, server features, and permissions | 🟢 | 🟡 protocol data | 🟡 in-client state |
@@ -209,16 +209,19 @@ Implemented now:
   keeping it running around a caller-supplied smoke action, and collecting
   server log evidence.
 - An opt-in `:driver-fabric:fabricClientSmoke` entrypoint that launches a real
-  Minecraft `1.21.6` Fabric client, keeps a local testkit Minecraft server
-  alive, starts the in-client daemon API, fetches per-client OpenAPI/action
-  metadata and resource projections, invokes generated `player.chat`,
-  `player.move`, `screen.query`, `player.query`, `player.look`,
-  `inventory.query`, `inventory.equip`, `world.time.query`,
-  `world.block.break`, and `world.block.interact` through `POST /clients/{id}:run`,
-  provisions an `Iron Sword` through the server fixture as smoke setup, waits
-  until the live inventory action observes it, equips the discovered slot, and
-  verifies server-side join, target-item provisioning, chat, and disconnect
-  evidence plus driver-side movement telemetry and gameplay result artifacts.
+  Minecraft `1.21.6` Fabric client on the current compiled lane, keeps a local
+  testkit Minecraft server alive, starts the in-client daemon API, fetches
+  per-client OpenAPI/action metadata and resource projections, invokes
+  generated `player.chat`, `player.move`, `screen.query`, `player.query`,
+  `player.look`, `inventory.query`, `inventory.equip`, `world.time.query`,
+  `world.block.break`, and `world.block.interact` through
+  `POST /clients/{id}:run`, and verifies server-side join, chat, disconnect,
+  runtime-lane metadata, and driver-side gameplay artifacts.
+- Final gameplay evidence is recorded through an external public-agent runner
+  that composes generated OpenAPI actions and SSE evidence to collect ordinary
+  materials, craft and equip a weapon, attack a target, and collect drops
+  without server-provisioned inventory or manual movement for Craftless. The
+  remaining final gate is Robin's explicit Minecraft chat confirmation.
 
 Still roadmap:
 
@@ -285,9 +288,7 @@ Fabric smoke controller reads `CRAFTLESS_SMOKE_SERVER_HOST`,
 `CRAFTLESS_SMOKE_SERVER_PORT`, `CRAFTLESS_FABRIC_SMOKE_CHAT_MESSAGE`, and
 `CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS`. Evidence checks can be overridden
 with `CRAFTLESS_SMOKE_EXPECT_PLAYER`, `CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE`,
-`CRAFTLESS_SMOKE_EXPECT_DISCONNECT`, `CRAFTLESS_SMOKE_PROVISION_ITEM_ID`,
-`CRAFTLESS_SMOKE_PROVISION_ITEM_NAME`, `CRAFTLESS_SMOKE_PROVISION_ITEM_COUNT`,
-and `CRAFTLESS_FABRIC_SMOKE_REQUIRE_EQUIP_ITEM`.
+and `CRAFTLESS_SMOKE_EXPECT_DISCONNECT`.
 
 That task is opt-in and not part of default CI because it launches real
 Minecraft processes and may download server/client artifacts.
