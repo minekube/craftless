@@ -256,7 +256,13 @@ Verification:
   confirmation is observed, and the opt-in final task repeats the ready
   notification every two minutes by default during the confirmation hold. The
   reminder interval is configurable with
-  `CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS` and can be disabled with `0`.
+  `CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS` and can be disabled with `0`. A
+  later 2026-06-27 held run reached the ready window but the process-external
+  public agent blocked with
+  `insufficient-public-evidence:inventory.query.recipe-material` because stale
+  one-log inventory proof from the first material pickup was accepted as proof
+  for the second material collection attempt; Phase 31 corrects this by
+  requiring public material count increase evidence.
 - [ ] Robin joins or observes the server session after the harness ready prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.
@@ -870,6 +876,31 @@ Verification:
 
 - `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.PublicAgentGameplayRunnerTest.runner continues bounded generated attack exploration beyond first waypoint ring'`
 - `mise exec -- gradle :testkit:test`
+- `mise run ci`
+
+## Phase 31: Material Count Evidence
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-31-material-count-evidence-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-31-material-count-evidence-plan.md`.
+- [x] The 2026-06-27 held final gameplay rerun reached the ready window but
+  the process-external public agent blocked with
+  `insufficient-public-evidence:inventory.query.recipe-material` after a
+  second generated `world.block.break` because stale one-log inventory evidence
+  satisfied the pickup loop.
+- [x] Public-agent material collection now tracks the public log count before
+  each generated break and requires later `inventory.query` evidence to exceed
+  that count before treating the attempt as successful.
+- [x] Focused regression evidence proves stale one-log inventory does not
+  satisfy the second recipe-material collection attempt and that the runner
+  keeps querying generated pickup evidence until the public count reaches two.
+- [ ] Final live gameplay has not yet been rerun after this correction.
+
+Verification:
+
+- `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.PublicAgentGameplayRunnerTest.runner keeps collecting recipe materials until public inventory count increases'`
+- `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.PublicAgentGameplayRunnerTest'`
 - `mise run ci`
 
 ## Final Completion Gate

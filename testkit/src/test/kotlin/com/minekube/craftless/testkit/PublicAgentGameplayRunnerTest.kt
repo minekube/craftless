@@ -295,6 +295,31 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner keeps collecting recipe materials until public inventory count increases`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + listOf("recipe.query", "recipe.craft"),
+                    inventoryResponses =
+                        listOf(
+                            EMPTY_INVENTORY_QUERY_RESPONSE,
+                            logCountInventoryResponse(count = 1),
+                            logCountInventoryResponse(count = 1),
+                            logCountInventoryResponse(count = 2),
+                            logCountInventoryResponse(count = 2),
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            assertTrue(result.actionLog.map { it.action }.count { it == "world.block.break" } >= 2)
+            assertTrue(result.actionLog.map { it.action }.count { it == "inventory.query" } >= 5)
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner invokes generic entity attack from discovered public handle when available`() =
         runBlocking {
             val server =
@@ -2877,6 +2902,23 @@ private fun logInSlotOneInventoryQueryResponse(selectedSlot: Int): String =
         "slots": [
           {"slot": 0, "empty": false, "count": 1, "item-name": "Oak Sapling"},
           {"slot": 1, "empty": false, "count": 2, "item-name": "Oak Log"}
+        ]
+      }
+    }
+    """.trimIndent()
+
+private fun logCountInventoryResponse(
+    count: Int,
+    selectedSlot: Int = 0,
+): String =
+    """
+    {
+      "action": "inventory.query",
+      "status": "ACCEPTED",
+      "data": {
+        "selected-slot": $selectedSlot,
+        "slots": [
+          {"slot": 0, "empty": false, "count": $count, "item-name": "Oak Log"}
         ]
       }
     }

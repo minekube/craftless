@@ -142,6 +142,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 28. generic recipe and crafting.
 29. legacy survival task API removal.
 30. bounded attack exploration.
+31. material count evidence.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -230,6 +231,10 @@ navigation and `entity.query` rings when the first waypoint ring finds only
 dropped items or non-evidence aquatic entities. It must stay external agent
 policy and must not add `find.cow`, `kill.cow`, `hunt.animal`, aquatic combat
 shortcuts, survival macros, or any new product gameplay action.
+Phase 31 makes repeated public material collection require an increased
+`inventory.query` material count over the count known before the current break.
+It must stay external agent policy and must not add `collect.wood`, `mine.log`,
+recipe-material shortcuts, survival macros, or any new product gameplay action.
 
 ## Acceptance Scenarios Are Not Product APIs
 

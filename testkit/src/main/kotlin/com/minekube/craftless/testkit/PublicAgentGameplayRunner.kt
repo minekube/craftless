@@ -348,7 +348,7 @@ class PublicAgentGameplayRunner(
         try {
             invokeGenerated("inventory.query")
 
-            suspend fun collectMaterialInventory(): MaterialCollectionAttempt {
+            suspend fun collectMaterialInventory(minimumLogCountExclusive: Int): MaterialCollectionAttempt {
                 val materialTarget = reachableMaterialTarget()
                 materialTarget.blocker?.let { blocker -> return MaterialCollectionAttempt(blocker = blocker) }
                 val discoveredMaterialTarget =
@@ -416,7 +416,7 @@ class PublicAgentGameplayRunner(
                             }
                     }
                     finalInventory = invokeGenerated("inventory.query")
-                    if (finalInventory.responseObject()?.hasLogItem() == true) {
+                    if ((finalInventory.responseObject()?.logItemCount() ?: 0) > minimumLogCountExclusive) {
                         break
                     }
                     if (attempt < PICKUP_EVIDENCE_ATTEMPTS) {
@@ -425,11 +425,17 @@ class PublicAgentGameplayRunner(
                     }
                 }
                 val finalInventoryObject = finalInventory?.responseObject()
-                return if (finalInventoryObject?.hasLogItem() == true) {
+                return if ((finalInventoryObject?.logItemCount() ?: 0) > minimumLogCountExclusive) {
                     MaterialCollectionAttempt(inventory = finalInventoryObject)
                 } else {
                     MaterialCollectionAttempt(
-                        blocker = pickupNavigationBlocker ?: "insufficient-public-evidence:inventory.query.log",
+                        blocker =
+                            pickupNavigationBlocker
+                                ?: if (minimumLogCountExclusive > 0) {
+                                    "insufficient-public-evidence:inventory.query.recipe-material"
+                                } else {
+                                    "insufficient-public-evidence:inventory.query.log"
+                                },
                     )
                 }
             }
@@ -442,7 +448,7 @@ class PublicAgentGameplayRunner(
                 }
             var finalInventoryObject: JsonObject? = null
             for (attempt in 1..MATERIAL_COLLECTION_ATTEMPTS) {
-                val collection = collectMaterialInventory()
+                val collection = collectMaterialInventory(finalInventoryObject?.logItemCount() ?: 0)
                 collection.blocker?.let { blocker -> return blockedAndWrite(blocker) }
                 finalInventoryObject = collection.inventory
                 if ((finalInventoryObject?.logItemCount() ?: 0) >= targetMaterialCount) {
