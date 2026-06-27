@@ -1002,6 +1002,30 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric backend reports invalid raycast max distance as action failure`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        val backend = FabricDriverBackend.real(gateway)
+
+        val result =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "player.raycast",
+                    arguments = mapOf("max-distance" to JsonPrimitive(0.0)),
+                ),
+            )
+
+        assertEquals("player.raycast", result.action)
+        assertEquals(DriverActionStatus.FAILED, result.status)
+        assertEquals("invalid-max-distance", result.message)
+        assertEquals(false, result.data["hit"]?.jsonPrimitive?.boolean)
+        assertEquals("invalid-max-distance", result.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(emptyList(), gateway.actions)
+        assertEquals(0, gateway.scheduled)
+    }
+
+    @Test
     fun `fabric runtime discovery exposes player query only from client state`() {
         val gateway = RecordingFabricClientGateway()
         gateway.connected = false

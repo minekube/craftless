@@ -1554,8 +1554,12 @@ class LocalSessionApiServerTest {
                         setBody("""{"action":"player.move","args":{"forward":true,"ticks":0}}""")
                     }.let { response ->
                         val body = response.bodyAsText()
-                        assertEquals(HttpStatusCode.BadRequest, response.status)
-                        assertError(body, "INVALID_ACTION_INPUT", "movement ticks must be positive")
+                        assertEquals(HttpStatusCode.OK, response.status)
+                        assertTrue(body.contains("\"action\":\"player.move\""))
+                        assertTrue(body.contains("\"status\":\"FAILED\""))
+                        assertTrue(body.contains("\"message\":\"invalid-ticks\""))
+                        assertTrue(body.contains("\"moved\":false"))
+                        assertTrue(body.contains("\"reason\":\"invalid-ticks\""))
                     }
 
                 http
@@ -1564,8 +1568,12 @@ class LocalSessionApiServerTest {
                         setBody("""{"forward":true,"ticks":0}""")
                     }.let { response ->
                         val body = response.bodyAsText()
-                        assertEquals(HttpStatusCode.BadRequest, response.status)
-                        assertError(body, "INVALID_ACTION_INPUT", "movement ticks must be positive")
+                        assertEquals(HttpStatusCode.OK, response.status)
+                        assertTrue(body.contains("\"action\":\"player.move\""))
+                        assertTrue(body.contains("\"status\":\"FAILED\""))
+                        assertTrue(body.contains("\"message\":\"invalid-ticks\""))
+                        assertTrue(body.contains("\"moved\":false"))
+                        assertTrue(body.contains("\"reason\":\"invalid-ticks\""))
                     }
 
                 http

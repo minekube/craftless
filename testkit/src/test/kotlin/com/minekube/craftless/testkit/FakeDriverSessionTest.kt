@@ -10,7 +10,6 @@ import com.minekube.craftless.protocol.ClientState
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class FakeDriverSessionTest {
@@ -115,14 +114,19 @@ class FakeDriverSessionTest {
                     it.message == "accepted player.move for alice"
             },
         )
-        assertFailsWith<IllegalArgumentException> {
+        val movementEventsBeforeInvalidTicks = session.events().count { it.type == DriverEventType.MOVEMENT }
+        val invalidTicks =
             session.invoke(
                 DriverActionInvocation(
                     action = "player.move",
                     arguments = mapOf("forward" to JsonPrimitive(true), "ticks" to JsonPrimitive(0)),
                 ),
             )
-        }
+        assertEquals(DriverActionStatus.FAILED, invalidTicks.status)
+        assertEquals("invalid-ticks", invalidTicks.message)
+        assertEquals(JsonPrimitive(false), invalidTicks.data["moved"])
+        assertEquals(JsonPrimitive("invalid-ticks"), invalidTicks.data["reason"])
+        assertEquals(movementEventsBeforeInvalidTicks, session.events().count { it.type == DriverEventType.MOVEMENT })
 
         val unknown =
             session.invoke(

@@ -116,7 +116,9 @@ class FakeDriverSession(
 
                 "player.move" -> {
                     val ticks = invocation.arguments.intArgument("ticks") ?: 1
-                    require(ticks > 0) { "movement ticks must be positive" }
+                    if (ticks <= 0) {
+                        return actionFailure(invocation.action, "invalid-ticks", "moved")
+                    }
                     val event = recordMovement("accepted ${invocation.action} for $clientId")
                     DriverActionResult(
                         action = invocation.action,
@@ -183,6 +185,12 @@ class FakeDriverSession(
 private fun chatInputFailure(
     action: String,
     reason: String,
+): DriverActionResult = actionFailure(action, reason, "sent")
+
+private fun actionFailure(
+    action: String,
+    reason: String,
+    flag: String,
 ): DriverActionResult =
     DriverActionResult(
         action = action,
@@ -190,7 +198,7 @@ private fun chatInputFailure(
         message = reason,
         data =
             buildJsonObject {
-                put("sent", false)
+                put(flag, false)
                 put("reason", reason)
             },
     )

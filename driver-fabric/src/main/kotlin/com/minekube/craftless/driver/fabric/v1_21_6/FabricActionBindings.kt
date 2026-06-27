@@ -534,7 +534,14 @@ internal object FabricPlayerRaycastActionBinding : FabricActionBinding {
         context: FabricActionContext,
     ): DriverActionResult {
         val maxDistance = invocation.arguments["max-distance"]?.jsonPrimitive?.doubleOrNull ?: DEFAULT_MAX_DISTANCE
-        require(maxDistance > 0.0) { "raycast max-distance must be positive" }
+        if (maxDistance <= 0.0) {
+            return DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.FAILED,
+                message = "invalid-max-distance",
+                data = actionFailure("invalid-max-distance", "hit"),
+            )
+        }
         val includeFluids = invocation.arguments.booleanArgument("include-fluids")
         val data =
             context.queryOnClient {

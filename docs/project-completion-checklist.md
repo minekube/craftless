@@ -433,10 +433,13 @@ Verification:
   `task.survival.*`.
 - [x] Invalid generated `player.move` tick budgets now return
   machine-readable `invalid-ticks` failures before scheduling client work.
+  Current evidence covers the Fabric backend and the reusable fake driver
+  session used by daemon/CLI/testkit consumers.
 
 Verification:
 
 - `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric backend returns machine readable movement failure before scheduling gateway'`
+- `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.FakeDriverSessionTest'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 
@@ -450,6 +453,9 @@ Verification:
 - [x] Invalid generated `player.look` arguments now return machine-readable
   failures such as `missing-yaw` or `invalid-pitch` before scheduling client
   work.
+- [x] Invalid generated `player.raycast` scalar arguments now return
+  machine-readable failures such as `invalid-max-distance` before scheduling
+  client work.
 - [x] Public-agent runner blocks with
   `insufficient-public-evidence:inventory.query.log` when an accepted break
   does not produce public inventory evidence.
@@ -463,6 +469,7 @@ Verification:
 Verification:
 
 - `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric player look returns machine readable failures before scheduling gateway'`
+- `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric backend reports invalid raycast max distance as action failure'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 
