@@ -1,5 +1,9 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
+import com.minekube.craftless.driver.api.DriverActionArgument
+import com.minekube.craftless.driver.api.DriverActionDescriptor
+import com.minekube.craftless.driver.api.DriverActionResultDescriptor
+import com.minekube.craftless.driver.api.DriverActionResultProperty
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.fabric.runtime.FabricCompatibilityLane
 import com.minekube.craftless.protocol.RuntimeAvailability
@@ -302,21 +306,49 @@ private fun FabricCapabilityProbeContext.operation(
     resource: String,
     adapter: String,
     availability: RuntimeAvailability,
-): RuntimeOperationNode =
-    RuntimeOperationNode(
+): RuntimeOperationNode {
+    val descriptor = actionDescriptor(id)
+    return RuntimeOperationNode(
         id = id,
         resource = resource,
         adapter = adapter,
         arguments =
-            actionDescriptorArguments(id)
-                ?.mapValues { (_, argument) -> RuntimeSchema(argument.type, required = argument.required) }
+            descriptor
+                ?.arguments
+                ?.mapValues { (_, argument) -> argument.toRuntimeSchema() }
                 .orEmpty(),
+        result = descriptor?.result?.toRuntimeSchema() ?: RuntimeSchema.objectSchema(),
         availability = availability,
     )
+}
 
-private fun FabricCapabilityProbeContext.actionDescriptorArguments(id: String) =
-    bindings[id]?.descriptor?.arguments
-        ?: fabricBootstrapDescriptor(id)?.arguments
+private fun FabricCapabilityProbeContext.actionDescriptor(id: String): DriverActionDescriptor? =
+    bindings[id]?.descriptor ?: fabricBootstrapDescriptor(id)
+
+private fun DriverActionArgument.toRuntimeSchema(): RuntimeSchema =
+    RuntimeSchema(
+        type = type,
+        required = required,
+        properties = properties.mapValues { (_, argument) -> argument.toRuntimeSchema() },
+        items = items?.toRuntimeSchema(),
+    )
+
+private fun DriverActionResultDescriptor.toRuntimeSchema(): RuntimeSchema =
+    RuntimeSchema(
+        type = "object",
+        properties =
+            properties.mapValues { (name, property) ->
+                property.toRuntimeSchema(required = name in required)
+            },
+    )
+
+private fun DriverActionResultProperty.toRuntimeSchema(required: Boolean = false): RuntimeSchema =
+    RuntimeSchema(
+        type = type,
+        required = required,
+        properties = properties.mapValues { (_, property) -> property.toRuntimeSchema() },
+        items = items?.toRuntimeSchema(),
+    )
 
 private fun RuntimeOperationNode.toEventNode(): RuntimeEventNode =
     RuntimeEventNode(

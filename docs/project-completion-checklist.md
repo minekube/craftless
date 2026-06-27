@@ -1393,18 +1393,71 @@ Verification:
 - `mise run architecture-check`
 - `mise run ci`
 
+## Phase 44: Asset Index Id
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-44-asset-index-id-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-44-asset-index-id-plan.md`.
+- [x] Cache preparation reads Mojang `assetIndex.id` from the selected
+  Minecraft version manifest instead of assuming it equals the requested
+  Minecraft version.
+- [x] Cache preparation stores asset indexes under
+  `cache/assets/indexes/<assetIndex.id>.json`.
+- [x] Prepared launch arguments resolve `${assets_index_name}` to
+  `assetIndex.id`.
+- [x] Asset index ids are validated before cache handles are derived.
+- [x] This phase changes supervisor cache/launch metadata only and adds no
+  public gameplay action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, custom asset serving API, or
+  version-specific hard-coded asset id.
+
+Verification:
+
+- `mise exec -- gradle :daemon:test --tests 'com.minekube.craftless.daemon.CachePreparationServiceTest.cache preparation resolves and stores minecraft version metadata'`
+- `mise exec -- gradle :daemon:test --tests 'com.minekube.craftless.daemon.CachePreparationServiceTest.cache preparation rejects invalid asset index ids before writing cache handles'`
+- `mise exec -- gradle :daemon:test`
+- `mise run lint`
+- `mise run architecture-check`
+- `mise run ci`
+
+## Phase 45: Descriptor-Derived Graph Schemas
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-45-descriptor-derived-graph-schemas-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-45-descriptor-derived-graph-schemas-plan.md`.
+- [x] Fabric runtime graph operation projection resolves existing discovered
+  Craftless action descriptors once per operation.
+- [x] Runtime operation arguments derive nested `RuntimeSchema` metadata from
+  descriptor argument schemas.
+- [x] Runtime operation results derive `RuntimeSchema` metadata and required
+  property flags from descriptor result schemas.
+- [x] This phase changes Fabric graph projection only, preserves explicit
+  runtime-only schemas, and adds no public gameplay action, generated route
+  family, CLI gameplay catalog, Fabric descriptor/binding pair, scenario
+  shortcut, or invocation behavior.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricCapabilityProbeTest.fabric graph operations derive result schema from action descriptors'`
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricCapabilityProbeTest*'`
+- `mise run lint`
+- `mise run architecture-check`
+- `mise run ci`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above are checked with current evidence; final
   completion remains open on Robin's Minecraft chat confirmation.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully after the Phase 43 client logging config correction.
+  successfully after the Phase 45 descriptor-derived graph schema correction.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests after the Phase 43 client
-  logging config correction.
+  architecture tests and Bun Playwright helper tests after the Phase 45
+  descriptor-derived graph schema correction.
 - [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
-  successfully after the Phase 43 client logging config correction.
+  successfully after the Phase 45 descriptor-derived graph schema correction.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,

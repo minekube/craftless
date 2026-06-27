@@ -78,7 +78,11 @@ class CachePreparationService(
                     when (artifact.kind) {
                         CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST -> artifact.copy(source = versionManifestUrl)
                         CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR -> artifact.copy(source = clientJarUrl)
-                        CachePreparedArtifactKind.MINECRAFT_ASSET_INDEX -> artifact.copy(source = assetIndexMetadata.url)
+                        CachePreparedArtifactKind.MINECRAFT_ASSET_INDEX ->
+                            artifact.copy(
+                                handle = "cache/assets/indexes/${assetIndexMetadata.id}.json",
+                                source = assetIndexMetadata.url,
+                            )
                         CachePreparedArtifactKind.FABRIC_LOADER_PROFILE -> artifact.copy(source = fabricMetadata?.profileUrl)
                         else -> artifact
                     }
@@ -167,6 +171,7 @@ class CachePreparationService(
             writeTextArtifact(
                 artifact,
                 result.launchArgumentsJson(
+                    assetIndexMetadata = assetIndexMetadata,
                     versionManifest = versionManifest,
                     fabricProfile = fabricMetadata?.profile,
                     loggingConfig = loggingConfig,
@@ -525,13 +530,19 @@ private fun String.assetIndexMetadata(minecraftVersion: String): AssetIndexMetad
             .jsonObject["assetIndex"]
             ?.jsonObject
             ?: error("minecraft version $minecraftVersion is missing asset index metadata")
+    val id = assetIndex["id"]?.jsonPrimitive?.content ?: error("minecraft version $minecraftVersion is missing asset index id")
     val url = assetIndex["url"]?.jsonPrimitive?.content ?: error("minecraft version $minecraftVersion is missing asset index url")
-    return AssetIndexMetadata(url)
+    return AssetIndexMetadata(id, url)
 }
 
 private data class AssetIndexMetadata(
+    val id: String,
     val url: String,
-)
+) {
+    init {
+        requireFileSafeCacheSegment(id, "Minecraft asset index id")
+    }
+}
 
 private fun String.clientLoggingConfig(minecraftVersion: String): MinecraftLoggingConfigArtifact? {
     val client =
@@ -603,12 +614,14 @@ private fun CachePrepareResult.launchArgumentsArtifact(
 }
 
 private fun CachePrepareResult.launchArgumentsJson(
+    assetIndexMetadata: AssetIndexMetadata,
     versionManifest: String,
     fabricProfile: String?,
     loggingConfig: MinecraftLoggingConfigArtifact?,
 ): String {
     val variables =
         mapOf(
+            "assets_index_name" to assetIndexMetadata.id,
             "assets_root" to "cache/assets",
             "classpath" to launch.classpath.joinToString(File.pathSeparator),
             "game_directory" to "{{gameRoot}}",

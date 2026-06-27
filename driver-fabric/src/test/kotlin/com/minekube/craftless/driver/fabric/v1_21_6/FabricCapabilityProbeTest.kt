@@ -98,6 +98,31 @@ class FabricCapabilityProbeTest {
     }
 
     @Test
+    fun `fabric graph operations derive result schema from action descriptors`() {
+        val graph =
+            defaultFabricCapabilityDiscovery()
+                .discover(
+                    FabricCapabilityProbeContext(
+                        clientId = "alice",
+                        modeId = "metadata-only",
+                        gateway = null,
+                    ),
+                )
+
+        val raycast = graph.operations.single { it.id == "player.raycast" }
+
+        assertEquals("object", raycast.result.type)
+        assertEquals("string", raycast.result.properties["action"]?.type)
+        assertEquals(true, raycast.result.properties["action"]?.required)
+        assertEquals("string", raycast.result.properties["status"]?.type)
+        assertEquals(true, raycast.result.properties["status"]?.required)
+        assertEquals("string", raycast.result.properties["message"]?.type)
+        assertEquals(false, raycast.result.properties["message"]?.required)
+        assertEquals("object", raycast.result.properties["data"]?.type)
+        assertEquals(false, raycast.result.properties["data"]?.required)
+    }
+
+    @Test
     fun `runtime metadata probe emits private evidence for registry and runtime inputs`() {
         val graph =
             defaultFabricCapabilityDiscovery(probes = listOf(FabricRuntimeMetadataCapabilityProbe))

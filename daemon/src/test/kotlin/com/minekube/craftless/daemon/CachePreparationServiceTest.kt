@@ -52,7 +52,7 @@ class CachePreparationServiceTest {
                                     {
                                       "id": "1.21.6",
                                       "assetIndex": {
-                                        "id": "1.21.6",
+                                        "id": "26",
                                         "url": "$assetIndexUrl"
                                       },
                                       "libraries": [
@@ -147,7 +147,7 @@ class CachePreparationServiceTest {
                                     {
                                       "id": "1.21.6",
                                       "assetIndex": {
-                                        "id": "1.21.6",
+                                        "id": "26",
                                         "url": "$assetIndexUrl"
                                       },
                                       "libraries": [
@@ -229,7 +229,7 @@ class CachePreparationServiceTest {
                                     {
                                       "id": "1.21.6",
                                       "assetIndex": {
-                                        "id": "1.21.6",
+                                        "id": "26",
                                         "url": "$assetIndexUrl"
                                       },
                                       "javaVersion": {
@@ -252,6 +252,8 @@ class CachePreparationServiceTest {
                                           "${'$'}{version_name}",
                                           "--assetsDir",
                                           "${'$'}{assets_root}",
+                                          "--assetIndex",
+                                          "${'$'}{assets_index_name}",
                                           "--gameDir",
                                           "${'$'}{game_directory}",
                                           {
@@ -413,6 +415,10 @@ class CachePreparationServiceTest {
             assertEquals(versionUrl, result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST }.source)
             assertEquals(clientJarUrl, result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR }.source)
             assertEquals(assetIndexUrl, result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_ASSET_INDEX }.source)
+            assertEquals(
+                "cache/assets/indexes/26.json",
+                result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_ASSET_INDEX }.handle,
+            )
             assertEquals(loaderProfileUrl, result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LOADER_PROFILE }.source)
             val javaRuntimeIndex = result.artifacts.single { it.kind == CachePreparedArtifactKind.JAVA_RUNTIME_INDEX }
             assertEquals(MINECRAFT_JAVA_RUNTIME_INDEX_URL, javaRuntimeIndex.source)
@@ -496,13 +502,16 @@ class CachePreparationServiceTest {
             )
             assertTrue(launchArgumentsJson.contains("\"$launchClasspath\""))
             assertTrue(launchArgumentsJson.contains("\"--fabric-test\""))
+            assertTrue(launchArgumentsJson.contains("\"--assetIndex\""))
+            assertTrue(launchArgumentsJson.contains("\"26\""))
+            assertFalse(launchArgumentsJson.contains("{{assets_index_name}}"))
             assertTrue(launchArgumentsJson.contains("\"{{gameRoot}}\""))
             assertFalse(launchArgumentsJson.contains("\"--demo\""))
             assertEquals("minecraft-library", Files.readString(workspace.resolve(minecraftLibrary.handle)))
             assertTrue(Files.isRegularFile(workspace.resolve(nativeLibrary.handle)))
             assertEquals("native-bytes", Files.readString(workspace.resolve(nativeDirectory.handle).resolve("libcraftless-test.dylib")))
             assertTrue(!Files.exists(workspace.resolve(nativeDirectory.handle).resolve("META-INF")))
-            assertTrue(Files.readString(workspace.resolve("cache/assets/indexes/1.21.6.json")).contains("test.ogg"))
+            assertTrue(Files.readString(workspace.resolve("cache/assets/indexes/26.json")).contains("test.ogg"))
             assertEquals("asset-bytes", Files.readString(workspace.resolve(assetObject.handle)))
             assertTrue(Files.readString(workspace.resolve("cache/loaders/fabric/1.21.6/versions.json")).contains("0.17.2"))
             assertTrue(Files.readString(workspace.resolve("cache/loaders/fabric/1.21.6/0.17.2/profile.json")).contains("fabric-loader"))
@@ -630,6 +639,50 @@ class CachePreparationServiceTest {
                 }
 
             assertEquals("Minecraft logging config id must be a file-safe segment", failure.message)
+        }
+
+    @Test
+    fun `cache preparation rejects invalid asset index ids before writing cache handles`() =
+        runBlocking {
+            val workspace = Files.createTempDirectory("craftless-cache-invalid-asset-index-id")
+            val versionUrl = "https://metadata.test/1.21.6.json"
+            val clientJarUrl = "https://metadata.test/client.jar"
+            val assetIndexUrl = "https://metadata.test/assets/26.json"
+            val service =
+                CachePreparationService(
+                    workspaceRoot = workspace,
+                    metadataFetcher =
+                        StaticCacheMetadataFetcher(
+                            mapOf(
+                                MINECRAFT_VERSION_INDEX_URL to
+                                    """
+                                    { "versions": [{ "id": "1.21.6", "url": "$versionUrl" }] }
+                                    """.trimIndent(),
+                                versionUrl to
+                                    """
+                                    {
+                                      "id": "1.21.6",
+                                      "assetIndex": {
+                                        "id": "../26",
+                                        "url": "$assetIndexUrl"
+                                      },
+                                      "downloads": {
+                                        "client": { "url": "$clientJarUrl" }
+                                      }
+                                    }
+                                    """.trimIndent(),
+                                assetIndexUrl to """{"objects":{}}""",
+                            ),
+                            binaryResponses = mapOf(clientJarUrl to "client-jar".encodeToByteArray()),
+                        ),
+                )
+
+            val failure =
+                assertFailsWith<IllegalArgumentException> {
+                    service.prepare(CachePrepareRequest("1.21.6", Loader.VANILLA))
+                }
+
+            assertEquals("Minecraft asset index id must be a file-safe segment", failure.message)
         }
 
     @Test

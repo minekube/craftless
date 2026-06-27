@@ -155,6 +155,8 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 41. launch argument placeholders.
 42. standard asset object layout.
 43. client logging config.
+44. asset index id.
+45. descriptor-derived graph schemas.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -313,6 +315,19 @@ logging metadata by caching `logging.client.file` and appending the resolved
 logging file ids before deriving handles, stay in supervisor cache/launch
 metadata, and must not add public gameplay API, Fabric action descriptors,
 custom logging APIs, or static CLI gameplay behavior.
+Phase 44 keeps supervisor-prepared Minecraft asset indexes compatible with
+Mojang version metadata by using `assetIndex.id` for prepared asset index
+handles and `${assets_index_name}` launch variable resolution. It must validate
+asset index ids before deriving handles, stay in supervisor cache/launch
+metadata, and must not add public gameplay API, Fabric action descriptors,
+custom asset serving APIs, version-specific hard-coded asset ids, or static CLI
+gameplay behavior.
+Phase 45 makes Fabric runtime graph operation schemas derive from existing
+discovered Craftless action descriptors when descriptors are already available.
+It must reduce duplicate schema metadata in graph projection, preserve
+specialized runtime-only schemas, and must not add public gameplay actions,
+generated route families, CLI gameplay catalogs, Fabric descriptor/binding
+pairs, or scenario shortcuts.
 
 ## Acceptance Scenarios Are Not Product APIs
 
