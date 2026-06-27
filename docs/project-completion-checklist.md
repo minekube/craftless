@@ -212,12 +212,21 @@ Verification:
   `player.look`, `recipe.query`, `recipe.craft`, and `screen.query`; it can
   craft planks, recognize station-backed recipe requirements, prefer a
   station-producing recipe before a station-backed weapon when the station is
-  missing, and re-equip the station before generated block interaction. The
-  latest no-hold run now blocks earlier on
-  `insufficient-public-evidence:navigation.follow.succeeded` while trying to
-  recover a dropped log through public material pickup/navigation evidence.
-  Held multiplayer observation and Robin's Minecraft chat confirmation remain
-  open.
+  missing, recover dropped material through generated `player.move`, retry
+  alternate public station-placement support targets, re-equip the station
+  before generated block interaction, and select an empty public hotbar slot
+  after navigation before opening a placed resource. The Fabric driver now
+  syncs generated `inventory.equip` through the selected-slot C2S packet so
+  later interactions observe the equipped slot. The latest no-hold run now
+  blocks on
+  `insufficient-public-evidence:screen.query.station-open`: public evidence
+  shows `world.block.interact` can report accepted/changed station placement
+  and empty-hand opening, but the returned placed block target is still
+  observed as air instead of an open station. The next fix must verify and
+  recover stable placed-resource state through public `world.block.query` /
+  `world.block.interact` evidence, not add a station, crafting, or survival
+  shortcut. Held multiplayer observation and Robin's Minecraft chat
+  confirmation remain open.
 - [ ] Robin joins or observes the server session after a macOS `say` prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.

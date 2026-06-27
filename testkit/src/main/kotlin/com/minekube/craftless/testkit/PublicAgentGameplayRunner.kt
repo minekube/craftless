@@ -183,6 +183,40 @@ class PublicAgentGameplayRunner(
             return null
         }
 
+        suspend fun moveToward(
+            position: JsonObject,
+            ticks: Int,
+        ): String? {
+            if ("player.move" !in actionIds) {
+                return "missing-generic-primitive:player.move"
+            }
+            val playerPosition =
+                invokeGenerated("player.query")
+                    .responseObject()
+                    ?.playerPosition()
+                    ?: return "insufficient-public-evidence:player.query.position"
+            position.toCraftlessPoint()?.let { targetPoint ->
+                val look = playerPosition.lookAt(targetPoint)
+                invokeGenerated(
+                    action = "player.look",
+                    args =
+                        buildJsonObject {
+                            put("yaw", JsonPrimitive(look.yaw))
+                            put("pitch", JsonPrimitive(look.pitch))
+                        },
+                )
+            }
+            invokeGenerated(
+                action = "player.move",
+                args =
+                    buildJsonObject {
+                        put("forward", JsonPrimitive(true))
+                        put("ticks", JsonPrimitive(ticks))
+                    },
+            )
+            return null
+        }
+
         suspend fun exploreAttackTarget(): PublicEntityTarget? {
             queryAttackTarget()?.let { target -> return target }
             val player = invokeGenerated("player.query")
@@ -350,7 +384,12 @@ class PublicAgentGameplayRunner(
                     )
                 materialDrop.responseObject()?.materialDropPosition()?.let { dropPosition ->
                     val dropNavigationBlocker = navigateTo(position = dropPosition, radius = 1.0)
-                    pickupNavigationBlocker = dropNavigationBlocker
+                    pickupNavigationBlocker =
+                        if (dropNavigationBlocker != null && "player.move" in actionIds) {
+                            moveToward(position = dropPosition, ticks = PICKUP_MOVE_TICKS)
+                        } else {
+                            dropNavigationBlocker
+                        }
                 }
                 finalInventory = invokeGenerated("inventory.query")
                 if (finalInventory.responseObject()?.hasLogItem() == true) {
@@ -410,7 +449,7 @@ class PublicAgentGameplayRunner(
                     return "insufficient-public-evidence:inventory.equip.selected-slot"
                 }
                 latestInventoryObject = equippedStationInventory.responseObject()
-                val supportTarget =
+                val supportTargets =
                     invokeGenerated(
                         action = "world.block.query",
                         args =
@@ -419,54 +458,93 @@ class PublicAgentGameplayRunner(
                                 put("limit", JsonPrimitive(16))
                                 put("category", JsonPrimitive("block"))
                             },
-                    ).responseObject()?.supportBlockTarget()
-                        ?: return "insufficient-public-evidence:world.block.query.station-support"
-                navigateTo(position = supportTarget.position, radius = 2.5)?.let { blocker -> return blocker }
-                val stationPlayer =
-                    invokeGenerated("player.query")
-                        .responseObject()
-                        ?.playerPosition()
-                        ?: return "insufficient-public-evidence:player.query.position"
-                supportTarget.position.toCraftlessPoint()?.let { targetPoint ->
-                    val look = stationPlayer.lookAt(targetPoint.centered())
+                    ).responseObject()?.supportBlockTargets().orEmpty()
+                if (supportTargets.isEmpty()) {
+                    return "insufficient-public-evidence:world.block.query.station-support"
+                }
+                var stationTarget: PublicBlockTarget? = null
+                for (supportTarget in supportTargets.take(PLACEMENT_TARGET_ATTEMPTS)) {
+                    navigateTo(position = supportTarget.position, radius = 2.5)?.let { blocker -> return blocker }
+                    val refreshedSupportTarget =
+                        invokeGenerated(
+                            action = "world.block.query",
+                            args =
+                                buildJsonObject {
+                                    put("radius", JsonPrimitive(4.0))
+                                    put("limit", JsonPrimitive(16))
+                                    put("category", JsonPrimitive("block"))
+                                },
+                        ).responseObject()?.supportBlockTarget() ?: supportTarget
+                    val stationPlayer =
+                        invokeGenerated("player.query")
+                            .responseObject()
+                            ?.playerPosition()
+                            ?: return "insufficient-public-evidence:player.query.position"
+                    refreshedSupportTarget.position.toCraftlessPoint()?.let { targetPoint ->
+                        val look = stationPlayer.lookAt(targetPoint.centered())
+                        invokeGenerated(
+                            action = "player.look",
+                            args =
+                                buildJsonObject {
+                                    put("yaw", JsonPrimitive(look.yaw))
+                                    put("pitch", JsonPrimitive(look.pitch))
+                                },
+                        )
+                    }
                     invokeGenerated(
-                        action = "player.look",
+                        action = "inventory.equip",
                         args =
                             buildJsonObject {
-                                put("yaw", JsonPrimitive(look.yaw))
-                                put("pitch", JsonPrimitive(look.pitch))
+                                put("slot", JsonPrimitive(stationSlot))
                             },
                     )
+                    val refreshedStationInventory = invokeGenerated("inventory.query")
+                    if (refreshedStationInventory.responseObject()?.selectedSlot() != stationSlot) {
+                        return "insufficient-public-evidence:inventory.equip.selected-slot"
+                    }
+                    latestInventoryObject = refreshedStationInventory.responseObject()
+                    val placeResult =
+                        invokeGenerated(
+                            action = "world.block.interact",
+                            args =
+                                buildJsonObject {
+                                    put("max-distance", JsonPrimitive(6.0))
+                                    put("side", JsonPrimitive(refreshedSupportTarget.side))
+                                    put("target", refreshedSupportTarget.toJsonObject())
+                                },
+                        )
+                    if (placeResult.responseObject()?.dataBoolean("accepted") != false) {
+                        stationTarget = placeResult.responseObject()?.placedBlockTarget()
+                        if (stationTarget != null) {
+                            break
+                        }
+                    }
                 }
-                invokeGenerated(
-                    action = "inventory.equip",
-                    args =
-                        buildJsonObject {
-                            put("slot", JsonPrimitive(stationSlot))
-                        },
-                )
-                val refreshedStationInventory = invokeGenerated("inventory.query")
-                if (refreshedStationInventory.responseObject()?.selectedSlot() != stationSlot) {
-                    return "insufficient-public-evidence:inventory.equip.selected-slot"
-                }
-                latestInventoryObject = refreshedStationInventory.responseObject()
-                val placeResult =
-                    invokeGenerated(
-                        action = "world.block.interact",
-                        args =
-                            buildJsonObject {
-                                put("max-distance", JsonPrimitive(6.0))
-                                put("side", JsonPrimitive(supportTarget.side))
-                                put("target", supportTarget.toJsonObject())
-                            },
-                    )
-                if (placeResult.responseObject()?.dataBoolean("accepted") == false) {
+                if (stationTarget == null) {
                     return "insufficient-public-evidence:world.block.interact.station-placed"
                 }
-                val stationTarget =
-                    placeResult.responseObject()?.placedBlockTarget()
-                        ?: return "insufficient-public-evidence:world.block.interact.station-target"
+                val canOpenWithEmptyHand = latestInventoryObject?.emptyHotbarSlot() != null
                 navigateTo(position = stationTarget.position, radius = 2.5)?.let { blocker -> return blocker }
+                if (canOpenWithEmptyHand) {
+                    val currentInventory = invokeGenerated("inventory.query")
+                    val emptySlot = currentInventory.responseObject()?.emptyHotbarSlot()
+                    if (emptySlot != null) {
+                        invokeGenerated(
+                            action = "inventory.equip",
+                            args =
+                                buildJsonObject {
+                                    put("slot", JsonPrimitive(emptySlot))
+                                },
+                        )
+                        val emptyHandInventory = invokeGenerated("inventory.query")
+                        if (emptyHandInventory.responseObject()?.selectedSlot() != emptySlot) {
+                            return "insufficient-public-evidence:inventory.equip.empty-slot"
+                        }
+                        latestInventoryObject = emptyHandInventory.responseObject()
+                    } else {
+                        latestInventoryObject = currentInventory.responseObject()
+                    }
+                }
                 invokeGenerated(
                     action = "world.block.interact",
                     args =
@@ -1245,6 +1323,27 @@ private fun JsonObject.hotbarSlotContaining(label: String): Int? {
     }
 }
 
+private fun JsonObject.emptyHotbarSlot(): Int? {
+    val data = this["data"] as? JsonObject ?: return null
+    val slots = data["slots"]?.jsonArray ?: return null
+    return slots.firstNotNullOfOrNull { element ->
+        val slot = element as? JsonObject ?: return@firstNotNullOfOrNull null
+        val slotNumber =
+            slot["slot"]
+                ?.jsonPrimitive
+                ?.contentOrNull
+                ?.toIntOrNull()
+                ?: return@firstNotNullOfOrNull null
+        val empty =
+            slot["empty"]
+                ?.jsonPrimitive
+                ?.contentOrNull
+                ?.toBooleanStrictOrNull()
+                ?: false
+        slotNumber.takeIf { slotIndex -> slotIndex in 0..8 && empty }
+    }
+}
+
 private fun JsonObject.hotbarSlotNumber(): Int? {
     val slotNumber =
         this["slot"]
@@ -1412,6 +1511,7 @@ private data class CraftlessPoint(
 
 private const val EXPLORATION_STEP = 24.0
 private const val PICKUP_EVIDENCE_ATTEMPTS = 4
+private const val PICKUP_MOVE_TICKS = 24
 private const val DEFAULT_COMBAT_EVIDENCE_ATTEMPTS = 12
 private const val DEFAULT_ACTION_REQUEST_TIMEOUT_MS = 300_000L
 private const val DEFAULT_CONNECT_TIMEOUT_MS = 30_000L

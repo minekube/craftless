@@ -204,6 +204,63 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner uses generated player move toward material drop when pickup navigation fails`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "player.move",
+                    navigationFollowResponses =
+                        listOf(
+                            NAVIGATION_SUCCEEDED_RESPONSE,
+                            NAVIGATION_FAILED_RESPONSE,
+                            NAVIGATION_FAILED_RESPONSE,
+                        ),
+                    playerQueryResponse =
+                        """{"action":"player.query","status":"ACCEPTED","data":{"position":{"x":10.0,"y":64.0,"z":-6.0}}}""",
+                    entityQueryResponse =
+                        """
+                        {
+                          "action": "entity.query",
+                          "status": "ACCEPTED",
+                          "data": {
+                            "entities": [
+                              {
+                                "handle": "entity.handle-42",
+                                "label": "Oak Log",
+                                "category": "object",
+                                "distance": 4.0,
+                                "position": {"x": 14.5, "y": 64.0, "z": -6.5}
+                              }
+                            ]
+                          }
+                        }
+                        """.trimIndent(),
+                    inventoryResponseAfterPlayerMove =
+                        """
+                        {
+                          "action": "inventory.query",
+                          "status": "ACCEPTED",
+                          "data": {
+                            "selected-slot": 0,
+                            "slots": [
+                              {"slot": 0, "empty": false, "count": 1, "item-name": "Oak Log"}
+                            ]
+                          }
+                        }
+                        """.trimIndent(),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            assertTrue(result.actionLog.map { it.action }.contains("player.move"))
+            assertTrue(server.requestBodies.any { it.contains(""""forward":true""") })
+            assertTrue(server.requestBodies.any { it.contains(""""ticks"""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner retries bounded public pickup evidence before blocking`() =
         runBlocking {
             val server =
@@ -1006,6 +1063,250 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner retries alternate public support targets when placing generated crafting station`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions =
+                        completeActionCatalog() +
+                            listOf(
+                                "recipe.query",
+                                "recipe.craft",
+                                "world.block.interact",
+                                "screen.query",
+                                "entity.attack",
+                            ),
+                    actionArguments =
+                        mapOf(
+                            "world.block.interact" to listOf("target", "side", "max-distance"),
+                        ),
+                    blockQueryResponses =
+                        listOf(
+                            logBlockQueryResponse,
+                            placementSupportBlocksQueryResponse,
+                            placementSupportBlockQueryResponse,
+                            placementSupportBlockWithNorthFaceQueryResponse,
+                        ),
+                    inventoryResponses =
+                        listOf(
+                            EMPTY_INVENTORY_QUERY_RESPONSE,
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            craftedMaterialInventoryResponse,
+                            craftedStationOnlyInventoryResponse(selectedSlot = 1),
+                            craftedStationOnlyInventoryResponse(selectedSlot = 8),
+                            craftedStationOnlyInventoryResponse(selectedSlot = 8),
+                            craftedStationOnlyInventoryResponse(selectedSlot = 8),
+                            craftedStickInventoryResponse,
+                            craftedWeaponInventoryResponse(selectedSlot = 2),
+                            craftedWeaponInventoryResponse(selectedSlot = 2),
+                        ),
+                    recipeQueryResponses =
+                        listOf(
+                            materialRecipeQueryResponse,
+                            stationAndWeaponRecipeQueryResponse,
+                            stickRecipeQueryResponse,
+                            weaponRecipeQueryResponse,
+                        ),
+                    recipeCraftResponses =
+                        listOf(
+                            MATERIAL_RECIPE_CRAFT_RESPONSE,
+                            STATION_RECIPE_CRAFT_RESPONSE,
+                            STICK_RECIPE_CRAFT_RESPONSE,
+                            WEAPON_RECIPE_CRAFT_RESPONSE,
+                        ),
+                    blockInteractResponses =
+                        listOf(
+                            """
+                            {
+                              "action": "world.block.interact",
+                              "status": "ACCEPTED",
+                              "data": {
+                                "accepted": false,
+                                "changed": false,
+                                "handle": "world.block:11:64:-4"
+                              }
+                            }
+                            """.trimIndent(),
+                            stationPlaceInteractResponse,
+                            stationOpenInteractResponse,
+                        ),
+                    screenQueryResponses =
+                        listOf(
+                            SCREEN_CLOSED_RESPONSE,
+                            SCREEN_OPEN_CRAFTING_TABLE_RESPONSE,
+                        ),
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            deadCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            assertTrue(result.actionLog.map { it.action }.count { it == "world.block.interact" } >= 3)
+            assertTrue(server.requestBodies.any { it.contains(""""handle":"world.block:11:64:-4"""") })
+            assertTrue(server.requestBodies.any { it.contains(""""handle":"world.block:12:64:-4"""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner selects empty public hotbar slot before opening placed generated station`() =
+        runBlocking {
+            val stationInventoryWithEmptySlot =
+                """
+                {
+                  "action": "inventory.query",
+                  "status": "ACCEPTED",
+                  "data": {
+                    "selected-slot": 8,
+                    "slots": [
+                      {"slot": 0, "empty": false, "count": 3, "item-name": "Dirt"},
+                      {"slot": 2, "empty": true},
+                      {"slot": 8, "empty": false, "count": 1, "item-name": "Crafting Table"}
+                    ]
+                  }
+                }
+                """.trimIndent()
+            val emptyHandInventory =
+                """
+                {
+                  "action": "inventory.query",
+                  "status": "ACCEPTED",
+                  "data": {
+                    "selected-slot": 2,
+                    "slots": [
+                      {"slot": 0, "empty": false, "count": 3, "item-name": "Dirt"},
+                      {"slot": 2, "empty": true},
+                      {"slot": 8, "empty": true}
+                    ]
+                  }
+                }
+                """.trimIndent()
+            val inventoryBeforeOpeningStation =
+                """
+                {
+                  "action": "inventory.query",
+                  "status": "ACCEPTED",
+                  "data": {
+                    "selected-slot": 0,
+                    "slots": [
+                      {"slot": 0, "empty": false, "count": 3, "item-name": "Dirt"},
+                      {"slot": 2, "empty": true},
+                      {"slot": 8, "empty": true}
+                    ]
+                  }
+                }
+                """.trimIndent()
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions =
+                        completeActionCatalog() +
+                            listOf(
+                                "recipe.query",
+                                "recipe.craft",
+                                "world.block.interact",
+                                "screen.query",
+                                "entity.attack",
+                            ),
+                    actionArguments =
+                        mapOf(
+                            "world.block.interact" to listOf("target", "side", "max-distance"),
+                        ),
+                    blockQueryResponses =
+                        listOf(
+                            logBlockQueryResponse,
+                            placementSupportBlockQueryResponse,
+                        ),
+                    inventoryResponses =
+                        listOf(
+                            EMPTY_INVENTORY_QUERY_RESPONSE,
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            craftedMaterialInventoryResponse,
+                            craftedStationOnlyInventoryResponse(selectedSlot = 1),
+                            craftedStationOnlyInventoryResponse(selectedSlot = 8),
+                            stationInventoryWithEmptySlot,
+                            inventoryBeforeOpeningStation,
+                            emptyHandInventory,
+                            craftedStickInventoryResponse,
+                            craftedWeaponInventoryResponse(selectedSlot = 2),
+                            craftedWeaponInventoryResponse(selectedSlot = 2),
+                        ),
+                    recipeQueryResponses =
+                        listOf(
+                            materialRecipeQueryResponse,
+                            stationAndWeaponRecipeQueryResponse,
+                            stickRecipeQueryResponse,
+                            weaponRecipeQueryResponse,
+                        ),
+                    recipeCraftResponses =
+                        listOf(
+                            MATERIAL_RECIPE_CRAFT_RESPONSE,
+                            STATION_RECIPE_CRAFT_RESPONSE,
+                            STICK_RECIPE_CRAFT_RESPONSE,
+                            WEAPON_RECIPE_CRAFT_RESPONSE,
+                        ),
+                    blockInteractResponses =
+                        listOf(
+                            stationPlaceInteractResponse,
+                            stationOpenInteractResponse,
+                        ),
+                    screenQueryResponses =
+                        listOf(
+                            SCREEN_CLOSED_RESPONSE,
+                            SCREEN_OPEN_CRAFTING_TABLE_RESPONSE,
+                        ),
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            deadCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("inventory.equip") &&
+                        it.contains(""""slot":2""")
+                },
+            )
+            val openStationInteractIndex =
+                server.requestBodies.indexOfLast {
+                    it.contains("world.block.interact") &&
+                        it.contains(""""target":{"handle":"world.block:11:65:-4"""")
+                }
+            val navigationBeforeOpenIndex =
+                server.requestBodies
+                    .take(openStationInteractIndex)
+                    .indexOfLast { it.contains("navigation.follow") }
+            val emptyEquipBeforeOpenIndex =
+                server.requestBodies
+                    .take(openStationInteractIndex)
+                    .indexOfLast {
+                        it.contains("inventory.equip") &&
+                            it.contains(""""slot":2""")
+                    }
+            assertTrue(emptyEquipBeforeOpenIndex > navigationBeforeOpenIndex)
+            assertFalse(
+                server.requestBodies
+                    .subList(emptyEquipBeforeOpenIndex + 1, openStationInteractIndex)
+                    .any { it.contains("navigation.follow") },
+            )
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner invokes targetable block interact when generated descriptor supports target`() =
         runBlocking {
             val server =
@@ -1635,6 +1936,7 @@ private class RecordingCraftlessHttpServer(
     private val recipeCraftResponses: List<String>? = null,
     private val screenQueryResponse: String = SCREEN_CLOSED_RESPONSE,
     private val screenQueryResponses: List<String>? = null,
+    private val inventoryResponseAfterPlayerMove: String? = null,
     private val finalInventoryResponse: String =
         """
         {
@@ -1661,6 +1963,7 @@ private class RecordingCraftlessHttpServer(
     private var recipeQueryCount = 0
     private var recipeCraftCount = 0
     private var screenQueryCount = 0
+    private var playerMoveCount = 0
     val http =
         HttpClient(
             MockEngine { request ->
@@ -1699,6 +2002,7 @@ private class RecordingCraftlessHttpServer(
             body.contains("player.query") -> playerQueryResponse
             body.contains("player.look") ->
                 """{"action":"player.look","status":"ACCEPTED"}"""
+            body.contains("player.move") -> playerMoveResponse()
             body.contains("player.raycast") ->
                 """{"action":"player.raycast","status":"ACCEPTED","data":{"hit":true,"target-kind":"block"}}"""
             body.contains("world.block.break") -> blockBreakResponse
@@ -1716,6 +2020,9 @@ private class RecordingCraftlessHttpServer(
 
     private fun inventoryQueryResponse(): String {
         inventoryQueryCount += 1
+        if (inventoryResponseAfterPlayerMove != null && playerMoveCount > 0) {
+            return inventoryResponseAfterPlayerMove
+        }
         inventoryResponses?.let { responses ->
             return responses.getOrElse(inventoryQueryCount - 1) { responses.last() }
         }
@@ -1724,6 +2031,11 @@ private class RecordingCraftlessHttpServer(
         } else {
             finalInventoryResponse
         }
+    }
+
+    private fun playerMoveResponse(): String {
+        playerMoveCount += 1
+        return """{"action":"player.move","status":"ACCEPTED"}"""
     }
 
     private fun blockQueryResponse(): String {

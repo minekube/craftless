@@ -29,6 +29,7 @@ import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.ClientPlayerInteractionManager
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.item.ItemStack
+import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
 import net.minecraft.registry.tag.BlockTags
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
@@ -197,6 +198,7 @@ internal object FabricInventoryEquipActionBinding : FabricActionBinding {
         context.executeOnClient {
             val player = requireNotNull(player) { "client is not connected to a server" }
             player.inventory.selectedSlot = slot
+            player.networkHandler.sendPacket(UpdateSelectedSlotC2SPacket(slot))
         }
         return DriverActionResult(
             action = invocation.action,
