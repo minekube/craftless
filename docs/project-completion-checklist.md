@@ -1750,6 +1750,31 @@ Verification:
 - `mise run architecture-check`
 - `mise run ci`
 
+## Phase 56: Final Gameplay Timeout Budget
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-56-final-gameplay-timeout-budget-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-56-final-gameplay-timeout-budget-plan.md`.
+- [x] Final gameplay timeout budgets are non-circular: outer local-smoke
+  timeout covers public-agent helper process timeout plus human confirmation
+  hold plus buffer, instead of reusing the shorter Fabric generated-action
+  timeout.
+- [x] `FabricClientSmokeController` parses a dedicated public-agent helper
+  process timeout while keeping per-action generated HTTP timeout separate.
+- [ ] Held final gameplay has been rerun after this correction and exits with
+  either `final-gameplay-confirmation.json` or
+  `final-gameplay-confirmation-timeout.json` instead of a Gradle process
+  timeout.
+- [x] This phase changes final-gameplay timeout/evidence plumbing only and adds
+  no public gameplay action, generated route family, CLI gameplay catalog,
+  Fabric descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric final gameplay outer timeout covers public agent runtime and human hold window*' --tests '*FabricDriverModuleTest.fabric smoke controller parses public agent process timeout separately from outer smoke timeout*'`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above are checked with current evidence; final

@@ -167,6 +167,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 53. matrix-authoritative Fabric provider selection.
 54. public-agent timeout boundary.
 55. public-agent pickup convergence.
+56. final gameplay timeout budget.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -393,6 +394,14 @@ pickup or collection shortcut actions, public gameplay actions, generated route
 families, CLI gameplay catalogs, Fabric descriptor/binding pairs, scenario
 shortcuts, new compiled lanes, public version-specific APIs, or new Minecraft
 support claims.
+Phase 56 separates final gameplay timeout budgets so the outer local-smoke
+process cannot kill the client before the post-gameplay human confirmation
+hold can write `final-gameplay-confirmation-timeout.json`. It must keep
+per-action generated HTTP request timeout, public-agent helper process timeout,
+human confirmation hold, and outer process timeout distinct. It must not add
+gameplay shortcuts, public gameplay actions, generated route families, CLI
+gameplay catalogs, Fabric descriptor/binding pairs, scenario shortcuts, new
+compiled lanes, public version-specific APIs, or new Minecraft support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

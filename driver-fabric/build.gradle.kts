@@ -96,11 +96,19 @@ fun finalGameplayPublicAgentActionRequestTimeout(): String {
     return maxOf(10_000L, fabricActionMillis - 10_000L).toString()
 }
 
+fun finalGameplayPublicAgentCommandTimeout(): String =
+    (
+        envLong("CRAFTLESS_FABRIC_SMOKE_PUBLIC_AGENT_COMMAND_TIMEOUT_MS")
+            ?: envLong("CRAFTLESS_PUBLIC_AGENT_COMMAND_TIMEOUT_MS")
+            ?: envLong("CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS")
+            ?: 2_700_000L
+    ).toString()
+
 fun finalGameplayOuterActionTimeout(): String {
     val holdMillis = envLong("CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS") ?: 600_000L
-    val fabricActionMillis = finalGameplayFabricActionTimeout().toLong()
+    val publicAgentCommandMillis = finalGameplayPublicAgentCommandTimeout().toLong()
     val requestedOuter = envLong("CRAFTLESS_LOCAL_SERVER_SMOKE_ACTION_TIMEOUT_MS")
-    return maxOf(requestedOuter ?: 0L, fabricActionMillis + holdMillis + 180_000L, 1_500_000L).toString()
+    return maxOf(requestedOuter ?: 0L, publicAgentCommandMillis + holdMillis + 180_000L, 1_500_000L).toString()
 }
 
 fun laneSuffix(version: String): String =
@@ -371,6 +379,10 @@ tasks.register<JavaExec>("fabricFinalGameplay") {
             "CRAFTLESS_PUBLIC_AGENT_ACTION_REQUEST_TIMEOUT_MS",
             System.getenv("CRAFTLESS_PUBLIC_AGENT_ACTION_REQUEST_TIMEOUT_MS")
                 ?: finalGameplayPublicAgentActionRequestTimeout(),
+        )
+        environment(
+            "CRAFTLESS_FABRIC_SMOKE_PUBLIC_AGENT_COMMAND_TIMEOUT_MS",
+            finalGameplayPublicAgentCommandTimeout(),
         )
         environment(
             "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS",

@@ -493,6 +493,8 @@ data class FabricClientSmokeController(
         private const val HOLD_AFTER_ACTIONS = "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS"
         private const val ARTIFACTS_DIR = "CRAFTLESS_SMOKE_ARTIFACTS_DIR"
         private const val PUBLIC_AGENT_COMMAND_JSON = "CRAFTLESS_PUBLIC_AGENT_COMMAND_JSON"
+        private const val PUBLIC_AGENT_COMMAND_TIMEOUT = "CRAFTLESS_FABRIC_SMOKE_PUBLIC_AGENT_COMMAND_TIMEOUT_MS"
+        private const val PUBLIC_AGENT_COMMAND_TIMEOUT_LEGACY = "CRAFTLESS_PUBLIC_AGENT_COMMAND_TIMEOUT_MS"
         private const val READY_COMMAND_JSON = "CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON"
         private const val READY_REMINDER = "CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS"
         private const val CONFIRM_CHAT_CONTAINS = "CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS"
@@ -508,10 +510,18 @@ data class FabricClientSmokeController(
                 }
             val actionTimeout = (env[actionTimeoutName]?.toLongStrict(actionTimeoutName) ?: 30_000).milliseconds
             val publicAgentCommandTimeout =
-                env[ACTION_TIMEOUT]
+                env[PUBLIC_AGENT_COMMAND_TIMEOUT]
                     ?.takeIf { it.isNotBlank() }
-                    ?.toLongStrict(ACTION_TIMEOUT)
+                    ?.toLongStrict(PUBLIC_AGENT_COMMAND_TIMEOUT)
                     ?.milliseconds
+                    ?: env[PUBLIC_AGENT_COMMAND_TIMEOUT_LEGACY]
+                        ?.takeIf { it.isNotBlank() }
+                        ?.toLongStrict(PUBLIC_AGENT_COMMAND_TIMEOUT_LEGACY)
+                        ?.milliseconds
+                    ?: env[ACTION_TIMEOUT]
+                        ?.takeIf { it.isNotBlank() }
+                        ?.toLongStrict(ACTION_TIMEOUT)
+                        ?.milliseconds
                     ?: actionTimeout
             return FabricClientSmokeController(
                 enabled = env.isEnabled(ENABLED),

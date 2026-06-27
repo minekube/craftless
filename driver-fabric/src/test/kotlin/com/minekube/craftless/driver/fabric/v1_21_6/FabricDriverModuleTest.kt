@@ -488,10 +488,14 @@ class FabricDriverModuleTest {
 
         assertTrue(buildScript.contains("\"CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS\""))
         assertTrue(buildScript.contains("\"CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS\""))
+        assertTrue(buildScript.contains("\"CRAFTLESS_FABRIC_SMOKE_PUBLIC_AGENT_COMMAND_TIMEOUT_MS\""))
         assertTrue(buildScript.contains("\"CRAFTLESS_LOCAL_SERVER_SMOKE_ACTION_TIMEOUT_MS\""))
-        assertTrue(buildScript.contains("fabricActionMillis + holdMillis + 180_000L"))
+        assertTrue(buildScript.contains("finalGameplayPublicAgentCommandTimeout"))
+        assertTrue(buildScript.contains("publicAgentCommandMillis + holdMillis + 180_000L"))
+        assertFalse(buildScript.contains("fabricActionMillis + holdMillis + 180_000L"))
         assertTrue(buildScript.contains("1_500_000L"))
         assertTrue(buildScript.contains("720_000L"))
+        assertTrue(buildScript.contains("2_700_000L"))
         assertTrue(buildScript.contains("?: \"600000\""))
     }
 
@@ -531,6 +535,22 @@ class FabricDriverModuleTest {
 
         assertEquals(120_000.milliseconds, controller.actionTimeout)
         assertEquals(1_500_000.milliseconds, controller.publicAgentCommandTimeout)
+    }
+
+    @Test
+    fun `fabric smoke controller parses public agent process timeout separately from outer smoke timeout`() {
+        val controller =
+            FabricClientSmokeController.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
+                    "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS" to "2100000",
+                    "CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS" to "120000",
+                    "CRAFTLESS_FABRIC_SMOKE_PUBLIC_AGENT_COMMAND_TIMEOUT_MS" to "2400000",
+                ),
+            )
+
+        assertEquals(120_000.milliseconds, controller.actionTimeout)
+        assertEquals(2_400_000.milliseconds, controller.publicAgentCommandTimeout)
     }
 
     @Test
