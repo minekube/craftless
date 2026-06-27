@@ -2763,6 +2763,8 @@ class PublicAgentGameplayRunnerTest {
                     "CRAFTLESS_PUBLIC_AGENT_CLIENT_ID" to "fabric-smoke",
                     "CRAFTLESS_PUBLIC_AGENT_ARTIFACTS_DIR" to "/tmp/craftless-public-agent-artifacts",
                     "CRAFTLESS_PUBLIC_AGENT_ACTION_REQUEST_TIMEOUT_MS" to "120000",
+                    "CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS" to "90000",
+                    "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS" to "1500000",
                     "CRAFTLESS_PUBLIC_AGENT_COMBAT_EVIDENCE_ATTEMPTS" to "12",
                 ),
             )
@@ -2772,6 +2774,20 @@ class PublicAgentGameplayRunnerTest {
         assertEquals(Path.of("/tmp/craftless-public-agent-artifacts"), config.artifactsDir)
         assertEquals(120_000, config.actionRequestTimeoutMillis)
         assertEquals(12, config.combatEvidenceAttempts)
+    }
+
+    @Test
+    fun `runner config prefers fabric smoke action timeout over outer smoke timeout`() {
+        val config =
+            PublicAgentGameplayRunnerConfig.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_PUBLIC_AGENT_BASE_URL" to "http://127.0.0.1:18080",
+                    "CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS" to "120000",
+                    "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS" to "1500000",
+                ),
+            )
+
+        assertEquals(120_000, config.actionRequestTimeoutMillis)
     }
 
     @Test

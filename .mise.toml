@@ -22,7 +22,10 @@ run = "mise exec -- bun test playwright"
 [tasks.architecture-check]
 description = "Run focused checks for live OpenAPI/action architecture"
 run = [
-    "mise exec -- gradle :protocol:test :daemon:test :cli:test :driver-fabric:test",
+    "mise exec -- gradle :protocol:test",
+    "mise exec -- gradle :daemon:test",
+    "mise exec -- gradle :cli:test",
+    "mise exec -- gradle :driver-fabric:test",
     "mise exec -- bun test playwright",
 ]
 

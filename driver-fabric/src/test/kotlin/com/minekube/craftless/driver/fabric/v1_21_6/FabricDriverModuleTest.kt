@@ -496,6 +496,15 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `final gameplay config exports public agent action request timeout below fabric action timeout`() {
+        val buildScript = Files.readString(repositoryRoot().resolve("driver-fabric/build.gradle.kts"))
+
+        assertTrue(buildScript.contains("finalGameplayPublicAgentActionRequestTimeout"))
+        assertTrue(buildScript.contains("\"CRAFTLESS_PUBLIC_AGENT_ACTION_REQUEST_TIMEOUT_MS\""))
+        assertTrue(buildScript.contains("fabricActionMillis - 10_000L"))
+    }
+
+    @Test
     fun `fabric smoke controller prefers fabric action timeout over outer server timeout`() {
         val controller =
             FabricClientSmokeController.fromEnvironment(

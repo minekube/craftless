@@ -91,6 +91,11 @@ fun finalGameplayFabricActionTimeout(): String =
             ?: 720_000L
     ).toString()
 
+fun finalGameplayPublicAgentActionRequestTimeout(): String {
+    val fabricActionMillis = finalGameplayFabricActionTimeout().toLong()
+    return maxOf(10_000L, fabricActionMillis - 10_000L).toString()
+}
+
 fun finalGameplayOuterActionTimeout(): String {
     val holdMillis = envLong("CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS") ?: 600_000L
     val fabricActionMillis = finalGameplayFabricActionTimeout().toLong()
@@ -361,6 +366,11 @@ tasks.register<JavaExec>("fabricFinalGameplay") {
         environment(
             "CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS",
             finalGameplayFabricActionTimeout(),
+        )
+        environment(
+            "CRAFTLESS_PUBLIC_AGENT_ACTION_REQUEST_TIMEOUT_MS",
+            System.getenv("CRAFTLESS_PUBLIC_AGENT_ACTION_REQUEST_TIMEOUT_MS")
+                ?: finalGameplayPublicAgentActionRequestTimeout(),
         )
         environment(
             "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS",

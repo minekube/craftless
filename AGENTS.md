@@ -165,6 +165,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 51. Fabric bootstrap selection boundary.
 52. stable Fabric version boundary guard.
 53. matrix-authoritative Fabric provider selection.
+54. public-agent timeout boundary.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -376,6 +377,13 @@ before provider-reported support. A provider must not activate an unsupported
 or missing matrix lane, and its id must match the supported lane provider id.
 It must not add a new compiled lane, claim new Minecraft version support, add
 public version-specific APIs, or add gameplay actions.
+Phase 54 keeps final gameplay generated-action request failures inside the
+public-agent helper evidence path. Public-agent request timeouts must resolve
+before the Fabric smoke controller times out the helper process so blocker
+artifacts are written. It must not add public gameplay actions, generated route
+families, CLI gameplay catalogs, Fabric descriptor/binding pairs, scenario
+shortcuts, new compiled lanes, public version-specific APIs, or new Minecraft
+support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

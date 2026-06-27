@@ -1670,19 +1670,56 @@ Verification:
 - `mise run architecture-check`
 - `mise run ci`
 
+## Phase 54: Public-Agent Timeout Boundary
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-54-public-agent-timeout-boundary-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-54-public-agent-timeout-boundary-plan.md`.
+- [x] `PublicAgentGameplayRunnerConfig` keeps
+  `CRAFTLESS_PUBLIC_AGENT_ACTION_REQUEST_TIMEOUT_MS` as the highest-precedence
+  override.
+- [x] `PublicAgentGameplayRunnerConfig` prefers
+  `CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS` over the long outer
+  `CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS` when no explicit public-agent timeout is
+  set.
+- [x] `fabricFinalGameplay` exports
+  `CRAFTLESS_PUBLIC_AGENT_ACTION_REQUEST_TIMEOUT_MS` below the Fabric helper
+  action timeout so blocker artifacts can be written before the smoke
+  controller times out the helper process.
+- [x] `mise run architecture-check` runs Gradle test targets as separate
+  invocations before the Bun Playwright tests so the local verification gate
+  does not hit Gradle binary test-result collisions.
+- [ ] Final gameplay has been rerun after this timeout boundary, with either a
+  ready-for-Robin hold or preserved blocker artifacts from the next concrete
+  public-agent failure.
+- [x] This phase changes public-agent evidence plumbing only and adds no
+  public gameplay action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest.runner config prefers fabric smoke action timeout over outer smoke timeout*' :driver-fabric:test --tests '*FabricDriverModuleTest.final gameplay config exports public agent action request timeout below fabric action timeout*'`
+- `git diff --check`
+- `mise exec -- gradle :testkit:test :driver-fabric:test`
+- `mise run lint`
+- `mise run architecture-check`
+- `mise run ci`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above are checked with current evidence; final
   completion remains open on Robin's Minecraft chat confirmation.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully inside `mise run ci` after Phase 53 matrix-authoritative Fabric
-  provider selection.
+  successfully before `mise run ci` after Phase 54 public-agent timeout
+  boundary.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests after Phase 53
-  matrix-authoritative Fabric provider selection.
+  architecture tests and Bun Playwright helper tests after Phase 54
+  public-agent timeout boundary.
 - [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
-  successfully after Phase 53 matrix-authoritative Fabric provider selection.
+  successfully after Phase 54 public-agent timeout boundary.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,

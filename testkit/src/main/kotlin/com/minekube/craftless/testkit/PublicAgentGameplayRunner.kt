@@ -1142,6 +1142,7 @@ data class PublicAgentGameplayRunnerConfig(
         private const val CLIENT_ID = "CRAFTLESS_PUBLIC_AGENT_CLIENT_ID"
         private const val ARTIFACTS_DIR = "CRAFTLESS_PUBLIC_AGENT_ARTIFACTS_DIR"
         private const val ACTION_REQUEST_TIMEOUT_MS = "CRAFTLESS_PUBLIC_AGENT_ACTION_REQUEST_TIMEOUT_MS"
+        private const val FABRIC_SMOKE_ACTION_TIMEOUT_MS = "CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS"
         private const val SMOKE_ACTION_TIMEOUT_MS = "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS"
         private const val COMBAT_EVIDENCE_ATTEMPTS = "CRAFTLESS_PUBLIC_AGENT_COMBAT_EVIDENCE_ATTEMPTS"
         private const val COMBAT_RETRY_DELAY_MS = "CRAFTLESS_PUBLIC_AGENT_COMBAT_RETRY_DELAY_MS"
@@ -1159,6 +1160,9 @@ data class PublicAgentGameplayRunnerConfig(
                     env[ACTION_REQUEST_TIMEOUT_MS]
                         ?.takeIf { it.isNotBlank() }
                         ?.toLongStrict(ACTION_REQUEST_TIMEOUT_MS)
+                        ?: env[FABRIC_SMOKE_ACTION_TIMEOUT_MS]
+                            ?.takeIf { it.isNotBlank() }
+                            ?.toLongStrict(FABRIC_SMOKE_ACTION_TIMEOUT_MS)
                         ?: env[SMOKE_ACTION_TIMEOUT_MS]
                             ?.takeIf { it.isNotBlank() }
                             ?.toLongStrict(SMOKE_ACTION_TIMEOUT_MS)
