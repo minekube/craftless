@@ -172,6 +172,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 58. public-agent blocked outcome propagation.
 59. pathfinder interaction goal.
 60. final gameplay join handoff.
+61. local server action environment boundary.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -434,6 +435,13 @@ Phase 60 makes the final gameplay ready handoff explicit by writing
 machine-readable and human-readable join/confirmation artifacts when the held
 session is ready for Robin. It must not change generated public APIs, bypass
 Robin's Minecraft chat confirmation, treat timeout as success, add gameplay
+shortcuts, public gameplay actions, generated route families, CLI gameplay
+catalogs, Fabric descriptor/binding pairs, scenario shortcuts, new compiled
+lanes, public version-specific APIs, or new Minecraft support claims.
+Phase 61 corrects the local-server smoke action-command process boundary. It
+must strip outer local-server lifecycle ownership and recursive action-command
+variables, preserve final-gameplay/Fabric client smoke/public-agent child
+variables for the configured client action command, and must not add gameplay
 shortcuts, public gameplay actions, generated route families, CLI gameplay
 catalogs, Fabric descriptor/binding pairs, scenario shortcuts, new compiled
 lanes, public version-specific APIs, or new Minecraft support claims.

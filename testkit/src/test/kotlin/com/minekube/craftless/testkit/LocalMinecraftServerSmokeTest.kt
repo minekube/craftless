@@ -69,6 +69,38 @@ class LocalMinecraftServerSmokeTest {
     }
 
     @Test
+    fun `local server action command environment removes outer owner variables and keeps child smoke variables`() {
+        val env =
+            mutableMapOf(
+                "PATH" to "/usr/bin",
+                "CRAFTLESS_FINAL_GAMEPLAY" to "1",
+                "CRAFTLESS_LOCAL_SERVER_SMOKE" to "1",
+                "CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT" to "/tmp/craftless-final-gameplay",
+                "CRAFTLESS_SMOKE_ACTION_COMMAND_JSON" to """["gradle",":driver-fabric:runClient"]""",
+                "CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE" to "hello from Craftless final gameplay",
+                "CRAFTLESS_SMOKE_PROVISION_ITEM_ID" to "minecraft:iron_sword",
+                "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
+                "CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS" to "120000",
+                "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS" to "1800000",
+                "CRAFTLESS_PUBLIC_AGENT_COMMAND_JSON" to """["gradle",":testkit:publicAgentGameplay"]""",
+            )
+
+        env.removeInheritedLocalServerSmokeOwnerEnvironment()
+
+        assertEquals("/usr/bin", env["PATH"])
+        assertEquals("1", env["CRAFTLESS_FINAL_GAMEPLAY"])
+        assertFalse("CRAFTLESS_LOCAL_SERVER_SMOKE" in env)
+        assertFalse("CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT" in env)
+        assertFalse("CRAFTLESS_SMOKE_ACTION_COMMAND_JSON" in env)
+        assertFalse("CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE" in env)
+        assertFalse("CRAFTLESS_SMOKE_PROVISION_ITEM_ID" in env)
+        assertEquals("1", env["CRAFTLESS_FABRIC_CLIENT_SMOKE"])
+        assertEquals("120000", env["CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS"])
+        assertEquals("1800000", env["CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS"])
+        assertEquals("""["gradle",":testkit:publicAgentGameplay"]""", env["CRAFTLESS_PUBLIC_AGENT_COMMAND_JSON"])
+    }
+
+    @Test
     fun `local server smoke can consume Java runtime selection from environment`() {
         val root = createTempDirectory("craftless-local-server-smoke-java-selection-env")
         val selectedJava = root.resolve("cache/runtimes/mac-os-arm64/java-runtime-gamma/image/bin/java")

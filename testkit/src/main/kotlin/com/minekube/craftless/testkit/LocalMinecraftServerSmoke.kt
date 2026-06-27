@@ -395,6 +395,7 @@ private fun startConfiguredActionCommand(
         ProcessBuilder(config.actionCommand)
             .directory(config.root.toFile())
             .also { builder ->
+                builder.environment().removeInheritedLocalServerSmokeOwnerEnvironment()
                 builder.environment()[CRAFTLESS_SMOKE_SERVER_PORT_ENV] = config.port.toString()
                 builder.environment()[CRAFTLESS_SMOKE_ARTIFACTS_DIR_ENV] =
                     layout.artifactsDir
@@ -421,6 +422,28 @@ private fun startConfiguredActionCommand(
         output = output,
     )
 }
+
+internal fun MutableMap<String, String>.removeInheritedLocalServerSmokeOwnerEnvironment() {
+    inheritedLocalServerSmokeOwnerEnvironmentKeys.forEach(::remove)
+}
+
+private val inheritedLocalServerSmokeOwnerEnvironmentKeys =
+    setOf(
+        "CRAFTLESS_LOCAL_SERVER_SMOKE",
+        "CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT",
+        "CRAFTLESS_LOCAL_SERVER_SMOKE_ACTION_TIMEOUT_MS",
+        "CRAFTLESS_SMOKE_ACTION_COMMAND_JSON",
+        "CRAFTLESS_SMOKE_EXPECT_PLAYER",
+        "CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE",
+        "CRAFTLESS_SMOKE_EXPECT_DISCONNECT",
+        "CRAFTLESS_SMOKE_PROVISION_ITEM_ID",
+        "CRAFTLESS_SMOKE_PROVISION_ITEM_NAME",
+        "CRAFTLESS_SMOKE_PROVISION_ITEM_COUNT",
+        "CRAFTLESS_SMOKE_READINESS_TIMEOUT_MS",
+        "CRAFTLESS_SMOKE_SHUTDOWN_TIMEOUT_MS",
+        "CRAFTLESS_SMOKE_MIN_HEAP",
+        "CRAFTLESS_SMOKE_MAX_HEAP",
+    )
 
 private data class RunningLocalMinecraftSmokeCommand(
     val layout: LocalServerLayout,

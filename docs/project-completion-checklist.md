@@ -1911,6 +1911,36 @@ Verification:
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric smoke controller runs ready notification command with live session context*' --tests '*FabricDriverModuleTest.fabric smoke controller stops final session after configured chat confirmation evidence*' --tests '*FabricDriverModuleTest.fabric smoke controller writes confirmation timeout artifact when Robin chat is not observed*'`
 - `mise run architecture-check`
 
+## Phase 61: Local Server Action Environment Boundary
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-61-local-server-action-env-boundary-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-61-local-server-action-env-boundary-plan.md`.
+- [x] The local-server smoke action command strips inherited outer local-server
+  owner variables such as `CRAFTLESS_LOCAL_SERVER_SMOKE`,
+  `CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT`, and
+  `CRAFTLESS_SMOKE_ACTION_COMMAND_JSON`.
+- [x] The local-server smoke action command preserves Fabric client smoke and
+  final-gameplay/public-agent child variables so `:driver-fabric:runClient`
+  still enters the Fabric smoke controller with pathfinder/final-gameplay
+  context instead of opening a normal unmanaged client.
+- [x] Held final gameplay has been rerun after this correction and reaches
+  final ready handoff with `server-evidence.jsonl`; when Robin did not join,
+  it wrote `final-gameplay-confirmation-timeout.json`.
+- [x] This phase changes final-gameplay harness process isolation only and adds
+  no public gameplay action, generated route family, CLI gameplay catalog,
+  Fabric descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.LocalMinecraftServerSmokeTest.local server action command environment removes outer owner variables and keeps child smoke variables'`
+- `mise exec -- gradle :testkit:test`
+- `git diff --check`
+- `mise run architecture-check`
+- `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS=120000 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=1800000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above are checked with current evidence; final
