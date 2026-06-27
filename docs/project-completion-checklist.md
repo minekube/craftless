@@ -270,7 +270,15 @@ Verification:
   `final-gameplay-ready.json` for `127.0.0.1:60403`; `server-evidence.jsonl`
   contains Craftless' `Player224` join, chat, and disconnect only. Robin did
   not join or confirm in Minecraft chat, and no
-  `final-gameplay-confirmation.json` was written.
+  `final-gameplay-confirmation.json` was written. A subsequent rerun reached
+  `publicAgentState=RAN` again: it crafted a `Wooden Sword`, found a Chicken
+  through generated `entity.query`, closed distance with generated navigation,
+  attacked through generated `entity.attack`, observed `Raw Chicken` and
+  `Feather` drops, navigated to the drops, and proved pickup through
+  `inventory.query`. The held session wrote `final-gameplay-ready.json` for
+  `127.0.0.1:61836`; `server-evidence.jsonl` contains Craftless' `Player546`
+  join, chat, and disconnect only. Robin did not join or confirm in Minecraft
+  chat, and no `final-gameplay-confirmation.json` was written.
 - [ ] Robin joins or observes the server session after the harness ready prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.
@@ -907,7 +915,7 @@ Verification:
   `publicAgentState=RAN`. Evidence:
   `driver-fabric/build/craftless-final-gameplay/artifacts/public-agent-command.log`
   reports `publicAgentState=RAN`; `final-gameplay-ready.json` was written for
-  `127.0.0.1:60403`; `server-evidence.jsonl` contains Craftless' `Player224`
+  `127.0.0.1:61836`; `server-evidence.jsonl` contains Craftless' `Player546`
   join/chat/disconnect and no Robin confirmation chat; no
   `final-gameplay-confirmation.json` was written before the hold expired.
 
