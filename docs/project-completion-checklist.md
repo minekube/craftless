@@ -1640,19 +1640,47 @@ Verification:
 - Remote GitHub Actions `ci` run `28293149080` passed for implementation
   commit `3f01b84`.
 
+## Phase 53: Matrix-Authoritative Fabric Provider Selection
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-53-matrix-authoritative-fabric-provider-selection-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-53-matrix-authoritative-fabric-provider-selection-plan.md`.
+- [x] `selectFabricRuntimeProvider(...)` resolves identities through the
+  compatibility matrix before evaluating provider support.
+- [x] Unsupported matrix lanes such as latest-release `26.2` fail with
+  machine-readable matrix evidence even if a provider would report support.
+- [x] Supported matrix lanes require a provider whose id matches the lane's
+  provider id.
+- [x] Current compiled-lane provider selection still succeeds through the
+  matrix-backed selector.
+- [x] This phase changes internal Fabric runtime provider selection only and
+  adds no public gameplay action, generated route family, CLI gameplay catalog,
+  Fabric descriptor/binding pair, scenario shortcut, new compiled lane, or
+  public version-specific API.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricRuntimeProviderTest*' --tests '*FabricCurrentLaneRuntimeProviderTest*'`
+- `git diff --check`
+- `mise exec -- gradle :driver-fabric:test`
+- `mise run lint`
+- `mise run architecture-check`
+- `mise run ci`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above are checked with current evidence; final
   completion remains open on Robin's Minecraft chat confirmation.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully inside `mise run ci` after the Phase 52 stable Fabric version
-  boundary guard.
+  successfully inside `mise run ci` after Phase 53 matrix-authoritative Fabric
+  provider selection.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests after the Phase 52 stable
-  Fabric version boundary guard.
+  architecture tests and Bun Playwright helper tests after Phase 53
+  matrix-authoritative Fabric provider selection.
 - [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
-  successfully after the Phase 52 stable Fabric version boundary guard.
+  successfully after Phase 53 matrix-authoritative Fabric provider selection.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,

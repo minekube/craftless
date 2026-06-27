@@ -38,16 +38,28 @@ internal data class FabricRuntimeProviderSelection(
 internal fun selectFabricRuntimeProvider(
     identity: FabricRuntimeIdentity,
     providers: List<FabricRuntimeProvider>,
+    matrix: FabricCompatibilityMatrix = defaultFabricCompatibilityMatrix(),
 ): FabricRuntimeProviderSelection {
-    val evaluated = providers.map { provider -> provider to provider.support(identity) }
-    val selected =
-        evaluated.firstOrNull { (_, support) -> support.state == FabricRuntimeSupportState.SUPPORTED }
+    val lane = matrix.resolve(identity)
+    if (lane.status != FabricCompatibilityStatus.SUPPORTED) {
+        throw IllegalArgumentException(
+            "no Fabric runtime provider supports Minecraft ${identity.gameVersion}: " +
+                "${lane.providerId}:${lane.unsupportedReason ?: lane.status.name.lowercase()}",
+        )
+    }
+    val provider =
+        providers.firstOrNull { candidate -> candidate.id == lane.providerId }
             ?: throw IllegalArgumentException(
                 "no Fabric runtime provider supports Minecraft ${identity.gameVersion}: " +
-                    evaluated.joinToString(",") { (provider, support) -> "${provider.id}:${support.reason}" },
+                    "${lane.providerId}:provider-missing",
             )
-    val provider = selected.first
-    val support = selected.second
+    val support = provider.support(identity)
+    if (support.state != FabricRuntimeSupportState.SUPPORTED) {
+        throw IllegalArgumentException(
+            "no Fabric runtime provider supports Minecraft ${identity.gameVersion}: " +
+                "${provider.id}:${support.reason}",
+        )
+    }
     return FabricRuntimeProviderSelection(
         provider = provider,
         support = support,

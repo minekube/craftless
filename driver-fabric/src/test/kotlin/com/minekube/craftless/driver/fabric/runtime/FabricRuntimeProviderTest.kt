@@ -61,7 +61,7 @@ class FabricRuntimeProviderTest {
     }
 
     @Test
-    fun `provider selection reports machine readable unsupported reasons`() {
+    fun `provider selection reports machine readable matrix unsupported reasons`() {
         val unsupportedIdentity = currentLaneIdentity().copy(gameVersion = "26.2")
         val provider =
             TestFabricRuntimeProvider(
@@ -75,7 +75,43 @@ class FabricRuntimeProviderTest {
                 selectFabricRuntimeProvider(unsupportedIdentity, listOf(provider))
             }
 
-        assertTrue(error.message?.contains("unsupported-version") == true)
+        assertTrue(error.message?.contains("runtime-lane-missing") == true)
+    }
+
+    @Test
+    fun `provider selection rejects identities from unsupported compatibility lanes`() {
+        val unsupportedIdentity = currentLaneIdentity().copy(gameVersion = "26.2")
+        val provider =
+            TestFabricRuntimeProvider(
+                providerId = "fabric-current-lane",
+                supportedGameVersion = "26.2",
+                access = TestFabricRuntimeAccess(unsupportedIdentity),
+            )
+
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                selectFabricRuntimeProvider(unsupportedIdentity, listOf(provider))
+            }
+
+        assertTrue(error.message?.contains("runtime-lane-missing") == true)
+    }
+
+    @Test
+    fun `provider selection requires the supported matrix lane provider id`() {
+        val identity = currentLaneIdentity()
+        val provider =
+            TestFabricRuntimeProvider(
+                providerId = "fabric-compatible-but-wrong-id",
+                supportedGameVersion = "1.21.6",
+                access = TestFabricRuntimeAccess(identity),
+            )
+
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                selectFabricRuntimeProvider(identity, listOf(provider))
+            }
+
+        assertTrue(error.message?.contains("fabric-current-lane:provider-missing") == true)
     }
 
     @Test

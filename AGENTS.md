@@ -164,6 +164,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 50. latest release lane evidence.
 51. Fabric bootstrap selection boundary.
 52. stable Fabric version boundary guard.
+53. matrix-authoritative Fabric provider selection.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -370,6 +371,11 @@ Fabric production file that may import version-scoped implementation packages;
 other stable Fabric files must depend on the selector or stable runtime
 contracts. It must not add a new compiled lane, claim new Minecraft version
 support, add public version-specific APIs, or add gameplay actions.
+Phase 53 makes Fabric runtime provider selection obey the compatibility matrix
+before provider-reported support. A provider must not activate an unsupported
+or missing matrix lane, and its id must match the supported lane provider id.
+It must not add a new compiled lane, claim new Minecraft version support, add
+public version-specific APIs, or add gameplay actions.
 
 ## Acceptance Scenarios Are Not Product APIs
 
