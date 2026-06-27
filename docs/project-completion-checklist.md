@@ -817,9 +817,9 @@ Verification:
 - [~] `recipe.query` has a guarded Fabric operation adapter that projects live
   recipe-book display entries into opaque Craftless recipe handles, public
   `produces`/`requires` item labels, compatibility `outputs`/`ingredients`,
-  categories, craftability, and query filters. Broader live recipe
-  requirements, screen/handler permission details, stale handle validation,
-  and real craft execution remain open.
+  categories, craftability, `recipe-not-craftable` reasons, and query filters.
+  Broader live recipe requirements, screen/handler permission details, stale
+  handle validation, and real craft execution remain open.
 - [~] `recipe.craft` has public handle/count validation, stale-handle
   validation, live craftability checks, guarded Fabric client-thread execution
   through `clickRecipe`, before/after inventory fingerprints, and expected

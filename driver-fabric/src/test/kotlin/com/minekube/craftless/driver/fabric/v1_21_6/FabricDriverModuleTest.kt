@@ -1371,6 +1371,33 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric recipe projection explains non craftable recipes with machine readable reason`() {
+        val recipe =
+            craftlessRecipeRecord(
+                CraftlessRecipeProjection(
+                    handleIndex = 43,
+                    kind = "shaped-crafting",
+                    outputs =
+                        listOf(
+                            craftlessRecipeItem(
+                                rawName = "item.minecraft.iron_pickaxe",
+                                translationKey = "item.minecraft.iron_pickaxe",
+                            ),
+                        ),
+                    ingredients =
+                        listOf(
+                            craftlessRecipeItem("item.minecraft.iron_ingot", "item.minecraft.iron_ingot"),
+                            craftlessRecipeItem("item.minecraft.stick", "item.minecraft.stick"),
+                        ),
+                ),
+                craftable = false,
+            )
+
+        assertEquals(false, recipe["craftable"]?.jsonPrimitive?.boolean)
+        assertEquals("recipe-not-craftable", recipe["reason"]?.jsonPrimitive?.content)
+    }
+
+    @Test
     fun `fabric runtime discovery keeps recipe operations unavailable until live recipe probes exist`() {
         val gateway = RecordingFabricClientGateway()
         gateway.connected = false

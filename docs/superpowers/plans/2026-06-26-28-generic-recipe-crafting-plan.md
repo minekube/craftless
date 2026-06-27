@@ -42,6 +42,8 @@ confirmation still remain open.
 - [x] Implement `queryRecipes(invocation)` on the client thread. It returns Craftless-owned handles, category, craftable state, required public ingredients, and produced public outputs.
 - [x] Emit spec-aligned `requires` and `produces` fields alongside
   compatibility `ingredients` and `outputs` aliases.
+- [x] Emit `reason=recipe-not-craftable` on discovered recipe records when
+  `craftable=false`.
 - [x] Ensure public recipe records do not expose raw registry ids or Minecraft/Fabric/Yarn names.
 - [x] Run the focused test and confirm it passes.
 

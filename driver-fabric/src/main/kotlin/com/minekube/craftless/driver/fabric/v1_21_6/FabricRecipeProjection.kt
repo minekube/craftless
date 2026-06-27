@@ -57,6 +57,9 @@ internal fun craftlessRecipeRecord(
         put("ingredients", ingredients)
         put("produces", outputs)
         put("requires", ingredients)
+        if (!craftable) {
+            put("reason", "recipe-not-craftable")
+        }
         recipe.station?.let { station ->
             put("station", station.toCraftlessRecipeItem())
         }
