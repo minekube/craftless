@@ -561,6 +561,40 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner revalidates public attack target after generated attack misses`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + listOf("entity.attack", "player.move"),
+                    entityAttackResponses =
+                        listOf(
+                            """{"action":"entity.attack","status":"ACCEPTED","data":{"hit":true,"handle":"entity.handle-42"}}""",
+                            """{"action":"entity.attack","status":"FAILED","message":"entity-target-out-of-range","data":{"hit":false,"reason":"entity-target-out-of-range"}}""",
+                            """{"action":"entity.attack","status":"ACCEPTED","data":{"hit":true,"handle":"entity.handle-42"}}""",
+                        ),
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            movedCowEntityQueryResponse,
+                            reachableMovedCowEntityQueryResponse,
+                            reachableMovedCowEntityQueryResponse,
+                            deadMovedCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blockerWithActions())
+            assertTrue(result.actionLog.map { it.action }.count { it == "entity.attack" } >= 3)
+            assertTrue(result.actionLog.map { it.action }.count { it == "entity.query" } >= 4)
+            assertTrue(result.actionLog.map { it.action }.contains("player.query"))
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner navigates to vertically offset public attack targets`() =
         runBlocking {
             val server =
@@ -1155,6 +1189,7 @@ class PublicAgentGameplayRunnerTest {
                             "handle": "recipe.handle:tool-1",
                             "accepted": true,
                             "changed": true,
+                            "requested-count": 1,
                             "crafted-count": 1
                           }
                         }
@@ -1214,6 +1249,7 @@ class PublicAgentGameplayRunnerTest {
                             "handle": "recipe.handle:material-1",
                             "accepted": true,
                             "changed": true,
+                            "requested-count": 1,
                             "crafted-count": 1
                           }
                         }
@@ -1225,6 +1261,12 @@ class PublicAgentGameplayRunnerTest {
 
             assertEquals(PublicAgentGameplayState.RAN, result.state)
             assertTrue(result.actionLog.map { it.action }.contains("recipe.craft"))
+            assertTrue(
+                result.actionLog
+                    .first { it.action == "recipe.craft" }
+                    .response
+                    .contains(""""requested-count": 1"""),
+            )
             assertTrue(server.requestBodies.any { it.contains(""""target":{"handle":"recipe.handle:material-1"}""") })
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
@@ -2764,11 +2806,12 @@ private class RecordingCraftlessHttpServer(
     private val entityQueryResponse: String = """{"action":"entity.query","status":"ACCEPTED","data":{"entities":[]}}""",
     private val entityQueryResponses: List<String>? = null,
     private val entityQueryResponsesAfterPlayerMove: List<String>? = null,
+    private val entityAttackResponses: List<String>? = null,
     private val recipeQueryResponse: String =
         """{"action":"recipe.query","status":"ACCEPTED","data":{"count":0,"recipes":[]}}""",
     private val recipeQueryResponses: List<String>? = null,
     private val recipeCraftResponse: String =
-        """{"action":"recipe.craft","status":"ACCEPTED","data":{"accepted":false,"changed":false,"crafted-count":0}}""",
+        """{"action":"recipe.craft","status":"ACCEPTED","data":{"accepted":false,"changed":false,"requested-count":1,"crafted-count":0}}""",
     private val recipeCraftResponses: List<String>? = null,
     private val screenQueryResponse: String = SCREEN_CLOSED_RESPONSE,
     private val screenQueryResponses: List<String>? = null,
@@ -2797,6 +2840,7 @@ private class RecordingCraftlessHttpServer(
     private var entityQueryAfterPlayerMoveCount = 0
     private var blockInteractCount = 0
     private var navigationFollowCount = 0
+    private var entityAttackCount = 0
     private var recipeQueryCount = 0
     private var recipeCraftCount = 0
     private var screenQueryCount = 0
@@ -2848,8 +2892,7 @@ private class RecordingCraftlessHttpServer(
             body.contains("recipe.query") -> recipeQueryResponse()
             body.contains("recipe.craft") -> recipeCraftResponse()
             body.contains("screen.query") -> screenQueryResponse()
-            body.contains("entity.attack") ->
-                """{"action":"entity.attack","status":"ACCEPTED","data":{"hit":true,"handle":"entity.handle-42"}}"""
+            body.contains("entity.attack") -> entityAttackResponse()
             body.contains("entity.query") -> entityQueryResponse()
             else -> """{"action":"unknown","status":"UNSUPPORTED","message":"unexpected action"}"""
         }
@@ -2890,6 +2933,12 @@ private class RecordingCraftlessHttpServer(
         entityQueryCount += 1
         return entityQueryResponses?.getOrElse(entityQueryCount - 1) { entityQueryResponses.last() }
             ?: entityQueryResponse
+    }
+
+    private fun entityAttackResponse(): String {
+        entityAttackCount += 1
+        return entityAttackResponses?.getOrElse(entityAttackCount - 1) { entityAttackResponses.last() }
+            ?: """{"action":"entity.attack","status":"ACCEPTED","data":{"hit":true,"handle":"entity.handle-42"}}"""
     }
 
     private fun blockInteractResponse(): String {
@@ -3242,16 +3291,16 @@ private val weaponRecipeQueryResponse =
     """.trimIndent()
 
 private const val MATERIAL_RECIPE_CRAFT_RESPONSE =
-    """{"action":"recipe.craft","status":"ACCEPTED","data":{"handle":"recipe.handle:material-1","accepted":true,"changed":true,"crafted-count":1}}"""
+    """{"action":"recipe.craft","status":"ACCEPTED","data":{"handle":"recipe.handle:material-1","accepted":true,"changed":true,"requested-count":1,"crafted-count":1}}"""
 
 private const val STATION_RECIPE_CRAFT_RESPONSE =
-    """{"action":"recipe.craft","status":"ACCEPTED","data":{"handle":"recipe.handle:station-1","accepted":true,"changed":true,"crafted-count":1}}"""
+    """{"action":"recipe.craft","status":"ACCEPTED","data":{"handle":"recipe.handle:station-1","accepted":true,"changed":true,"requested-count":1,"crafted-count":1}}"""
 
 private const val STICK_RECIPE_CRAFT_RESPONSE =
-    """{"action":"recipe.craft","status":"ACCEPTED","data":{"handle":"recipe.handle:stick-1","accepted":true,"changed":true,"crafted-count":1}}"""
+    """{"action":"recipe.craft","status":"ACCEPTED","data":{"handle":"recipe.handle:stick-1","accepted":true,"changed":true,"requested-count":1,"crafted-count":1}}"""
 
 private const val WEAPON_RECIPE_CRAFT_RESPONSE =
-    """{"action":"recipe.craft","status":"ACCEPTED","data":{"handle":"recipe.handle:weapon-1","accepted":true,"changed":true,"crafted-count":1}}"""
+    """{"action":"recipe.craft","status":"ACCEPTED","data":{"handle":"recipe.handle:weapon-1","accepted":true,"changed":true,"requested-count":1,"crafted-count":1}}"""
 
 private val stationPlaceInteractResponse =
     """

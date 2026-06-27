@@ -869,6 +869,25 @@ class PublicAgentGameplayRunner(
                                 },
                         )
                     if (attackResult.responseObject()?.dataBoolean("hit") == false) {
+                        if (combatAttempts < combatEvidenceAttempts) {
+                            combatPause()
+                            val missedAttackEntityState = invokeGenerated("entity.query")
+                            val missedAttackEntityStateObject = missedAttackEntityState.responseObject()
+                            val refreshedAttackTarget =
+                                missedAttackEntityStateObject?.attackTarget(preferredHandle = currentAttackTarget.handle)
+                                    ?: queryAttackTarget(radius = 16.0, preferredHandle = currentAttackTarget.handle)
+                                    ?: missedAttackEntityStateObject?.attackTarget()
+                            if (refreshedAttackTarget != null) {
+                                val focusedAttackTarget = focusAttackTarget(refreshedAttackTarget)
+                                focusedAttackTarget.blocker?.let { blocker -> return blockedAndWrite(blocker) }
+                                currentAttackTarget =
+                                    focusedAttackTarget.target
+                                        ?: return blockedAndWrite(
+                                            "insufficient-public-evidence:entity.query.attack-target",
+                                        )
+                                continue
+                            }
+                        }
                         return blockedAndWrite("insufficient-public-evidence:entity.attack.hit")
                     }
                     val combatEntityState = invokeGenerated("entity.query")

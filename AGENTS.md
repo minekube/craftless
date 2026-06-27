@@ -148,6 +148,8 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 34. incremental public-agent artifacts.
 35. final confirmation timeout artifact.
 36. legacy survival task namespace guard.
+37. scenario shortcut action guard.
+38. combat miss retry.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -271,6 +273,12 @@ Phase 37 rejects known scenario shortcut action ids such as `find.tree`,
 boundary. It must preserve generic runtime primitives such as `recipe.craft`,
 `inventory.equip`, `world.block.break`, and `entity.attack`, and must not turn
 the shortcut blocklist into a public gameplay catalog.
+Phase 38 makes the external public-agent combat loop recover when generated
+`entity.attack` reports `hit=false` during a bounded combat attempt. It must
+refresh public `entity.query` evidence, re-focus through generated navigation
+and optional `player.move`, retry only within the configured evidence budget,
+and must not add `kill.cow`, combat macros, scenario shortcuts, or any new
+product gameplay action.
 
 ## Acceptance Scenarios Are Not Product APIs
 

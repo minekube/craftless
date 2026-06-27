@@ -81,6 +81,10 @@ Legend:
 - [x] Plan exists: `docs/superpowers/plans/2026-06-26-28-generic-recipe-crafting-plan.md`.
 - [x] Spec exists: `docs/superpowers/specs/2026-06-26-29-legacy-survival-task-api-removal-design.md`.
 - [x] Plan exists: `docs/superpowers/plans/2026-06-26-29-legacy-survival-task-api-removal-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-27-37-scenario-shortcut-action-guard-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-27-37-scenario-shortcut-action-guard-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-27-38-combat-miss-retry-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-27-38-combat-miss-retry-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -906,7 +910,10 @@ Verification:
   interaction/opening, and live survival evidence remain open.
 - [x] Public-agent composition uses generated recipe actions when available to
   craft useful outputs, then verifies inventory state through `inventory.query`
-  in focused fake-server evidence.
+  in focused fake-server evidence. Public-agent recipe fixtures now include
+  `requested-count` in generated `recipe.craft` responses and assert the
+  action log preserves it, so fake evidence matches the generated result
+  schema used by live drivers.
 - [x] Live no-hold final gameplay evidence shows generic recipe/crafting
   progress without `craft.sword`, `craft.planks`, `craft.table`,
   `make.weapon`, `kill.cow`, or `task.survival.*`. Evidence:
@@ -935,6 +942,7 @@ Verification:
 - `mise exec -- gradle :driver-fabric:test --tests '*recipe*'`
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend crafts a discovered recipe handle through runtime graph adapter*'`
 - `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric recipe craft execution takes generic crafting output after recipe fill'`
+- `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.PublicAgentGameplayRunnerTest.runner treats generated material recipes as useful crafting progress'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=120000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 - `mise run ci`
@@ -1201,17 +1209,44 @@ Verification:
 - `mise exec -- gradle :protocol:test --tests 'com.minekube.craftless.protocol.NamespacePolicyTest.public action descriptors reject scenario shortcut action ids'`
 - `mise exec -- gradle :protocol:test`
 
+## Phase 38: Combat Miss Retry
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-38-combat-miss-retry-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-38-combat-miss-retry-plan.md`.
+- [x] The 2026-06-27 final gameplay rerun reached the human-ready window but
+  the process-external public agent blocked with
+  `insufficient-public-evidence:entity.attack.hit` after a generated
+  `entity.attack` miss. Evidence:
+  `driver-fabric/build/craftless-final-gameplay/artifacts/public-agent-gameplay-results.jsonl`
+  shows a Cow target discovered through generated `entity.query`, one accepted
+  generated `entity.attack` with `hit=true`, a later refreshed Cow position
+  outside the generated attack reach, and a second generated `entity.attack`
+  returning `hit=false` with `entity-target-out-of-range`.
+- [x] Public-agent combat now treats a generated attack miss as recoverable
+  while bounded combat attempts remain: it refreshes public `entity.query`
+  evidence, re-focuses through the existing generated navigation and optional
+  `player.move` path, then retries generated `entity.attack`.
+- [x] Focused regression evidence proves the runner records additional public
+  `entity.query` evidence and retries generated `entity.attack` instead of
+  immediately blocking on the first generated attack miss.
+
+Verification:
+
+- `mise exec -- gradle :testkit:test --rerun-tasks --tests 'com.minekube.craftless.testkit.PublicAgentGameplayRunnerTest.runner revalidates public attack target after generated attack misses'`
+
 ## Final Completion Gate
 
 - [ ] All phases above are checked with current evidence.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully after the Phase 37 shortcut guard.
+  successfully after the Phase 38 combat miss retry correction.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests after the Phase 37
-  shortcut guard.
+  architecture tests and Bun Playwright helper tests after the Phase 38 combat
+  miss retry correction.
 - [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
-  successfully after the Phase 37 shortcut guard.
+  successfully after the Phase 38 combat miss retry correction.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,
