@@ -1732,7 +1732,9 @@ Verification:
   Current 2026-06-27 held evidence has `publicAgentState=RAN`, no
   `public-agent-blocked.json`, `final-gameplay-ready.json` for
   `127.0.0.1:61963`, generated `entity.attack` killed a Sheep, and final
-  `inventory.query` showed `White Wool` and `Raw Mutton`.
+  `inventory.query` showed `White Wool` and `Raw Mutton`. The hold expired at
+  `2026-06-27 18:44:16 CEST` without a Robin chat line containing
+  `goal may be completed`, so final completion remains open.
 - [x] This phase changes public-agent acceptance policy only and adds no
   public gameplay action, generated route family, CLI gameplay catalog, Fabric
   descriptor/binding pair, scenario shortcut, new compiled lane, public
