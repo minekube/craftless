@@ -1231,6 +1231,7 @@ class FabricDriverModuleTest {
         assertEquals("number", unavailableQuery.arguments["radius"]?.type)
         assertEquals("integer", unavailableQuery.arguments["limit"]?.type)
         assertEquals("string", unavailableQuery.arguments["category"]?.type)
+        assertEquals("object", unavailableQuery.arguments["target"]?.type)
         assertEquals("object", unavailableQuery.result.type)
         assertEquals(DriverActionStatus.UNSUPPORTED, unavailableResult.status)
         assertEquals("client-not-connected", unavailableResult.message)

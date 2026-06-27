@@ -214,19 +214,20 @@ Verification:
   station-producing recipe before a station-backed weapon when the station is
   missing, recover dropped material through generated `player.move`, retry
   alternate public station-placement support targets, re-equip the station
-  before generated block interaction, and select an empty public hotbar slot
-  after navigation before opening a placed resource. The Fabric driver now
-  syncs generated `inventory.equip` through the selected-slot C2S packet so
-  later interactions observe the equipped slot. The latest no-hold run now
-  blocks on
-  `insufficient-public-evidence:screen.query.station-open`: public evidence
-  shows `world.block.interact` can report accepted/changed station placement
-  and empty-hand opening, but the returned placed block target is still
-  observed as air instead of an open station. The next fix must verify and
-  recover stable placed-resource state through public `world.block.query` /
-  `world.block.interact` evidence, not add a station, crafting, or survival
-  shortcut. Held multiplayer observation and Robin's Minecraft chat
-  confirmation remain open.
+  before generated block interaction, verify placed-resource state through
+  generated `world.block.query` target handles, skip unnecessary post-placement
+  navigation when the placed resource is already reachable, and select an
+  empty public hotbar slot before opening a placed resource. The Fabric driver
+  now syncs generated `inventory.equip` through the selected-slot C2S packet
+  so later interactions observe the equipped slot. The latest no-hold run
+  opens the placed crafting station with public `screen.query` evidence
+  (`open=true`, `title="Crafting"`) and now blocks on
+  `insufficient-public-evidence:entity.query.attack-target.reachable`: after
+  generated navigation toward a living target, the public near-range
+  `entity.query` did not prove a reachable attack target. The next fix must
+  improve generic public combat target selection/navigation/requery evidence,
+  not add a combat, cow, weapon, or survival shortcut. Held multiplayer
+  observation and Robin's Minecraft chat confirmation remain open.
 - [ ] Robin joins or observes the server session after a macOS `say` prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.
@@ -262,14 +263,15 @@ Verification:
   manual movement, kills it, writes chat, and records SSE/artifact evidence.
   Current evidence rejects the earlier false success and server-provisioned
   item path. The external public-agent no-hold smoke now proves ordinary
-  material collection, placement, chat evidence, generated navigation, and
-  generic combat outcome evidence without static scenario APIs, including the
-  exact cow/beef/leather acceptance variant; it still has not proven a
-  legitimately crafted/obtained weapon or Robin's in-game completion
-  confirmation. Latest weapon-composition work fixes public-agent station
-  ordering and station re-equip composition in focused evidence; the current
-  live no-hold blocker has moved back to material pickup navigation:
-  `insufficient-public-evidence:navigation.follow.succeeded`.
+  material collection, placement, chat evidence, generated navigation, placed
+  station verification/opening, and generic combat outcome evidence without
+  static scenario APIs, including the exact cow/beef/leather acceptance
+  variant; it still has not proven a legitimately crafted/obtained weapon or
+  Robin's in-game completion confirmation. Latest weapon-composition work
+  fixes public-agent station ordering, station re-equip composition, stable
+  placed-resource verification, and reachable station opening in focused and
+  live evidence; the current live no-hold blocker is
+  `insufficient-public-evidence:entity.query.attack-target.reachable`.
 - [!] The final survival proof is reproduced by an external public-agent runner
   over generated OpenAPI/SSE/CLI/skills, not by hard-coding the scenario as a
   durable public `task.survival.*` API. The previous

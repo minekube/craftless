@@ -21,6 +21,7 @@ import com.minekube.craftless.protocol.NavigationTaskState
 import com.minekube.craftless.protocol.RuntimeAvailabilityState
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
@@ -53,6 +54,7 @@ import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
+import net.minecraft.world.World
 import java.security.MessageDigest
 import kotlin.math.sqrt
 
@@ -644,6 +646,7 @@ class FabricDriverBackend private constructor(
     private fun queryBlocks(invocation: DriverOperationInvocation): DriverActionResult {
         val radius = invocation.arguments["radius"]?.jsonPrimitive?.doubleOrNull ?: DEFAULT_BLOCK_QUERY_RADIUS
         val limit = invocation.arguments["limit"]?.jsonPrimitive?.intOrNull ?: DEFAULT_BLOCK_QUERY_LIMIT
+        val target = invocation.arguments.blockQueryTarget()
         val category =
             invocation.arguments["category"]
                 ?.jsonPrimitive
@@ -668,41 +671,26 @@ class FabricDriverBackend private constructor(
                 val currentPlayer = requireNotNull(player) { "client is not connected to a server" }
                 val currentWorld = requireNotNull(world) { "client world is unavailable" }
                 val origin = currentPlayer.blockPos
-                val radiusBlocks = radius.toInt().coerceAtLeast(1)
                 val matches = mutableListOf<CraftlessBlockQueryMatch>()
-                for (x in (origin.x - radiusBlocks)..(origin.x + radiusBlocks)) {
-                    for (y in (origin.y - radiusBlocks)..(origin.y + radiusBlocks)) {
-                        for (z in (origin.z - radiusBlocks)..(origin.z + radiusBlocks)) {
-                            val pos = BlockPos(x, y, z)
-                            val distance = pos.distanceTo(origin)
-                            if (distance > radius) {
-                                continue
-                            }
-                            val state = currentWorld.getBlockState(pos)
-                            val blockCategory = state.toCraftlessBlockCategory()
-                            if (state.matchesCraftlessBlockCategory(blockCategory, category)) {
-                                matches +=
-                                    CraftlessBlockQueryMatch(
-                                        position = pos,
-                                        category = blockCategory,
-                                        distance = distance,
-                                        replaceable = state.isReplaceable,
-                                        faces =
-                                            Direction.entries.map { side ->
-                                                val adjacentPosition = pos.offset(side)
-                                                val adjacentState = currentWorld.getBlockState(adjacentPosition)
-                                                CraftlessBlockQueryFace(
-                                                    side = side,
-                                                    adjacentPosition = adjacentPosition,
-                                                    adjacentCategory = adjacentState.toCraftlessBlockCategory(),
-                                                    replaceable = adjacentState.isAir || adjacentState.isReplaceable,
-                                                    occupiedByPlayer =
-                                                        currentPlayer.boundingBox.intersects(
-                                                            adjacentPosition.toCraftlessBlockBox(),
-                                                        ),
-                                                )
-                                            },
-                                    )
+                if (target != null) {
+                    currentWorld
+                        .craftlessBlockQueryMatch(target, origin, currentPlayer.boundingBox)
+                        .takeIf { match -> category == null || match.categoryMatches(category) }
+                        ?.let(matches::add)
+                } else {
+                    val radiusBlocks = radius.toInt().coerceAtLeast(1)
+                    for (x in (origin.x - radiusBlocks)..(origin.x + radiusBlocks)) {
+                        for (y in (origin.y - radiusBlocks)..(origin.y + radiusBlocks)) {
+                            for (z in (origin.z - radiusBlocks)..(origin.z + radiusBlocks)) {
+                                val pos = BlockPos(x, y, z)
+                                val distance = pos.distanceTo(origin)
+                                if (distance > radius) {
+                                    continue
+                                }
+                                currentWorld
+                                    .craftlessBlockQueryMatch(pos, origin, currentPlayer.boundingBox)
+                                    .takeIf { match -> match.categoryMatches(category) }
+                                    ?.let(matches::add)
                             }
                         }
                     }
@@ -900,6 +888,75 @@ class FabricDriverBackend private constructor(
         fun current(): FabricDriverBackend = installed ?: metadataOnly().also(::install)
     }
 }
+
+private fun Map<String, JsonElement>.blockQueryTarget(): BlockPos? {
+    val target = this["target"] as? JsonObject ?: return null
+    target["handle"]?.jsonPrimitive?.contentOrNull?.let { handle ->
+        return parseCraftlessBlockQueryHandle(handle)
+    }
+    val position = target["position"]
+    require(position is JsonObject) { "block query target requires handle or position" }
+    return position.toBlockQueryPos()
+}
+
+private fun parseCraftlessBlockQueryHandle(handle: String): BlockPos {
+    val parts = handle.split(":")
+    require(parts.size == 4 && parts[0] == "world.block") { "block query target handle must use world.block:x:y:z" }
+    val x = requireNotNull(parts[1].toIntOrNull()) { "block query target handle must use world.block:x:y:z" }
+    val y = requireNotNull(parts[2].toIntOrNull()) { "block query target handle must use world.block:x:y:z" }
+    val z = requireNotNull(parts[3].toIntOrNull()) { "block query target handle must use world.block:x:y:z" }
+    return BlockPos(x, y, z)
+}
+
+private fun JsonObject.toBlockQueryPos(): BlockPos {
+    val x = blockQueryCoordinate("x")
+    val y = blockQueryCoordinate("y")
+    val z = blockQueryCoordinate("z")
+    return BlockPos(x, y, z)
+}
+
+private fun JsonObject.blockQueryCoordinate(name: String): Int {
+    val primitive = this[name]?.jsonPrimitive
+    return primitive?.intOrNull
+        ?: primitive?.doubleOrNull?.toInt()
+        ?: error("block query target position requires x, y, and z")
+}
+
+private fun World.craftlessBlockQueryMatch(
+    pos: BlockPos,
+    origin: BlockPos,
+    playerBox: Box,
+): CraftlessBlockQueryMatch {
+    val state = getBlockState(pos)
+    val blockCategory = state.toCraftlessBlockCategory()
+    return CraftlessBlockQueryMatch(
+        position = pos,
+        category = blockCategory,
+        distance = pos.distanceTo(origin),
+        replaceable = state.isAir || state.isReplaceable,
+        faces =
+            Direction.entries.map { side ->
+                val adjacentPosition = pos.offset(side)
+                val adjacentState = getBlockState(adjacentPosition)
+                CraftlessBlockQueryFace(
+                    side = side,
+                    adjacentPosition = adjacentPosition,
+                    adjacentCategory = adjacentState.toCraftlessBlockCategory(),
+                    replaceable = adjacentState.isAir || adjacentState.isReplaceable,
+                    occupiedByPlayer = playerBox.intersects(adjacentPosition.toCraftlessBlockBox()),
+                )
+            },
+    )
+}
+
+private fun CraftlessBlockQueryMatch.categoryMatches(category: String?): Boolean =
+    when (category) {
+        null -> this.category != "air"
+        "any" -> true
+        "non-air" -> this.category != "air"
+        "block" -> this.category == "block" || this.category == "log"
+        else -> this.category == category
+    }
 
 private fun Entity.toCraftlessEntityData(origin: Entity): JsonObject =
     buildJsonObject {

@@ -241,6 +241,7 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                             "radius" to RuntimeSchema("number"),
                             "limit" to RuntimeSchema("integer"),
                             "category" to RuntimeSchema("string"),
+                            "target" to RuntimeSchema("object"),
                         ),
                     result = RuntimeSchema.objectSchema(),
                     availability = blockQueryAvailability,

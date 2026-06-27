@@ -344,7 +344,7 @@ internal object FabricWorldBlockInteractActionBinding : FabricActionBinding {
                         itemAccepted = itemResult.isAccepted,
                         heldItem = player.mainHandStack,
                         targetState = targetState,
-                        adjacentState = before,
+                        adjacentState = after,
                     )
                 }
                 val camera = requireNotNull(cameraEntity ?: player) { "client is not connected to a server" }

@@ -1063,6 +1063,90 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner opens reachable generated station without post placement navigation`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions =
+                        completeActionCatalog() +
+                            listOf(
+                                "recipe.query",
+                                "recipe.craft",
+                                "world.block.interact",
+                                "screen.query",
+                                "entity.attack",
+                            ),
+                    actionArguments =
+                        mapOf(
+                            "world.block.interact" to listOf("target", "side", "max-distance"),
+                        ),
+                    blockQueryResponses =
+                        listOf(
+                            logBlockQueryResponse,
+                            placementSupportBlockQueryResponse,
+                        ),
+                    inventoryResponses =
+                        listOf(
+                            EMPTY_INVENTORY_QUERY_RESPONSE,
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            craftedMaterialInventoryResponse,
+                            craftedStationOnlyInventoryResponse(selectedSlot = 1),
+                            craftedStationOnlyInventoryResponse(selectedSlot = 8),
+                            craftedStationOnlyInventoryResponse(selectedSlot = 8),
+                            craftedStickInventoryResponse,
+                            craftedWeaponInventoryResponse(selectedSlot = 2),
+                            craftedWeaponInventoryResponse(selectedSlot = 2),
+                        ),
+                    recipeQueryResponses =
+                        listOf(
+                            materialRecipeQueryResponse,
+                            stationAndWeaponRecipeQueryResponse,
+                            stickRecipeQueryResponse,
+                            weaponRecipeQueryResponse,
+                        ),
+                    recipeCraftResponses =
+                        listOf(
+                            MATERIAL_RECIPE_CRAFT_RESPONSE,
+                            STATION_RECIPE_CRAFT_RESPONSE,
+                            STICK_RECIPE_CRAFT_RESPONSE,
+                            WEAPON_RECIPE_CRAFT_RESPONSE,
+                        ),
+                    blockInteractResponses =
+                        listOf(
+                            stationPlaceInteractResponse,
+                            stationOpenInteractResponse,
+                        ),
+                    screenQueryResponses =
+                        listOf(
+                            SCREEN_CLOSED_RESPONSE,
+                            SCREEN_OPEN_CRAFTING_TABLE_RESPONSE,
+                        ),
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            deadCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            assertFalse(
+                server.requestBodies.any {
+                    it.contains("navigation.plan") &&
+                        it.contains(""""x":11""") &&
+                        it.contains(""""y":65""") &&
+                        it.contains(""""z":-4""")
+                },
+            )
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner retries alternate public support targets when placing generated crafting station`() =
         runBlocking {
             val server =
@@ -1152,6 +1236,221 @@ class PublicAgentGameplayRunnerTest {
             assertTrue(result.actionLog.map { it.action }.count { it == "world.block.interact" } >= 3)
             assertTrue(server.requestBodies.any { it.contains(""""handle":"world.block:11:64:-4"""") })
             assertTrue(server.requestBodies.any { it.contains(""""handle":"world.block:12:64:-4"""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner rejects air adjacent placement evidence before opening generated station`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions =
+                        completeActionCatalog() +
+                            listOf(
+                                "recipe.query",
+                                "recipe.craft",
+                                "world.block.interact",
+                                "screen.query",
+                                "entity.attack",
+                            ),
+                    actionArguments =
+                        mapOf(
+                            "world.block.interact" to listOf("target", "side", "max-distance"),
+                        ),
+                    blockQueryResponses =
+                        listOf(
+                            logBlockQueryResponse,
+                            placementSupportBlocksQueryResponse,
+                            placementSupportBlockQueryResponse,
+                            placementSupportBlockWithNorthFaceQueryResponse,
+                        ),
+                    inventoryResponses =
+                        listOf(
+                            EMPTY_INVENTORY_QUERY_RESPONSE,
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            craftedMaterialInventoryResponse,
+                            craftedStationOnlyInventoryResponse(selectedSlot = 1),
+                            craftedStationOnlyInventoryResponse(selectedSlot = 8),
+                            craftedStationOnlyInventoryResponse(selectedSlot = 8),
+                            craftedStationOnlyInventoryResponse(selectedSlot = 8),
+                            craftedStickInventoryResponse,
+                            craftedWeaponInventoryResponse(selectedSlot = 2),
+                            craftedWeaponInventoryResponse(selectedSlot = 2),
+                        ),
+                    recipeQueryResponses =
+                        listOf(
+                            materialRecipeQueryResponse,
+                            stationAndWeaponRecipeQueryResponse,
+                            stickRecipeQueryResponse,
+                            weaponRecipeQueryResponse,
+                        ),
+                    recipeCraftResponses =
+                        listOf(
+                            MATERIAL_RECIPE_CRAFT_RESPONSE,
+                            STATION_RECIPE_CRAFT_RESPONSE,
+                            STICK_RECIPE_CRAFT_RESPONSE,
+                            WEAPON_RECIPE_CRAFT_RESPONSE,
+                        ),
+                    blockInteractResponses =
+                        listOf(
+                            """
+                            {
+                              "action": "world.block.interact",
+                              "status": "ACCEPTED",
+                              "data": {
+                                "accepted": true,
+                                "changed": true,
+                                "handle": "world.block:11:64:-4",
+                                "adjacent-handle": "world.block:11:65:-4",
+                                "adjacent-position": {"x": 11, "y": 65, "z": -4},
+                                "adjacent-category": "air",
+                                "adjacent-replaceable": true,
+                                "side": "up"
+                              }
+                            }
+                            """.trimIndent(),
+                            """
+                            {
+                              "action": "world.block.interact",
+                              "status": "ACCEPTED",
+                              "data": {
+                                "accepted": true,
+                                "changed": true,
+                                "handle": "world.block:12:64:-4",
+                                "adjacent-handle": "world.block:12:64:-5",
+                                "adjacent-position": {"x": 12, "y": 64, "z": -5},
+                                "adjacent-category": "block",
+                                "adjacent-replaceable": false,
+                                "side": "north"
+                              }
+                            }
+                            """.trimIndent(),
+                            stationOpenInteractResponse,
+                        ),
+                    screenQueryResponses =
+                        listOf(
+                            SCREEN_CLOSED_RESPONSE,
+                            SCREEN_OPEN_CRAFTING_TABLE_RESPONSE,
+                        ),
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            deadCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            assertTrue(result.actionLog.map { it.action }.count { it == "world.block.interact" } >= 3)
+            assertTrue(server.requestBodies.any { it.contains(""""handle":"world.block:11:64:-4"""") })
+            assertTrue(server.requestBodies.any { it.contains(""""handle":"world.block:12:64:-4"""") })
+            assertTrue(server.requestBodies.any { it.contains(""""handle":"world.block:12:64:-5"""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner verifies placed generated station through public block query before opening`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions =
+                        completeActionCatalog() +
+                            listOf(
+                                "recipe.query",
+                                "recipe.craft",
+                                "world.block.interact",
+                                "screen.query",
+                                "entity.attack",
+                            ),
+                    actionArguments =
+                        mapOf(
+                            "world.block.interact" to listOf("target", "side", "max-distance"),
+                            "world.block.query" to listOf("target"),
+                        ),
+                    blockQueryResponses =
+                        listOf(
+                            logBlockQueryResponse,
+                            placementSupportBlocksQueryResponse,
+                            placementSupportBlockQueryResponse,
+                            queriedAirPlacedStationResponse,
+                            placementSupportBlockWithNorthFaceQueryResponse,
+                            queriedSolidPlacedStationResponse,
+                        ),
+                    inventoryResponses =
+                        listOf(
+                            EMPTY_INVENTORY_QUERY_RESPONSE,
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            logInSlotOneInventoryQueryResponse(selectedSlot = 1),
+                            craftedMaterialInventoryResponse,
+                            craftedStationOnlyInventoryResponse(selectedSlot = 1),
+                            craftedStationOnlyInventoryResponse(selectedSlot = 8),
+                            craftedStationOnlyInventoryResponse(selectedSlot = 8),
+                            craftedStationOnlyInventoryResponse(selectedSlot = 8),
+                            craftedStickInventoryResponse,
+                            craftedWeaponInventoryResponse(selectedSlot = 2),
+                            craftedWeaponInventoryResponse(selectedSlot = 2),
+                        ),
+                    recipeQueryResponses =
+                        listOf(
+                            materialRecipeQueryResponse,
+                            stationAndWeaponRecipeQueryResponse,
+                            stickRecipeQueryResponse,
+                            weaponRecipeQueryResponse,
+                        ),
+                    recipeCraftResponses =
+                        listOf(
+                            MATERIAL_RECIPE_CRAFT_RESPONSE,
+                            STATION_RECIPE_CRAFT_RESPONSE,
+                            STICK_RECIPE_CRAFT_RESPONSE,
+                            WEAPON_RECIPE_CRAFT_RESPONSE,
+                        ),
+                    blockInteractResponses =
+                        listOf(
+                            stationPlaceInteractResponse,
+                            """
+                            {
+                              "action": "world.block.interact",
+                              "status": "ACCEPTED",
+                              "data": {
+                                "accepted": true,
+                                "changed": true,
+                                "handle": "world.block:12:64:-4",
+                                "adjacent-handle": "world.block:12:64:-5",
+                                "adjacent-position": {"x": 12, "y": 64, "z": -5},
+                                "adjacent-category": "block",
+                                "adjacent-replaceable": false,
+                                "side": "north"
+                              }
+                            }
+                            """.trimIndent(),
+                            stationOpenInteractResponse,
+                        ),
+                    screenQueryResponses =
+                        listOf(
+                            SCREEN_CLOSED_RESPONSE,
+                            SCREEN_OPEN_CRAFTING_TABLE_RESPONSE,
+                        ),
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            aliveCowEntityQueryResponse,
+                            deadCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            assertTrue(result.actionLog.map { it.action }.count { it == "world.block.interact" } >= 3)
+            assertTrue(server.requestBodies.any { it.contains(""""handle":"world.block:11:65:-4"""") })
+            assertTrue(server.requestBodies.any { it.contains(""""handle":"world.block:12:64:-5"""") })
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 
@@ -2343,6 +2642,8 @@ private val stationPlaceInteractResponse =
         "handle": "world.block:11:64:-4",
         "adjacent-handle": "world.block:11:65:-4",
         "adjacent-position": {"x": 11, "y": 65, "z": -4},
+        "adjacent-category": "block",
+        "adjacent-replaceable": false,
         "side": "up"
       }
     }
@@ -2868,6 +3169,46 @@ private val placementSupportBlockWithNorthFaceQueryResponse =
                 "occupied-by-player": false
               }
             ]
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val queriedAirPlacedStationResponse =
+    """
+    {
+      "action": "world.block.query",
+      "status": "ACCEPTED",
+      "data": {
+        "count": 1,
+        "blocks": [
+          {
+            "handle": "world.block:11:65:-4",
+            "category": "air",
+            "replaceable": true,
+            "distance": 1.0,
+            "position": {"x": 11, "y": 65, "z": -4}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val queriedSolidPlacedStationResponse =
+    """
+    {
+      "action": "world.block.query",
+      "status": "ACCEPTED",
+      "data": {
+        "count": 1,
+        "blocks": [
+          {
+            "handle": "world.block:12:64:-5",
+            "category": "block",
+            "replaceable": false,
+            "distance": 1.0,
+            "position": {"x": 12, "y": 64, "z": -5}
           }
         ]
       }

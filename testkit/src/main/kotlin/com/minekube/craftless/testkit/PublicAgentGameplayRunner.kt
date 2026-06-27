@@ -463,6 +463,9 @@ class PublicAgentGameplayRunner(
                     return "insufficient-public-evidence:world.block.query.station-support"
                 }
                 var stationTarget: PublicBlockTarget? = null
+                var stationOpenOrigin: CraftlessPoint? = null
+                val canVerifyPlacedBlock =
+                    actions.actionSupportsArgument("world.block.query", "target")
                 for (supportTarget in supportTargets.take(PLACEMENT_TARGET_ATTEMPTS)) {
                     navigateTo(position = supportTarget.position, radius = 2.5)?.let { blocker -> return blocker }
                     val refreshedSupportTarget =
@@ -514,8 +517,22 @@ class PublicAgentGameplayRunner(
                                 },
                         )
                     if (placeResult.responseObject()?.dataBoolean("accepted") != false) {
-                        stationTarget = placeResult.responseObject()?.placedBlockTarget()
+                        val placedTarget = placeResult.responseObject()?.placedBlockTarget()
+                        stationTarget =
+                            if (placedTarget != null && canVerifyPlacedBlock) {
+                                invokeGenerated(
+                                    action = "world.block.query",
+                                    args =
+                                        buildJsonObject {
+                                            put("limit", JsonPrimitive(1))
+                                            put("target", placedTarget.toJsonObject())
+                                        },
+                                ).responseObject()?.confirmedPlacedBlockTarget(placedTarget)
+                            } else {
+                                placedTarget
+                            }
                         if (stationTarget != null) {
+                            stationOpenOrigin = stationPlayer
                             break
                         }
                     }
@@ -524,7 +541,14 @@ class PublicAgentGameplayRunner(
                     return "insufficient-public-evidence:world.block.interact.station-placed"
                 }
                 val canOpenWithEmptyHand = latestInventoryObject?.emptyHotbarSlot() != null
-                navigateTo(position = stationTarget.position, radius = 2.5)?.let { blocker -> return blocker }
+                val stationPoint = stationTarget.position.toCraftlessPoint()?.centered()
+                val canOpenFromCurrentPosition =
+                    stationOpenOrigin != null &&
+                        stationPoint != null &&
+                        stationOpenOrigin.distanceTo(stationPoint) <= STATION_OPEN_REACH_DISTANCE
+                if (!canOpenFromCurrentPosition) {
+                    navigateTo(position = stationTarget.position, radius = 2.5)?.let { blocker -> return blocker }
+                }
                 if (canOpenWithEmptyHand) {
                     val currentInventory = invokeGenerated("inventory.query")
                     val emptySlot = currentInventory.responseObject()?.emptyHotbarSlot()
@@ -1378,6 +1402,20 @@ private fun JsonObject.screenMatchesStation(stationLabel: String): Boolean {
 
 private fun JsonObject.placedBlockTarget(): PublicBlockTarget? {
     val data = this["data"] as? JsonObject ?: return null
+    val adjacentCategory =
+        data["adjacent-category"]
+            ?.jsonPrimitive
+            ?.contentOrNull
+            ?: return null
+    val adjacentReplaceable =
+        data["adjacent-replaceable"]
+            ?.jsonPrimitive
+            ?.contentOrNull
+            ?.toBooleanStrictOrNull()
+            ?: return null
+    if (adjacentCategory == "air" || adjacentReplaceable) {
+        return null
+    }
     val handle =
         data["adjacent-handle"]
             ?.jsonPrimitive
@@ -1387,6 +1425,43 @@ private fun JsonObject.placedBlockTarget(): PublicBlockTarget? {
     val position = data["adjacent-position"] as? JsonObject ?: return null
     val side = data["side"]?.jsonPrimitive?.contentOrNull ?: DEFAULT_PLACEMENT_SIDE
     return PublicBlockTarget(handle = handle, position = position, distance = null, side = side)
+}
+
+private fun JsonObject.confirmedPlacedBlockTarget(expected: PublicBlockTarget): PublicBlockTarget? {
+    val data = this["data"] as? JsonObject ?: return null
+    val blocks = data["blocks"]?.jsonArray ?: return null
+    return blocks
+        .mapNotNull { element -> element as? JsonObject }
+        .firstOrNull { block ->
+            val category = block["category"]?.jsonPrimitive?.contentOrNull ?: return@firstOrNull false
+            val replaceable =
+                block["replaceable"]
+                    ?.jsonPrimitive
+                    ?.contentOrNull
+                    ?.toBooleanStrictOrNull()
+                    ?: return@firstOrNull false
+            category != "air" &&
+                !replaceable &&
+                block.matchesTarget(expected)
+        }?.let { block ->
+            val handle = block["handle"]?.jsonPrimitive?.contentOrNull ?: expected.handle
+            val position = block["position"] as? JsonObject ?: expected.position
+            PublicBlockTarget(
+                handle = handle,
+                position = position,
+                distance = block.doubleField("distance"),
+                side = expected.side,
+            )
+        }
+}
+
+private fun JsonObject.matchesTarget(expected: PublicBlockTarget): Boolean {
+    val handle = this["handle"]?.jsonPrimitive?.contentOrNull
+    if (expected.handle != null && handle == expected.handle) {
+        return true
+    }
+    val position = this["position"] as? JsonObject ?: return false
+    return position.toCraftlessPoint() == expected.position.toCraftlessPoint()
 }
 
 private fun JsonObject.entityNotAlive(handle: String): Boolean {
@@ -1518,6 +1593,7 @@ private const val DEFAULT_CONNECT_TIMEOUT_MS = 30_000L
 private const val DEFAULT_COMBAT_RETRY_DELAY_MS = 700L
 private const val PLACEMENT_TARGET_ATTEMPTS = 6
 private const val MAX_RECIPE_COMPOSITION_STEPS = 4
+private const val STATION_OPEN_REACH_DISTANCE = 6.0
 private const val ATTACK_MAX_DISTANCE = 4.5
 private const val ATTACK_VERTICAL_REACH = 4.5
 
