@@ -631,7 +631,7 @@ private fun String.launchArgumentValues(section: String): List<String> =
 private fun JsonElement.launchArgumentValues(): List<String> {
     jsonPrimitiveOrNull()?.content?.let { return listOf(it) }
     val item = jsonObject
-    if (item["rules"]?.jsonArray.orEmpty().any { rule -> rule.jsonObject["action"]?.jsonPrimitive?.content == "disallow" }) {
+    if (!item.launchRulesAllow()) {
         return emptyList()
     }
     val value = item["value"] ?: return emptyList()
@@ -644,10 +644,42 @@ private fun JsonElement.jsonPrimitiveOrNull() =
         jsonPrimitive
     }.getOrNull()
 
+private fun JsonObject.launchRulesAllow(): Boolean {
+    val rules = this["rules"]?.jsonArray ?: return true
+    var allowed = false
+    for (ruleElement in rules) {
+        val rule = ruleElement.jsonObject
+        if (!rule.launchRuleMatchesCurrentEnvironment()) continue
+        allowed = rule["action"]?.jsonPrimitive?.content == "allow"
+    }
+    return allowed
+}
+
+private fun JsonObject.launchRuleMatchesCurrentEnvironment(): Boolean {
+    val osName =
+        this["os"]
+            ?.jsonObject
+            ?.get("name")
+            ?.jsonPrimitive
+            ?.content
+    if (osName != null && osName != currentMinecraftOsName()) return false
+    val features = this["features"]?.jsonObject ?: return true
+    return features.all { (name, expected) ->
+        DEFAULT_LAUNCH_FEATURES[name] == expected.jsonPrimitive.booleanOrNull
+    }
+}
+
 private fun String.resolveLaunchVariables(variables: Map<String, String>): String =
     LAUNCH_VARIABLE_PATTERN.replace(this) { match ->
         variables[match.groupValues[1]] ?: "{{${match.groupValues[1]}}}"
     }
+
+private val DEFAULT_LAUNCH_FEATURES =
+    mapOf(
+        "has_custom_resolution" to false,
+        "has_quick_plays_support" to true,
+        "is_demo_user" to false,
+    )
 
 private val LAUNCH_VARIABLE_PATTERN = Regex("""\$\{([^}]+)}""")
 

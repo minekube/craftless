@@ -152,6 +152,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 38. combat miss retry.
 39. Fabric library replacement.
 40. rule-selected native libraries.
+41. launch argument placeholders.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -293,6 +294,11 @@ must honor Mojang library rules, keep native artifacts out of the Java
 classpath, extract selected natives into native directories, and must not
 hard-code one operating system, architecture, Minecraft version, or launcher
 classpath.
+Phase 41 keeps prepared client process launches compatible with Mojang launch
+argument placeholders that depend on the selected profile and instance files.
+It must resolve launch-time placeholders in the supervisor/client-runtime
+layer, omit optional empty quick-play flags, and must not add gameplay API
+breadth, Fabric action descriptors, or static CLI gameplay behavior.
 
 ## Acceptance Scenarios Are Not Product APIs
 

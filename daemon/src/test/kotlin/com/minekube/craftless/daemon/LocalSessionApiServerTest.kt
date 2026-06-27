@@ -490,7 +490,17 @@ class LocalSessionApiServerTest {
             {
               "mainClass": "test.minecraft.Main",
               "jvm": ["-Dcraftless.gameRoot={{gameRoot}}"],
-              "game": ["--gameDir", "{{gameRoot}}", "--username", "Alice"]
+              "game": [
+                "--gameDir", "{{gameRoot}}",
+                "--username", "{{auth_player_name}}",
+                "--uuid", "{{auth_uuid}}",
+                "--accessToken", "{{auth_access_token}}",
+                "--userType", "{{user_type}}",
+                "--quickPlayPath", "{{quickPlayPath}}",
+                "--quickPlaySingleplayer", "{{quickPlaySingleplayer}}",
+                "--quickPlayMultiplayer", "{{quickPlayMultiplayer}}",
+                "--quickPlayRealms", "{{quickPlayRealms}}"
+              ]
             }
             """.trimIndent(),
         )
@@ -535,6 +545,14 @@ class LocalSessionApiServerTest {
         val invoked = Files.readString(marker)
         assertTrue(invoked.contains("test.minecraft.Main"))
         assertTrue(invoked.contains("--gameDir instances/alice-1.21.6-fabric/minecraft"))
+        assertTrue(invoked.contains("--username Alice"))
+        assertTrue(invoked.contains("--uuid 10920508-d5d8-3eed-93d2-92f193afe7d7"))
+        assertTrue(invoked.contains("--accessToken 0"))
+        assertTrue(invoked.contains("--userType legacy"))
+        assertTrue(invoked.contains("--quickPlayPath instances/alice-1.21.6-fabric/minecraft/quickplay"))
+        assertFalse(invoked.contains("--quickPlaySingleplayer"))
+        assertFalse(invoked.contains("--quickPlayMultiplayer"))
+        assertFalse(invoked.contains("--quickPlayRealms"))
     }
 
     @Test

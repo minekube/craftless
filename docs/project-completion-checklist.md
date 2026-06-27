@@ -89,6 +89,8 @@ Legend:
 - [x] Plan exists: `docs/superpowers/plans/2026-06-27-39-fabric-library-replacement-plan.md`.
 - [x] Spec exists: `docs/superpowers/specs/2026-06-27-40-rule-selected-native-libraries-design.md`.
 - [x] Plan exists: `docs/superpowers/plans/2026-06-27-40-rule-selected-native-libraries-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-27-41-launch-argument-placeholders-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-27-41-launch-argument-placeholders-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -1299,17 +1301,44 @@ Verification:
 - `mise run architecture-check`
 - `mise run ci`
 
+## Phase 41: Launch Argument Placeholders
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-41-launch-argument-placeholders-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-41-launch-argument-placeholders-plan.md`.
+- [x] Process client runtime launch now resolves profile and instance
+  placeholders from `CreateClientRequest` and `InstanceFiles` before invoking
+  `ProcessBuilder`.
+- [x] Offline profile launches now provide `auth_player_name`, standard
+  Minecraft offline `auth_uuid`, offline `auth_access_token`, `user_type`,
+  `gameRoot`, and `quickPlayPath`.
+- [x] Empty optional quick-play mode placeholders are omitted with their flags
+  instead of being passed to the client as unresolved or blank arguments.
+- [x] This phase changes supervisor process launch construction only and adds
+  no public gameplay action, generated route family, CLI gameplay catalog, or
+  scenario shortcut.
+
+Verification:
+
+- `mise exec -- gradle :daemon:test --tests 'com.minekube.craftless.daemon.LocalSessionApiServerTest.process client runtime launcher starts prepared command'`
+- `mise exec -- gradle :daemon:test --tests 'com.minekube.craftless.daemon.CachePreparationServiceTest.cache preparation resolves and stores minecraft version metadata'`
+- `mise exec -- gradle :daemon:test :daemon:ktlintCheck :daemon:detekt`
+- `mise run architecture-check`
+- `mise run lint`
+- `mise run ci`
+
 ## Final Completion Gate
 
 - [ ] All phases above are checked with current evidence.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully after the Phase 40 rule-selected native libraries correction.
+  successfully after the Phase 41 launch argument placeholders correction.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests after the Phase 40
-  rule-selected native libraries correction.
+  architecture tests and Bun Playwright helper tests after the Phase 41 launch
+  argument placeholders correction.
 - [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
-  successfully after the Phase 40 rule-selected native libraries correction.
+  successfully after the Phase 41 launch argument placeholders correction.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,

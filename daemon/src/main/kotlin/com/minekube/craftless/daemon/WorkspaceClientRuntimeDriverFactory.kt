@@ -20,8 +20,10 @@ import com.minekube.craftless.protocol.InstanceFiles
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 class WorkspaceClientRuntimeDriverFactory(
@@ -95,7 +97,7 @@ class ProcessClientRuntimeLauncher : ClientRuntimeLauncher {
         files: InstanceFiles,
         workspaceRoot: Path,
     ): ClientRuntimeLaunch {
-        val command = launchCommand(prepared.launch, files, workspaceRoot)
+        val command = launchCommand(request, prepared.launch, files, workspaceRoot)
         val logs = workspaceRoot.resolve(files.logs).normalize()
         Files.createDirectories(logs)
         val log = logs.resolve("client.log")
@@ -115,6 +117,7 @@ class ProcessClientRuntimeLauncher : ClientRuntimeLauncher {
     }
 
     private fun launchCommand(
+        request: CreateClientRequest,
         launch: CacheLaunchPlan,
         files: InstanceFiles,
         workspaceRoot: Path,
@@ -124,10 +127,11 @@ class ProcessClientRuntimeLauncher : ClientRuntimeLauncher {
         val java = workspaceRoot.resolveHandleOrPath(javaExecutable).toString()
         val argumentsFile = workspaceRoot.resolveHandleOrPath(argumentsHandle)
         val arguments = launcherJson.decodeFromString<ClientLaunchArgumentsFile>(Files.readString(argumentsFile))
+        val variables = request.clientLaunchVariables(files)
         return listOf(java) +
-            arguments.jvm.resolveClientLaunchVariables(files) +
+            arguments.jvm.resolveClientLaunchVariables(variables) +
             arguments.mainClass +
-            arguments.game.resolveClientLaunchVariables(files)
+            arguments.game.resolveClientLaunchVariables(variables)
     }
 }
 
@@ -215,11 +219,47 @@ private fun Path.resolveHandleOrPath(value: String): Path {
     return if (path.isAbsolute) path.normalize() else resolve(path).normalize()
 }
 
-private fun List<String>.resolveClientLaunchVariables(files: InstanceFiles): List<String> =
-    map { argument ->
-        argument.replace("{{gameRoot}}", files.gameRoot)
+private fun CreateClientRequest.clientLaunchVariables(files: InstanceFiles): Map<String, String> =
+    mapOf(
+        "auth_access_token" to "0",
+        "auth_player_name" to profile.name,
+        "auth_uuid" to offlineUuid(profile.name),
+        "gameRoot" to files.gameRoot,
+        "quickPlayPath" to "${files.gameRoot}/quickplay",
+        "quickPlaySingleplayer" to "",
+        "quickPlayMultiplayer" to "",
+        "quickPlayRealms" to "",
+        "user_type" to "legacy",
+    )
+
+private fun offlineUuid(name: String): String = UUID.nameUUIDFromBytes("OfflinePlayer:$name".toByteArray(StandardCharsets.UTF_8)).toString()
+
+private fun List<String>.resolveClientLaunchVariables(variables: Map<String, String>): List<String> {
+    val resolved = map { argument -> argument.resolveClientLaunchVariables(variables) }
+    return buildList {
+        var index = 0
+        while (index < resolved.size) {
+            val current = resolved[index]
+            val next = resolved.getOrNull(index + 1)
+            if (current.startsWith("--") && next.isNullOrBlank()) {
+                index += 2
+                continue
+            }
+            if (current.isNotBlank()) {
+                add(current)
+            }
+            index += 1
+        }
+    }
+}
+
+private fun String.resolveClientLaunchVariables(variables: Map<String, String>): String =
+    CLIENT_LAUNCH_VARIABLE_PATTERN.replace(this) { match ->
+        variables[match.groupValues[1]].orEmpty()
     }
 
 private val launcherJson = Json { ignoreUnknownKeys = true }
 
 private const val PROCESS_STOP_TIMEOUT_SECONDS = 2L
+
+private val CLIENT_LAUNCH_VARIABLE_PATTERN = Regex("""\{\{([^}]+)}}""")

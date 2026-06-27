@@ -20,6 +20,7 @@ import java.util.zip.ZipOutputStream
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class CachePreparationServiceTest {
@@ -251,7 +252,18 @@ class CachePreparationServiceTest {
                                           "--assetsDir",
                                           "${'$'}{assets_root}",
                                           "--gameDir",
-                                          "${'$'}{game_directory}"
+                                          "${'$'}{game_directory}",
+                                          {
+                                            "rules": [
+                                              {
+                                                "action": "allow",
+                                                "features": {
+                                                  "is_demo_user": true
+                                                }
+                                              }
+                                            ],
+                                            "value": "--demo"
+                                          }
                                         ]
                                       },
                                       "libraries": [
@@ -460,6 +472,7 @@ class CachePreparationServiceTest {
             assertTrue(launchArgumentsJson.contains("\"$launchClasspath\""))
             assertTrue(launchArgumentsJson.contains("\"--fabric-test\""))
             assertTrue(launchArgumentsJson.contains("\"{{gameRoot}}\""))
+            assertFalse(launchArgumentsJson.contains("\"--demo\""))
             assertEquals("minecraft-library", Files.readString(workspace.resolve(minecraftLibrary.handle)))
             assertTrue(Files.isRegularFile(workspace.resolve(nativeLibrary.handle)))
             assertEquals("native-bytes", Files.readString(workspace.resolve(nativeDirectory.handle).resolve("libcraftless-test.dylib")))
