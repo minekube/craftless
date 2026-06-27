@@ -85,6 +85,10 @@ Legend:
 - [x] Plan exists: `docs/superpowers/plans/2026-06-27-37-scenario-shortcut-action-guard-plan.md`.
 - [x] Spec exists: `docs/superpowers/specs/2026-06-27-38-combat-miss-retry-design.md`.
 - [x] Plan exists: `docs/superpowers/plans/2026-06-27-38-combat-miss-retry-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-27-39-fabric-library-replacement-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-27-39-fabric-library-replacement-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-27-40-rule-selected-native-libraries-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-27-40-rule-selected-native-libraries-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -313,6 +317,18 @@ Verification:
   `server-evidence.jsonl` contains Craftless' `Player972` join, chat, and
   disconnect only. Robin did not join or confirm in Minecraft chat, and no
   `final-gameplay-confirmation.json` was written.
+- [x] Latest 2026-06-27 final gameplay rerun after Phase 39/40 compatibility
+  work reached `publicAgentState=RAN` on `127.0.0.1:57818`: Craftless'
+  `Player192` joined, wrote the final gameplay chat, discovered live generated
+  actions, collected materials through public `world.block.query`,
+  `navigation.plan`, `navigation.follow`, `world.block.break`,
+  `inventory.query`, `recipe.query`, and `recipe.craft`, equipped a
+  `Wooden Sword`, attacked a Pig through generated `entity.attack`, and wrote
+  `final-gameplay-ready.json`. The hold ended cleanly with
+  `final-gameplay-confirmation-timeout.json`; `server-evidence.jsonl` contains
+  only Craftless' `Player192` join, chat, and disconnect. Robin did not join or
+  confirm in Minecraft chat, and no `final-gameplay-confirmation.json` was
+  written.
 - [ ] Robin joins or observes the server session after the harness ready prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.
@@ -1261,17 +1277,39 @@ Verification:
 - `mise run architecture-check`
 - `mise run ci`
 
+## Phase 40: Rule-Selected Native Libraries
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-40-rule-selected-native-libraries-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-40-rule-selected-native-libraries-plan.md`.
+- [x] Cache preparation applies Mojang library rules before classifying
+  Minecraft libraries for prepared artifacts and launch metadata.
+- [x] Rule-selected `natives-*` artifact libraries are extracted as native
+  libraries and kept out of the Java classpath.
+- [x] Legacy `downloads.classifiers` native entries remain supported.
+- [x] The focused regression fixture is platform-aware so the behavior is
+  checked on the current CI host instead of only on macOS ARM64.
+
+Verification:
+
+- `mise exec -- gradle :daemon:test --tests 'com.minekube.craftless.daemon.CachePreparationServiceTest.cache preparation extracts rule selected native artifact libraries outside classpath'`
+- `mise exec -- gradle :daemon:test`
+- `mise run lint`
+- `mise run architecture-check`
+- `mise run ci`
+
 ## Final Completion Gate
 
 - [ ] All phases above are checked with current evidence.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully after the Phase 39 Fabric library replacement correction.
+  successfully after the Phase 40 rule-selected native libraries correction.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests after the Phase 39 Fabric
-  library replacement correction.
+  architecture tests and Bun Playwright helper tests after the Phase 40
+  rule-selected native libraries correction.
 - [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
-  successfully after the Phase 39 Fabric library replacement correction.
+  successfully after the Phase 40 rule-selected native libraries correction.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,

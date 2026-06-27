@@ -119,6 +119,80 @@ class CachePreparationServiceTest {
         }
 
     @Test
+    fun `cache preparation extracts rule selected native artifact libraries outside classpath`() =
+        runBlocking {
+            val workspace = Files.createTempDirectory("craftless-cache-rule-natives")
+            val versionUrl = "https://metadata.test/1.21.6.json"
+            val clientJarUrl = "https://metadata.test/client.jar"
+            val lwjglUrl = "https://libraries.minecraft.net/org/lwjgl/lwjgl/3.3.3/lwjgl-3.3.3.jar"
+            val nativeArtifact = currentTestNativeArtifact()
+            val wrongNativeArtifact = nativeArtifact.wrongPlatform()
+            val nativeUrl = "https://libraries.minecraft.net/org/lwjgl/lwjgl/3.3.3/lwjgl-3.3.3-${nativeArtifact.classifier}.jar"
+            val wrongNativeUrl =
+                "https://libraries.minecraft.net/org/lwjgl/lwjgl/3.3.3/lwjgl-3.3.3-${wrongNativeArtifact.classifier}.jar"
+            val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
+            val service =
+                CachePreparationService(
+                    workspaceRoot = workspace,
+                    metadataFetcher =
+                        StaticCacheMetadataFetcher(
+                            mapOf(
+                                MINECRAFT_VERSION_INDEX_URL to
+                                    """
+                                    { "versions": [{ "id": "1.21.6", "url": "$versionUrl" }] }
+                                    """.trimIndent(),
+                                versionUrl to
+                                    """
+                                    {
+                                      "id": "1.21.6",
+                                      "assetIndex": {
+                                        "id": "1.21.6",
+                                        "url": "$assetIndexUrl"
+                                      },
+                                      "libraries": [
+                                        {
+                                          "name": "org.lwjgl:lwjgl:3.3.3",
+                                          "downloads": { "artifact": { "url": "$lwjglUrl" } }
+                                        },
+                                        {
+                                          "name": "org.lwjgl:lwjgl:3.3.3:${nativeArtifact.classifier}",
+                                          "rules": [{ "action": "allow", "os": { "name": "${nativeArtifact.osName}" } }],
+                                          "downloads": { "artifact": { "url": "$nativeUrl" } }
+                                        },
+                                        {
+                                          "name": "org.lwjgl:lwjgl:3.3.3:${wrongNativeArtifact.classifier}",
+                                          "rules": [{ "action": "allow", "os": { "name": "${wrongNativeArtifact.osName}" } }],
+                                          "downloads": { "artifact": { "url": "$wrongNativeUrl" } }
+                                        }
+                                      ],
+                                      "downloads": {
+                                        "client": { "url": "$clientJarUrl" }
+                                      }
+                                    }
+                                    """.trimIndent(),
+                                assetIndexUrl to """{"objects":{}}""",
+                            ),
+                            binaryResponses =
+                                mapOf(
+                                    clientJarUrl to "client-jar".encodeToByteArray(),
+                                    lwjglUrl to "lwjgl-jar".encodeToByteArray(),
+                                    nativeUrl to nativeZipBytes(),
+                                    wrongNativeUrl to nativeZipBytes(),
+                                ),
+                        ),
+                )
+
+            val result = service.prepare(CachePrepareRequest("1.21.6", Loader.VANILLA))
+
+            val nativeLibrary = result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_NATIVE_LIBRARY }
+            val nativeDirectory = result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_NATIVE_DIRECTORY }
+            assertEquals(nativeUrl, nativeLibrary.source)
+            assertTrue(result.launch.classpath.none { it == nativeLibrary.handle })
+            assertEquals(listOf(nativeDirectory.handle), result.launch.nativePath)
+            assertEquals("native-bytes", Files.readString(workspace.resolve(nativeDirectory.handle).resolve("libcraftless-test.dylib")))
+        }
+
+    @Test
     fun `cache preparation resolves and stores minecraft version metadata`() =
         runBlocking {
             val workspace = Files.createTempDirectory("craftless-cache-resolution")
@@ -666,6 +740,30 @@ private fun nativeZipBytes(): ByteArray {
         zip.closeEntry()
     }
     return output.toByteArray()
+}
+
+private data class TestNativeArtifact(
+    val osName: String,
+    val classifier: String,
+) {
+    fun wrongPlatform(): TestNativeArtifact =
+        when (osName) {
+            "windows" -> TestNativeArtifact("linux", "natives-linux")
+            else -> TestNativeArtifact("windows", "natives-windows")
+        }
+}
+
+private fun currentTestNativeArtifact(): TestNativeArtifact {
+    val os = System.getProperty("os.name").lowercase()
+    val arch = System.getProperty("os.arch").lowercase()
+    val arm64 = arch == "aarch64" || arch == "arm64"
+    return when {
+        "win" in os && arm64 -> TestNativeArtifact("windows", "natives-windows-arm64")
+        "win" in os -> TestNativeArtifact("windows", "natives-windows")
+        ("mac" in os || "darwin" in os) && arm64 -> TestNativeArtifact("osx", "natives-macos-arm64")
+        "mac" in os || "darwin" in os -> TestNativeArtifact("osx", "natives-macos")
+        else -> TestNativeArtifact("linux", "natives-linux")
+    }
 }
 
 private fun fakeJavaBytes(version: String): ByteArray =

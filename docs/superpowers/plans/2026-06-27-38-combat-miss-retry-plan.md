@@ -76,7 +76,7 @@ git diff --check
 
 Expected: all pass.
 
-- [ ] **Step 3: Rerun final gameplay**
+- [x] **Step 3: Rerun final gameplay**
 
 Run:
 
@@ -84,5 +84,7 @@ Run:
 CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS=720000 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=600000 CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS=60000 mise exec -- gradle :driver-fabric:fabricFinalGameplay
 ```
 
-Expected: the public agent does not block on the first generated attack miss;
-final completion still requires Robin's Minecraft chat confirmation.
+Result on 2026-06-27: the public agent reached `publicAgentState=RAN`, wrote
+`final-gameplay-ready.json`, and did not block on generated attack-miss
+handling. The hold timed out without Robin's Minecraft chat confirmation, so
+final completion remains open.

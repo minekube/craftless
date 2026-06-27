@@ -29,6 +29,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -767,7 +768,10 @@ private fun String.minecraftLibraries(): List<MinecraftLibraryArtifact> =
         .orEmpty()
         .mapNotNull { library ->
             val item = library.jsonObject
-            val key = item["name"]?.jsonPrimitive?.content?.mavenLibraryKey()
+            if (!item.libraryRulesAllowCurrentPlatform()) return@mapNotNull null
+            val name = item["name"]?.jsonPrimitive?.content
+            if (name?.nativeClassifier() != null) return@mapNotNull null
+            val key = name?.mavenLibraryKey()
             item["downloads"]
                 ?.jsonObject
                 ?.get("artifact")
@@ -792,26 +796,85 @@ private fun String.minecraftNativeLibraries(): List<MinecraftNativeLibraryArtifa
         .jsonObject["libraries"]
         ?.jsonArray
         .orEmpty()
-        .mapNotNull { library ->
+        .flatMap { library ->
             val item = library.jsonObject
+            val artifactUrl =
+                item["downloads"]
+                    ?.jsonObject
+                    ?.get("artifact")
+                    ?.jsonObject
+                    ?.get("url")
+                    ?.jsonPrimitive
+                    ?.content
+            val nativeFromArtifact =
+                item["name"]
+                    ?.jsonPrimitive
+                    ?.content
+                    ?.nativeClassifier()
+                    ?.takeIf { classifier -> item.libraryRulesAllowCurrentPlatform() && classifier.matchesCurrentNativeArtifact() }
+                    ?.let { artifactUrl }
+
             val classifier =
                 item["natives"]
                     ?.jsonObject
                     ?.get(currentNativeClassifierKey())
                     ?.jsonPrimitive
                     ?.content
-                    ?: return@mapNotNull null
-            item["downloads"]
+            val nativeFromLegacy =
+                classifier?.let {
+                    item["downloads"]
+                        ?.jsonObject
+                        ?.get("classifiers")
+                        ?.jsonObject
+                        ?.get(it)
+                        ?.jsonObject
+                        ?.get("url")
+                        ?.jsonPrimitive
+                        ?.content
+                }
+            listOfNotNull(nativeFromArtifact, nativeFromLegacy).map(::MinecraftNativeLibraryArtifact)
+        }
+
+private fun JsonObject.libraryRulesAllowCurrentPlatform(): Boolean {
+    val rules = this["rules"]?.jsonArray ?: return true
+    var allowed = false
+    for (ruleElement in rules) {
+        val rule = ruleElement.jsonObject
+        val osName =
+            rule["os"]
                 ?.jsonObject
-                ?.get("classifiers")
-                ?.jsonObject
-                ?.get(classifier)
-                ?.jsonObject
-                ?.get("url")
+                ?.get("name")
                 ?.jsonPrimitive
                 ?.content
-                ?.let(::MinecraftNativeLibraryArtifact)
-        }
+        if (osName != null && osName != currentMinecraftOsName()) continue
+        allowed = rule["action"]?.jsonPrimitive?.content == "allow"
+    }
+    return allowed
+}
+
+private fun currentMinecraftOsName(): String {
+    val os = System.getProperty("os.name").lowercase()
+    return when {
+        "win" in os -> "windows"
+        "mac" in os || "darwin" in os -> "osx"
+        else -> "linux"
+    }
+}
+
+private fun String.nativeClassifier(): String? = split(':').getOrNull(3)?.takeIf { classifier -> classifier.startsWith("natives-") }
+
+private fun String.matchesCurrentNativeArtifact(): Boolean {
+    val os = System.getProperty("os.name").lowercase()
+    val arch = System.getProperty("os.arch").lowercase()
+    val arm64 = arch == "aarch64" || arch == "arm64"
+    return when {
+        "win" in os && arm64 -> this == "natives-windows-arm64"
+        "win" in os -> this == "natives-windows" || this == "natives-windows-x86"
+        ("mac" in os || "darwin" in os) && arm64 -> this == "natives-macos-arm64" || this == "natives-macos-patch"
+        "mac" in os || "darwin" in os -> this == "natives-macos" || this == "natives-macos-patch"
+        else -> this == "natives-linux"
+    }
+}
 
 private fun currentNativeClassifierKey(): String {
     val os = System.getProperty("os.name").lowercase()

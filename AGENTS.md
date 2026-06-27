@@ -151,6 +151,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 37. scenario shortcut action guard.
 38. combat miss retry.
 39. Fabric library replacement.
+40. rule-selected native libraries.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -286,6 +287,12 @@ Maven group and artifact. It must affect cache preparation and launch
 classpath construction only, must preserve non-duplicate Minecraft libraries,
 and must not encode one Minecraft version, one Fabric loader version, or any
 public gameplay behavior into daemon logic.
+Phase 40 keeps cache preparation compatible with newer Minecraft metadata that
+publishes platform-native libraries as rule-selected artifact libraries. It
+must honor Mojang library rules, keep native artifacts out of the Java
+classpath, extract selected natives into native directories, and must not
+hard-code one operating system, architecture, Minecraft version, or launcher
+classpath.
 
 ## Acceptance Scenarios Are Not Product APIs
 
