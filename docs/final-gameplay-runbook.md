@@ -29,6 +29,15 @@ Craftless-controlled Fabric client, invokes discovered graph-backed operations
 through `POST /clients/{id}:run`, captures `/clients/{id}/events:stream`, and
 keeps the client alive for a bounded human play window.
 
+The outer local-server action timeout is separate from the Fabric action
+timeout. `CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS` controls Fabric API requests
+and the public-agent request budget. `CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS`
+controls the outer server fixture process and must cover client launch,
+public-agent execution, the full human hold window, and shutdown. The
+`fabricFinalGameplay` task computes a large enough default; only override it
+with `CRAFTLESS_LOCAL_SERVER_SMOKE_ACTION_TIMEOUT_MS` when a longer held session
+is needed.
+
 The old provisioned-item smoke is diagnostic only. It must not be used as final
 completion evidence. The final run must start with empty or ordinary survival
 inventory and obtain equipment through normal gameplay.

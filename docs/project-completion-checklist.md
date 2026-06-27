@@ -236,7 +236,10 @@ Verification:
   final harness now writes `final-gameplay-ready.json` and can run
   `CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON` with live daemon/client/server
   context before the hold window; the opt-in macOS final task defaults this to
-  a concise `say` prompt.
+  a concise `say` prompt. The 2026-06-27 held run also exposed that the outer
+  server action timeout must cover public-agent runtime plus the full human hold
+  window; the final task now separates the Fabric action timeout from the
+  computed outer fixture timeout.
 - [ ] Robin joins or observes the server session after the harness ready prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.

@@ -387,6 +387,7 @@ data class FabricClientSmokeController(
         private const val REQUIRE_EQUIP_ITEM = "CRAFTLESS_FABRIC_SMOKE_REQUIRE_EQUIP_ITEM"
         private const val CONNECT_TIMEOUT = "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS"
         private const val ACTION_TIMEOUT = "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS"
+        private const val FABRIC_ACTION_TIMEOUT = "CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS"
         private const val STARTUP_SETTLE = "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS"
         private const val HOLD_AFTER_ACTIONS = "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS"
         private const val ARTIFACTS_DIR = "CRAFTLESS_SMOKE_ARTIFACTS_DIR"
@@ -396,8 +397,14 @@ data class FabricClientSmokeController(
         private const val SMOKE_PROFILE = "CraftlessSmoke"
         private const val MINECRAFT_VERSION = "1.21.6"
 
-        fun fromEnvironment(env: Map<String, String> = System.getenv()): FabricClientSmokeController =
-            FabricClientSmokeController(
+        fun fromEnvironment(env: Map<String, String> = System.getenv()): FabricClientSmokeController {
+            val actionTimeoutName =
+                if (!env[FABRIC_ACTION_TIMEOUT].isNullOrBlank()) {
+                    FABRIC_ACTION_TIMEOUT
+                } else {
+                    ACTION_TIMEOUT
+                }
+            return FabricClientSmokeController(
                 enabled = env.isEnabled(ENABLED),
                 target =
                     ConnectionTarget(
@@ -410,7 +417,7 @@ data class FabricClientSmokeController(
                 equipItemName = env[EQUIP_ITEM]?.takeIf { it.isNotBlank() } ?: "Iron Sword",
                 requireEquipItem = env.isEnabled(REQUIRE_EQUIP_ITEM),
                 connectTimeout = (env[CONNECT_TIMEOUT]?.toLongStrict(CONNECT_TIMEOUT) ?: 30_000).milliseconds,
-                actionTimeout = (env[ACTION_TIMEOUT]?.toLongStrict(ACTION_TIMEOUT) ?: 30_000).milliseconds,
+                actionTimeout = (env[actionTimeoutName]?.toLongStrict(actionTimeoutName) ?: 30_000).milliseconds,
                 startupSettleDelay = (env[STARTUP_SETTLE]?.toLongStrict(STARTUP_SETTLE) ?: 0).milliseconds,
                 holdAfterActions = (env[HOLD_AFTER_ACTIONS]?.toLongStrict(HOLD_AFTER_ACTIONS) ?: 0).milliseconds,
                 artifactsDir = env[ARTIFACTS_DIR]?.takeIf { it.isNotBlank() }?.let(Path::of),
@@ -425,6 +432,7 @@ data class FabricClientSmokeController(
                         ?.let { smokeJson.decodeFromString<List<String>>(it) }
                         ?: emptyList(),
             )
+        }
 
         private fun Map<String, String>.isEnabled(name: String): Boolean = this[name] == "1" || this[name].equals("true", ignoreCase = true)
 

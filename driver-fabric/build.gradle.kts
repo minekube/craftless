@@ -67,6 +67,22 @@ fun jsonString(value: String): String =
 
 fun jsonArray(values: List<String>): String = values.joinToString(prefix = "[", postfix = "]") { jsonString(it) }
 
+fun envLong(name: String): Long? = System.getenv(name)?.toLongOrNull()
+
+fun finalGameplayFabricActionTimeout(): String =
+    (
+        envLong("CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS")
+            ?: envLong("CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS")
+            ?: 720_000L
+    ).toString()
+
+fun finalGameplayOuterActionTimeout(): String {
+    val holdMillis = envLong("CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS") ?: 600_000L
+    val fabricActionMillis = finalGameplayFabricActionTimeout().toLong()
+    val requestedOuter = envLong("CRAFTLESS_LOCAL_SERVER_SMOKE_ACTION_TIMEOUT_MS")
+    return maxOf(requestedOuter ?: 0L, fabricActionMillis + holdMillis + 180_000L, 1_500_000L).toString()
+}
+
 fun laneSuffix(version: String): String =
     version
         .lowercase()
@@ -325,7 +341,11 @@ tasks.register<JavaExec>("fabricFinalGameplay") {
         )
         environment(
             "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS",
-            System.getenv("CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS") ?: "720000",
+            finalGameplayOuterActionTimeout(),
+        )
+        environment(
+            "CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS",
+            finalGameplayFabricActionTimeout(),
         )
         environment(
             "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS",

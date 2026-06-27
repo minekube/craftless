@@ -382,12 +382,30 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `fabric final gameplay action timeout exceeds human hold window`() {
+    fun `fabric final gameplay outer timeout covers public agent runtime and human hold window`() {
         val buildScript = Files.readString(repositoryRoot().resolve("driver-fabric/build.gradle.kts"))
 
         assertTrue(buildScript.contains("\"CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS\""))
-        assertTrue(buildScript.contains("?: \"720000\""))
+        assertTrue(buildScript.contains("\"CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS\""))
+        assertTrue(buildScript.contains("\"CRAFTLESS_LOCAL_SERVER_SMOKE_ACTION_TIMEOUT_MS\""))
+        assertTrue(buildScript.contains("fabricActionMillis + holdMillis + 180_000L"))
+        assertTrue(buildScript.contains("1_500_000L"))
+        assertTrue(buildScript.contains("720_000L"))
         assertTrue(buildScript.contains("?: \"600000\""))
+    }
+
+    @Test
+    fun `fabric smoke controller prefers fabric action timeout over outer server timeout`() {
+        val controller =
+            FabricClientSmokeController.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
+                    "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS" to "1500000",
+                    "CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS" to "720000",
+                ),
+            )
+
+        assertEquals(720_000.milliseconds, controller.actionTimeout)
     }
 
     @Test
