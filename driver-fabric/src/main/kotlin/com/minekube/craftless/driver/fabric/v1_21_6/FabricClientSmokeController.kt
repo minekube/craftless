@@ -56,11 +56,13 @@ data class FabricClientSmokeController(
     val artifactsDir: Path? = null,
     val publicAgentCommand: List<String> = emptyList(),
     val readyNotificationCommand: List<String> = emptyList(),
+    val readyNotificationReminder: Duration = 0.milliseconds,
     val confirmationChatContains: String? = null,
 ) {
     init {
         require(!startupSettleDelay.isNegative()) { "fabric smoke startup settle delay must not be negative" }
         require(!holdAfterActions.isNegative()) { "fabric smoke hold after actions delay must not be negative" }
+        require(!readyNotificationReminder.isNegative()) { "fabric smoke ready reminder delay must not be negative" }
         require(actionTimeout.isPositive()) { "fabric smoke action timeout must be positive" }
         require(publicAgentCommand.none { it.isBlank() }) { "fabric smoke public agent command entries must not be blank" }
         require(readyNotificationCommand.none { it.isBlank() }) { "fabric smoke ready notification command entries must not be blank" }
@@ -380,16 +382,25 @@ data class FabricClientSmokeController(
     ) {
         runReadyNotificationCommand(baseUrl)
         val phrase = confirmationChatContains?.takeIf { it.isNotBlank() }
-        if (phrase == null) {
+        if (phrase == null && !readyNotificationReminder.isPositive()) {
             delay(holdAfterActions)
             return
         }
         val pollDelay = pollInterval.takeIf { it.isPositive() } ?: 250.milliseconds
         val deadline = System.nanoTime() + holdAfterActions.inWholeNanoseconds
+        val reminderIntervalNanos = readyNotificationReminder.takeIf { it.isPositive() }?.inWholeNanoseconds
+        var nextReminderAt = reminderIntervalNanos?.let { System.nanoTime() + it }
         while (System.nanoTime() < deadline) {
-            findConfirmationEvidence(phrase)?.let { evidence ->
-                writeArtifact("final-gameplay-confirmation.json", finalGameplayConfirmationArtifact(baseUrl, evidence))
-                return
+            if (phrase != null) {
+                findConfirmationEvidence(phrase)?.let { evidence ->
+                    writeArtifact("final-gameplay-confirmation.json", finalGameplayConfirmationArtifact(baseUrl, evidence))
+                    return
+                }
+            }
+            val now = System.nanoTime()
+            if (nextReminderAt != null && now >= nextReminderAt) {
+                runReadyNotificationCommand(baseUrl)
+                nextReminderAt = now + requireNotNull(reminderIntervalNanos)
             }
             delay(pollDelay)
         }
@@ -463,6 +474,7 @@ data class FabricClientSmokeController(
         private const val ARTIFACTS_DIR = "CRAFTLESS_SMOKE_ARTIFACTS_DIR"
         private const val PUBLIC_AGENT_COMMAND_JSON = "CRAFTLESS_PUBLIC_AGENT_COMMAND_JSON"
         private const val READY_COMMAND_JSON = "CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON"
+        private const val READY_REMINDER = "CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS"
         private const val CONFIRM_CHAT_CONTAINS = "CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS"
         private const val SMOKE_CLIENT_ID = "fabric-smoke"
         private const val SMOKE_PROFILE = "CraftlessSmoke"
@@ -502,6 +514,7 @@ data class FabricClientSmokeController(
                         ?.takeIf { it.isNotBlank() }
                         ?.let { smokeJson.decodeFromString<List<String>>(it) }
                         ?: emptyList(),
+                readyNotificationReminder = (env[READY_REMINDER]?.toLongStrict(READY_REMINDER) ?: 0).milliseconds,
                 confirmationChatContains = env[CONFIRM_CHAT_CONTAINS]?.takeIf { it.isNotBlank() },
             )
         }

@@ -252,8 +252,11 @@ Verification:
   join or confirm in Minecraft chat before the hold ended. The final harness now
   imports server evidence while the server is still running, watches
   `server-evidence.jsonl` for the configured Robin confirmation phrase during
-  the hold window, and writes `final-gameplay-confirmation.json` when the chat
-  confirmation is observed.
+  the hold window, writes `final-gameplay-confirmation.json` when the chat
+  confirmation is observed, and the opt-in final task repeats the ready
+  notification every two minutes by default during the confirmation hold. The
+  reminder interval is configurable with
+  `CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS` and can be disabled with `0`.
 - [ ] Robin joins or observes the server session after the harness ready prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.

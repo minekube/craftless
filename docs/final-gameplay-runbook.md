@@ -42,6 +42,10 @@ During the hold window the final harness watches `server-evidence.jsonl` for
 Robin's Minecraft chat confirmation. The default confirmation phrase is
 `goal may be completed`; override it with
 `CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS` when needed.
+The opt-in `fabricFinalGameplay` task repeats the ready notification every
+120000 ms during this hold window so the confirmation prompt is not easy to
+miss. Override the interval with `CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS`, or
+set it to `0` to keep only the first notification.
 
 The old provisioned-item smoke is diagnostic only. It must not be used as final
 completion evidence. The final run must start with empty or ordinary survival
@@ -95,7 +99,8 @@ Required artifacts:
 When the client has joined, the public-agent sequence has finished, and the
 session enters the bounded hold window, the harness writes
 `final-gameplay-ready.json`. On macOS, the opt-in `fabricFinalGameplay` task
-also configures a default `say` prompt:
+also configures a default `say` prompt and repeats it during the hold window
+when `CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS` is positive:
 
 ```text
 Robin, Craftless final gameplay is ready. Join localhost port <server-port> and confirm in Minecraft chat.

@@ -355,6 +355,10 @@ tasks.register<JavaExec>("fabricFinalGameplay") {
             "CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS",
             System.getenv("CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS") ?: "goal may be completed",
         )
+        environment(
+            "CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS",
+            System.getenv("CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS") ?: "120000",
+        )
         val readyCommand = System.getenv("CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON")
         val defaultMacReadyCommand =
             if (System.getProperty("os.name").lowercase().contains("mac")) {
