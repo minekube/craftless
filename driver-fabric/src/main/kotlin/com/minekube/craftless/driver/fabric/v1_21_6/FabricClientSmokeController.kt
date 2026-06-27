@@ -332,6 +332,7 @@ data class FabricClientSmokeController(
                 .redirectErrorStream(true)
                 .redirectOutput(log.toFile())
                 .also { builder ->
+                    builder.environment().removeInheritedSmokeOwnerEnvironment()
                     builder.environment()["CRAFTLESS_PUBLIC_AGENT_BASE_URL"] = baseUrl
                     builder.environment()["CRAFTLESS_PUBLIC_AGENT_CLIENT_ID"] = SMOKE_CLIENT_ID
                     builder.environment()["CRAFTLESS_PUBLIC_AGENT_ARTIFACTS_DIR"] = dir.toString()
@@ -346,7 +347,37 @@ data class FabricClientSmokeController(
         check(process.exitValue() == 0) {
             "public agent command exited with ${process.exitValue()}; log=$log"
         }
+        publicAgentBlockedArtifact()?.let { blocker ->
+            writeArtifact("public-agent-blocked.json", publicAgentBlockedArtifactContent(blocker))
+            error("public agent command reported blocked: $blocker; log=$log")
+        }
     }
+
+    private fun publicAgentBlockedArtifact(): String? {
+        val artifact = artifactsDir?.resolve("public-agent-gameplay-results.jsonl") ?: return null
+        if (!Files.isRegularFile(artifact)) {
+            return null
+        }
+        return Files.readAllLines(artifact).firstNotNullOfOrNull { line ->
+            runCatching {
+                val entry = smokeJson.parseToJsonElement(line).jsonObject
+                if (entry["event"]?.jsonPrimitive?.content != "public-agent-blocked") {
+                    return@runCatching null
+                }
+                entry["blocker"]?.jsonPrimitive?.content ?: "unknown-blocker"
+            }.getOrNull()
+        }
+    }
+
+    private fun publicAgentBlockedArtifactContent(blocker: String): String =
+        smokeJson.encodeToString(
+            mapOf(
+                "event" to "public-agent-blocked",
+                "client-id" to SMOKE_CLIENT_ID,
+                "blocker" to blocker,
+                "artifacts-dir" to (artifactsDir?.toString() ?: ""),
+            ),
+        )
 
     private fun runReadyNotificationCommand(baseUrl: String) {
         writeArtifact("final-gameplay-ready.json", readyNotificationArtifact(baseUrl))
@@ -361,6 +392,7 @@ data class FabricClientSmokeController(
                 .redirectErrorStream(true)
                 .redirectOutput(log.toFile())
                 .also { builder ->
+                    builder.environment().removeInheritedSmokeOwnerEnvironment()
                     builder.environment()["CRAFTLESS_FABRIC_SMOKE_READY_BASE_URL"] = baseUrl
                     builder.environment()["CRAFTLESS_FABRIC_SMOKE_READY_CLIENT_ID"] = SMOKE_CLIENT_ID
                     builder.environment()["CRAFTLESS_FABRIC_SMOKE_READY_SERVER_HOST"] = target.host
@@ -650,6 +682,51 @@ internal fun String.smokeResourceArtifactFromOpenApi(): String =
         smokeJson
             .decodeFromString<OpenApiDocument>(this)
             .resources,
+    )
+
+internal fun MutableMap<String, String>.removeInheritedSmokeOwnerEnvironment() {
+    inheritedSmokeOwnerEnvironmentKeys.forEach(::remove)
+}
+
+private val inheritedSmokeOwnerEnvironmentKeys =
+    setOf(
+        "CRAFTLESS_LOCAL_SERVER_SMOKE",
+        "CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT",
+        "CRAFTLESS_LOCAL_SERVER_SMOKE_ACTION_TIMEOUT_MS",
+        "CRAFTLESS_FABRIC_CLIENT_SMOKE",
+        "CRAFTLESS_FINAL_GAMEPLAY",
+        "CRAFTLESS_SMOKE_MINECRAFT_VERSION",
+        "CRAFTLESS_SMOKE_RUNTIME_LANE_JSON",
+        "CRAFTLESS_SMOKE_RUNTIME_LANE_FILE",
+        "CRAFTLESS_SMOKE_JAVA_EXECUTABLE",
+        "CRAFTLESS_SMOKE_JAVA_SELECTION_JSON",
+        "CRAFTLESS_SMOKE_JAVA_SELECTION_FILE",
+        "CRAFTLESS_SMOKE_SERVER_HOST",
+        "CRAFTLESS_SMOKE_SERVER_PORT",
+        "CRAFTLESS_SMOKE_ARTIFACTS_DIR",
+        "CRAFTLESS_SMOKE_ACTION_COMMAND_JSON",
+        "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS",
+        "CRAFTLESS_SMOKE_EXPECT_PLAYER",
+        "CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE",
+        "CRAFTLESS_SMOKE_EXPECT_DISCONNECT",
+        "CRAFTLESS_SMOKE_PROVISION_ITEM_ID",
+        "CRAFTLESS_SMOKE_PROVISION_ITEM_NAME",
+        "CRAFTLESS_SMOKE_PROVISION_ITEM_COUNT",
+        "CRAFTLESS_SMOKE_READINESS_TIMEOUT_MS",
+        "CRAFTLESS_SMOKE_SHUTDOWN_TIMEOUT_MS",
+        "CRAFTLESS_SMOKE_MIN_HEAP",
+        "CRAFTLESS_SMOKE_MAX_HEAP",
+        "CRAFTLESS_FABRIC_SMOKE_CHAT_MESSAGE",
+        "CRAFTLESS_FABRIC_SMOKE_EQUIP_ITEM",
+        "CRAFTLESS_FABRIC_SMOKE_REQUIRE_EQUIP_ITEM",
+        "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS",
+        "CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS",
+        "CRAFTLESS_FABRIC_SMOKE_PUBLIC_AGENT_COMMAND_TIMEOUT_MS",
+        "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS",
+        "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS",
+        "CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON",
+        "CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS",
+        "CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS",
     )
 
 private fun publicAgentGameplayResults(generatedGameplayResults: List<String>): List<String> =

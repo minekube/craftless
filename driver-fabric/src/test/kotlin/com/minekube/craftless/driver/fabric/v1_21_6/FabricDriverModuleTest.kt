@@ -2882,6 +2882,32 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric smoke child commands do not inherit server owner environment`() {
+        val env =
+            mutableMapOf(
+                "PATH" to "/usr/bin",
+                "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
+                "CRAFTLESS_FINAL_GAMEPLAY" to "1",
+                "CRAFTLESS_LOCAL_SERVER_SMOKE" to "1",
+                "CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT" to "/tmp/craftless-server",
+                "CRAFTLESS_SMOKE_ACTION_COMMAND_JSON" to """["gradle",":driver-fabric:runClient"]""",
+                "CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE" to "hello from Craftless final gameplay",
+                "CRAFTLESS_SMOKE_PROVISION_ITEM_ID" to "minecraft:iron_sword",
+            )
+
+        env.removeInheritedSmokeOwnerEnvironment()
+
+        assertEquals("/usr/bin", env["PATH"])
+        assertFalse("CRAFTLESS_FABRIC_CLIENT_SMOKE" in env)
+        assertFalse("CRAFTLESS_FINAL_GAMEPLAY" in env)
+        assertFalse("CRAFTLESS_LOCAL_SERVER_SMOKE" in env)
+        assertFalse("CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT" in env)
+        assertFalse("CRAFTLESS_SMOKE_ACTION_COMMAND_JSON" in env)
+        assertFalse("CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE" in env)
+        assertFalse("CRAFTLESS_SMOKE_PROVISION_ITEM_ID" in env)
+    }
+
+    @Test
     fun `fabric smoke controller runs process external public agent command with live daemon url`() {
         val gateway = RecordingFabricClientGateway()
         val backend = smokeBackend(gateway)
@@ -2910,6 +2936,37 @@ class FabricDriverModuleTest {
         assertEquals(artifactsDir.toString(), envLines[2])
         assertEquals("120000", envLines[3])
         assertTrue(Files.exists(artifactsDir.resolve("public-agent-command.log")))
+    }
+
+    @Test
+    fun `fabric smoke controller does not enter ready hold when public agent reports blocked`() {
+        val gateway = RecordingFabricClientGateway()
+        val backend = smokeBackend(gateway)
+        val artifactsDir = Files.createTempDirectory("craftless-fabric-public-agent-blocked")
+        val controller =
+            FabricClientSmokeController.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
+                    "CRAFTLESS_SMOKE_SERVER_HOST" to "localhost",
+                    "CRAFTLESS_SMOKE_SERVER_PORT" to "25567",
+                    "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS" to "1000",
+                    "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS" to "0",
+                    "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS" to "1",
+                    "CRAFTLESS_SMOKE_ARTIFACTS_DIR" to artifactsDir.toString(),
+                    "CRAFTLESS_PUBLIC_AGENT_COMMAND_JSON" to
+                        """["/bin/sh","-c","printf '%s\n' '{\"event\":\"public-agent-blocked\",\"clientId\":\"fabric-smoke\",\"blocker\":\"insufficient-public-evidence:navigation.follow.succeeded\"}' >> \"${'$'}CRAFTLESS_PUBLIC_AGENT_ARTIFACTS_DIR/public-agent-gameplay-results.jsonl\""]""",
+                ),
+            )
+        enqueueBasicSmokeQueryResults(gateway)
+
+        assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
+
+        val blockedArtifact = readArtifact(artifactsDir, "public-agent-blocked.json")
+        assertTrue(blockedArtifact.contains("\"event\":\"public-agent-blocked\""))
+        assertTrue(blockedArtifact.contains("insufficient-public-evidence:navigation.follow.succeeded"))
+        Thread.sleep(50)
+        assertFalse(Files.exists(artifactsDir.resolve("final-gameplay-ready.json")))
+        assertFalse(Files.exists(artifactsDir.resolve("final-gameplay-confirmation-timeout.json")))
     }
 
     @Test

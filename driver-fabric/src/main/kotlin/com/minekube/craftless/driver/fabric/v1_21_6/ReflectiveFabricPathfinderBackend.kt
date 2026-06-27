@@ -4,6 +4,7 @@ import com.minekube.craftless.protocol.NavigationGoal
 import com.minekube.craftless.protocol.NavigationProgressEvent
 import com.minekube.craftless.protocol.NavigationTaskState
 import com.minekube.craftless.protocol.NavigationTaskStatus
+import net.minecraft.util.math.BlockPos
 import java.lang.reflect.Method
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -27,9 +28,10 @@ internal class ReflectiveFabricPathfinderBackend(
                 ?: return failedPlan(goal, message = "unsupported-navigation-goal")
         val planId = nextPlanId()
         val taskId = "task:navigation:$planId"
+        val goalFactory = handles.interactionGoalFactory ?: handles.goalFactory
         val goalObject =
             queryOnClient {
-                handles.goalFactory?.invoke(position.x, position.y, position.z)
+                goalFactory?.invoke(position.x, position.y, position.z)
             } ?: return unavailablePlan(goal)
         plans[planId] = ReflectivePathfinderPlan(taskId = taskId, goalObject = goalObject)
         val status =
@@ -209,6 +211,7 @@ internal data class ReflectiveFabricPathfinderHandles(
     val primaryClient: Any?,
     val customGoalProcess: Any?,
     val goalFactory: ((Int, Int, Int) -> Any)?,
+    val interactionGoalFactory: ((Int, Int, Int) -> Any)? = null,
     val startGoal: ((Any, Any) -> Unit)?,
     val stopNavigation: ((Any) -> Unit)?,
     val pathingActive: (() -> Boolean)? = null,
@@ -238,6 +241,12 @@ internal class ClassLoaderReflectiveFabricPathfinderProbe(
                 ?.firstOrNull { constructor ->
                     constructor.parameterTypes.toList() == listOf(Integer.TYPE, Integer.TYPE, Integer.TYPE)
                 }
+        val interactionGoalConstructor =
+            classOrNull(PATHFINDER_INTERACTION_BLOCK_GOAL_CLASS)
+                ?.constructors
+                ?.firstOrNull { constructor ->
+                    constructor.parameterTypes.toList() == listOf(BlockPos::class.java)
+                }
         val startMethod = customGoalProcess?.methodOrNull("setGoalAndPath", parameterCount = 1)
         val stopMethod = pathingBehavior?.methodOrNull("cancelEverything", parameterCount = 0)
         val pathingMethod = pathingBehavior?.methodOrNull("isPathing", parameterCount = 0)
@@ -248,6 +257,10 @@ internal class ClassLoaderReflectiveFabricPathfinderProbe(
             goalFactory =
                 goalConstructor?.let { constructor ->
                     { x: Int, y: Int, z: Int -> constructor.newInstance(x, y, z) }
+                },
+            interactionGoalFactory =
+                interactionGoalConstructor?.let { constructor ->
+                    { x: Int, y: Int, z: Int -> constructor.newInstance(BlockPos(x, y, z)) }
                 },
             startGoal =
                 startMethod?.let { method ->
@@ -308,4 +321,5 @@ private const val PATHING_COMPLETION_TIMEOUT_MS = 45_000L
 
 private const val PATHFINDER_API_CLASS = "baritone.api.BaritoneAPI"
 private const val PATHFINDER_BLOCK_GOAL_CLASS = "baritone.api.pathing.goals.GoalBlock"
+private const val PATHFINDER_INTERACTION_BLOCK_GOAL_CLASS = "baritone.api.pathing.goals.GoalGetToBlock"
 private const val PATHING_POLL_INTERVAL_MS = 50L

@@ -52,6 +52,38 @@ class ReflectiveFabricPathfinderBackendTest {
     }
 
     @Test
+    fun `reflection backend prefers interaction reachable block goal when available`() {
+        val calls = mutableListOf<String>()
+        val probe =
+            RecordingPathfinderProbe(
+                calls = calls,
+                interactionGoalFactory = { x, y, z ->
+                    "get-to:$x:$y:$z".also { calls += it }
+                },
+            )
+        val backend =
+            ReflectiveFabricPathfinderBackend(
+                probe = probe,
+                nextPlanId = { "navigation.plan.reflective.0001" },
+            )
+        val goal =
+            NavigationGoal(
+                kind = "block",
+                position = mapOf("x" to 10.0, "y" to 65.0, "z" to -4.0),
+            )
+
+        val plan = backend.plan(goal)
+        val follow = backend.follow(plan.id)
+        val publicEvidence = (listOf(plan.status, follow) + backend.events()).joinToString()
+
+        assertEquals(NavigationTaskState.SUCCEEDED, follow.state)
+        assertEquals(listOf("get-to:10:65:-4", "start:get-to:10:65:-4"), calls)
+        assertFalse(publicEvidence.contains("baritone", ignoreCase = true))
+        assertFalse(publicEvidence.contains("swarmbot", ignoreCase = true))
+        assertFalse(publicEvidence.contains("net.minecraft", ignoreCase = true))
+    }
+
+    @Test
     fun `reflection backend fails follow when path completion cannot be observed`() {
         val backend =
             ReflectiveFabricPathfinderBackend(
@@ -119,6 +151,7 @@ private data class RecordingPathfinderProbe(
     val goalFactory: ((Int, Int, Int) -> Any)? = { x, y, z ->
         "goal:$x:$y:$z".also { calls += it }
     },
+    val interactionGoalFactory: ((Int, Int, Int) -> Any)? = null,
     val startGoal: ((Any, Any) -> Unit)? = { _, goal ->
         calls += "start:$goal"
     },
@@ -133,6 +166,7 @@ private data class RecordingPathfinderProbe(
             primaryClient = primaryClient,
             customGoalProcess = customGoalProcess,
             goalFactory = goalFactory,
+            interactionGoalFactory = interactionGoalFactory,
             startGoal = startGoal,
             stopNavigation = stopNavigation,
             pathingActive = pathingActive,

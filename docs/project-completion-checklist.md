@@ -1770,11 +1770,15 @@ Verification:
   `inventory.query` showed `Raw Mutton`, and the Gradle task exited
   successfully after the configured hold without Robin's confirmation chat.
 - [x] A later 2026-06-27 held rerun again reached the ready window and exited
-  with `final-gameplay-confirmation-timeout.json` instead of a process timeout.
-  Evidence: `final-gameplay-ready.json` for `127.0.0.1:53413`, generated
-  actions earned a `Wooden Sword`, `entity.attack` killed a Pig, final
-  `inventory.query` showed `Raw Porkchop`, and no
-  `final-gameplay-confirmation.json` was written before the hold expired.
+  with `final-gameplay-confirmation-timeout.json` instead of a process timeout,
+  but the Gradle task failed afterward because `server-evidence.jsonl` had
+  been cleared by a nested child process and no longer contained the expected
+  Craftless chat evidence. Evidence: `final-gameplay-ready.json` for
+  `127.0.0.1:53413`, generated actions earned a `Wooden Sword`,
+  `entity.attack` killed a Pig, final `inventory.query` showed `Raw Porkchop`,
+  and no `final-gameplay-confirmation.json` was written before the hold
+  expired. Phase 57 corrects the child environment isolation bug exposed by
+  this run.
 - [x] This phase changes final-gameplay timeout/evidence plumbing only and adds
   no public gameplay action, generated route family, CLI gameplay catalog,
   Fabric descriptor/binding pair, scenario shortcut, new compiled lane, public
@@ -1783,6 +1787,98 @@ Verification:
 Verification:
 
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric final gameplay outer timeout covers public agent runtime and human hold window*' --tests '*FabricDriverModuleTest.fabric smoke controller parses public agent process timeout separately from outer smoke timeout*'`
+- `git diff --check`
+- `mise run lint`
+- `mise run architecture-check`
+- `mise run ci`
+- `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS=120000 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=1800000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
+
+## Phase 57: Final Gameplay Child Environment Isolation
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-57-final-gameplay-child-environment-isolation-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-57-final-gameplay-child-environment-isolation-plan.md`.
+- [x] Fabric smoke child command environments strip inherited local-server and
+  final-gameplay owner variables before adding public-agent or ready-specific
+  variables.
+- [x] Public-agent and ready-notification child commands preserve their
+  explicit child-specific environment variables while avoiding inherited server
+  ownership flags.
+- [x] Held final gameplay has been rerun after this correction and no longer
+  fails because `server-evidence.jsonl` is cleared after join/chat evidence was
+  recorded. Current 2026-06-27 evidence kept `server-evidence.jsonl` with
+  `Player543` join and `hello from Craftless final gameplay` chat. The same run
+  exposed a separate blocked-outcome propagation bug tracked in Phase 58.
+- [x] This phase changes final-gameplay subprocess environment isolation only
+  and adds no public gameplay action, generated route family, CLI gameplay
+  catalog, Fabric descriptor/binding pair, scenario shortcut, new compiled
+  lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric smoke child commands do not inherit server owner environment*' --tests '*FabricDriverModuleTest.fabric smoke controller runs process external public agent command with live daemon url*' --tests '*FabricDriverModuleTest.fabric smoke controller runs ready notification command with live session context*' --tests '*FabricDriverModuleTest.fabric smoke controller writes confirmation timeout artifact when Robin chat is not observed*'`
+- `git diff --check`
+- `mise run lint`
+- `mise run architecture-check`
+- `mise run ci`
+- `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS=120000 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=1800000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
+
+## Phase 58: Public Agent Blocked Outcome Propagation
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-58-public-agent-blocked-outcome-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-58-public-agent-blocked-outcome-plan.md`.
+- [x] A blocked public-agent helper artifact makes the Fabric final-gameplay
+  controller fail before writing `final-gameplay-ready.json`.
+- [x] The existing successful ready-notification and Robin confirmation paths
+  remain covered by focused regression tests.
+- [x] Local gates have been rerun after the blocked-outcome propagation change.
+- [x] This phase changes final-gameplay outcome propagation only and adds no
+  public gameplay action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric smoke controller does not enter ready hold when public agent reports blocked*' --tests '*FabricDriverModuleTest.fabric smoke controller runs ready notification command with live session context*' --tests '*FabricDriverModuleTest.fabric smoke controller stops final session after configured chat confirmation evidence*'`
+- `git diff --check`
+- `mise run lint`
+- `mise run architecture-check`
+- `mise run ci`
+
+## Phase 59: Pathfinder Interaction Goal
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-59-pathfinder-interaction-goal-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-59-pathfinder-interaction-goal-plan.md`.
+- [x] The private Fabric pathfinder adapter prefers an interaction-reachable
+  block goal when the runtime pathfinder exposes one.
+- [x] The private Fabric pathfinder adapter preserves exact block goal fallback
+  when no interaction-reachable goal is available.
+- [x] Public `navigation.plan`, `navigation.follow`, OpenAPI, events, and
+  artifacts remain Craftless-owned and do not expose backend class names.
+- [x] Held final gameplay has been rerun after this correction and either
+  advances beyond the Phase 57/58 material navigation blocker or records a
+  newer precise generic blocker without server evidence being cleared or a
+  ready artifact being written for blocked gameplay. Current 2026-06-27
+  evidence reached `final-gameplay-ready.json` for `127.0.0.1:59029`, kept
+  `server-evidence.jsonl` join/chat/disconnect evidence for `Player988`, and
+  public-agent generated actions equipped a `Wooden Sword`, killed a Pig, and
+  picked up `Raw Porkchop`; the run then wrote
+  `final-gameplay-confirmation-timeout.json` because Robin's confirmation chat
+  was not observed.
+- [x] This phase changes private pathfinder adapter goal selection only and adds
+  no public gameplay action, generated route family, CLI gameplay catalog,
+  Fabric descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test --tests '*ReflectiveFabricPathfinderBackendTest.reflection backend prefers interaction reachable block goal when available*'`
+- `mise exec -- gradle :driver-fabric:test --tests '*ReflectiveFabricPathfinderBackendTest*'`
 - `git diff --check`
 - `mise run lint`
 - `mise run architecture-check`

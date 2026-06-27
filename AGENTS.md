@@ -168,6 +168,9 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 54. public-agent timeout boundary.
 55. public-agent pickup convergence.
 56. final gameplay timeout budget.
+57. final gameplay child environment isolation.
+58. public-agent blocked outcome propagation.
+59. pathfinder interaction goal.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -402,6 +405,30 @@ human confirmation hold, and outer process timeout distinct. It must not add
 gameplay shortcuts, public gameplay actions, generated route families, CLI
 gameplay catalogs, Fabric descriptor/binding pairs, scenario shortcuts, new
 compiled lanes, public version-specific APIs, or new Minecraft support claims.
+Phase 57 isolates Fabric smoke child command environments so public-agent and
+ready-notification subprocesses cannot inherit local-server/final-gameplay
+owner flags and accidentally start another server or clear shared evidence
+artifacts. It must preserve explicit child-specific environment variables such
+as public-agent base URL, client id, artifact directory, request timeout, and
+ready notification context. It must not add gameplay shortcuts, public gameplay
+actions, generated route families, CLI gameplay catalogs, Fabric
+descriptor/binding pairs, scenario shortcuts, new compiled lanes, public
+version-specific APIs, or new Minecraft support claims.
+Phase 58 makes a process-external public-agent `BLOCKED` outcome fail the
+Fabric final-gameplay controller before it writes `final-gameplay-ready.json`
+or enters the Robin confirmation hold. It must parse already-written
+public-agent artifact evidence, preserve the successful ready path, and must
+not add gameplay shortcuts, public gameplay actions, generated route families,
+CLI gameplay catalogs, Fabric descriptor/binding pairs, scenario shortcuts, new
+compiled lanes, public version-specific APIs, or new Minecraft support claims.
+Phase 59 makes the private Fabric pathfinder adapter prefer an
+interaction-reachable block goal when a runtime pathfinder exposes one. It must
+keep the public action surface as generic `navigation.plan` and
+`navigation.follow`, keep backend names private, preserve exact-block fallback,
+and must not add gameplay shortcuts, public gameplay actions, generated route
+families, CLI gameplay catalogs, Fabric descriptor/binding pairs, scenario
+shortcuts, new compiled lanes, public version-specific APIs, or new Minecraft
+support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 
