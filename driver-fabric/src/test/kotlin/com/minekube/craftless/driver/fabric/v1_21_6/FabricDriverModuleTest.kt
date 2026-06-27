@@ -446,7 +446,7 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `fabric final gameplay plan gates completion on graph streams artifacts and robin chat`() {
+    fun `fabric final gameplay plan gates completion on graph streams and Codex evidence`() {
         val plan = FabricFinalGameplayPlan.default()
 
         assertEquals("CRAFTLESS_FINAL_GAMEPLAY", plan.environmentGate)
@@ -458,8 +458,8 @@ class FabricDriverModuleTest {
         assertTrue(plan.steps.any { it.kind == FabricFinalGameplayStepKind.FETCH_GRAPH_OPENAPI })
         assertTrue(plan.steps.any { it.kind == FabricFinalGameplayStepKind.SUBSCRIBE_SSE })
         assertTrue(plan.steps.any { it.kind == FabricFinalGameplayStepKind.INVOKE_DISCOVERED_GAMEPLAY })
-        assertTrue(plan.steps.any { it.kind == FabricFinalGameplayStepKind.INVITE_ROBIN })
-        assertTrue(plan.steps.any { it.kind == FabricFinalGameplayStepKind.WAIT_FOR_ROBIN_CHAT_CONFIRMATION })
+        assertTrue(plan.steps.any { it.description.contains("ready evidence", ignoreCase = true) })
+        assertTrue(plan.steps.any { it.description.contains("optional", ignoreCase = true) })
         assertTrue(plan.runtimePreparations.any { it.contains("CRAFTLESS_ENABLE_PATHFINDER_BACKEND", ignoreCase = true) })
         assertTrue(plan.runtimePreparations.any { it.contains("driver-fabric/build/pathfinder", ignoreCase = true) })
         assertTrue(plan.runtimePreparations.any { it.contains("SHA-256", ignoreCase = true) })
@@ -477,7 +477,9 @@ class FabricDriverModuleTest {
         assertTrue(plan.artifacts.contains("final-gameplay-ready.json"))
         assertFalse(plan.artifacts.contains("survival-task-results.jsonl"))
         assertTrue(plan.artifacts.contains("server-evidence.jsonl"))
-        assertTrue(plan.completionGates.any { it.contains("Robin", ignoreCase = true) && it.contains("Minecraft chat", ignoreCase = true) })
+        assertTrue(plan.completionGates.none { it.contains("Robin", ignoreCase = true) })
+        assertTrue(plan.completionGates.none { it.contains("Minecraft chat", ignoreCase = true) })
+        assertTrue(plan.completionGates.any { it.contains("Codex", ignoreCase = true) && it.contains("evidence", ignoreCase = true) })
         assertTrue(plan.completionGates.any { it.contains("SSE", ignoreCase = true) })
         assertTrue(plan.completionGates.any { it.contains("no server-side item provisioning", ignoreCase = true) })
         assertFalse(plan.completionGates.any { it.contains("provisioned", ignoreCase = true) && !it.contains("no", ignoreCase = true) })
@@ -486,7 +488,17 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `fabric final gameplay outer timeout covers public agent runtime and human hold window`() {
+    fun `fabric final gameplay defaults to Codex evidence gate without chat confirmation phrase`() {
+        val buildScript = Files.readString(repositoryRoot().resolve("driver-fabric/build.gradle.kts"))
+
+        assertTrue(buildScript.contains("\"CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS\""))
+        assertFalse(buildScript.contains("?: \"goal may be completed\""))
+        assertFalse(buildScript.contains("confirm in Minecraft chat"))
+        assertFalse(buildScript.contains("say \\\"Robin, Craftless final gameplay is ready"))
+    }
+
+    @Test
+    fun `fabric final gameplay outer timeout covers public agent runtime and optional hold window`() {
         val buildScript = Files.readString(repositoryRoot().resolve("driver-fabric/build.gradle.kts"))
 
         assertTrue(buildScript.contains("\"CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS\""))
@@ -2865,6 +2877,8 @@ class FabricDriverModuleTest {
 
         assertEquals(60_000.milliseconds, controller.holdAfterActions)
         assertEquals(720_000.milliseconds, controller.actionTimeout)
+        assertEquals(null, controller.confirmationChatContains)
+        assertEquals(0.milliseconds, controller.readyNotificationReminder)
         assertFalse(controller.toString().contains("runSurvivalTask"))
     }
 

@@ -108,6 +108,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-66-representative-older-release-lane-evidence-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-66-representative-older-release-lane-evidence-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-67-final-gameplay-codex-evidence-default-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-67-final-gameplay-codex-evidence-default-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -2080,6 +2084,30 @@ Verification:
 
 - `mise exec -- bun -e 'const manifest = await (await fetch("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json")).json(); const v = manifest.versions.find((version) => version.id === "1.20.6"); if (!v) throw new Error("missing 1.20.6"); const meta = await (await fetch(v.url)).json(); console.log(JSON.stringify({ id: v.id, type: v.type, releaseTime: v.releaseTime, time: v.time, sha1: v.sha1, javaVersion: meta.javaVersion }, null, 2));'`
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricCompatibilityMatrixTest*'`
+
+## Phase 67: Final Gameplay Codex Evidence Default
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-67-final-gameplay-codex-evidence-default-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-67-final-gameplay-codex-evidence-default-plan.md`.
+- [x] `FabricFinalGameplayPlan.default()` gates completion on generated
+  OpenAPI/actions/resources, SSE, no server-side item provisioning, no static
+  fallback, and Codex evidence instead of Robin or Minecraft chat
+  confirmation.
+- [x] `fabricFinalGameplay` no longer injects default
+  `CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS`,
+  `CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS`, or a macOS `say` prompt.
+- [x] Explicit diagnostic confirmation remains available when
+  `CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS` is set by the operator.
+- [x] This phase changes final-gameplay defaults only and adds no public
+  gameplay action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric final gameplay plan gates completion on graph streams and Codex evidence*' --tests '*FabricDriverModuleTest.fabric final gameplay defaults to Codex evidence gate without chat confirmation phrase*' --tests '*FabricDriverModuleTest.fabric smoke controller can hold the final gameplay session open*'`
 
 ## Final Completion Gate
 

@@ -42,12 +42,12 @@ data class FabricFinalGameplayPlan(
                             "Invoke available discovered actions through the generic client run endpoint",
                         ),
                         FabricFinalGameplayStep(
-                            FabricFinalGameplayStepKind.INVITE_ROBIN,
-                            "Emit final-gameplay-ready evidence and use the configured ready notification to ask Robin to join or observe the server session",
+                            FabricFinalGameplayStepKind.WRITE_READY_EVIDENCE,
+                            "Emit final-gameplay-ready evidence for optional human co-play or external observation",
                         ),
                         FabricFinalGameplayStep(
-                            FabricFinalGameplayStepKind.WAIT_FOR_ROBIN_CHAT_CONFIRMATION,
-                            "Keep the session open until Robin writes in Minecraft chat that the goal may be completed",
+                            FabricFinalGameplayStepKind.HOLD_OPTIONAL_COPLAY_SESSION,
+                            "Keep the session open for optional co-play without requiring human confirmation",
                         ),
                     ),
                 runtimePreparations =
@@ -79,7 +79,7 @@ data class FabricFinalGameplayPlan(
                         "SSE evidence is captured from /clients/{id}/events:stream.",
                         "Final completion uses no server-side item provisioning.",
                         "No static fallback bypass is used for gameplay breadth.",
-                        "Robin writes in Minecraft chat that the goal may be completed.",
+                        "Codex evidence proves the public API/CLI gameplay gate without requiring human confirmation.",
                     ),
             )
     }
@@ -96,6 +96,6 @@ enum class FabricFinalGameplayStepKind {
     FETCH_GRAPH_OPENAPI,
     SUBSCRIBE_SSE,
     INVOKE_DISCOVERED_GAMEPLAY,
-    INVITE_ROBIN,
-    WAIT_FOR_ROBIN_CHAT_CONFIRMATION,
+    WRITE_READY_EVIDENCE,
+    HOLD_OPTIONAL_COPLAY_SESSION,
 }

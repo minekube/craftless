@@ -388,36 +388,21 @@ tasks.register<JavaExec>("fabricFinalGameplay") {
             "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS",
             System.getenv("CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS") ?: "600000",
         )
-        environment(
-            "CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS",
-            System.getenv("CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS") ?: "goal may be completed",
-        )
-        environment(
-            "CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS",
-            System.getenv("CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS") ?: "120000",
-        )
+        System.getenv("CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS")?.takeIf { it.isNotBlank() }?.let { phrase ->
+            environment("CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS", phrase)
+        }
+        System.getenv("CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS")?.takeIf { it.isNotBlank() }?.let { reminderMs ->
+            environment("CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS", reminderMs)
+        }
         environment(
             "CRAFTLESS_FABRIC_SMOKE_ACTIVITY_EXTENDS_HOLD_MS",
             System.getenv("CRAFTLESS_FABRIC_SMOKE_ACTIVITY_EXTENDS_HOLD_MS") ?: "600000",
         )
         val readyCommand = System.getenv("CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON")
-        val defaultMacReadyCommand =
-            if (System.getProperty("os.name").lowercase().contains("mac")) {
-                jsonArray(
-                    listOf(
-                        "/bin/sh",
-                        "-c",
-                        "say \"Robin, Craftless final gameplay is ready. Join localhost port " +
-                            "\$CRAFTLESS_FABRIC_SMOKE_READY_SERVER_PORT and confirm in Minecraft chat.\"",
-                    ),
-                )
-            } else {
-                null
-            }
-        if (!readyCommand.isNullOrBlank() || defaultMacReadyCommand != null) {
+        if (!readyCommand.isNullOrBlank()) {
             environment(
                 "CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON",
-                readyCommand?.takeIf { it.isNotBlank() } ?: defaultMacReadyCommand.orEmpty(),
+                readyCommand,
             )
         }
     }

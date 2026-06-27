@@ -177,6 +177,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 64. public-agent live co-play guidance.
 65. Codex evidence completion gate.
 66. representative older release lane evidence.
+67. final gameplay Codex evidence default.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -491,6 +492,14 @@ as broad version support, must not add a new compiled lane, and must not add
 public gameplay actions, generated route families, CLI gameplay catalogs,
 Fabric descriptor/binding pairs, scenario shortcuts, or public version-specific
 APIs.
+Phase 67 makes Codex-verifiable evidence the default final gameplay behavior
+in code, not only docs. The final gameplay Gradle task must not inject a
+default human confirmation phrase, reminder loop, or OS voice prompt. Chat
+confirmation may remain only as an explicit opt-in diagnostic path through
+environment variables. This phase must not add public gameplay actions,
+generated route families, CLI gameplay catalogs, Fabric descriptor/binding
+pairs, scenario shortcuts, new compiled lanes, public version-specific APIs,
+or new Minecraft support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 
