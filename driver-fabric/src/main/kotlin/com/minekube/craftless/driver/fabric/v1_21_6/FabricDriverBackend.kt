@@ -9,6 +9,7 @@ import com.minekube.craftless.driver.api.DriverOperationAdapter
 import com.minekube.craftless.driver.api.DriverOperationAdapters
 import com.minekube.craftless.driver.api.DriverOperationInvocation
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
+import com.minekube.craftless.driver.fabric.runtime.FabricCompiledLaneMetadata
 import com.minekube.craftless.driver.fabric.runtime.FabricRuntimeIdentity
 import com.minekube.craftless.driver.fabric.runtime.defaultFabricCompatibilityMatrix
 import com.minekube.craftless.driver.fabric.v1_21_6.mixin.ClientRecipeBookAccessor
@@ -1495,9 +1496,9 @@ private fun String.toDriverActionStatus(): DriverActionStatus =
 
 private fun DriverRuntimeMetadata.toCurrentLaneRuntimeIdentity(): FabricRuntimeIdentity =
     FabricRuntimeIdentity(
-        gameVersion = FABRIC_COMPILED_MINECRAFT_VERSION,
+        gameVersion = FabricCompiledLaneMetadata.MINECRAFT_VERSION,
         loaderVersion = loaderVersion,
-        fabricApiVersion = FABRIC_COMPILED_API_VERSION,
+        fabricApiVersion = FabricCompiledLaneMetadata.FABRIC_API_VERSION,
         mappingsFingerprint = mappings,
         installedModsFingerprint = installedModsFingerprint,
         registryFingerprint = registryFingerprint,
@@ -1515,7 +1516,7 @@ private fun staticFabricRuntimeMetadataProvider(): FabricRuntimeMetadataProvider
             loaderVersion = "unknown",
             driver = FABRIC_DRIVER_ID,
             driverVersion = FABRIC_DRIVER_VERSION,
-            mappings = FABRIC_MAPPINGS_FINGERPRINT,
+            mappings = FabricCompiledLaneMetadata.MAPPINGS_FINGERPRINT,
             installedModsFingerprint = "mods:metadata-only",
             registryFingerprint = "registries:metadata-only",
             serverFeatureFingerprint = "server-features:metadata-only",
@@ -1540,7 +1541,7 @@ internal class SnapshotFabricRuntimeMetadataProvider(
             loaderVersion = snapshot.loaderVersion,
             driver = FABRIC_DRIVER_ID,
             driverVersion = snapshot.driverVersion,
-            mappings = FABRIC_MAPPINGS_FINGERPRINT,
+            mappings = FabricCompiledLaneMetadata.MAPPINGS_FINGERPRINT,
             installedModsFingerprint = fingerprint("mods", snapshot.installedMods),
             registryFingerprint = fingerprint("registries", snapshot.registries),
             serverFeatureFingerprint = fingerprint("server-features", snapshot.serverFeatures),
@@ -1631,7 +1632,4 @@ private fun fingerprint(
 private const val FABRIC_DRIVER_ID = "craftless-driver-fabric"
 private const val FABRIC_DRIVER_VERSION = "0.1.0-SNAPSHOT"
 private const val FABRIC_LOADER_ID = "fabricloader"
-private const val FABRIC_COMPILED_MINECRAFT_VERSION = "1.21.6"
-private const val FABRIC_COMPILED_API_VERSION = "0.128.2+1.21.6"
-private const val FABRIC_MAPPINGS_FINGERPRINT = "craftless-fabric-bindings"
 private const val FINGERPRINT_LENGTH = 16

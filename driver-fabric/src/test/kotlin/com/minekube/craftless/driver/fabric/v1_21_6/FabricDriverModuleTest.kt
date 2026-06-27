@@ -81,6 +81,14 @@ class FabricDriverModuleTest {
         assertEquals("craftless-driver-fabric", metadata["id"]?.jsonPrimitive?.content)
         assertTrue(metadata["version"]?.jsonPrimitive?.content?.matches(Regex("""\d+\.\d+\.\d+(-SNAPSHOT)?""")) == true)
         assertEquals(
+            "Craftless Driver Fabric ${FabricCompiledLaneMetadata.MINECRAFT_VERSION} compiled lane",
+            metadata["name"]?.jsonPrimitive?.content,
+        )
+        assertEquals(
+            "Craftless in-client driver compiled for Minecraft ${FabricCompiledLaneMetadata.MINECRAFT_VERSION}.",
+            metadata["description"]?.jsonPrimitive?.content,
+        )
+        assertEquals(
             "com.minekube.craftless.driver.fabric.v1_21_6.CraftlessFabricClientEntrypoint",
             metadata["entrypoints"]
                 ?.jsonObject
@@ -99,10 +107,34 @@ class FabricDriverModuleTest {
                 ?.content,
         )
         assertEquals(
-            ">=0.128.2+1.21.6",
+            ">=${FabricCompiledLaneMetadata.FABRIC_API_VERSION}",
             metadata["depends"]
                 ?.jsonObject
                 ?.get("fabric-api")
+                ?.jsonPrimitive
+                ?.content,
+        )
+        assertEquals(
+            ">=${FabricCompiledLaneMetadata.LOADER_VERSION}",
+            metadata["depends"]
+                ?.jsonObject
+                ?.get("fabricloader")
+                ?.jsonPrimitive
+                ?.content,
+        )
+        assertEquals(
+            FabricCompiledLaneMetadata.MINECRAFT_VERSION,
+            metadata["depends"]
+                ?.jsonObject
+                ?.get("minecraft")
+                ?.jsonPrimitive
+                ?.content,
+        )
+        assertEquals(
+            ">=${FabricCompiledLaneMetadata.JAVA_MAJOR_VERSION}",
+            metadata["depends"]
+                ?.jsonObject
+                ?.get("java")
                 ?.jsonPrimitive
                 ?.content,
         )
@@ -114,6 +146,36 @@ class FabricDriverModuleTest {
             listOf("ClientRecipeBookAccessor", "MinecraftClientMixin"),
             mixins["mixins"]?.jsonArray?.map { it.jsonPrimitive.content },
         )
+    }
+
+    @Test
+    fun `fabric mod source metadata is expanded from compiled lane placeholders`() {
+        val source = Files.readString(repositoryRoot().resolve("driver-fabric/src/main/resources/fabric.mod.json"))
+
+        assertTrue(source.contains("\${minecraftVersion}"))
+        assertTrue(source.contains("\${fabricApiVersion}"))
+        assertTrue(source.contains("\${fabricLoaderVersion}"))
+        assertTrue(source.contains("\${javaMajorVersion}"))
+        assertFalse(source.contains("Craftless Driver Fabric 1.21.6\""))
+        assertFalse(source.contains("Minecraft 1.21.6."))
+    }
+
+    @Test
+    fun `compiled lane literals do not drift in product runtime code`() {
+        val root = repositoryRoot()
+        val runtimeFiles =
+            listOf(
+                "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverBackend.kt",
+                "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricClientSmokeController.kt",
+                "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricClientSmokePlan.kt",
+            )
+
+        runtimeFiles.forEach { relativePath ->
+            val source = Files.readString(root.resolve(relativePath))
+            assertFalse(source.contains("\"${FabricCompiledLaneMetadata.MINECRAFT_VERSION}\""), relativePath)
+            assertFalse(source.contains("\"${FabricCompiledLaneMetadata.FABRIC_API_VERSION}\""), relativePath)
+            assertFalse(source.contains("\"${FabricCompiledLaneMetadata.MAPPINGS_FINGERPRINT}\""), relativePath)
+        }
     }
 
     @Test

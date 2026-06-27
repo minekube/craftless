@@ -1460,6 +1460,9 @@ Verification:
   version from that metadata object.
 - [x] Client smoke and final gameplay plan defaults derive their Minecraft
   version from that metadata object.
+- [x] Runtime metadata providers, smoke controller client creation, and smoke
+  plan wording are guarded against reintroducing duplicated compiled-lane
+  string literals in product runtime code.
 - [x] This phase changes internal Fabric lane metadata only, preserves the
   explicit unsupported `26.2` lane evidence, and adds no public gameplay action,
   generated route family, CLI gameplay catalog, Fabric descriptor/binding pair,
@@ -1473,18 +1476,46 @@ Verification:
 - `mise run architecture-check`
 - `mise run ci`
 
+## Phase 47: Compiled Fabric Resource Metadata
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-47-compiled-fabric-resource-metadata-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-47-compiled-fabric-resource-metadata-plan.md`.
+- [x] `driver-fabric/build.gradle.kts` defines build-time compiled-lane values
+  for the current Minecraft, Yarn mappings, Fabric Loader, Fabric API, Java
+  major, lane id, and provider id.
+- [x] Fabric dependencies and smoke runtime-lane JSON use those build-time
+  compiled-lane values.
+- [x] Source `fabric.mod.json` uses Gradle-expanded placeholders for compiled
+  lane metadata instead of hard-coded current-lane strings.
+- [x] Processed `fabric.mod.json` keeps honest compiled-lane wording and
+  dependency values aligned with `FabricCompiledLaneMetadata`.
+- [x] This phase changes build/resource metadata only and adds no public
+  gameplay action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, or public
+  version-specific API.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:processResources :driver-fabric:test --tests '*FabricDriverModuleTest.fabric mod source metadata is expanded from compiled lane placeholders*' --tests '*FabricDriverModuleTest.fabric metadata declares client entrypoint and mixin config*'`
+- `mise exec -- gradle :driver-fabric:processResources :driver-fabric:test`
+- `mise run lint`
+- `mise run architecture-check`
+- `mise run ci`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above are checked with current evidence; final
   completion remains open on Robin's Minecraft chat confirmation.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully after the Phase 46 compiled Fabric lane metadata correction.
+  successfully after the Phase 47 compiled Fabric resource metadata correction.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests after the Phase 46
-  compiled Fabric lane metadata correction.
+  architecture tests and Bun Playwright helper tests after the Phase 47
+  compiled Fabric resource metadata correction.
 - [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
-  successfully after the Phase 46 compiled Fabric lane metadata correction.
+  successfully after the Phase 47 compiled Fabric resource metadata correction.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,

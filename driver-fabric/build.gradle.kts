@@ -6,11 +6,19 @@ plugins {
     id("net.fabricmc.fabric-loom-remap")
 }
 
+val fabricCompiledMinecraftVersion = "1.21.6"
+val fabricCompiledYarnMappings = "1.21.6+build.1"
+val fabricCompiledLoaderVersion = "0.19.3"
+val fabricCompiledApiVersion = "0.128.2+1.21.6"
+val fabricCompiledJavaMajorVersion = 21
+val fabricCompiledLaneId = "fabric-current-lane"
+val fabricCompiledProviderId = "fabric-current-lane"
+
 dependencies {
-    "minecraft"("com.mojang:minecraft:1.21.6")
-    "mappings"("net.fabricmc:yarn:1.21.6+build.1:v2")
-    "modImplementation"("net.fabricmc:fabric-loader:0.19.3")
-    "modImplementation"("net.fabricmc.fabric-api:fabric-api:0.128.2+1.21.6")
+    "minecraft"("com.mojang:minecraft:$fabricCompiledMinecraftVersion")
+    "mappings"("net.fabricmc:yarn:$fabricCompiledYarnMappings:v2")
+    "modImplementation"("net.fabricmc:fabric-loader:$fabricCompiledLoaderVersion")
+    "modImplementation"("net.fabricmc.fabric-api:fabric-api:$fabricCompiledApiVersion")
 
     implementation(project(":driver-api"))
     implementation(project(":driver-runtime"))
@@ -22,8 +30,18 @@ dependencies {
 
 tasks.processResources {
     inputs.property("version", project.version)
+    inputs.property("minecraftVersion", fabricCompiledMinecraftVersion)
+    inputs.property("fabricApiVersion", fabricCompiledApiVersion)
+    inputs.property("fabricLoaderVersion", fabricCompiledLoaderVersion)
+    inputs.property("javaMajorVersion", fabricCompiledJavaMajorVersion)
     filesMatching("fabric.mod.json") {
-        expand("version" to project.version)
+        expand(
+            "version" to project.version,
+            "minecraftVersion" to fabricCompiledMinecraftVersion,
+            "fabricApiVersion" to fabricCompiledApiVersion,
+            "fabricLoaderVersion" to fabricCompiledLoaderVersion,
+            "javaMajorVersion" to fabricCompiledJavaMajorVersion,
+        )
     }
 }
 
@@ -43,9 +61,6 @@ val pathfinderRuntimeEnabled =
             val value = System.getenv(name)
             value == "1" || value.equals("true", ignoreCase = true)
         }
-
-val fabricCompiledMinecraftVersion = "1.21.6"
-val fabricCompiledJavaMajorVersion = 21
 
 fun jsonString(value: String): String =
     buildString {
@@ -96,11 +111,11 @@ fun fabricSmokeRuntimeLaneJson(minecraftVersion: String): String {
         when (version) {
             fabricCompiledMinecraftVersion ->
                 mapOf(
-                    "id" to "fabric-current-lane",
+                    "id" to fabricCompiledLaneId,
                     "status" to "SUPPORTED",
                     "minecraftVersion" to version,
                     "javaMajorVersion" to fabricCompiledJavaMajorVersion,
-                    "providerId" to "fabric-current-lane",
+                    "providerId" to fabricCompiledProviderId,
                 )
             "26.2" ->
                 mapOf(

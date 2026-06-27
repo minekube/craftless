@@ -5,6 +5,7 @@ import com.minekube.craftless.daemon.ConnectRequest
 import com.minekube.craftless.daemon.DriverSessionFactory
 import com.minekube.craftless.daemon.LocalSessionApiServer
 import com.minekube.craftless.driver.api.ConnectionTarget
+import com.minekube.craftless.driver.fabric.runtime.FabricCompiledLaneMetadata
 import com.minekube.craftless.driver.runtime.BackendDriverSession
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.Loader
@@ -115,7 +116,7 @@ data class FabricClientSmokeController(
                         api.url("/clients"),
                         CreateClientRequest(
                             id = SMOKE_CLIENT_ID,
-                            version = MINECRAFT_VERSION,
+                            version = FabricCompiledLaneMetadata.MINECRAFT_VERSION,
                             loader = Loader.FABRIC,
                             profile = Profile.offline(SMOKE_PROFILE),
                         ),
@@ -495,7 +496,6 @@ data class FabricClientSmokeController(
         private const val CONFIRM_CHAT_CONTAINS = "CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS"
         private const val SMOKE_CLIENT_ID = "fabric-smoke"
         private const val SMOKE_PROFILE = "CraftlessSmoke"
-        private const val MINECRAFT_VERSION = "1.21.6"
 
         fun fromEnvironment(env: Map<String, String> = System.getenv()): FabricClientSmokeController {
             val actionTimeoutName =

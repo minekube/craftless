@@ -26,7 +26,7 @@ data class FabricClientSmokePlan(
                         ),
                         FabricSmokeStep(
                             FabricSmokeStepKind.LAUNCH_FABRIC_CLIENT,
-                            "Launch the Craftless Fabric driver client for Minecraft 1.21.6",
+                            "Launch the Craftless Fabric driver client for Minecraft ${FabricCompiledLaneMetadata.MINECRAFT_VERSION}",
                         ),
                         FabricSmokeStep(
                             FabricSmokeStepKind.START_DAEMON_API,

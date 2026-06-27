@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "id": "craftless-driver-fabric",
   "version": "${version}",
-  "name": "Craftless Driver Fabric 1.21.6",
-  "description": "Craftless in-client driver scaffold for Minecraft 1.21.6.",
+  "name": "Craftless Driver Fabric ${minecraftVersion} compiled lane",
+  "description": "Craftless in-client driver compiled for Minecraft ${minecraftVersion}.",
   "authors": [
     "Minekube"
   ],
@@ -18,9 +18,9 @@
     "craftless-driver-fabric.mixins.json"
   ],
   "depends": {
-    "fabric-api": ">=0.128.2+1.21.6",
-    "fabricloader": ">=0.19.3",
-    "minecraft": "1.21.6",
-    "java": ">=21"
+    "fabric-api": ">=${fabricApiVersion}",
+    "fabricloader": ">=${fabricLoaderVersion}",
+    "minecraft": "${minecraftVersion}",
+    "java": ">=${javaMajorVersion}"
   }
 }
