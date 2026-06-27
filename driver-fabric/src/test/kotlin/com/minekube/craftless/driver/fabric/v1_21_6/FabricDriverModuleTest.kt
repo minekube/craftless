@@ -176,6 +176,28 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `stable fabric production package imports versioned implementations only through bootstrap selector`() {
+        val stablePackage =
+            repositoryRoot().resolve(
+                "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric",
+            )
+        val violations =
+            Files.list(stablePackage).use { paths ->
+                paths
+                    .toList()
+                    .filter { path -> path.fileName.toString().endsWith(".kt") }
+                    .filter { path -> path.fileName.toString() != "FabricBootstrapSelector.kt" }
+                    .filter { path ->
+                        Files.readString(path).contains("com.minekube.craftless.driver.fabric.v")
+                    }.map { path -> stablePackage.relativize(path).toString() }
+                    .sorted()
+                    .toList()
+            }
+
+        assertEquals(emptyList(), violations)
+    }
+
+    @Test
     fun `compiled lane literals do not drift in product runtime code`() {
         val root = repositoryRoot()
         val runtimeFiles =

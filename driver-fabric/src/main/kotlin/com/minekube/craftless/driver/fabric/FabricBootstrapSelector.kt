@@ -22,6 +22,8 @@ internal object FabricBootstrapSelector {
                 bootstrap.minecraftVersion == FabricCompiledLaneMetadata.MINECRAFT_VERSION
         }
 
+    fun registeredBootstraps(): List<FabricDriverBootstrap> = bootstraps
+
     fun initializeCurrentCompiledLane() {
         selectCurrentCompiledLane().initialize()
     }

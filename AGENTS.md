@@ -163,6 +163,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 49. README current status alignment.
 50. latest release lane evidence.
 51. Fabric bootstrap selection boundary.
+52. stable Fabric version boundary guard.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -363,6 +364,12 @@ bootstrap selector. The entrypoint must not import a version-scoped bootstrap
 directly; current compiled-lane startup remains registered behind the selector.
 It must not add a new compiled lane, claim new Minecraft version support, add
 public version-specific APIs, or add gameplay actions.
+Phase 52 makes the selector boundary enforceable across the stable top-level
+Fabric production package. `FabricBootstrapSelector.kt` is the only stable
+Fabric production file that may import version-scoped implementation packages;
+other stable Fabric files must depend on the selector or stable runtime
+contracts. It must not add a new compiled lane, claim new Minecraft version
+support, add public version-specific APIs, or add gameplay actions.
 
 ## Acceptance Scenarios Are Not Product APIs
 

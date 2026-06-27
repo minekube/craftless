@@ -1611,19 +1611,46 @@ Verification:
 - `mise run architecture-check`
 - `mise run ci`
 
+## Phase 52: Stable Fabric Version Boundary Guard
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-52-stable-fabric-version-boundary-guard-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-52-stable-fabric-version-boundary-guard-plan.md`.
+- [x] `FabricBootstrapSelector` exposes registered bootstrap metadata without
+  initializing Minecraft.
+- [x] Selector metadata matches the supported current lane in
+  `defaultFabricCompatibilityMatrix()`.
+- [x] Source architecture tests scan the stable top-level Fabric production
+  package and allow version-scoped implementation imports only from
+  `FabricBootstrapSelector.kt`.
+- [x] This phase changes internal Fabric startup guardrails only and adds no
+  public gameplay action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, or public
+  version-specific API.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricBootstrapSelectorTest*' --tests '*FabricDriverModuleTest.stable fabric production package imports versioned implementations only through bootstrap selector*'`
+- `git diff --check`
+- `mise exec -- gradle :driver-fabric:test`
+- `mise run lint`
+- `mise run architecture-check`
+- `mise run ci`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above are checked with current evidence; final
   completion remains open on Robin's Minecraft chat confirmation.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully inside `mise run ci` after the Phase 51 Fabric bootstrap
-  selection boundary.
+  successfully inside `mise run ci` after the Phase 52 stable Fabric version
+  boundary guard.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests after the Phase 51 Fabric
-  bootstrap selection boundary.
+  architecture tests and Bun Playwright helper tests after the Phase 52 stable
+  Fabric version boundary guard.
 - [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
-  successfully after the Phase 51 Fabric bootstrap selection boundary.
+  successfully after the Phase 52 stable Fabric version boundary guard.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,
