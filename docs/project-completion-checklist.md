@@ -961,10 +961,11 @@ Verification:
   `publicAgentState=RAN`. Evidence:
   `driver-fabric/build/craftless-final-gameplay/artifacts/public-agent-command.log`
   reports `publicAgentState=RAN`; the public agent collected material,
-  crafted/equipped a `Wooden Sword`, attacked a generated public Pig target,
-  picked up `Raw Porkchop`, and wrote `final-gameplay-ready.json` for
-  `127.0.0.1:52826`. `server-evidence.jsonl` contains Craftless'
-  `Player632` join/chat/disconnect and no Robin confirmation chat; no
+  crafted/equipped a `Wooden Sword`, attacked a generated public Chicken
+  target, picked up `Feather` and `Raw Chicken`, and wrote
+  `final-gameplay-ready.json` for `127.0.0.1:56270`.
+  `server-evidence.jsonl` contains Craftless' `Player161`
+  join/chat/disconnect and no Robin confirmation chat; no
   `final-gameplay-confirmation.json` was written before the hold expired.
 
 Verification:
@@ -984,7 +985,7 @@ Verification:
   `mise run architecture-check` completed successfully, including Gradle
   architecture tests and Bun Playwright helper tests.
 - [x] `mise run ci` passes. Current remote evidence: GitHub Actions run
-  `28279694838` passed `mise run ci` on `main` for commit `dd0996f`.
+  `28280248680` passed `mise run ci` on `main` for commit `e1a417f`.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,
