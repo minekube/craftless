@@ -998,13 +998,50 @@ Verification:
   `entity.attack` when the target remains outside generated attack reach and
   `player.move` is not discovered.
 - [x] Broader local gates pass after this correction.
-- [ ] Final live gameplay has been rerun after this correction and either
-  reached `publicAgentState=RAN` or recorded the next precise generic public
-  evidence blocker.
+- [x] Final live gameplay was rerun after this correction and exposed the next
+  generic evidence issue: the process-external public agent entered a long
+  generated `navigation.follow` request. Thread dumps showed the request inside
+  `ReflectiveFabricPathfinderBackend.waitForPathCompletion`, while manual
+  generated `player.query`, `inventory.query`, and `world.block.query` calls
+  still responded. The run was stopped before completion because the public
+  agent had not written incremental action artifacts for the in-flight
+  generated request.
 
 Verification:
 
 - `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.PublicAgentGameplayRunnerTest.runner uses generated player move when combat navigation succeeds but target remains out of reach'`
+- `mise exec -- gradle :testkit:test`
+- `mise run lint`
+- `mise run jvm-test`
+
+## Phase 34: Incremental Public-Agent Artifacts
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-34-incremental-public-agent-artifacts-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-34-incremental-public-agent-artifacts-plan.md`.
+- [x] The 2026-06-27 final gameplay rerun after Phase 33 showed that
+  long-running generated actions need in-progress artifacts. The public agent
+  had fetched generated discovery and had a live connection to
+  `POST /clients/{id}:run`, but `public-agent-gameplay-results.jsonl` still
+  contained stale earlier smoke entries because action artifacts were written
+  only after runner completion.
+- [x] Public-agent artifacts are now initialized immediately after public
+  discovery. Gameplay artifacts are truncated at run start, action-started
+  events are appended before each generated POST, action responses are appended
+  as they arrive, and blockers are appended without rewriting prior action
+  evidence.
+- [x] Focused regression evidence proves generated action request failures
+  write `public-agent-action-started`, the failed generated action response,
+  and the public-agent blocker.
+- [x] Broader local gates pass after this correction.
+- [ ] Final live gameplay has been rerun after this correction and either
+  reached `publicAgentState=RAN` or recorded the next precise generic public
+  evidence/action blocker with incremental artifacts.
+
+Verification:
+
+- `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.PublicAgentGameplayRunnerTest.runner records blocked artifacts when generated action request fails'`
 - `mise exec -- gradle :testkit:test`
 - `mise run lint`
 - `mise run jvm-test`

@@ -2561,6 +2561,7 @@ class PublicAgentGameplayRunnerTest {
             assertEquals("action-request-failed:navigation.follow", result.blocker)
             assertTrue(result.actionLog.map { it.action }.contains("navigation.follow"))
             val gameplay = Files.readString(artifactsDir.resolve("public-agent-gameplay-results.jsonl"))
+            assertTrue(gameplay.contains("public-agent-action-started"))
             assertTrue(gameplay.contains("navigation.follow"))
             assertTrue(gameplay.contains("action-request-failed:navigation.follow"))
             assertFalse(gameplay.contains("task.survival"))

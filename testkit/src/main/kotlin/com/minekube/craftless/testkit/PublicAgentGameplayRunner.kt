@@ -24,6 +24,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption.APPEND
 import java.nio.file.StandardOpenOption.CREATE
 import java.nio.file.StandardOpenOption.TRUNCATE_EXISTING
 import java.nio.file.StandardOpenOption.WRITE
@@ -64,6 +65,13 @@ class PublicAgentGameplayRunner(
             return result
         }
         val actionLog = mutableListOf<PublicAgentActionLog>()
+        artifactsDir?.let { artifacts ->
+            initializeArtifacts(
+                artifactsDir = artifacts,
+                availableActions = actionIds.sorted(),
+                eventStream = eventStream,
+            )
+        }
 
         fun blocked(blocker: String): PublicAgentGameplayResult =
             PublicAgentGameplayResult(
@@ -79,12 +87,13 @@ class PublicAgentGameplayRunner(
 
         fun blockedAndWrite(blocker: String): PublicAgentGameplayResult =
             blocked(blocker)
-                .also { result -> artifactsDir?.let { writeArtifacts(it, result) } }
+                .also { artifactsDir?.let { appendBlockedArtifact(it, blocker) } }
 
         suspend fun invokeGenerated(
             action: String,
             args: JsonObject = JsonObject(emptyMap()),
         ): PublicAgentActionLog {
+            artifactsDir?.let { appendActionStartedArtifact(it, action) }
             val invocationResult =
                 try {
                     http
@@ -106,10 +115,12 @@ class PublicAgentGameplayRunner(
                         )
                     PublicAgentActionLog(action = action, response = failedResponse)
                         .also(actionLog::add)
+                        .also { log -> artifactsDir?.let { appendActionArtifact(it, log) } }
                     throw PublicAgentActionRequestFailure(blocker, failure)
                 }
             return PublicAgentActionLog(action = action, response = invocationResult)
                 .also(actionLog::add)
+                .also { log -> artifactsDir?.let { appendActionArtifact(it, log) } }
         }
 
         suspend fun queryMaterialTarget(): PublicBlockTarget? =
@@ -908,11 +919,35 @@ class PublicAgentGameplayRunner(
                     actionLog = actionLog,
                     availableActions = actionIds.sorted(),
                 )
-            artifactsDir?.let { writeArtifacts(it, result) }
             return result
         } catch (failure: PublicAgentActionRequestFailure) {
             return blockedAndWrite(failure.blocker)
         }
+    }
+
+    private fun initializeArtifacts(
+        artifactsDir: Path,
+        availableActions: List<String>,
+        eventStream: String,
+    ) {
+        Files.createDirectories(artifactsDir)
+        Files.writeString(
+            artifactsDir.resolve("public-agent-state.jsonl"),
+            stateArtifactLines(
+                availableActions = availableActions,
+                eventStream = eventStream,
+            ).joinToString(separator = "\n", postfix = "\n"),
+            CREATE,
+            TRUNCATE_EXISTING,
+            WRITE,
+        )
+        Files.writeString(
+            artifactsDir.resolve("public-agent-gameplay-results.jsonl"),
+            "",
+            CREATE,
+            TRUNCATE_EXISTING,
+            WRITE,
+        )
     }
 
     private fun writeArtifacts(
@@ -937,6 +972,15 @@ class PublicAgentGameplayRunner(
     }
 
     private fun stateArtifactLines(result: PublicAgentGameplayResult): List<String> =
+        stateArtifactLines(
+            availableActions = result.availableActions,
+            eventStream = result.eventStream,
+        )
+
+    private fun stateArtifactLines(
+        availableActions: List<String>,
+        eventStream: String,
+    ): List<String> =
         listOf(
             artifactLine(
                 "event" to JsonPrimitive("public-agent-discovery"),
@@ -952,13 +996,13 @@ class PublicAgentGameplayRunner(
                 "event" to JsonPrimitive("public-agent-discovery"),
                 "clientId" to JsonPrimitive(clientId),
                 "request" to JsonPrimitive("GET /clients/$clientId/actions"),
-                "availableActions" to JsonArray(result.availableActions.map(::JsonPrimitive)),
+                "availableActions" to JsonArray(availableActions.map(::JsonPrimitive)),
             ),
             artifactLine(
                 "event" to JsonPrimitive("public-agent-stream"),
                 "clientId" to JsonPrimitive(clientId),
                 "request" to JsonPrimitive("GET /clients/$clientId/events:stream"),
-                "bytes" to JsonPrimitive(result.eventStream.length),
+                "bytes" to JsonPrimitive(eventStream.length),
             ),
         )
 
@@ -979,13 +1023,65 @@ class PublicAgentGameplayRunner(
 
     private fun List<PublicAgentActionLog>.toArtifactLines(): List<String> =
         map { action ->
-            artifactLine(
-                "event" to JsonPrimitive("public-agent-action"),
-                "clientId" to JsonPrimitive(clientId),
-                "action" to JsonPrimitive(action.action),
-                "response" to JsonPrimitive(action.response),
-            )
+            actionArtifactLine(action)
         }
+
+    private fun appendActionStartedArtifact(
+        artifactsDir: Path,
+        action: String,
+    ) {
+        appendGameplayArtifact(
+            artifactsDir,
+            artifactLine(
+                "event" to JsonPrimitive("public-agent-action-started"),
+                "clientId" to JsonPrimitive(clientId),
+                "action" to JsonPrimitive(action),
+            ),
+        )
+    }
+
+    private fun appendActionArtifact(
+        artifactsDir: Path,
+        action: PublicAgentActionLog,
+    ) {
+        appendGameplayArtifact(artifactsDir, actionArtifactLine(action))
+    }
+
+    private fun appendBlockedArtifact(
+        artifactsDir: Path,
+        blocker: String,
+    ) {
+        appendGameplayArtifact(
+            artifactsDir,
+            artifactLine(
+                "event" to JsonPrimitive("public-agent-blocked"),
+                "clientId" to JsonPrimitive(clientId),
+                "blocker" to JsonPrimitive(blocker),
+            ),
+        )
+    }
+
+    private fun actionArtifactLine(action: PublicAgentActionLog): String =
+        artifactLine(
+            "event" to JsonPrimitive("public-agent-action"),
+            "clientId" to JsonPrimitive(clientId),
+            "action" to JsonPrimitive(action.action),
+            "response" to JsonPrimitive(action.response),
+        )
+
+    private fun appendGameplayArtifact(
+        artifactsDir: Path,
+        line: String,
+    ) {
+        Files.createDirectories(artifactsDir)
+        Files.writeString(
+            artifactsDir.resolve("public-agent-gameplay-results.jsonl"),
+            "$line\n",
+            CREATE,
+            WRITE,
+            APPEND,
+        )
+    }
 
     private fun artifactLine(vararg entries: Pair<String, JsonElement>): String =
         publicAgentJson.encodeToString(

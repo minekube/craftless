@@ -145,6 +145,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 31. material count evidence.
 32. material reach evidence.
 33. combat reach fallback.
+34. incremental public-agent artifacts.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -249,6 +250,11 @@ when generated navigation reports success but public `entity.query` and
 must stay external agent policy, must re-query public state before
 `entity.attack`, and must not add `find.cow`, `kill.cow`, combat shortcuts,
 survival macros, or any new product gameplay action.
+Phase 34 makes public-agent gameplay artifacts incremental so long generated
+actions leave evidence before the runner exits. It must stay evidence plumbing,
+must keep generated action invocation through `POST /clients/{id}:run`, and
+must not add pathfinder-specific public API, survival macros, or any new
+product gameplay action.
 
 ## Acceptance Scenarios Are Not Product APIs
 
