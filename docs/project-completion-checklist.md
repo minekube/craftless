@@ -1769,6 +1769,12 @@ Verification:
   `127.0.0.1:49973`, generated `entity.attack` killed a Sheep, final
   `inventory.query` showed `Raw Mutton`, and the Gradle task exited
   successfully after the configured hold without Robin's confirmation chat.
+- [x] A later 2026-06-27 held rerun again reached the ready window and exited
+  with `final-gameplay-confirmation-timeout.json` instead of a process timeout.
+  Evidence: `final-gameplay-ready.json` for `127.0.0.1:53413`, generated
+  actions earned a `Wooden Sword`, `entity.attack` killed a Pig, final
+  `inventory.query` showed `Raw Porkchop`, and no
+  `final-gameplay-confirmation.json` was written before the hold expired.
 - [x] This phase changes final-gameplay timeout/evidence plumbing only and adds
   no public gameplay action, generated route family, CLI gameplay catalog,
   Fabric descriptor/binding pair, scenario shortcut, new compiled lane, public
