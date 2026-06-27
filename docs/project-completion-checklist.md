@@ -825,15 +825,17 @@ Verification:
 - [x] Public-agent composition can chain generated material and combat recipes
   in focused fake-server evidence, and it requires combat-ready inventory
   proof before treating a generated weapon recipe as successful.
-- [~] Public-agent composition now has focused evidence for station-backed
+- [x] Public-agent composition now has focused and live evidence for station-backed
   recipe ordering and opening: when a mixed generated `recipe.query` contains a
   station-backed weapon and a recipe that produces the missing station, the
   agent crafts the station first, verifies it through public inventory,
   re-equips it before generated `world.block.interact`, verifies `screen.query`
-  opened the station, then continues through stick and weapon recipes. Latest
-  live no-hold evidence has not re-reached the weapon craft because material
-  pickup navigation currently blocks first with
-  `insufficient-public-evidence:navigation.follow.succeeded`.
+  opened the station, then continues through stick and weapon recipes. Current
+  held live evidence reached `publicAgentState=RAN`: the public agent collected
+  materials, crafted/equipped a `Wooden Sword`, attacked a Chicken through
+  generated `entity.attack`, observed `Raw Chicken` and `Feather` drops through
+  public `entity.query`, and reached the ready window without static survival
+  shortcuts.
 
 Verification:
 
@@ -858,15 +860,16 @@ Verification:
   executor exists.
 - [x] The final gameplay smoke controller no longer invokes
   `task.survival.honest-cow-hunt` or writes `survival-task-results.jsonl`.
-- [ ] Final live gameplay still must prove the scenario through generated
+- [~] Final live gameplay proves the scenario through generated
   public actions, SSE events, adaptive consumers, and Robin's Minecraft chat
   confirmation. Focused evidence now covers generated station-backed recipe
   composition without `craft.sword` or station shortcuts. Current live
   no-hold evidence covers public material pickup, station placement/opening,
   generic combat, and public combat loot pickup without `task.survival.*`.
-  Remaining completion gates are honest weapon acquisition/composition as
-  required by the survival scenario, held multiplayer observation, any fixes
-  found there, and Robin's explicit Minecraft chat confirmation.
+  Current held evidence covers honest weapon acquisition/composition as
+  required by the survival scenario. Remaining completion gates are Robin's
+  held multiplayer observation, any fixes found there, and Robin's explicit
+  Minecraft chat confirmation.
 
 Verification:
 
@@ -939,10 +942,21 @@ Verification:
 ## Final Completion Gate
 
 - [ ] All phases above are checked with current evidence.
-- [ ] `mise run lint` passes.
-- [ ] `mise run architecture-check` passes.
-- [ ] `mise run ci` passes.
-- [ ] Final real gameplay evidence is captured without server-provisioned
+- [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
+  successfully after the latest pushed gameplay-hold evidence.
+- [x] `mise run architecture-check` passes. Current local evidence:
+  `mise run architecture-check` completed successfully, including Gradle
+  architecture tests and Bun Playwright helper tests.
+- [x] `mise run ci` passes. Current remote evidence: GitHub Actions run
+  `28278536387` passed `mise run ci` on `main` for commit `aa54ade`.
+- [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
+  built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
+- [~] Docker runtime smoke remains dependent on a local Docker daemon. Current
+  local Docker verification is unavailable because the configured OrbStack
+  Docker socket is missing; distribution files remain covered by Playwright
+  distribution tests and CI.
+- [x] Final real gameplay evidence is captured without server-provisioned
   inventory or manual movement for Craftless.
 - [ ] Robin confirms in Minecraft chat that the goal may be completed.
-- [ ] Changes are committed and pushed to `main`.
+- [x] Changes are committed and pushed to `main`. This entry is current only
+  after the checklist update that changes it is also pushed.
