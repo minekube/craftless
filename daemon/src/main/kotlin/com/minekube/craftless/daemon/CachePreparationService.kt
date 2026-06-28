@@ -58,21 +58,23 @@ class CachePreparationService(
 
     suspend fun prepare(request: CachePrepareRequest): CachePrepareResult {
         val versionIndex = metadataFetcher.fetchText(MINECRAFT_VERSION_INDEX_URL)
-        val versionManifestUrl = versionIndex.versionManifestUrl(request.minecraftVersion)
+        val resolvedRequest =
+            request.copy(minecraftVersion = versionIndex.resolveMinecraftVersion(request.minecraftVersion))
+        val versionManifestUrl = versionIndex.versionManifestUrl(resolvedRequest.minecraftVersion)
         val versionManifest = metadataFetcher.fetchText(versionManifestUrl)
-        val clientJar = versionManifest.clientJarDownload(request.minecraftVersion)
+        val clientJar = versionManifest.clientJarDownload(resolvedRequest.minecraftVersion)
         val minecraftLibraries = versionManifest.minecraftLibraries()
         val minecraftNativeLibraries = versionManifest.minecraftNativeLibraries()
-        val assetIndexMetadata = versionManifest.assetIndexMetadata(request.minecraftVersion)
+        val assetIndexMetadata = versionManifest.assetIndexMetadata(resolvedRequest.minecraftVersion)
         val assetIndex = metadataFetcher.fetchText(assetIndexMetadata.url)
         val assetObjects = assetIndex.assetObjects()
-        val loggingConfig = versionManifest.clientLoggingConfig(request.minecraftVersion)
+        val loggingConfig = versionManifest.clientLoggingConfig(resolvedRequest.minecraftVersion)
         val javaRuntime = resolveJavaRuntime(versionManifest)
-        val fabricMetadata = resolveFabricMetadata(request)
+        val fabricMetadata = resolveFabricMetadata(resolvedRequest)
         val fabricLibraries = fabricMetadata?.profile?.fabricLibraries().orEmpty()
         val fabricMods = listOfNotNull(fabricMetadata?.fabricApi)
         val effectiveMinecraftLibraries = minecraftLibraries.withoutLibrariesReplacedBy(fabricLibraries)
-        val baseResult = CachePrepareResult.forRequest(request, fabricMetadata?.loaderVersion)
+        val baseResult = CachePrepareResult.forRequest(resolvedRequest, fabricMetadata?.loaderVersion)
         val launchArgumentsArtifact =
             baseResult.launchArgumentsArtifact(
                 versionManifest = versionManifest,
@@ -193,7 +195,7 @@ class CachePreparationService(
                 ),
             )
         }
-        val javaSelection = selectJavaRuntime(request, versionManifest, result)
+        val javaSelection = selectJavaRuntime(resolvedRequest, versionManifest, result)
         val finalResult =
             result.copy(
                 javaSelection = javaSelection,
@@ -568,6 +570,28 @@ private fun String.versionManifestUrl(minecraftVersion: String): String {
             version.jsonObject["id"]?.jsonPrimitive?.content == minecraftVersion
         } ?: error("minecraft version $minecraftVersion was not found in version index")
     return version.jsonObject["url"]?.jsonPrimitive?.content ?: error("minecraft version $minecraftVersion is missing metadata url")
+}
+
+private fun String.resolveMinecraftVersion(minecraftVersion: String): String {
+    val latestField =
+        when (minecraftVersion) {
+            "latest-release" -> "release"
+            "latest-snapshot" -> "snapshot"
+            else -> return minecraftVersion
+        }
+    val latest =
+        Json
+            .parseToJsonElement(this)
+            .jsonObject["latest"]
+            ?.jsonObject
+            ?: error("minecraft version index is missing latest aliases")
+    val resolved =
+        latest[latestField]
+            ?.jsonPrimitive
+            ?.content
+            ?: error("minecraft version index is missing latest.$latestField")
+    requireFileSafeCacheSegment(resolved, "resolved Minecraft version")
+    return resolved
 }
 
 private fun String.clientJarDownload(minecraftVersion: String): DownloadArtifactMetadata =

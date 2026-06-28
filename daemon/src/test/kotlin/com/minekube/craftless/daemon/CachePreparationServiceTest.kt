@@ -27,6 +27,214 @@ import kotlin.test.assertTrue
 
 class CachePreparationServiceTest {
     @Test
+    fun `cache preparation resolves latest release alias before building cache handles`() =
+        runBlocking {
+            val workspace = Files.createTempDirectory("craftless-cache-latest-release")
+            val releaseVersionUrl = "https://metadata.test/1.21.6.json"
+            val snapshotVersionUrl = "https://metadata.test/26.3-snapshot-1.json"
+            val clientJarUrl = "https://metadata.test/client-1.21.6.jar"
+            val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
+            val service =
+                CachePreparationService(
+                    workspaceRoot = workspace,
+                    metadataFetcher =
+                        StaticCacheMetadataFetcher(
+                            mapOf(
+                                MINECRAFT_VERSION_INDEX_URL to
+                                    """
+                                    {
+                                      "latest": {
+                                        "release": "1.21.6",
+                                        "snapshot": "26.3-snapshot-1"
+                                      },
+                                      "versions": [
+                                        { "id": "1.21.6", "url": "$releaseVersionUrl" },
+                                        { "id": "26.3-snapshot-1", "url": "$snapshotVersionUrl" }
+                                      ]
+                                    }
+                                    """.trimIndent(),
+                                releaseVersionUrl to
+                                    """
+                                    {
+                                      "id": "1.21.6",
+                                      "assetIndex": {
+                                        "id": "26",
+                                        "url": "$assetIndexUrl"
+                                      },
+                                      "downloads": {
+                                        "client": { "url": "$clientJarUrl" }
+                                      }
+                                    }
+                                    """.trimIndent(),
+                                assetIndexUrl to """{"objects":{}}""",
+                            ),
+                            binaryResponses = mapOf(clientJarUrl to "client-jar".encodeToByteArray()),
+                        ),
+                )
+
+            val result = service.prepare(CachePrepareRequest("latest-release", Loader.VANILLA))
+
+            assertEquals("1.21.6", result.minecraftVersion)
+            assertEquals("cache/prepared/1.21.6-vanilla.json", result.manifest)
+            assertEquals(
+                "cache/minecraft/versions/1.21.6/version.json",
+                result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST }.handle,
+            )
+            assertEquals(
+                releaseVersionUrl,
+                result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST }.source,
+            )
+            assertEquals(
+                "cache/minecraft/versions/1.21.6/client.jar",
+                result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR }.handle,
+            )
+            assertTrue(Files.isRegularFile(workspace.resolve(result.manifest)))
+            assertTrue(Files.isRegularFile(workspace.resolve("cache/minecraft/versions/1.21.6/client.jar")))
+            assertFalse(Files.exists(workspace.resolve("cache/minecraft/versions/latest-release")))
+        }
+
+    @Test
+    fun `cache preparation resolves latest snapshot alias before building cache handles`() =
+        runBlocking {
+            val workspace = Files.createTempDirectory("craftless-cache-latest-snapshot")
+            val releaseVersionUrl = "https://metadata.test/1.21.6.json"
+            val snapshotVersionUrl = "https://metadata.test/26.3-snapshot-1.json"
+            val clientJarUrl = "https://metadata.test/client-26.3-snapshot-1.jar"
+            val assetIndexUrl = "https://metadata.test/assets/26.3-snapshot-1.json"
+            val service =
+                CachePreparationService(
+                    workspaceRoot = workspace,
+                    metadataFetcher =
+                        StaticCacheMetadataFetcher(
+                            mapOf(
+                                MINECRAFT_VERSION_INDEX_URL to
+                                    """
+                                    {
+                                      "latest": {
+                                        "release": "1.21.6",
+                                        "snapshot": "26.3-snapshot-1"
+                                      },
+                                      "versions": [
+                                        { "id": "1.21.6", "url": "$releaseVersionUrl" },
+                                        { "id": "26.3-snapshot-1", "url": "$snapshotVersionUrl" }
+                                      ]
+                                    }
+                                    """.trimIndent(),
+                                snapshotVersionUrl to
+                                    """
+                                    {
+                                      "id": "26.3-snapshot-1",
+                                      "assetIndex": {
+                                        "id": "26-snapshot",
+                                        "url": "$assetIndexUrl"
+                                      },
+                                      "downloads": {
+                                        "client": { "url": "$clientJarUrl" }
+                                      }
+                                    }
+                                    """.trimIndent(),
+                                assetIndexUrl to """{"objects":{}}""",
+                            ),
+                            binaryResponses = mapOf(clientJarUrl to "snapshot-client-jar".encodeToByteArray()),
+                        ),
+                )
+
+            val result = service.prepare(CachePrepareRequest("latest-snapshot", Loader.VANILLA))
+
+            assertEquals("26.3-snapshot-1", result.minecraftVersion)
+            assertEquals("cache/prepared/26.3-snapshot-1-vanilla.json", result.manifest)
+            assertEquals(
+                "cache/minecraft/versions/26.3-snapshot-1/version.json",
+                result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST }.handle,
+            )
+            assertEquals(
+                snapshotVersionUrl,
+                result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST }.source,
+            )
+            assertTrue(Files.isRegularFile(workspace.resolve(result.manifest)))
+            assertTrue(Files.isRegularFile(workspace.resolve("cache/minecraft/versions/26.3-snapshot-1/client.jar")))
+            assertFalse(Files.exists(workspace.resolve("cache/minecraft/versions/latest-snapshot")))
+        }
+
+    @Test
+    fun `fabric cache preparation resolves latest release before requesting fabric metadata`() =
+        runBlocking {
+            val workspace = Files.createTempDirectory("craftless-cache-latest-fabric")
+            val versionUrl = "https://metadata.test/1.21.6.json"
+            val clientJarUrl = "https://metadata.test/client.jar"
+            val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
+            val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
+            val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.17.2/profile/json"
+            val fabricLoaderJarUrl = "https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.17.2/fabric-loader-0.17.2.jar"
+            val service =
+                CachePreparationService(
+                    workspaceRoot = workspace,
+                    metadataFetcher =
+                        StaticCacheMetadataFetcher(
+                            mapOf(
+                                MINECRAFT_VERSION_INDEX_URL to
+                                    """
+                                    {
+                                      "latest": {
+                                        "release": "1.21.6",
+                                        "snapshot": "26.3-snapshot-1"
+                                      },
+                                      "versions": [{ "id": "1.21.6", "url": "$versionUrl" }]
+                                    }
+                                    """.trimIndent(),
+                                versionUrl to
+                                    """
+                                    {
+                                      "id": "1.21.6",
+                                      "assetIndex": {
+                                        "id": "26",
+                                        "url": "$assetIndexUrl"
+                                      },
+                                      "downloads": {
+                                        "client": { "url": "$clientJarUrl" }
+                                      }
+                                    }
+                                    """.trimIndent(),
+                                assetIndexUrl to """{"objects":{}}""",
+                                loaderVersionsUrl to """[{ "loader": { "version": "0.17.2", "stable": true } }]""",
+                                loaderProfileUrl to
+                                    """
+                                    {
+                                      "id": "fabric-loader-0.17.2-1.21.6",
+                                      "libraries": [
+                                        {
+                                          "name": "net.fabricmc:fabric-loader:0.17.2",
+                                          "url": "https://maven.fabricmc.net/"
+                                        }
+                                      ]
+                                    }
+                                    """.trimIndent(),
+                            ),
+                            binaryResponses =
+                                mapOf(
+                                    clientJarUrl to "client-jar".encodeToByteArray(),
+                                    fabricLoaderJarUrl to "fabric-loader-jar".encodeToByteArray(),
+                                ),
+                        ),
+                )
+
+            val result = service.prepare(CachePrepareRequest("latest-release", Loader.FABRIC))
+
+            assertEquals("1.21.6", result.minecraftVersion)
+            assertEquals("0.17.2", result.loaderVersion)
+            assertEquals(
+                loaderVersionsUrl,
+                result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LOADER_VERSIONS }.source,
+            )
+            assertEquals(
+                loaderProfileUrl,
+                result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LOADER_PROFILE }.source,
+            )
+            assertEquals("cache/prepared/1.21.6-fabric-0.17.2.json", result.manifest)
+            assertFalse(Files.exists(workspace.resolve("cache/loaders/fabric/latest-release")))
+        }
+
+    @Test
     fun `fabric cache preparation resolves fabric api mod artifact from maven metadata`() =
         runBlocking {
             val workspace = Files.createTempDirectory("craftless-cache-fabric-api")

@@ -221,6 +221,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 108. driver mod manifest provider.
 109. packaged driver mod manifest.
 110. strict Fabric runtime lane identity.
+111. latest version alias resolution.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -836,6 +837,13 @@ unsupported lane with a machine-readable reason instead of selecting a
 provider. This prevents false support claims only; it must not add compiled
 lanes, gameplay descriptors, static route families, scenario shortcuts, or
 latest/older support claims.
+Phase 111 resolves supervisor cache-preparation aliases such as
+`latest-release` and `latest-snapshot` through Mojang version metadata before
+deriving cache handles, Fabric metadata URLs, Java selection context, launch
+metadata, or prepared manifests. This improves generic version handling only;
+it must not add compiled lanes, gameplay descriptors, static route families,
+scenario shortcuts, public version-specific APIs, or latest/older runnable
+support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 
