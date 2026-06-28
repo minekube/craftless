@@ -3136,6 +3136,31 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-driver-attach-proxy.md`.
 
+## Phase 99: Launch Attach Environment
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-99-launch-attach-environment-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-99-launch-attach-environment-plan.md`.
+- [x] Workspace runtime preparation passes `CRAFTLESS_CLIENT_ID` and
+  `CRAFTLESS_DAEMON_URL` attach environment into launchers.
+- [x] Process launches set those environment variables on the Minecraft client
+  process.
+- [~] Fabric in-client endpoint startup and self-attach remain open for the
+  next phase.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
+  lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Red guard:
+  `mise exec -- gradle :daemon:test --tests '*LocalSessionApiServerTest.server prepares and launches workspace client runtime without injected driver factory*'`
+- Red guard:
+  `mise exec -- gradle :daemon:test --tests '*LocalSessionApiServerTest.process client runtime launcher starts prepared command*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-launch-attach-environment.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3152,8 +3177,8 @@ Verification:
   completion gate, and Phase 92 build-generated compiled lane metadata, and
   Phase 93 static unsupported version lane removal, and Phase 94 Fabric API
   cache resolution, Phase 95 launch mod materialization, Phase 96 Craftless
-  driver mod launch artifact, Phase 97 packaged driver mod distribution, and
-  Phase 98 driver attach proxy.
+  driver mod launch artifact, Phase 97 packaged driver mod distribution, Phase
+  98 driver attach proxy, and Phase 99 launch attach environment.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

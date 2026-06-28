@@ -209,6 +209,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 96. Craftless driver mod launch artifact.
 97. packaged driver mod distribution.
 98. driver attach proxy.
+99. launch attach environment.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -757,6 +758,10 @@ Phase 98 adds supervisor attach/proxy plumbing so a launched client driver can
 replace the prepared placeholder session with a generic HTTP-backed
 `DriverSession`. This is lifecycle transport infrastructure; generated
 gameplay APIs still come only from the attached runtime graph/actions.
+Phase 99 passes Craftless attach rendezvous environment into launched client
+processes. `CRAFTLESS_CLIENT_ID` and `CRAFTLESS_DAEMON_URL` are lifecycle
+configuration for the in-client driver; they must not become gameplay API
+surface or scenario logic.
 
 ## Acceptance Scenarios Are Not Product APIs
 

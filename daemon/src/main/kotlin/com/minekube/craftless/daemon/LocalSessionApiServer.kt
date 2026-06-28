@@ -166,6 +166,7 @@ class LocalSessionApiServer private constructor(
                     workspaceRuntimeFactory?.prepare(
                         request = request,
                         cachePreparationService = cachePreparationService ?: error("cache workspace is not configured"),
+                        attachEnvironment = ClientDriverAttachEnvironment(request.id, url("")),
                     )
                     val client = service.createClient(request)
                     events +=

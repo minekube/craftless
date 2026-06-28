@@ -43,6 +43,7 @@ class WorkspaceClientRuntimeDriverFactory(
     suspend fun prepare(
         request: CreateClientRequest,
         cachePreparationService: CachePreparationService,
+        attachEnvironment: ClientDriverAttachEnvironment? = null,
     ): PreparedClientRuntime {
         val cache =
             cachePreparationService
@@ -53,7 +54,7 @@ class WorkspaceClientRuntimeDriverFactory(
                     ),
                 ).withConfiguredDriverMod(request.loader)
         val files = request.instanceFiles()
-        val launch = launcher.launch(request, cache, files, root)
+        val launch = launcher.launch(request, cache, files, root, attachEnvironment)
         return PreparedClientRuntime(
             request = request,
             prepared = cache,
@@ -96,6 +97,16 @@ class WorkspaceClientRuntimeDriverFactory(
     }
 }
 
+data class ClientDriverAttachEnvironment(
+    val clientId: String,
+    val daemonUrl: String,
+) {
+    init {
+        require(clientId.isNotBlank()) { "attach client id must not be blank" }
+        require(daemonUrl.isNotBlank()) { "attach daemon url must not be blank" }
+    }
+}
+
 fun interface ClientRuntimeDriverModProvider {
     fun modFor(loader: Loader): Path?
 }
@@ -124,6 +135,7 @@ interface ClientRuntimeLauncher {
         prepared: CachePrepareResult,
         files: InstanceFiles,
         workspaceRoot: Path,
+        attachEnvironment: ClientDriverAttachEnvironment? = null,
     ): ClientRuntimeLaunch
 }
 
@@ -152,18 +164,23 @@ class ProcessClientRuntimeLauncher : ClientRuntimeLauncher {
         prepared: CachePrepareResult,
         files: InstanceFiles,
         workspaceRoot: Path,
+        attachEnvironment: ClientDriverAttachEnvironment?,
     ): ClientRuntimeLaunch {
         materializeLaunchMods(prepared.launch, files, workspaceRoot)
         val command = launchCommand(request, prepared.launch, files, workspaceRoot)
         val logs = workspaceRoot.resolve(files.logs).normalize()
         Files.createDirectories(logs)
         val log = logs.resolve("client.log")
-        val process =
+        val processBuilder =
             ProcessBuilder(command)
                 .directory(workspaceRoot.toFile())
                 .redirectErrorStream(true)
                 .redirectOutput(ProcessBuilder.Redirect.appendTo(log.toFile()))
-                .start()
+        attachEnvironment?.let { environment ->
+            processBuilder.environment()[CRAFTLESS_CLIENT_ID] = environment.clientId
+            processBuilder.environment()[CRAFTLESS_DAEMON_URL] = environment.daemonUrl
+        }
+        val process = processBuilder.start()
         return ClientRuntimeLaunch(
             status = ClientRuntimeLaunchStatus.LAUNCHED,
             pid = process.pid(),
@@ -356,5 +373,7 @@ private fun String.resolveClientLaunchVariables(variables: Map<String, String>):
 private val launcherJson = Json { ignoreUnknownKeys = true }
 
 private const val PROCESS_STOP_TIMEOUT_SECONDS = 2L
+private const val CRAFTLESS_CLIENT_ID = "CRAFTLESS_CLIENT_ID"
+private const val CRAFTLESS_DAEMON_URL = "CRAFTLESS_DAEMON_URL"
 
 private val CLIENT_LAUNCH_VARIABLE_PATTERN = Regex("""\{\{([^}]+)}}""")

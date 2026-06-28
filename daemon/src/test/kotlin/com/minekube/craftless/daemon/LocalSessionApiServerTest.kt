@@ -470,6 +470,8 @@ class LocalSessionApiServerTest {
                     assertEquals(ClientState.RUNNING, client.state)
                     assertEquals(listOf("alice"), launcher.launches.map { it.clientId })
                     val launch = launcher.launches.single()
+                    assertEquals("alice", launch.attachEnvironment?.clientId)
+                    assertEquals(server.url(""), launch.attachEnvironment?.daemonUrl)
                     assertEquals("cache/prepared/1.21.6-fabric-0.17.2.json", launch.prepared.manifest)
                     assertEquals("cache/prepared/1.21.6-fabric-0.17.2.launch.json", launch.launch.arguments)
                     assertTrue(launch.launch.classpath.any { it.endsWith("client.jar") })
@@ -535,6 +537,8 @@ class LocalSessionApiServerTest {
     fun `process client runtime launcher starts prepared command`() {
         val workspace = Files.createTempDirectory("craftless-process-client-runtime")
         val marker = workspace.resolve("launched.txt")
+        val attachClientIdMarker = workspace.resolve("attach-client-id.txt")
+        val attachDaemonUrlMarker = workspace.resolve("attach-daemon-url.txt")
         val javaExecutable = workspace.resolve("cache/runtimes/java-runtime-gamma/image/bin/java")
         Files.createDirectories(javaExecutable.parent)
         Files.writeString(
@@ -542,6 +546,8 @@ class LocalSessionApiServerTest {
             """
             #!/usr/bin/env sh
             echo "${'$'}@" > "$marker"
+            echo "${'$'}CRAFTLESS_CLIENT_ID" > "$attachClientIdMarker"
+            echo "${'$'}CRAFTLESS_DAEMON_URL" > "$attachDaemonUrlMarker"
             """.trimIndent(),
         )
         javaExecutable.toFile().setExecutable(true, true)
@@ -609,6 +615,11 @@ class LocalSessionApiServerTest {
                     ),
                 files = InstanceFiles.forInstance("alice-1.21.6-fabric"),
                 workspaceRoot = workspace,
+                attachEnvironment =
+                    ClientDriverAttachEnvironment(
+                        clientId = "alice",
+                        daemonUrl = "http://127.0.0.1:12345",
+                    ),
             )
 
         assertEquals(ClientRuntimeLaunchStatus.LAUNCHED, launch.status)
@@ -629,6 +640,10 @@ class LocalSessionApiServerTest {
         assertTrue(invoked.contains("--launcherName craftless"))
         assertTrue(invoked.contains("--launcherVersion 0"))
         assertTrue(invoked.contains("--quickPlayPath instances/alice-1.21.6-fabric/minecraft/quickplay"))
+        assertTrue(waitForRegularFile(attachClientIdMarker))
+        assertTrue(waitForRegularFile(attachDaemonUrlMarker))
+        assertEquals("alice", Files.readString(attachClientIdMarker).trim())
+        assertEquals("http://127.0.0.1:12345", Files.readString(attachDaemonUrlMarker).trim())
         val materializedFabricApi =
             workspace.resolve("instances/alice-1.21.6-fabric/minecraft/mods/fabric-api.jar")
         assertEquals("fabric-api-jar", Files.readString(materializedFabricApi))
@@ -1855,6 +1870,7 @@ private data class RecordedClientRuntimeLaunch(
     val prepared: CachePrepareResult,
     val launch: CacheLaunchPlan,
     val files: InstanceFiles,
+    val attachEnvironment: ClientDriverAttachEnvironment?,
 )
 
 private class RemoteDriverEndpoint(
@@ -1970,6 +1986,7 @@ private class RecordingClientRuntimeLauncher : ClientRuntimeLauncher {
         prepared: CachePrepareResult,
         files: InstanceFiles,
         workspaceRoot: Path,
+        attachEnvironment: ClientDriverAttachEnvironment?,
     ): ClientRuntimeLaunch {
         launches +=
             RecordedClientRuntimeLaunch(
@@ -1977,6 +1994,7 @@ private class RecordingClientRuntimeLauncher : ClientRuntimeLauncher {
                 prepared = prepared,
                 launch = prepared.launch,
                 files = files,
+                attachEnvironment = attachEnvironment,
             )
         return ClientRuntimeLaunch(status = ClientRuntimeLaunchStatus.LAUNCHED, pid = 1234)
     }
