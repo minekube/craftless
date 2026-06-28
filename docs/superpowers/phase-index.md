@@ -60,6 +60,7 @@ not grow with every completed phase.
 - Phase 175: bootstrap resource derivation.
 - Phase 176: bootstrap adapter key separation.
 - Phase 177: client-state operation discovery.
+- Phase 178: static gameplay guard closure.
 
 ## Current Direction
 
@@ -107,6 +108,12 @@ runtime graph projection and backend execution-adapter registration.
 `world.time.query` now comes from Fabric client-state discovery instead of the
 bootstrap operation definition list. The node carries `client-state` source
 evidence while the private execution adapter remains unchanged.
+CL-02 is now closed in the active completion checklist. CL-02f has concrete
+policy coverage for static gameplay regressions:
+private Fabric execution adapters cannot own public operation id literals or
+schemas, production CLI/daemon sources cannot own static gameplay catalogs or
+alias route families, scenario shortcut ids remain rejected, and daemon event
+normalization cannot synthesize gameplay action ids.
 Continue by moving official 26.x support through shared Fabric
 discovery/projection/invocation, packaging, adaptive CLI/API smoke, and honest
 gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the

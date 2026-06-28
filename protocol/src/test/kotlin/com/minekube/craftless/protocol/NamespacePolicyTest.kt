@@ -315,13 +315,13 @@ class NamespacePolicyTest {
     }
 
     @Test
-    fun `private fabric gameplay bindings are limited to bootstrap operation id references`() {
+    fun `private fabric execution adapters are limited to discovered operation id references`() {
         val root = repositoryRoot()
         val allowlistPath = root.resolve("docs/architecture/transitional-fabric-action-allowlist.txt")
-        val actionBindings =
+        val executionAdapters =
             Files.readString(
                 root.resolve(
-                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricActionBindings.kt",
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricExecutionAdapters.kt",
                 ),
             )
         val bootstrapDefinitions =
@@ -330,9 +330,15 @@ class NamespacePolicyTest {
                     "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricBootstrapOperationDefinitions.kt",
                 ),
             )
-        val bindingOperationConstants =
+        val capabilityProbe =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricCapabilityProbe.kt",
+                ),
+            )
+        val executionAdapterOperationConstants =
             Regex("""operationId(?:\s*:\s*String)?\s*=\s*FabricBootstrapOperationIds\.([A-Z0-9_]+)""")
-                .findAll(actionBindings)
+                .findAll(executionAdapters)
                 .map { match -> match.groupValues[1] }
                 .distinct()
                 .sorted()
@@ -344,40 +350,49 @@ class NamespacePolicyTest {
                 .distinct()
                 .sorted()
                 .toSet()
-        val bindingOperationIdLiterals =
+        val discoveredOperationConstants =
+            Regex("""id\s*=\s*FabricBootstrapOperationIds\.([A-Z0-9_]+)""")
+                .findAll(capabilityProbe)
+                .map { match -> match.groupValues[1] }
+                .distinct()
+                .sorted()
+                .toSet()
+        val graphOperationConstants = bootstrapDefinitionConstants + discoveredOperationConstants
+        val executionAdapterOperationIdLiterals =
             Regex("""operationId(?:\s*:\s*String)?\s*=\s*"([a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)*)"""")
-                .findAll(actionBindings)
+                .findAll(executionAdapters)
                 .map { match -> match.groupValues[1] }
                 .distinct()
                 .sorted()
                 .toList()
 
         assertTrue(
-            bindingOperationIdLiterals.isEmpty(),
-            "Private Fabric gameplay bindings must reference bootstrap operation ids instead of owning literals:\n" +
-                bindingOperationIdLiterals.joinToString("\n"),
+            executionAdapterOperationIdLiterals.isEmpty(),
+            "Private Fabric execution adapters must reference discovered operation id constants instead of owning literals:\n" +
+                executionAdapterOperationIdLiterals.joinToString("\n"),
         )
         assertTrue(
             !Files.exists(allowlistPath),
             "The deleted transitional Fabric action allowlist must not be recreated.",
         )
         assertTrue(
-            bindingOperationConstants.isNotEmpty(),
-            "Private Fabric gameplay bindings must reference FabricBootstrapOperationIds constants.",
+            executionAdapterOperationConstants.isNotEmpty(),
+            "Private Fabric execution adapters must reference FabricBootstrapOperationIds constants.",
         )
         assertTrue(
-            bootstrapDefinitionConstants.containsAll(bindingOperationConstants),
-            "Private Fabric binding operation constants must be represented by bootstrap operation definitions.\n" +
-                "bindingConstants=$bindingOperationConstants\n" +
-                "definitionConstants=${bootstrapDefinitionConstants.sorted()}",
+            graphOperationConstants.containsAll(executionAdapterOperationConstants),
+            "Private Fabric execution adapter operation constants must be represented by runtime graph operation sources.\n" +
+                "adapterConstants=$executionAdapterOperationConstants\n" +
+                "bootstrapDefinitionConstants=${bootstrapDefinitionConstants.sorted()}\n" +
+                "discoveredOperationConstants=${discoveredOperationConstants.sorted()}",
         )
         assertTrue(
-            actionBindings.contains("FabricBootstrapOperationIds."),
-            "Private Fabric gameplay bindings must reference FabricBootstrapOperationIds constants.",
+            executionAdapters.contains("FabricBootstrapOperationIds."),
+            "Private Fabric execution adapters must reference FabricBootstrapOperationIds constants.",
         )
         assertTrue(
-            "DriverActionDescriptor" !in actionBindings && "DriverActionArgument" !in actionBindings,
-            "Private Fabric gameplay bindings must not own public descriptors or schemas.",
+            "DriverActionDescriptor" !in executionAdapters && "DriverActionArgument" !in executionAdapters,
+            "Private Fabric execution adapters must not own public descriptors or schemas.",
         )
     }
 
@@ -400,6 +415,47 @@ class NamespacePolicyTest {
             forbidden.isEmpty(),
             "Daemon live event normalization must not synthesize gameplay action ids:\n" +
                 forbidden.joinToString("\n"),
+        )
+    }
+
+    @Test
+    fun `adaptive cli and daemon production sources do not own static gameplay catalogs`() {
+        val root = repositoryRoot()
+        val forbiddenGameplayLiterals =
+            listOf(
+                "player.chat",
+                "player.move",
+                "world.block.break",
+                "world.block.interact",
+                "inventory.query",
+                "inventory.equip",
+                "entity.attack",
+                "recipe.craft",
+                "navigation.plan",
+                "navigation.follow",
+                "/player:chat",
+                "/player:move",
+                "/world:block",
+                "find.tree",
+                "craft.sword",
+                "kill.cow",
+                "task.survival",
+            )
+        val violations =
+            repositoryContentViolations(
+                include = { path ->
+                    val relative = root.relativize(path).pathString
+                    (relative.startsWith("cli/src/main/kotlin/") || relative.startsWith("daemon/src/main/kotlin/")) &&
+                        relative.endsWith(".kt")
+                },
+            ) { contents ->
+                forbiddenGameplayLiterals.any(contents::contains)
+            }
+
+        assertTrue(
+            violations.isEmpty(),
+            "Production CLI and daemon sources must not own static gameplay command catalogs or alias route families:\n" +
+                violations.joinToString("\n"),
         )
     }
 

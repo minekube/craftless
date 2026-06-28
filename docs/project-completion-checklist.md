@@ -23,6 +23,22 @@ blocked.
 
 ## Active Completion Board
 
+### Next Exact Work
+
+Work these packets in order. Each packet closes only with a spec, plan,
+evidence file, focused regression test, and local verification command.
+
+1. [x] Finish CL-02f guard coverage so static gameplay APIs cannot creep back
+   into Fabric, daemon routes, CLI help/commands, protocol descriptors, or
+   public-agent scenarios.
+2. [~] Finish CL-03 latest/current lane as a real packaged product lane.
+3. [ ] Finish CL-04 representative older lane through the same public gates.
+4. [ ] Finish CL-05 external-user usability: README, Docker runtime smoke,
+   install script smoke, reusable GitHub Action docs, and agent skill docs.
+5. [ ] Run CL-06 local release-quality gates.
+6. [ ] Run CL-07 final honest gameplay through public API/CLI only.
+7. [ ] Publish CL-08 with clean tree and pushed `main`.
+
 ### Completion Rules
 
 - Close items in order unless a later item is a pure documentation or guardrail
@@ -35,6 +51,8 @@ blocked.
 - Latest/current and representative older lanes must pass the same public
   API/CLI gates. A diagnostic probe or explicit unsupported result is useful
   evidence, but not completion evidence.
+- If an item cannot be honestly closed, split it into smaller named sub-gates
+  here instead of burying uncertainty in phase history.
 
 ### Open Work Queue
 
@@ -50,12 +68,12 @@ checked and the named evidence file exists.
    `docs/superpowers/evidence/2026-06-28-remote-driver-action-graph-authority.md`,
    `docs/superpowers/evidence/2026-06-28-public-agent-actions-projection-optional.md`.
 
-2. [~] CL-02: Exit transitional Fabric bootstrap/catalog design.
+2. [x] CL-02: Exit transitional Fabric bootstrap/catalog design.
    Done means Fabric gameplay breadth is represented as discovered runtime
    graph affordances plus private execution adapters. The bootstrap path may
    remain only as a narrow compatibility seed while discovery is incomplete;
    it must not be the public gameplay catalog or a template for adding new
-   actions.
+   actions. Closed by Phases 171-178.
 
    Sub-gates:
    - [x] CL-02a: Public consumers do not require descriptor/action-list
@@ -80,17 +98,40 @@ checked and the named evidence file exists.
      world/entity/inventory/client state, permissions, server features, or
      installed mods. Evidence:
      `docs/superpowers/evidence/2026-06-28-client-state-operation-discovery.md`.
-   - [ ] CL-02f: Architecture guards reject new hand-maintained public
-     gameplay descriptors, descriptor/binding pairs, static CLI gameplay
-     commands, static alias route families, and scenario shortcut actions.
+   - [x] CL-02f: Architecture guards reject new static gameplay surfaces.
+
+     Guard sub-gates:
+     - [x] CL-02f.1: Public OpenAPI/runtime graph policy rejects scenario
+       shortcut action ids such as `find.tree`, `craft.sword`, `kill.cow`,
+       `task.*`, and similar acceptance-scenario APIs. Existing evidence:
+       protocol namespace policy test.
+     - [x] CL-02f.2: Private Fabric execution adapters cannot own public
+       operation id string literals, public descriptors, or public schemas;
+       they must reference operation ids represented by runtime graph sources.
+       Evidence in progress: Phase 178 protocol guard.
+     - [x] CL-02f.3: Production CLI source rejects static gameplay command
+       catalogs. The CLI may own lifecycle/config/discovery/generic dispatch,
+       but gameplay help and invocation must be adaptive from live OpenAPI or
+       `/actions` projection metadata. Evidence in progress: Phase 178
+       production-source policy guard.
+     - [x] CL-02f.4: Production daemon source rejects static gameplay alias
+       route families. Per-client aliases must be generated from the
+       per-client OpenAPI document, not handwritten route lists. Evidence in
+       progress: Phase 178 production-source policy guard.
+     - [x] CL-02f.5: Daemon live-event normalization does not synthesize
+       gameplay action ids from event fallback types. Existing evidence:
+       protocol namespace policy test.
+     - [x] CL-02f.6: Final CL-02 evidence file names each CL-02 sub-gate,
+       links the exact tests/source scans, and records
+       `mise run architecture-check` plus `git diff --check`.
 
    Must not count: adding another `player.*`, `world.*`, `inventory.*`,
    `entity.*`, `recipe.*`, `navigation.*`, or `task.*` descriptor by hand,
    even if it has a real Fabric implementation.
 
    Evidence required:
-   `docs/superpowers/evidence/2026-06-28-fabric-bootstrap-catalog-exit.md`
-   or successor evidence naming each closed CL-02 sub-gate.
+   successor evidence naming each closed CL-02 sub-gate:
+   `docs/superpowers/evidence/2026-06-28-static-gameplay-guard-closure.md`.
 
    Suggested commands:
    `mise exec -- gradle :protocol:test :driver-api:test :driver-fabric-discovery:test :driver-fabric:test`,
@@ -162,9 +203,9 @@ checked and the named evidence file exists.
      image, reusable GitHub Action, stable supervisor OpenAPI, generated
      per-client OpenAPI, adaptive CLI, SSE, JSON-RPC query/subscription,
      caching/fingerprints, and evidence expectations.
-   - [ ] CL-05b: README and docs contain no active TypeScript SDK, Craftwright,
-     `.dev`, HMC-as-final-driver, static gameplay SDK, or server-cheat
-     completion wording.
+   - [ ] CL-05b: README and docs contain no active TypeScript SDK, previous
+     brand name, `.dev`, HMC-as-final-driver, static gameplay SDK, or
+     server-cheat completion wording.
    - [ ] CL-05c: CLI help/examples are generated or adaptive where gameplay is
      involved and match real command/API shapes.
    - [ ] CL-05d: Docker runtime smoke proves the image uses a copied packaged
