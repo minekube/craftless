@@ -1172,6 +1172,31 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric backend does not own bootstrap operation id guard literals`() {
+        val root = repositoryRoot()
+        val source =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverBackend.kt",
+                ),
+            )
+        val forbidden =
+            listOf(
+                "\"entity.query\"",
+                "\"entity.attack\"",
+                "\"world.block.query\"",
+                "\"recipe.query\"",
+                "\"recipe.craft\"",
+            )
+
+        assertEquals(
+            emptyList(),
+            forbidden.filter { token -> source.contains(token) },
+            "Private Fabric backend adapter guards must reference bootstrap operation id constants.",
+        )
+    }
+
+    @Test
     fun `fabric backend can expose unavailable actions only from runtime discovery probes`() {
         val backend = FabricDriverBackend.metadataOnly()
 

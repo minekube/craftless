@@ -180,6 +180,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-86-fabric-adapter-key-source-ownership-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-86-fabric-adapter-key-source-ownership-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-87-backend-operation-id-source-ownership-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-87-backend-operation-id-source-ownership-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -2774,6 +2778,33 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-fabric-adapter-key-source-ownership.md`.
 
+## Phase 87: Backend Operation Id Source Ownership
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-87-backend-operation-id-source-ownership-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-87-backend-operation-id-source-ownership-plan.md`.
+- [x] `FabricDriverBackend.kt` guards entity, block-query, and recipe adapters
+  with `FabricBootstrapOperationIds` constants instead of duplicated bootstrap
+  operation-id literals.
+- [x] Existing graph-owned invocation tests still cover private adapter
+  dispatch.
+- [~] The broader binding-exit blocker remains active until future gameplay
+  breadth is generated from generic runtime discovery instead of
+  hand-maintained bootstrap operation definitions.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
+  lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Red guard:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend does not own bootstrap operation id guard literals*'`
+- Green focused tests:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend does not own bootstrap operation id guard literals*' --tests '*FabricDriverModuleTest.fabric backend exposes bootstrap bindings as graph operation adapters*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-backend-operation-id-source-ownership.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -2783,7 +2814,8 @@ Verification:
   Phase 81 HMC bridge gameplay removal, and Phase 82 README public entrypoint
   overhaul, Phase 83 Fabric binding descriptor removal, and Phase 84 bootstrap
   operation definition isolation, and Phase 85 binding operation id source
-  ownership, and Phase 86 Fabric adapter key source ownership.
+  ownership, Phase 86 Fabric adapter key source ownership, and Phase 87 backend
+  operation id source ownership.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest and representative older runtime lanes have the requested support or

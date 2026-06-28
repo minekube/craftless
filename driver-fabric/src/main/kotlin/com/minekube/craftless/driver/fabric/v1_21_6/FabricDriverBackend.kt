@@ -233,7 +233,7 @@ class FabricDriverBackend private constructor(
 
     private fun entityQueryOperationAdapter(): DriverOperationAdapter =
         DriverOperationAdapter { invocation ->
-            if (invocation.operation.id != "entity.query") {
+            if (invocation.operation.id != FabricBootstrapOperationIds.ENTITY_QUERY) {
                 return@DriverOperationAdapter unsupportedGraphOperation(invocation)
             }
             queryEntities(invocation)
@@ -241,7 +241,7 @@ class FabricDriverBackend private constructor(
 
     private fun entityAttackOperationAdapter(): DriverOperationAdapter =
         DriverOperationAdapter { invocation ->
-            if (invocation.operation.id != "entity.attack") {
+            if (invocation.operation.id != FabricBootstrapOperationIds.ENTITY_ATTACK) {
                 return@DriverOperationAdapter unsupportedGraphOperation(invocation)
             }
             attackEntity(invocation)
@@ -249,7 +249,7 @@ class FabricDriverBackend private constructor(
 
     private fun blockQueryOperationAdapter(): DriverOperationAdapter =
         DriverOperationAdapter { invocation ->
-            if (invocation.operation.id != "world.block.query") {
+            if (invocation.operation.id != FabricBootstrapOperationIds.WORLD_BLOCK_QUERY) {
                 return@DriverOperationAdapter unsupportedGraphOperation(invocation)
             }
             queryBlocks(invocation)
@@ -257,7 +257,7 @@ class FabricDriverBackend private constructor(
 
     private fun recipeQueryOperationAdapter(): DriverOperationAdapter =
         DriverOperationAdapter { invocation ->
-            if (invocation.operation.id != "recipe.query") {
+            if (invocation.operation.id != FabricBootstrapOperationIds.RECIPE_QUERY) {
                 return@DriverOperationAdapter unsupportedGraphOperation(invocation)
             }
             queryRecipes(invocation)
@@ -265,7 +265,7 @@ class FabricDriverBackend private constructor(
 
     private fun recipeCraftOperationAdapter(): DriverOperationAdapter =
         DriverOperationAdapter { invocation ->
-            if (invocation.operation.id != "recipe.craft") {
+            if (invocation.operation.id != FabricBootstrapOperationIds.RECIPE_CRAFT) {
                 return@DriverOperationAdapter unsupportedGraphOperation(invocation)
             }
             craftRecipe(invocation)
