@@ -116,7 +116,7 @@
 **Files:**
 - All modified files from Tasks 1-3
 
-- [ ] **Step 1: Commit and push**
+- [x] **Step 1: Commit and push**
 
   ```sh
   git add AGENTS.md docs/project-completion-checklist.md docs/superpowers/specs/2026-06-28-95-launch-mod-materialization-design.md docs/superpowers/plans/2026-06-28-95-launch-mod-materialization-plan.md docs/superpowers/evidence/2026-06-28-launch-mod-materialization.md daemon/src/main/kotlin/com/minekube/craftless/daemon/WorkspaceClientRuntimeDriverFactory.kt daemon/src/test/kotlin/com/minekube/craftless/daemon/LocalSessionApiServerTest.kt

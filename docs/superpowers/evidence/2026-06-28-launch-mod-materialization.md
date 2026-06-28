@@ -33,6 +33,10 @@ compiled lane or claiming new Minecraft client support.
 Not waited on during active development. Local forced CI is the working gate;
 remote CI may continue in the background after push.
 
+## Push Evidence
+
+- `1d5630d daemon: materialize launch mods` pushed to `origin/main`.
+
 ## Notes
 
 - This phase does not add latest/current or older-version support by itself.
