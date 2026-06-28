@@ -220,6 +220,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 107. version-aware driver mod selection.
 108. driver mod manifest provider.
 109. packaged driver mod manifest.
+110. strict Fabric runtime lane identity.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -828,6 +829,13 @@ single `CRAFTLESS_FABRIC_DRIVER_MOD` jar fallback retained for compatibility.
 This is distribution/runtime plumbing only; it must not add new compiled
 lanes, gameplay descriptors, static route families, scenario shortcuts, or
 version support claims.
+Phase 110 requires Fabric compatibility lanes to match the full runtime
+identity: Minecraft version, Fabric Loader version, Fabric API version, and
+mappings fingerprint. Same-game-version runtime drift must resolve to an
+unsupported lane with a machine-readable reason instead of selecting a
+provider. This prevents false support claims only; it must not add compiled
+lanes, gameplay descriptors, static route families, scenario shortcuts, or
+latest/older support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

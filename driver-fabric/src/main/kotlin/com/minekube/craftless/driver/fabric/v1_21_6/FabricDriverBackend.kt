@@ -1554,7 +1554,7 @@ internal fun interface FabricRuntimeMetadataProvider {
 private fun staticFabricRuntimeMetadataProvider(): FabricRuntimeMetadataProvider =
     FabricRuntimeMetadataProvider {
         DriverRuntimeMetadata(
-            loaderVersion = "unknown",
+            loaderVersion = FabricCompiledLaneMetadata.LOADER_VERSION,
             driver = FABRIC_DRIVER_ID,
             driverVersion = FABRIC_DRIVER_VERSION,
             mappings = FabricCompiledLaneMetadata.MAPPINGS_FINGERPRINT,

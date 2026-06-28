@@ -3453,6 +3453,31 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-packaged-driver-mod-manifest.md`.
 
+## Phase 110: Strict Fabric Runtime Lane Identity
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-110-strict-fabric-runtime-lane-identity-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-110-strict-fabric-runtime-lane-identity-plan.md`.
+- [x] Supported Fabric compatibility lanes now require exact runtime identity:
+  Minecraft game version, Fabric Loader version, Fabric API version, and
+  mappings fingerprint.
+- [x] Same-game-version runtime drift resolves to an unsupported lane with
+  reason `unsupported-runtime-identity`.
+- [x] Unknown Minecraft versions continue to resolve to `unsupported-version`.
+- [x] Provider selection returns null for mismatched runtime identity.
+- [x] This phase adds no new compiled Fabric lane, public gameplay action,
+  generated route family, CLI gameplay catalog, Fabric gameplay binding,
+  scenario shortcut, public version-specific API, runnable latest/older lane,
+  or new Minecraft support claim.
+
+Verification:
+
+- Red/green guard:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricCompatibilityMatrixTest*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-strict-fabric-runtime-lane-identity.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3477,8 +3502,9 @@ Verification:
   evidence, Phase 105 active unsupported lane fixture cleanup, and Phase 106
   explicit unused/dead-code gates, and Phase 107 version-aware driver mod
   selection, and Phase 108 driver mod manifest provider, and Phase 109
-  packaged driver mod manifest. Phase 105, Phase 107, Phase 108, and Phase 109
-  do not satisfy the runnable latest/older support requirement by themselves.
+  packaged driver mod manifest, and Phase 110 strict Fabric runtime lane
+  identity. Phase 105, Phase 107, Phase 108, Phase 109, and Phase 110 do not
+  satisfy the runnable latest/older support requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

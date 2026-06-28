@@ -39,7 +39,7 @@ class FabricCurrentLaneRuntimeProviderTest {
             gameVersion = FabricCompiledLaneMetadata.MINECRAFT_VERSION,
             loaderVersion = FabricCompiledLaneMetadata.LOADER_VERSION,
             fabricApiVersion = FabricCompiledLaneMetadata.FABRIC_API_VERSION,
-            mappingsFingerprint = "mappings:current-lane",
+            mappingsFingerprint = FabricCompiledLaneMetadata.MAPPINGS_FINGERPRINT,
             installedModsFingerprint = "mods:current-lane",
             registryFingerprint = "registries:current-lane",
             serverFeatureFingerprint = "server-features:local",

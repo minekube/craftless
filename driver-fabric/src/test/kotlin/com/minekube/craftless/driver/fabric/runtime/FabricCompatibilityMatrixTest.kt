@@ -3,6 +3,7 @@ package com.minekube.craftless.driver.fabric.runtime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class FabricCompatibilityMatrixTest {
@@ -61,6 +62,39 @@ class FabricCompatibilityMatrixTest {
         assertEquals(FabricCompatibilityStatus.UNSUPPORTED, lane.status)
         assertEquals("unsupported-version", lane.unsupportedReason)
         assertTrue(lane.id.startsWith("fabric-unsupported-"))
+    }
+
+    @Test
+    fun `matrix rejects same game version with mismatched runtime identity`() {
+        val matrix = defaultFabricCompatibilityMatrix()
+        val mismatched =
+            currentLaneIdentity().copy(
+                loaderVersion = "0.0.0-test-loader",
+                fabricApiVersion = "0.0.0-test-api",
+                mappingsFingerprint = "test-mappings-drift",
+            )
+
+        val lane = matrix.resolve(mismatched)
+
+        assertEquals(FabricCompatibilityStatus.UNSUPPORTED, lane.status)
+        assertEquals("unsupported-runtime-identity", lane.unsupportedReason)
+        assertEquals("fabric-unsupported", lane.providerId)
+    }
+
+    @Test
+    fun `matrix does not select provider for mismatched runtime identity`() {
+        val matrix = defaultFabricCompatibilityMatrix()
+        val provider = TestProvider("fabric-current-lane")
+        val mismatched =
+            currentLaneIdentity().copy(
+                loaderVersion = "0.0.0-test-loader",
+                fabricApiVersion = "0.0.0-test-api",
+                mappingsFingerprint = "test-mappings-drift",
+            )
+
+        val selection = matrix.selectProvider(mismatched, listOf(provider))
+
+        assertNull(selection)
     }
 
     @Test

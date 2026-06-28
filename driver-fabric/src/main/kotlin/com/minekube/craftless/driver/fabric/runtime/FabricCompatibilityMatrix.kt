@@ -12,7 +12,11 @@ internal data class FabricCompatibilityMatrix(
 
     fun resolve(identity: FabricRuntimeIdentity): FabricCompatibilityLane =
         lanes.firstOrNull { lane -> lane.matches(identity) }
-            ?: FabricCompatibilityLane.unsupported(identity.gameVersion)
+            ?: if (lanes.any { lane -> lane.gameVersion == identity.gameVersion }) {
+                FabricCompatibilityLane.unsupportedRuntimeIdentity(identity)
+            } else {
+                FabricCompatibilityLane.unsupportedVersion(identity.gameVersion)
+            }
 
     fun selectProvider(
         identity: FabricRuntimeIdentity,
@@ -64,7 +68,11 @@ internal data class FabricCompatibilityLane(
         }
     }
 
-    fun matches(identity: FabricRuntimeIdentity): Boolean = identity.gameVersion == gameVersion
+    fun matches(identity: FabricRuntimeIdentity): Boolean =
+        identity.gameVersion == gameVersion &&
+            identity.loaderVersion == loaderVersion &&
+            identity.fabricApiVersion == fabricApiVersion &&
+            identity.mappingsFingerprint == mappingsFingerprint
 
     fun sourceEvidence(): List<RuntimeSourceEvidence> =
         listOfNotNull(
@@ -76,7 +84,7 @@ internal data class FabricCompatibilityLane(
         )
 
     companion object {
-        fun unsupported(gameVersion: String): FabricCompatibilityLane =
+        fun unsupportedVersion(gameVersion: String): FabricCompatibilityLane =
             FabricCompatibilityLane(
                 id = "fabric-unsupported-${gameVersion.machineSuffix()}",
                 status = FabricCompatibilityStatus.UNSUPPORTED,
@@ -87,6 +95,19 @@ internal data class FabricCompatibilityLane(
                 mappingsFingerprint = "none",
                 providerId = "fabric-unsupported",
                 unsupportedReason = "unsupported-version",
+            )
+
+        fun unsupportedRuntimeIdentity(identity: FabricRuntimeIdentity): FabricCompatibilityLane =
+            FabricCompatibilityLane(
+                id = "fabric-unsupported-runtime-${identity.gameVersion.machineSuffix()}",
+                status = FabricCompatibilityStatus.UNSUPPORTED,
+                gameVersion = identity.gameVersion,
+                loaderVersion = identity.loaderVersion,
+                fabricApiVersion = identity.fabricApiVersion,
+                javaMajorVersion = 1,
+                mappingsFingerprint = identity.mappingsFingerprint,
+                providerId = "fabric-unsupported",
+                unsupportedReason = "unsupported-runtime-identity",
             )
     }
 }

@@ -157,10 +157,10 @@ class FabricRuntimeProviderTest {
 
     private fun currentLaneIdentity(): FabricRuntimeIdentity =
         FabricRuntimeIdentity(
-            gameVersion = "1.21.6",
-            loaderVersion = "0.19.3",
-            fabricApiVersion = "0.128.2+1.21.6",
-            mappingsFingerprint = "mappings:current-lane",
+            gameVersion = FabricCompiledLaneMetadata.MINECRAFT_VERSION,
+            loaderVersion = FabricCompiledLaneMetadata.LOADER_VERSION,
+            fabricApiVersion = FabricCompiledLaneMetadata.FABRIC_API_VERSION,
+            mappingsFingerprint = FabricCompiledLaneMetadata.MAPPINGS_FINGERPRINT,
             installedModsFingerprint = "mods:current-lane",
             registryFingerprint = "registries:current-lane",
             serverFeatureFingerprint = "server-features:local",
