@@ -1,466 +1,131 @@
 # Craftless Project Completion Checklist
 
-This is the active completion red line. Craftless is not complete until every
-unchecked item below is checked with Codex-verifiable evidence. Human
-Minecraft chat confirmation is optional diagnostic evidence and is not required
-for completion.
+This file is the active completion red line. Craftless is complete only when
+the board below has no unchecked items and the final gate evidence is fresh.
+Human Minecraft chat confirmation is optional diagnostic evidence and is not a
+completion dependency.
 
-Legend:
+Legend: `[ ]` not done, `[~]` in progress, `[x]` done with evidence, `[!]`
+blocked.
 
-- `[ ]` not done
-- `[~]` in progress
-- `[x]` done with evidence
-- `[!]` blocked
+## How To Use This File
+
+- Start with the Active Completion Board. It is the source of truth for what
+  remains.
+- Keep this file short at the top. Put phase history in the phase sections,
+  raw logs in `docs/superpowers/evidence/`, and durable rules in
+  `docs/agent-operating-contract.md` or `docs/agent-module-contracts.md`.
+- Do not mark completion while public gameplay breadth still depends on
+  hand-maintained action catalogs, descriptor/binding pairs, scenario
+  shortcuts, or one-version-only driver behavior.
+- When a gate closes, link the exact phase/evidence file and name the command
+  that proved it. Do not rely on memory, intent, or remote CI waiting.
 
 ## Active Completion Board
 
-This board is the source of truth for what remains. Keep it short, dependency
-ordered, and evidence driven. Put phase history in the phase sections below
-and put raw logs in `docs/superpowers/evidence/`.
+### Current Slice
 
-Do not mark Craftless complete while public gameplay breadth still depends on
-hand-maintained action catalogs, descriptor/binding pairs, scenario shortcuts,
-or one-version-only driver behavior.
+- [~] Phase 171: daemon OpenAPI/action/resource authority must be graph-only.
+  Remaining work: finish the uncommitted regression slice, add spec/plan and
+  evidence, run focused daemon tests plus local gates, commit, and push.
 
-### 0. Current Slice
+### Next Critical Path
 
-- [~] Phase 170: active docs and agent-onboarding alignment.
-  README now has an explicit external-agent workflow that treats generated
-  per-client OpenAPI as authority, uses `/actions` and `/resources` as
-  projection evidence, requires SSE/public-state evidence, and rejects
-  server-provisioned inventory, internals, and scenario actions as product
-  proof. Closure evidence: this checklist update is included in the Phase 170
-  commit pushed to `main`.
+1. [~] Close Phase 171.
+   - Public daemon OpenAPI must be generated from `runtimeGraph()`.
+   - Descriptor-only `DriverSession.actions()` must not publish public
+     OpenAPI actions, resources, aliases, routes, CLI metadata, or agent tool
+     metadata.
+   - Evidence required: red/green descriptor-only daemon regression, focused
+     `:daemon:test`, architecture check, and local CI or a documented smaller
+     gate if CI is temporarily blocked.
+2. [ ] Finish binding exit.
+   - New gameplay breadth must come from generic Fabric discovery/projection:
+     reflection, mappings, registries, callbacks, screens, handlers, world,
+     entity, inventory, client state, permissions, and installed mods.
+   - No new public gameplay action may be added by writing a descriptor plus a
+     binding pair directly.
+   - Evidence required: guardrail tests that fail on hand-maintained public
+     gameplay descriptors, plus Fabric lane code that exposes graph nodes and
+     executable adapters instead of copied public catalogs.
+3. [ ] Land real latest/current lane support.
+   - Latest/current official lane must be packaged and selected by the normal
+     supervisor/CLI path.
+   - Evidence required: launch, self-attach, generated OpenAPI/actions/resources,
+     SSE, JSON-RPC query/subscription, CLI smoke, and public gameplay artifact.
+4. [ ] Land representative older lane support under the same gates.
+   - The older lane cannot be accepted as a weaker diagnostic path.
+   - Evidence required: the same gate set as latest/current, including final
+     public API/CLI gameplay.
+5. [ ] Make transport and generated-client docs complete.
+   - README/docs must show generated OpenAPI plus SSE/JSON-RPC usage without
+     implying a fixed gameplay catalog.
+   - Evidence required: protocol/daemon tests for metadata, event filters,
+     correlation ids, subscription behavior, and generated-client friendly
+     examples.
+6. [ ] Run final local completion gates.
+   - `mise run ci`
+   - `mise run architecture-check`
+   - `mise run package-cli`
+   - Docker runtime smoke
+   - install script smoke
+   - latest/current lane probe
+   - representative older lane probe
+   - final public API/CLI gameplay run
+7. [ ] Rerun final honest survival gameplay through public API/CLI only.
+   - Required evidence: generated OpenAPI/actions/resources, SSE/JSON-RPC
+     transcript, CLI/API transcript, inventory/world/entity/crafting/movement/
+     combat/pickup proof, no server-provisioned inventory, no product
+     hard-coded survival task action, and no manual movement.
 
-### 1. Governance And Docs Alignment
+### Closed Gates
 
 - [x] Root and module `AGENTS.md` files are short routing files.
 - [x] Durable repository rules live in `docs/agent-operating-contract.md`.
 - [x] Durable module rules live in `docs/agent-module-contracts.md`.
-- [x] README, roadmap/checklist, specs/plans, and repository agent skills all
-  state the same architecture:
-  generated runtime graph and per-client OpenAPI are the public authority;
-  Fabric/launcher/bridge/version code is internal evidence or adapter code.
-  Evidence: Phase 170 active-doc scan plus `git diff --check`; active matches
-  for TypeScript SDK, `task.survival.*`, `sendChat`, static catalogs, and
-  scenario shortcuts are negative guardrails or historical evidence, not
-  active product instructions.
-
-Recorded evidence:
-
-- `rg` checks for stale `craftwright`, `.dev`, TypeScript SDK, static action
-  catalog, scenario shortcut, and hand-written gameplay wording.
-- `git diff --check`.
-- Relevant docs/architecture tests.
-
-### 2. Public API Authority Exit
-
-- [x] `DriverSession.actions()` defaults to runtime graph operation projection.
-- [x] `DriverBackend.actions(clientId)` defaults to runtime graph operation
-  projection.
-- [x] `ClientSessionService.routesFor(clientId)` projects routes from generated
-  per-client OpenAPI.
-- [~] Public-agent workflow uses generated per-client OpenAPI action metadata
-  instead of the `/actions` projection.
-- [ ] `/clients/{id}/actions`, `/clients/{id}/resources`, generated aliases,
-  CLI help, tool export, and agent workflows are all proven to be projections
-  of the same generated per-client OpenAPI/runtime graph.
-
-Evidence to close:
-
-- Focused tests where graph-backed sessions still power API, CLI help, tool
-  export, and agent workflow behavior when any independent action-list catalog
-  is unavailable or empty.
-- No new public route families such as `/clients/{id}/player/sendChat`.
-
-### 3. Binding-Exit Work
-
-- [~] Transitional Fabric bootstrap operation definitions still own current
-  gameplay operation ids/schemas.
-- [ ] New gameplay breadth is generated from reflection, mappings, registries,
-  callbacks, screens, handlers, world/entity/inventory/client-state probes,
-  and projection.
-- [ ] Bootstrap/navigation constants are either reduced to narrow internal
-  compatibility adapters or replaced by generic runtime discovery evidence.
-
-Evidence to close:
-
-- Guardrail tests fail when new public gameplay operations are added by
-  hand-maintained descriptor/binding pairs.
-- Fabric lane code exposes capability graph nodes and executable adapters, not
-  copied public action catalogs.
-
-### 4. Multi-Version Support
-
-- [x] Version manifest handling, Java/runtime selection, Fabric Loader/API
-  resolution, cache layout, launch metadata, and compatibility probes have
-  staged evidence.
-- [~] Latest/current official lane has launch, attach, projection, SSE, and
-  JSON-RPC probe evidence, but is not yet a packaged supported gameplay lane.
-- [~] Representative older lane has historical and installed-smoke evidence,
-  but does not yet pass the same final public API/CLI gameplay gate.
-- [ ] Latest/current and representative older supported versions pass the same
-  public gates as the default lane.
-
-Evidence to close for each supported lane:
-
-- Packaged launch.
-- Self-attach to in-client driver.
-- Generated OpenAPI/actions/resources.
-- SSE and JSON-RPC query/subscription.
-- CLI smoke through generated metadata.
-- Honest gameplay artifact through public API/CLI only.
-
-### 5. Transport And Generated-Client Usability
-
-- [x] JVM HTTP/client/SSE foundation uses Ktor.
-- [x] Generic invocation exists at `POST /clients/{id}:run`.
-- [x] SSE stream and JSON-RPC-style query/subscription evidence exists.
-- [ ] JSON-RPC invocation and SSE event streaming are documented and verified
-  as generated-client friendly across supported lanes.
-
-Evidence to close:
-
-- Protocol/daemon tests for generated metadata, event filters, correlation ids,
-  and subscription behavior.
-- README/docs examples that use generated OpenAPI plus SSE/JSON-RPC, not
-  static examples that imply a fixed gameplay catalog.
-
-### 6. Distribution And Agent Onboarding
-
-- [x] CLI binary is `craftless`.
-- [x] Install script, Docker runtime image, release checks, and packaged CLI
-  smoke have current evidence.
-- [x] Reusable GitHub Action is current and documented for external repos.
-  Evidence: Phase 170 README section plus existing Playwright distribution
-  tests for `.github/actions/setup-craftless/action.yml`.
-- [x] Agent skill docs are current and verified against the generated
-  OpenAPI/CLI workflow.
-  Evidence: `.agents/skills/craftless-public-gameplay-agent/SKILL.md` and
-  Phase 170 README agent workflow.
-- [x] README quickstart presents install, Docker, API, CLI, and agent usage
-  without legacy TypeScript SDK or static gameplay catalog wording.
-  Evidence: Phase 170 active-doc scan and README agent usage section.
-
-Recorded evidence:
-
-- Local CLI smoke.
-- Local Docker smoke.
-- Release/install smoke.
-- GitHub Action syntax review or workflow test where practical.
-
-### 7. Quality Gates
-
-- [x] Kotlin lint, formatting, unused/dead-code checks, and mise tasks exist.
-- [x] Phase 168 passed `mise run ci`, `git diff --check`, commit, and push.
-- [x] Phase 169 passes `mise run ci`.
-- [x] Phase 169 passes `git diff --check`.
-- [x] Phase 169 is committed and pushed to `main`.
-- [ ] Final pre-completion verification reruns the complete local gate set.
-
-Final local gate set:
-
-- `mise run ci`
-- `mise run architecture-check`
-- `mise run package-cli`
-- Docker runtime smoke
-- install script smoke
-- focused multi-version lane probes
-- final public API/CLI gameplay run
-
-### 8. Final Gameplay Gate
-
-- [~] Existing final gameplay evidence proves useful public API/CLI smoke, but
-  the project is still not complete because binding-exit and multi-version
-  support are not fully closed.
-- [ ] Final honest survival gameplay is rerun through public API/CLI only
-  after sections 1-7 are closed.
-
-Evidence to close:
-
-- Generated OpenAPI/actions/resources captured for the live client.
-- SSE/JSON-RPC event stream transcript captured.
-- CLI/API transcript captured.
-- Inventory, world, entity, crafting, movement, combat, and pickup evidence
-  captured from public resources/actions.
-- No server-provisioned inventory.
-- No product hard-coded survival task action.
-- No manual movement required for the product evidence.
-
-## Current Baseline
-
-- [x] Repository is named Craftless and uses `com.minekube.craftless`.
-- [x] Tooling is pinned through `mise`.
+- [x] Repository is named Craftless and uses `com.minekube.craftless` and
+  `minekube.com`.
+- [x] Tooling is pinned through `mise`; Bun is used only through
+  `mise exec -- bun`.
 - [x] JVM HTTP surfaces use Ktor Server/Client.
 - [x] CLI binary is `craftless`.
 - [x] Stable supervisor OpenAPI exists at `GET /openapi.json`.
 - [x] Per-client OpenAPI exists at `GET /clients/{id}/openapi.json`.
 - [x] Generic invocation exists at `POST /clients/{id}:run`.
-- [x] Current CLI and helper consumers use live per-client OpenAPI metadata for
-  existing action dispatch, generated help, tools export, resources, JSON-RPC
-  query, and cache revalidation.
-- [x] Current Fabric smoke proves a real client can launch, join a local
-  server, chat, move, observe inventory, equip an iron sword, invoke block
-  interactions, and write evidence artifacts. This is diagnostic smoke only:
-  the earlier iron sword was server-provisioned and does not count as final
-  completion evidence.
-- [x] Root `AGENTS.md` stays short and points agents to
-  `docs/agent-operating-contract.md`, where existing hand-written gameplay
-  bindings are defined as transitional bootstrap/evidence code, not the
-  durable API shape.
+- [x] `DriverSession.actions()` defaults to runtime graph operation
+  projection.
+- [x] `DriverBackend.actions(clientId)` defaults to runtime graph operation
+  projection.
+- [x] `ClientSessionService.routesFor(clientId)` projects routes from
+  generated per-client OpenAPI.
+- [x] Public-agent workflow uses generated per-client OpenAPI action metadata
+  instead of the `/actions` projection.
+- [x] Install script, Docker runtime image, release checks, reusable GitHub
+  Action, packaged CLI smoke, and agent onboarding docs have staged evidence.
+- [x] Kotlin lint, formatting, unused/dead-code checks, architecture checks,
+  and mise tasks exist.
+- [x] Historical public API/CLI survival evidence exists without
+  server-provisioned inventory, but it is not final completion evidence until
+  replayed after the authority, binding-exit, and multi-version gates
+  close.
 
-## Required Specs And Plans
+## Current Baseline
 
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-01-truth-and-guardrails-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-01-truth-and-guardrails-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-02-runtime-capability-graph-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-02-runtime-capability-graph-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-03-fabric-discovery-probes-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-03-fabric-discovery-probes-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-04-projection-openapi-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-04-projection-openapi-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-05-generic-invocation-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-05-generic-invocation-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-06-sse-json-rpc-consumers-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-06-sse-json-rpc-consumers-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-07-final-gameplay-completion-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-07-final-gameplay-completion-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-08-honest-survival-navigation-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-08-honest-survival-navigation-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-09-pathfinder-backed-execution-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-09-pathfinder-backed-execution-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-10-survival-task-execution-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-10-survival-task-execution-plan.md`.
-- [x] Spec exists for the public-agent final gameplay path: generated
-  OpenAPI + SSE/JSON-RPC + adaptive CLI + agent skill compose the survival
-  scenario outside the driver, without adding `task.survival.*` as durable
-  product API.
-- [x] Plan exists for the public-agent final gameplay path:
-  `docs/superpowers/plans/2026-06-26-11-public-agent-gameplay-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-15-public-agent-material-exploration-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-15-public-agent-material-exploration-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-16-targetable-block-break-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-16-targetable-block-break-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-17-public-agent-action-timeout-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-17-public-agent-action-timeout-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-18-public-agent-material-equip-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-18-public-agent-material-equip-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-19-sustained-block-break-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-19-sustained-block-break-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-20-public-agent-material-pickup-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-20-public-agent-material-pickup-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-21-public-agent-drop-perception-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-21-public-agent-drop-perception-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-22-bounded-material-exploration-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-22-bounded-material-exploration-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-27-java-runtime-resolution-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-27-java-runtime-resolution-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-28-generic-recipe-crafting-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-28-generic-recipe-crafting-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-26-29-legacy-survival-task-api-removal-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-26-29-legacy-survival-task-api-removal-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-27-37-scenario-shortcut-action-guard-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-27-37-scenario-shortcut-action-guard-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-27-38-combat-miss-retry-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-27-38-combat-miss-retry-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-27-39-fabric-library-replacement-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-27-39-fabric-library-replacement-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-27-40-rule-selected-native-libraries-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-27-40-rule-selected-native-libraries-plan.md`.
-- [x] Spec exists: `docs/superpowers/specs/2026-06-27-41-launch-argument-placeholders-design.md`.
-- [x] Plan exists: `docs/superpowers/plans/2026-06-27-41-launch-argument-placeholders-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-27-42-standard-asset-object-layout-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-27-42-standard-asset-object-layout-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-27-43-client-logging-config-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-27-43-client-logging-config-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-65-codex-evidence-completion-gate-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-65-codex-evidence-completion-gate-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-66-representative-older-release-lane-evidence-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-66-representative-older-release-lane-evidence-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-67-final-gameplay-codex-evidence-default-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-67-final-gameplay-codex-evidence-default-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-68-full-codex-evidence-gate-refresh-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-68-full-codex-evidence-gate-refresh-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-69-readme-roadmap-evidence-alignment-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-69-readme-roadmap-evidence-alignment-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-70-public-agent-operational-workflow-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-70-public-agent-operational-workflow-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-71-system-java-path-discovery-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-71-system-java-path-discovery-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-72-generated-actions-help-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-72-generated-actions-help-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-73-asset-object-integrity-resume-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-73-asset-object-integrity-resume-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-74-metadata-binary-checksums-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-74-metadata-binary-checksums-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-75-post-cache-integrity-evidence-refresh-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-75-post-cache-integrity-evidence-refresh-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-78-graph-native-fabric-schemas-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-78-graph-native-fabric-schemas-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-79-graph-owned-fabric-invoke-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-79-graph-owned-fabric-invoke-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-80-action-discovery-deletion-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-80-action-discovery-deletion-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-81-hmc-bridge-gameplay-removal-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-81-hmc-bridge-gameplay-removal-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-82-readme-public-entrypoint-overhaul-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-82-readme-public-entrypoint-overhaul-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-83-fabric-binding-descriptor-removal-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-83-fabric-binding-descriptor-removal-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-84-bootstrap-operation-definition-isolation-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-84-bootstrap-operation-definition-isolation-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-85-binding-operation-id-source-ownership-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-85-binding-operation-id-source-ownership-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-86-fabric-adapter-key-source-ownership-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-86-fabric-adapter-key-source-ownership-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-87-backend-operation-id-source-ownership-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-87-backend-operation-id-source-ownership-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-88-binding-adapter-key-derivation-removal-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-88-binding-adapter-key-derivation-removal-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-89-navigation-operation-id-source-ownership-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-89-navigation-operation-id-source-ownership-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-90-smoke-bootstrap-action-id-source-ownership-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-90-smoke-bootstrap-action-id-source-ownership-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-91-version-support-completion-gate-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-91-version-support-completion-gate-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-92-build-generated-compiled-lane-metadata-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-92-build-generated-compiled-lane-metadata-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-93-static-unsupported-version-lane-removal-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-93-static-unsupported-version-lane-removal-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-94-fabric-api-cache-resolution-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-94-fabric-api-cache-resolution-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-95-launch-mod-materialization-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-95-launch-mod-materialization-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-139-packaged-older-lane-selection-smoke-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-139-packaged-older-lane-selection-smoke-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-140-parameterized-fabric-smoke-client-command-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-140-parameterized-fabric-smoke-client-command-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-141-representative-older-fabric-real-client-smoke-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-141-representative-older-fabric-real-client-smoke-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-142-installed-packaged-older-fabric-live-attach-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-142-installed-packaged-older-fabric-live-attach-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-143-installed-latest-release-alias-compatibility-probe-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-143-installed-latest-release-alias-compatibility-probe-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-144-latest-driver-lane-preflight-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-144-latest-driver-lane-preflight-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-145-latest-official-mapping-lane-probe-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-145-latest-official-mapping-lane-probe-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-146-latest-official-fabric-lane-boundary-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-146-latest-official-fabric-lane-boundary-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-150-official-fabric-runtime-metadata-discovery-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-150-official-fabric-runtime-metadata-discovery-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-151-shared-fabric-runtime-metadata-discovery-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-151-shared-fabric-runtime-metadata-discovery-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-152-shared-fabric-runtime-resource-projection-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-152-shared-fabric-runtime-resource-projection-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-153-shared-fabric-runtime-graph-composition-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-153-shared-fabric-runtime-graph-composition-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-154-shared-fabric-registry-graph-projection-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-154-shared-fabric-registry-graph-projection-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-155-shared-fabric-event-graph-projection-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-155-shared-fabric-event-graph-projection-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-156-shared-fabric-client-state-graph-projection-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-156-shared-fabric-client-state-graph-projection-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-157-official-fabric-live-client-state-probe-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-157-official-fabric-live-client-state-probe-plan.md`.
-- [x] Spec exists:
-  `docs/superpowers/specs/2026-06-28-158-official-fabric-connected-client-state-probe-design.md`.
-- [x] Plan exists:
-  `docs/superpowers/plans/2026-06-28-158-official-fabric-connected-client-state-probe-plan.md`.
+Craftless currently has a Kotlin/JVM Ktor supervisor, adaptive JVM CLI,
+generated per-client OpenAPI, graph-projected actions/resources, generic
+invocation, SSE plus JSON-RPC-style control/query calls, packaged distribution
+paths, and staged Fabric gameplay evidence. The remaining product blockers are
+not basic launch or packaging. They are authority cleanup, generated gameplay
+breadth, equal latest/current and older-version support, generated-client
+transport documentation, and a final replay through public API/CLI only.
+
+## Spec And Plan Inventory
+
+Detailed spec and plan history is maintained by
+`docs/superpowers/phase-index.md` and the files under
+`docs/superpowers/specs/` and `docs/superpowers/plans/`. Do not duplicate the
+full inventory here; add active closure gates to the board above and add phase
+history below.
 
 ## Phase 1: Truth And Guardrails
 
@@ -5390,16 +5055,15 @@ Verification:
 
 ## Final Completion Gate
 
-- [~] Phase history through Phase 169 is indexed in
-  `docs/superpowers/phase-index.md` and detailed above. Those phases establish
-  the direction and several important guardrails, but they do not by themselves
-  close the product goal.
+- [~] Phase history is indexed in `docs/superpowers/phase-index.md` and partly
+  detailed above. Historical phases establish direction and guardrails, but
+  they do not by themselves close the product goal.
 - [ ] Completion remains blocked until the Active Completion Board is fully
-  checked: public authority exits independent/static action catalogs, binding
-  breadth moves behind generic discovery/projection/invocation, latest/current
-  and representative older lanes pass the same public API/CLI gameplay gates,
-  docs and agent skills match the architecture, and the final local gate set is
-  rerun after that work.
+  checked: daemon authority is graph-only, public authority exits independent
+  static action catalogs, binding breadth moves behind generic
+  discovery/projection/invocation, latest/current and representative older
+  lanes pass the same public API/CLI gameplay gates, generated-client transport
+  docs are complete, and the final local gate set is rerun after that work.
 - [x] `mise run lint` passes. Current 2026-06-28 evidence: `mise run ci`
   completed lint successfully after the Phase 158 update.
 - [x] `mise run architecture-check` passes. Current 2026-06-28 evidence:
@@ -5428,7 +5092,7 @@ Verification:
   `alive:false` through generated `entity.query`.
 - [x] Phase 65 final gameplay evidence is accepted from public API/CLI
   artifacts without requiring human Minecraft chat confirmation.
-- [x] Latest and representative older-version compatibility probes have current
+- [~] Latest and representative older-version compatibility probes have current
   historical evidence. Latest `26.2` and older `1.20.6` probe records remain
   diagnostics. Phase 137 makes the representative older Fabric source lane
   compile, Phase 138 packages that lane as a selectable artifact, Phase 139
@@ -5445,5 +5109,5 @@ Verification:
   runtime discovery/projection/invocation, generated OpenAPI/actions/resources,
   SSE, packaged launch, final compatibility audit, and honest final survival
   gameplay without server-provisioned inventory.
-- [x] Changes are committed and pushed to `main`. This entry is current only
-  after the checklist update that changes it is also pushed.
+- [ ] Checklist, active code slice, evidence, and phase index are committed and
+  pushed to `main` after the current Phase 171 work is verified.
