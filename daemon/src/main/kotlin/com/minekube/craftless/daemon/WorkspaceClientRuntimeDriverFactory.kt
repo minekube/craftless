@@ -135,21 +135,36 @@ object NoClientRuntimeDriverModProvider : ClientRuntimeDriverModProvider {
 class ConfiguredClientRuntimeDriverModProvider(
     private val environment: Map<String, String> = System.getenv(),
 ) : ClientRuntimeDriverModProvider {
-    override fun modFor(request: ClientRuntimeDriverModRequest): Path? =
-        manifestModFor(request)
-            ?: when (request.loader) {
-                Loader.FABRIC -> environment[CRAFTLESS_FABRIC_DRIVER_MOD]?.takeIf { it.isNotBlank() }?.let(Path::of)
-                else -> null
-            }
+    override fun modFor(request: ClientRuntimeDriverModRequest): Path? {
+        val manifestPath = configuredManifestPath()
+        if (manifestPath != null) {
+            return manifestModFor(request, manifestPath)
+                ?: if (request.loader == Loader.FABRIC) {
+                    throw IllegalArgumentException(
+                        "driver mod manifest has no Fabric entry for " +
+                            "${request.minecraftVersion} ${request.loaderVersion ?: "default-loader"}",
+                    )
+                } else {
+                    null
+                }
+        }
+        return when (request.loader) {
+            Loader.FABRIC -> environment[CRAFTLESS_FABRIC_DRIVER_MOD]?.takeIf { it.isNotBlank() }?.let(Path::of)
+            else -> null
+        }
+    }
 
-    private fun manifestModFor(request: ClientRuntimeDriverModRequest): Path? {
-        val manifestPath =
-            environment[CRAFTLESS_DRIVER_MOD_MANIFEST]
-                ?.takeIf { it.isNotBlank() }
-                ?.let(Path::of)
-                ?.toAbsolutePath()
-                ?.normalize()
-                ?: return null
+    private fun configuredManifestPath(): Path? =
+        environment[CRAFTLESS_DRIVER_MOD_MANIFEST]
+            ?.takeIf { it.isNotBlank() }
+            ?.let(Path::of)
+            ?.toAbsolutePath()
+            ?.normalize()
+
+    private fun manifestModFor(
+        request: ClientRuntimeDriverModRequest,
+        manifestPath: Path,
+    ): Path? {
         val manifest = launcherJson.decodeFromString<ConfiguredDriverModManifest>(Files.readString(manifestPath))
         val entry =
             manifest

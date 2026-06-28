@@ -403,6 +403,70 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `server start rejects packaged driver mod manifest misses`() {
+        val output = StringBuilder()
+        val workspace = Files.createTempDirectory("craftless-cli-packaged-driver-mod-manifest-miss")
+        val distribution = Files.createTempDirectory("craftless-cli-manifest-miss-distribution")
+        val fallbackDriverMod = distribution.resolve("mods/craftless-driver-fabric.jar")
+        Files.createDirectories(fallbackDriverMod.parent)
+        Files.writeString(fallbackDriverMod, "fallback-driver-mod")
+        Files.writeString(
+            distribution.resolve("driver-mods.json"),
+            """
+            {
+              "entries": [
+                {
+                  "loader": "FABRIC",
+                  "minecraftVersion": "1.21.6",
+                  "loaderVersion": "0.17.2",
+                  "path": "mods/craftless-driver-fabric.jar"
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+        var createStatus = 0
+        var createBody = ""
+
+        val exit =
+            CraftlessCli.run(
+                listOf("server", "start", "--once", "--workspace", workspace.toString()),
+                stdout = { output.appendLine(it) },
+                env = emptyMap(),
+                cacheMetadataFetcher = preparedRuntimeMetadataFetcher(),
+                distributionRoot = distribution,
+                afterStart = { metadata ->
+                    kotlinx.coroutines.runBlocking {
+                        HttpClient(CIO).use { http ->
+                            val response =
+                                http.post("${metadata.url}/clients") {
+                                    contentType(ContentType.Application.Json)
+                                    setBody(
+                                        """
+                                        {
+                                          "id": "alice",
+                                          "version": "1.21.6",
+                                          "loader": "FABRIC",
+                                          "loaderVersion": "0.16.14",
+                                          "profile": { "kind": "OFFLINE", "name": "Alice" }
+                                        }
+                                        """.trimIndent(),
+                                    )
+                                }
+                            createStatus = response.status.value
+                            createBody = response.bodyAsText()
+                        }
+                    }
+                },
+            )
+
+        assertEquals(0, exit)
+        assertEquals(400, createStatus, createBody)
+        assertTrue(createBody.contains("driver mod manifest"), createBody)
+        assertTrue(!Files.exists(workspace.resolve("cache/mods/craftless")))
+    }
+
+    @Test
     fun `client create uses configured api request timeout`() {
         SlowCreateApiServer(delayMillis = 250).use { server ->
             val timeoutOutput = StringBuilder()
@@ -3053,7 +3117,9 @@ private fun preparedRuntimeMetadataFetcher(): CacheMetadataFetcher {
     val javaExecutableUrl = "https://metadata.test/runtime/java-runtime-gamma/bin/java"
     val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
     val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.17.2/profile/json"
+    val pinnedLoaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.16.14/profile/json"
     val fabricLoaderJarUrl = "https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.17.2/fabric-loader-0.17.2.jar"
+    val pinnedFabricLoaderJarUrl = "https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.16.14/fabric-loader-0.16.14.jar"
     return StaticCacheMetadataFetcher(
         mapOf(
             MINECRAFT_VERSION_INDEX_URL to
@@ -3098,7 +3164,13 @@ private fun preparedRuntimeMetadataFetcher(): CacheMetadataFetcher {
                 }
                 """.trimIndent(),
             assetIndexUrl to """{"objects":{}}""",
-            loaderVersionsUrl to """[{ "loader": { "version": "0.17.2", "stable": true } }]""",
+            loaderVersionsUrl to
+                """
+                [
+                  { "loader": { "version": "0.17.2", "stable": true } },
+                  { "loader": { "version": "0.16.14", "stable": true } }
+                ]
+                """.trimIndent(),
             loaderProfileUrl to
                 """
                 {
@@ -3112,12 +3184,26 @@ private fun preparedRuntimeMetadataFetcher(): CacheMetadataFetcher {
                   ]
                 }
                 """.trimIndent(),
+            pinnedLoaderProfileUrl to
+                """
+                {
+                  "id": "fabric-loader-0.16.14-1.21.6",
+                  "mainClass": "test.fabric.Main",
+                  "libraries": [
+                    {
+                      "name": "net.fabricmc:fabric-loader:0.16.14",
+                      "url": "https://maven.fabricmc.net/"
+                    }
+                  ]
+                }
+                """.trimIndent(),
         ),
         binaryResponses =
             mapOf(
                 clientJarUrl to "client-jar".encodeToByteArray(),
                 javaExecutableUrl to cliFakeJavaBytes("21.0.11"),
                 fabricLoaderJarUrl to "fabric-loader-jar".encodeToByteArray(),
+                pinnedFabricLoaderJarUrl to "pinned-fabric-loader-jar".encodeToByteArray(),
             ),
     )
 }

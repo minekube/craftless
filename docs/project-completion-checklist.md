@@ -3837,6 +3837,35 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-cli-create-client-loader-version.md`.
 
+## Phase 125: Driver Mod Manifest Miss
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-125-driver-mod-manifest-miss-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-125-driver-mod-manifest-miss-plan.md`.
+- [x] `CRAFTLESS_DRIVER_MOD_MANIFEST` is authoritative for Fabric driver-mod
+  lane selection when configured.
+- [x] A configured manifest miss for a prepared Fabric runtime lane fails
+  client creation instead of falling back to a single potentially incompatible
+  Fabric driver jar.
+- [x] `CRAFTLESS_FABRIC_DRIVER_MOD` remains a fallback only when no manifest is
+  configured.
+- [x] Packaged CLI server-start coverage verifies a manifest miss returns HTTP
+  400 and does not copy the fallback driver jar into the workspace mod cache.
+- [x] This phase adds no compiled Fabric lane, public gameplay action,
+  generated route family, CLI gameplay catalog, Fabric gameplay binding,
+  scenario shortcut, public version-specific API, runnable latest/older lane,
+  runtime behavior support claim, or new Minecraft support claim.
+
+Verification:
+
+- Red/green daemon provider and manifest-selection tests:
+  `mise exec -- gradle :daemon:test --tests '*ConfiguredClientRuntimeDriverModProviderTest.*' --tests '*LocalSessionApiServerTest.*driver mod manifest*'`
+- Red/green packaged CLI manifest-miss tests:
+  `mise exec -- gradle :cli:test --tests '*CraftlessCliTest.*driver mod manifest*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-driver-mod-manifest-miss.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3871,10 +3900,11 @@ Verification:
   120 invoke fallback naming removal, and Phase 121 metadata fallback naming
   removal, Phase 122 removed survival namespace wording, and Phase 123
   create-client loader version, and Phase 124 CLI create-client loader
-  version. Phase 105, Phase 107, Phase 108, Phase 109, Phase 110, Phase 111,
-  Phase 112, Phase 113, Phase 114, Phase 115, Phase 116, Phase 117, Phase 118,
-  Phase 119, Phase 120, Phase 121, Phase 122, Phase 123, and Phase 124 do not
-  satisfy the runnable latest/older support
+  version, and Phase 125 driver-mod manifest miss. Phase 105, Phase 107, Phase
+  108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
+  115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
+  122, Phase 123, Phase 124, and Phase 125 do not satisfy the runnable
+  latest/older support
   requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
