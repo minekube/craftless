@@ -693,6 +693,20 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `active smoke fixtures do not keep static latest unsupported lane ids`() {
+        val smokeTest =
+            Files.readString(
+                repositoryRoot().resolve(
+                    "testkit/src/test/kotlin/com/minekube/craftless/testkit/LocalMinecraftServerSmokeTest.kt",
+                ),
+            )
+
+        assertFalse(smokeTest.contains("latest-release-26-2"))
+        assertFalse(smokeTest.contains("older-release-1-20-6"))
+        assertTrue(smokeTest.contains("fabric-unsupported-26-2"))
+    }
+
+    @Test
     fun `fabric run client consumes resolved smoke Java executable`() {
         val buildScript = Files.readString(repositoryRoot().resolve("driver-fabric/build.gradle.kts"))
 

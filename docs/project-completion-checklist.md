@@ -3315,6 +3315,30 @@ Verification:
 - Final local verification will be recorded in
   `docs/superpowers/evidence/2026-06-28-v011-release-install-evidence.md`.
 
+## Phase 105: Active Unsupported Lane Fixture Cleanup
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-105-active-unsupported-lane-fixture-cleanup-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-105-active-unsupported-lane-fixture-cleanup-plan.md`.
+- [x] Active smoke fixtures no longer use historical static unsupported lane
+  ids such as `latest-release-26-2` or `older-release-1-20-6`.
+- [x] The active unsupported runtime-lane smoke fixture uses generic
+  `fabric-unsupported-26-2` with `unsupported-version`.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric execution binding, scenario shortcut, compile-time
+  daemon dependency on `driver-fabric`, public version-specific API, runnable
+  latest/older lane, or new Minecraft support claim.
+
+Verification:
+
+- Red/green guard:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.active smoke fixtures do not keep static latest unsupported lane ids*'`
+- Affected smoke fixture:
+  `mise exec -- gradle :testkit:test --tests '*LocalMinecraftServerSmokeTest.local server smoke records unsupported runtime lane without provisioning server*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-active-unsupported-lane-fixture-cleanup.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3336,7 +3360,9 @@ Verification:
   Fabric driver self-attach, Phase 101 packaged driver runtime dependencies,
   Phase 102 packaged live attach and cold-cache usability, and Phase 103
   installed CLI driver mod distribution. Phase 104 v0.1.1 release install
-  evidence is currently being refreshed.
+  evidence is currently being refreshed. Phase 105 active unsupported lane
+  fixture cleanup is complete and does not satisfy the runnable latest/older
+  support requirement by itself.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

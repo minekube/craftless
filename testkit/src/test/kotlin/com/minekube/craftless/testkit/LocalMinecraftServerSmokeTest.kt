@@ -256,12 +256,12 @@ class LocalMinecraftServerSmokeTest {
                     "CRAFTLESS_SMOKE_RUNTIME_LANE_JSON" to
                         """
                         {
-                          "id": "latest-release-26-2",
+                          "id": "fabric-unsupported-26-2",
                           "status": "UNSUPPORTED",
                           "minecraftVersion": "26.2",
                           "javaMajorVersion": 25,
-                          "providerId": "no-compatible-client-lane",
-                          "unsupportedReason": "runtime-lane-missing"
+                          "providerId": "fabric-unsupported",
+                          "unsupportedReason": "unsupported-version"
                         }
                         """.trimIndent(),
                 ),
@@ -281,7 +281,7 @@ class LocalMinecraftServerSmokeTest {
         assertFalse(provisioned)
         val evidence = requireNotNull(result.runtimeLaneEvidence)
         assertEquals(root.resolve("artifacts").resolve("runtime-lane.json"), evidence)
-        assertTrue(Files.readString(evidence).contains("runtime-lane-missing"))
+        assertTrue(Files.readString(evidence).contains("unsupported-version"))
     }
 
     @Test

@@ -215,6 +215,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 102. packaged live attach and cold-cache usability.
 103. installed CLI driver mod distribution.
 104. v0.1.1 release install evidence.
+105. active unsupported lane fixture cleanup.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -797,6 +798,13 @@ assets, and install-script smoke must prove the installed archive contains
 `mods/craftless-driver-fabric.jar`. This is release evidence only; it must not
 add gameplay descriptors, static route families, Fabric action bindings,
 scenario shortcuts, or version support claims.
+Phase 105 removes historical static latest/older unsupported lane ids from
+active smoke fixtures. Historical evidence may still mention
+`latest-release-26-2`, but active source fixtures must use generic unsupported
+fallback lanes such as `fabric-unsupported-26-2`. This is active-source
+alignment only; it must not add runnable version support, gameplay
+descriptors, static route families, Fabric action bindings, scenario
+shortcuts, or version support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 
