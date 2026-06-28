@@ -40,6 +40,10 @@ divergence that forced it.
 - Keep Ktor loopback, attach environment parsing, session replacement,
   JSON-RPC-style invocation transport, SSE/lifecycle event plumbing, action
   projection, and OpenAPI generation shared by default.
+- Use `driver-fabric-discovery` for shared Fabric Loader identity,
+  installed-mod fingerprints, runtime metadata snapshots, and deterministic
+  fingerprint helpers. Do not reintroduce official-only copies of that
+  metadata plumbing.
 - If latest/current support requires per-version code, isolate only the
   diverging adapter/accessor/provider behind the lane boundary and document the
   exact incompatibility that forced it.

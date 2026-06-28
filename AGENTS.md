@@ -271,6 +271,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 148. official Fabric runtime dependency packaging.
 149. official Fabric launch attach probe.
 150. official Fabric runtime metadata discovery.
+151. shared Fabric runtime metadata discovery.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -402,6 +403,15 @@ through `DriverRuntimeMetadata`, runtime graph evidence, and generated
 OpenAPI. This is version-discovery plumbing only: it must not add gameplay
 actions, copy Yarn/remap bindings, add a packaged 26.x manifest entry, create
 per-version public APIs, or claim latest/current gameplay support.
+
+Phase 151 moves Fabric Loader runtime metadata primitives into shared
+`driver-fabric-discovery` infrastructure consumed by both the Yarn/remap and
+official lanes. Loader identity, installed-mod fingerprints, snapshot metadata
+emission, and deterministic fingerprinting belong in that shared module by
+default. Lane modules may still supply mappings fingerprints, registry probes,
+server-feature probes, and execution adapters when those truly diverge. This
+phase must not add gameplay actions, package the 26.x official lane, or claim
+latest/current support.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final

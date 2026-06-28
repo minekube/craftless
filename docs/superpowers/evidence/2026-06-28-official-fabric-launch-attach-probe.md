@@ -149,7 +149,7 @@ stopped. Updated Phase 150 summary:
   "loader": "FABRIC",
   "loaderVersion": "0.19.3",
   "driver": "craftless-driver-fabric-official",
-  "installedMods": "mods:33e126b07d85b4a4",
+  "installedMods": "mods:6d85fb9272c1d2f5",
   "registry": "registries:not-discovered",
   "serverFeatures": "server-features:not-connected",
   "actions": 0,

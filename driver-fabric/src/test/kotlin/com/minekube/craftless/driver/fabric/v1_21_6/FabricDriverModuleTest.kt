@@ -7,6 +7,10 @@ import com.minekube.craftless.driver.api.DriverActionSource
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverOperationInvocation
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
+import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataProvider
+import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataSnapshot
+import com.minekube.craftless.driver.fabric.discovery.SnapshotFabricRuntimeMetadataProvider
+import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeFingerprint
 import com.minekube.craftless.driver.fabric.runtime.FabricCompiledLaneMetadata
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import com.minekube.craftless.protocol.RuntimeAvailabilityState
@@ -61,10 +65,13 @@ class FabricDriverModuleTest {
         SnapshotFabricRuntimeMetadataProvider(
             FabricRuntimeMetadataSnapshot(
                 loaderVersion = "0.19.3",
+                driver = "craftless-driver-fabric",
                 driverVersion = "0.1.0-SNAPSHOT",
-                installedMods = listOf("minecraft@1.21.6", "fabricloader@0.19.3"),
-                registries = listOf("block:craftless-test"),
-                serverFeatures = listOf("environment:test"),
+                mappings = FabricCompiledLaneMetadata.MAPPINGS_FINGERPRINT,
+                installedModsFingerprint =
+                    fabricRuntimeFingerprint("mods", listOf("minecraft@1.21.6", "fabricloader@0.19.3")),
+                registryFingerprint = fabricRuntimeFingerprint("registries", listOf("block:craftless-test")),
+                serverFeatureFingerprint = fabricRuntimeFingerprint("server-features", listOf("environment:test")),
             ),
         )
 
@@ -398,16 +405,33 @@ class FabricDriverModuleTest {
     @Test
     fun `official lane has opt in launch attach probe task without packaging support claim`() {
         val root = repositoryRoot()
+        val settings = Files.readString(root.resolve("settings.gradle.kts"))
+        val fabricBuild = Files.readString(root.resolve("driver-fabric/build.gradle.kts"))
         val officialBuild = Files.readString(root.resolve("driver-fabric-official/build.gradle.kts"))
         val rootAgents = Files.readString(root.resolve("AGENTS.md"))
         val officialAgents = Files.readString(root.resolve("driver-fabric-official/AGENTS.md"))
         val attachAgents = Files.readString(root.resolve("driver-fabric-attach/AGENTS.md"))
+        val fabricBackend =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverBackend.kt",
+                ),
+            )
         val officialBackend =
             Files.readString(
                 root.resolve(
                     "driver-fabric-official/src/main/kotlin/com/minekube/craftless/driver/fabric/official/OfficialFabricDriverBackend.kt",
                 ),
             )
+        val officialSources =
+            Files.walk(root.resolve("driver-fabric-official/src/main/kotlin")).use { paths ->
+                paths
+                    .filter { path -> Files.isRegularFile(path) }
+                    .filter { path -> path.toString().endsWith(".kt") }
+                    .map { path -> Files.readString(path) }
+                    .toList()
+                    .joinToString("\n")
+            }
         val probeRunner =
             Files.readString(
                 root.resolve(
@@ -431,6 +455,9 @@ class FabricDriverModuleTest {
         assertTrue(officialBuild.contains("java@temurin-25.0.3+9.0.LTS"))
         assertTrue(officialBuild.contains("gradle@9.6.0"))
         assertTrue(officialBuild.contains(":driver-fabric-official:runClient"))
+        assertTrue(settings.contains("\"driver-fabric-discovery\""))
+        assertTrue(fabricBuild.contains("project(\":driver-fabric-discovery\")"))
+        assertTrue(officialBuild.contains("project(\":driver-fabric-discovery\")"))
         assertTrue(rootAgents.contains("Version breadth is a system property"))
         assertTrue(rootAgents.contains("Add per-version code only after proving an actual"))
         assertTrue(officialAgents.contains("Treat this module as a compatibility lane and probe boundary"))
@@ -438,7 +465,14 @@ class FabricDriverModuleTest {
         assertTrue(attachAgents.contains("common attach boundary for current, older, latest/current, and future"))
         assertTrue(attachAgents.contains("First model the difference as metadata, availability, or a narrow"))
         assertTrue(attachAgents.contains("lane adapter"))
-        assertTrue(officialBackend.contains("OfficialFabricRuntimeMetadataProvider"))
+        assertFalse(fabricBackend.contains("internal data class FabricRuntimeMetadataSnapshot"))
+        assertFalse(fabricBackend.contains("internal class SnapshotFabricRuntimeMetadataProvider"))
+        assertFalse(fabricBackend.contains("private fun FabricLoader.installedMods()"))
+        assertFalse(officialSources.contains("OfficialFabricRuntimeMetadataProvider"))
+        assertFalse(officialSources.contains("OfficialFabricRuntimeMetadataSnapshot"))
+        assertTrue(officialSources.contains("SnapshotFabricRuntimeMetadataProvider"))
+        assertTrue(officialSources.contains("FabricLoaderRuntimeMetadataReader"))
+        assertTrue(officialBackend.contains("FabricRuntimeMetadataProvider"))
         assertFalse(officialBackend.contains("mods:official-lane-probe"))
         assertFalse(officialBackend.contains("registries:unavailable"))
         assertFalse(officialBackend.contains("server-features:unavailable"))
@@ -783,10 +817,14 @@ class FabricDriverModuleTest {
             SnapshotFabricRuntimeMetadataProvider(
                 FabricRuntimeMetadataSnapshot(
                     loaderVersion = "0.19.3",
+                    driver = "craftless-driver-fabric",
                     driverVersion = "0.1.0-SNAPSHOT",
-                    installedMods = listOf("minecraft@1.21.6", "fabricloader@0.19.3"),
-                    registries = listOf("item:minecraft:iron_sword", "block:minecraft:stone"),
-                    serverFeatures = listOf("environment:dev"),
+                    mappings = FabricCompiledLaneMetadata.MAPPINGS_FINGERPRINT,
+                    installedModsFingerprint =
+                        fabricRuntimeFingerprint("mods", listOf("minecraft@1.21.6", "fabricloader@0.19.3")),
+                    registryFingerprint =
+                        fabricRuntimeFingerprint("registries", listOf("item:minecraft:iron_sword", "block:minecraft:stone")),
+                    serverFeatureFingerprint = fabricRuntimeFingerprint("server-features", listOf("environment:dev")),
                 ),
             )
 

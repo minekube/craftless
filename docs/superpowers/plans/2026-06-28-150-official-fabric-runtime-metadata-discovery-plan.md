@@ -44,7 +44,7 @@ Expected: FAIL because the backend still embeds `mods:official-lane-probe`.
 ### Task 2: Add official metadata provider tests
 
 **Files:**
-- Create: `driver-fabric-official/src/test/kotlin/com/minekube/craftless/driver/fabric/official/OfficialFabricRuntimeMetadataProviderTest.kt`
+- Create: `driver-fabric-official/src/test/kotlin/com/minekube/craftless/driver/fabric/official/OfficialFabricSharedRuntimeMetadataTest.kt`
 
 - [x] **Step 1: Write tests**
 
@@ -78,7 +78,7 @@ Assert:
 - [x] **Step 2: Run red**
 
 ```sh
-mise exec -- gradle :driver-fabric-official:test --tests '*OfficialFabricRuntimeMetadataProviderTest*'
+mise exec -- gradle :driver-fabric-official:test --tests '*OfficialFabricSharedRuntimeMetadataTest*'
 ```
 
 Expected: FAIL because the provider does not exist.
@@ -157,7 +157,7 @@ and implement `runtimeMetadata(clientId)` by delegating to the provider.
 
 ```sh
 mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.official lane has opt in launch attach probe task without packaging support claim'
-mise exec -- gradle :driver-fabric-official:test --tests '*OfficialFabricRuntimeMetadataProviderTest*'
+mise exec -- gradle :driver-fabric-official:test --tests '*OfficialFabricSharedRuntimeMetadataTest*'
 ```
 
 Expected: both pass.
@@ -188,7 +188,7 @@ Expected: both pass.
 - [ ] **Step 4: Commit and push**
 
 ```sh
-git add AGENTS.md README.md docs/project-completion-checklist.md docs/superpowers/specs/2026-06-28-150-official-fabric-runtime-metadata-discovery-design.md docs/superpowers/plans/2026-06-28-150-official-fabric-runtime-metadata-discovery-plan.md docs/superpowers/evidence/2026-06-28-official-fabric-launch-attach-probe.md driver-fabric-official/src/main/kotlin/com/minekube/craftless/driver/fabric/official/OfficialFabricRuntimeMetadataProvider.kt driver-fabric-official/src/main/kotlin/com/minekube/craftless/driver/fabric/official/OfficialFabricDriverBackend.kt driver-fabric-official/src/test/kotlin/com/minekube/craftless/driver/fabric/official/OfficialFabricRuntimeMetadataProviderTest.kt driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt
+git add AGENTS.md README.md docs/project-completion-checklist.md docs/superpowers/specs/2026-06-28-150-official-fabric-runtime-metadata-discovery-design.md docs/superpowers/plans/2026-06-28-150-official-fabric-runtime-metadata-discovery-plan.md docs/superpowers/evidence/2026-06-28-official-fabric-launch-attach-probe.md driver-fabric-official/src/main/kotlin/com/minekube/craftless/driver/fabric/official/OfficialFabricRuntimeMetadataProvider.kt driver-fabric-official/src/main/kotlin/com/minekube/craftless/driver/fabric/official/OfficialFabricDriverBackend.kt driver-fabric-official/src/test/kotlin/com/minekube/craftless/driver/fabric/official/OfficialFabricSharedRuntimeMetadataTest.kt driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt
 git commit -m "feat: discover official fabric runtime metadata"
 git push origin main
 ```

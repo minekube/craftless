@@ -22,6 +22,7 @@ include(
     "driver-api",
     "driver-runtime",
     "driver-fabric-attach",
+    "driver-fabric-discovery",
     "driver-fabric",
     "driver-fabric-official",
     "testkit",

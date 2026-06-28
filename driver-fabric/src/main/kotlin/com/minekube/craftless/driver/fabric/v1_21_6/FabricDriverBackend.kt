@@ -14,6 +14,11 @@ import com.minekube.craftless.driver.api.DriverOperationAdapter
 import com.minekube.craftless.driver.api.DriverOperationAdapters
 import com.minekube.craftless.driver.api.DriverOperationInvocation
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
+import com.minekube.craftless.driver.fabric.discovery.FabricLoaderRuntimeMetadataReader
+import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataProvider
+import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataSnapshot
+import com.minekube.craftless.driver.fabric.discovery.SnapshotFabricRuntimeMetadataProvider
+import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeFingerprint
 import com.minekube.craftless.driver.fabric.runtime.FabricCompiledLaneMetadata
 import com.minekube.craftless.driver.fabric.runtime.FabricRuntimeIdentity
 import com.minekube.craftless.driver.fabric.runtime.defaultFabricCompatibilityMatrix
@@ -42,7 +47,6 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
-import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.block.BlockState
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
@@ -59,7 +63,6 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.world.World
-import java.security.MessageDigest
 import kotlin.math.sqrt
 
 class FabricDriverBackend private constructor(
@@ -1611,7 +1614,7 @@ private fun Iterable<ItemStack>.toCraftlessInventoryFingerprint(): String {
                 "$index:${stack.item.translationKey}:${stack.count}"
             }
         }
-    return fingerprint("inventory.fingerprint", entries)
+    return fabricRuntimeFingerprint("inventory.fingerprint", entries)
 }
 
 private val fabricBackendJson = Json
@@ -1655,10 +1658,6 @@ private fun DriverRuntimeMetadata.toCurrentLaneRuntimeIdentity(): FabricRuntimeI
         permissionsFingerprint = permissionsFingerprint,
     )
 
-internal fun interface FabricRuntimeMetadataProvider {
-    fun runtimeMetadata(clientId: String): DriverRuntimeMetadata
-}
-
 private fun staticFabricRuntimeMetadataProvider(): FabricRuntimeMetadataProvider =
     FabricRuntimeMetadataProvider {
         DriverRuntimeMetadata(
@@ -1672,31 +1671,6 @@ private fun staticFabricRuntimeMetadataProvider(): FabricRuntimeMetadataProvider
             permissionsFingerprint = "permissions:local-client",
         )
     }
-
-internal data class FabricRuntimeMetadataSnapshot(
-    val loaderVersion: String,
-    val driverVersion: String,
-    val installedMods: List<String>,
-    val registries: List<String>,
-    val serverFeatures: List<String>,
-    val permissionsFingerprint: String = "permissions:local-client",
-)
-
-internal class SnapshotFabricRuntimeMetadataProvider(
-    private val snapshot: FabricRuntimeMetadataSnapshot,
-) : FabricRuntimeMetadataProvider {
-    override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
-        DriverRuntimeMetadata(
-            loaderVersion = snapshot.loaderVersion,
-            driver = FABRIC_DRIVER_ID,
-            driverVersion = snapshot.driverVersion,
-            mappings = FabricCompiledLaneMetadata.MAPPINGS_FINGERPRINT,
-            installedModsFingerprint = fingerprint("mods", snapshot.installedMods),
-            registryFingerprint = fingerprint("registries", snapshot.registries),
-            serverFeatureFingerprint = fingerprint("server-features", snapshot.serverFeatures),
-            permissionsFingerprint = snapshot.permissionsFingerprint,
-        )
-}
 
 internal class GatewayFabricServerFeatureProvider(
     private val gateway: FabricClientGateway,
@@ -1723,15 +1697,20 @@ private class FabricLoaderRuntimeMetadataProvider(
         SnapshotFabricRuntimeMetadataProvider(runtimeMetadataSnapshot()).runtimeMetadata(clientId)
 
     private fun runtimeMetadataSnapshot(): FabricRuntimeMetadataSnapshot {
-        val loader = FabricLoader.getInstance()
+        val reader = FabricLoaderRuntimeMetadataReader()
         return FabricRuntimeMetadataSnapshot(
-            loaderVersion = loader.versionFor(FABRIC_LOADER_ID) ?: "unknown",
-            driverVersion = loader.versionFor(FABRIC_DRIVER_ID) ?: FABRIC_DRIVER_VERSION,
-            installedMods = loader.installedMods(),
-            registries = safeRuntimeRegistryEntries(),
-            serverFeatures =
-                listOf("environment:${if (loader.safeIsDevelopmentEnvironment()) "dev" else "runtime"}") +
-                    GatewayFabricServerFeatureProvider(gateway).serverFeatures(),
+            loaderVersion = reader.loaderVersion(),
+            driver = FABRIC_DRIVER_ID,
+            driverVersion = reader.driverVersion(FABRIC_DRIVER_ID, FABRIC_DRIVER_VERSION),
+            mappings = FabricCompiledLaneMetadata.MAPPINGS_FINGERPRINT,
+            installedModsFingerprint = reader.installedModsFingerprint(),
+            registryFingerprint = fabricRuntimeFingerprint("registries", safeRuntimeRegistryEntries()),
+            serverFeatureFingerprint =
+                fabricRuntimeFingerprint(
+                    "server-features",
+                    listOf("environment:${if (reader.isDevelopmentEnvironment()) "dev" else "runtime"}") +
+                        GatewayFabricServerFeatureProvider(gateway).serverFeatures(),
+                ),
         )
     }
 }
@@ -1743,23 +1722,6 @@ private fun net.minecraft.client.MinecraftClient.serverKind(): String =
         currentServerEntry?.isRealm == true -> "realm"
         currentServerEntry != null -> "remote"
         else -> "none"
-    }
-
-private fun FabricLoader.versionFor(modId: String): String? =
-    getModContainer(modId)
-        .map { it.metadata.version.friendlyString }
-        .orElse(null)
-
-private fun FabricLoader.installedMods(): List<String> =
-    allMods
-        .map { "${it.metadata.id}@${it.metadata.version.friendlyString}" }
-        .sorted()
-
-private fun FabricLoader.safeIsDevelopmentEnvironment(): Boolean =
-    try {
-        isDevelopmentEnvironment
-    } catch (_: NullPointerException) {
-        false
     }
 
 private fun runtimeRegistryEntries(): List<String> =
@@ -1790,19 +1752,5 @@ private fun registryEntries(
     registry: Registry<*>,
 ): List<String> = registry.ids.map { id -> "$label:$id" }
 
-private fun fingerprint(
-    label: String,
-    values: List<String>,
-): String {
-    val digest = MessageDigest.getInstance("SHA-256")
-    values.forEach { value ->
-        digest.update(value.encodeToByteArray())
-        digest.update(0)
-    }
-    return "$label:" + digest.digest().joinToString("") { byte -> "%02x".format(byte) }.take(FINGERPRINT_LENGTH)
-}
-
 private const val FABRIC_DRIVER_ID = "craftless-driver-fabric"
 private const val FABRIC_DRIVER_VERSION = "0.1.0-SNAPSHOT"
-private const val FABRIC_LOADER_ID = "fabricloader"
-private const val FINGERPRINT_LENGTH = 16

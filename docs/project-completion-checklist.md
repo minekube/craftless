@@ -4311,8 +4311,9 @@ Verification:
 - [x] `OfficialFabricDriverBackend` no longer embeds
   `mods:official-lane-probe`, `registries:unavailable`, or
   `server-features:unavailable`.
-- [x] `OfficialFabricDriverBackend` delegates runtime metadata to
-  `OfficialFabricRuntimeMetadataProvider`.
+- [x] `OfficialFabricDriverBackend` delegates runtime metadata to a provider.
+  Phase 151 supersedes the original official-only provider with shared
+  `driver-fabric-discovery` metadata primitives.
 - [x] Snapshot provider tests prove installed-mod fingerprinting is
   deterministic, order-independent, and changes when a mod version changes.
 - [x] The production official metadata provider reads Fabric Loader mod
@@ -4322,7 +4323,7 @@ Verification:
   per-version code only for proven divergence behind a narrow lane boundary.
 - [x] The real enabled official attach probe still observes `client.attached`.
 - [x] The generated per-client OpenAPI artifact reports installed mods as a
-  hashed live fingerprint such as `mods:33e126b07d85b4a4`, not the old
+  hashed live fingerprint such as `mods:6d85fb9272c1d2f5`, not the old
   `mods:official-lane-probe` placeholder.
 - [x] Registry and server-feature metadata remain explicit non-gameplay
   discovery gaps: `registries:not-discovered` and
@@ -4337,12 +4338,12 @@ Verification:
   `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.official lane has opt in launch attach probe task without packaging support claim'`
   failed while the official backend still embedded placeholder fingerprints.
 - Provider red test before implementation:
-  `mise exec -- gradle :driver-fabric-official:test --tests '*OfficialFabricRuntimeMetadataProviderTest*'`
+  `mise exec -- gradle :driver-fabric-official:test --tests '*OfficialFabricSharedRuntimeMetadataTest*'`
   failed before the provider types existed.
 - Green guard:
   `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.official lane has opt in launch attach probe task without packaging support claim'`.
 - Provider tests:
-  `mise exec -- gradle :driver-fabric-official:test --tests '*OfficialFabricRuntimeMetadataProviderTest*'`.
+  `mise exec -- gradle :driver-fabric-official:test --tests '*OfficialFabricSharedRuntimeMetadataTest*'`.
 - Real enabled default probe:
   `CRAFTLESS_OFFICIAL_FABRIC_ATTACH_PROBE=1`
   `CRAFTLESS_OFFICIAL_ATTACH_PROBE_TIMEOUT_MS=120000`
@@ -4352,9 +4353,55 @@ Verification:
 - OpenAPI artifact summary:
   `jq '{client:."x-craftless"."x-craftless-client-id", minecraft:."x-craftless"."x-craftless-minecraft-version", loader:."x-craftless"."x-craftless-loader", loaderVersion:."x-craftless"."x-craftless-loader-version", driver:."x-craftless"."x-craftless-driver", installedMods:."x-craftless"."x-craftless-installed-mods-fingerprint", registry:."x-craftless"."x-craftless-registry-fingerprint", serverFeatures:."x-craftless"."x-craftless-server-feature-fingerprint", actions:(."x-craftless-actions"|length), resources:(."x-craftless-resources"|length)}' driver-fabric-official/build/craftless-official-attach-probe/client-openapi.json`
   reported `official-probe`, `26.2`, `FABRIC`, `0.19.3`,
-  `craftless-driver-fabric-official`, `mods:33e126b07d85b4a4`,
+  `craftless-driver-fabric-official`, `mods:6d85fb9272c1d2f5`,
   `registries:not-discovered`, `server-features:not-connected`, `actions=0`,
   and `resources=1`.
+
+## Phase 151: Shared Fabric Runtime Metadata Discovery
+
+- [x] Spec written:
+  `docs/superpowers/specs/2026-06-28-151-shared-fabric-runtime-metadata-discovery-design.md`.
+- [x] Plan written:
+  `docs/superpowers/plans/2026-06-28-151-shared-fabric-runtime-metadata-discovery-plan.md`.
+- [x] New shared module `driver-fabric-discovery` is included in Gradle
+  settings and has local `AGENTS.md` rules.
+- [x] Both `driver-fabric` and `driver-fabric-official` depend on and include
+  `driver-fabric-discovery`.
+- [x] Shared tests prove snapshot metadata emission and deterministic,
+  order-independent, change-sensitive fingerprinting.
+- [x] The Yarn/remap Fabric lane no longer declares local
+  `FabricRuntimeMetadataSnapshot`, `SnapshotFabricRuntimeMetadataProvider`, or
+  Fabric Loader installed-mod helper copies.
+- [x] The official lane no longer declares `OfficialFabricRuntimeMetadataProvider`
+  or `OfficialFabricRuntimeMetadataSnapshot` copies.
+- [x] The official backend uses shared `FabricRuntimeMetadataProvider`,
+  `FabricLoaderRuntimeMetadataReader`, `FabricRuntimeMetadataSnapshot`, and
+  `SnapshotFabricRuntimeMetadataProvider`.
+- [x] The real enabled official attach probe still observes `client.attached`
+  and reports a live `mods:` installed-mod fingerprint.
+- [x] This phase adds no packaged 26.x driver manifest entry, no public
+  gameplay API, no static gameplay catalog, no version-specific public route
+  family, no survival shortcut, and no final latest/current support claim.
+
+Verification:
+
+- Red shared-boundary guard before implementation:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.official lane has opt in launch attach probe task without packaging support claim'`
+  failed before `driver-fabric-discovery` existed.
+- Shared provider red test before implementation:
+  `mise exec -- gradle :driver-fabric-discovery:test` failed before
+  `FabricRuntimeMetadataSnapshot`, `SnapshotFabricRuntimeMetadataProvider`, and
+  `fabricRuntimeFingerprint` existed.
+- Focused green tests:
+  `mise exec -- gradle :driver-fabric-discovery:test :driver-fabric:test --tests '*FabricDriverModuleTest.official lane has opt in launch attach probe task without packaging support claim' :driver-fabric-official:test --tests '*OfficialFabricSharedRuntimeMetadataTest*'`.
+- Real enabled official attach probe:
+  `CRAFTLESS_OFFICIAL_FABRIC_ATTACH_PROBE=1`
+  `CRAFTLESS_OFFICIAL_ATTACH_PROBE_TIMEOUT_MS=120000`
+  `mise exec -- gradle :driver-fabric-official:officialFabricAttachProbe`.
+  Observed `status=ATTACHED`, `installedMods=mods:6d85fb9272c1d2f5`,
+  `actions=0`, and `resources=1`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-shared-fabric-runtime-metadata-discovery.md`.
 
 ## Final Completion Gate
 
@@ -4406,8 +4453,9 @@ Verification:
   probe, Phase 144 latest driver lane preflight, Phase 145 latest official
   mapping lane probe, Phase 146 latest official Fabric lane boundary, Phase
   147 shared Fabric attach boundary, Phase 148 official Fabric runtime
-  dependency packaging, Phase 149 official Fabric launch attach probe, and
-  Phase 150 official Fabric runtime metadata discovery.
+  dependency packaging, Phase 149 official Fabric launch attach probe, Phase
+  150 official Fabric runtime metadata discovery, and Phase 151 shared Fabric
+  runtime metadata discovery.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
@@ -4415,7 +4463,7 @@ Verification:
   Phase 129, Phase 130, Phase 131, Phase 132, Phase 133, Phase 134, Phase
   135, Phase 136, Phase 137, Phase 138, Phase 139, Phase 140, Phase 141,
   Phase 142, Phase 143, Phase 144, Phase 145, Phase 146, Phase 147, Phase
-  148, Phase 149, and Phase 150 do not satisfy the full runnable latest/older support
+  148, Phase 149, Phase 150, and Phase 151 do not satisfy the full runnable latest/older support
   requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,

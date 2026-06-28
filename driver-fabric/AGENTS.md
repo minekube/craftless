@@ -46,6 +46,11 @@ or a reason to fork the generated OpenAPI model.
 - If latest/current official-mapping work needs code that is also useful for
   this lane, extract it to a shared Fabric runtime/attach/discovery module
   instead of adding a parallel copy under `driver-fabric-official/`.
+- Shared Fabric Loader identity, installed-mod fingerprints, runtime metadata
+  snapshots, and deterministic fingerprint helpers belong in
+  `driver-fabric-discovery`. Keep only Minecraft game-class registry,
+  server-feature, mixin/accessor, and execution details here when they truly
+  require this lane.
 - Do not pin durable behavior to the currently packaged lane. Latest/current
   and older-version support should be advanced by shared compatibility shims,
   generated lane metadata, and real launch/attach evidence, not by cloning the
