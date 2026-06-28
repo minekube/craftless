@@ -251,6 +251,8 @@ class FabricDriverModuleTest {
 
         assertTrue(buildScript.contains("writeFabricDriverLaneCatalog"))
         assertTrue(buildScript.contains("fabric-driver-lanes.json"))
+        assertTrue(buildScript.contains("artifactKey"))
+        assertTrue(buildScript.contains("fabric-current-remap-jar"))
         assertTrue(buildScript.contains("distributionPath"))
     }
 

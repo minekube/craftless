@@ -1,3 +1,6 @@
+import groovy.json.JsonSlurper
+import java.nio.file.Path
+
 plugins {
     application
 }
@@ -23,8 +26,7 @@ application {
 }
 
 val fabricDriverProject = project(":driver-fabric")
-val fabricDriverModDistributionPath = "mods/craftless-driver-fabric.jar"
-val fabricDriverModDistributionFileName = fabricDriverModDistributionPath.substringAfterLast("/")
+val fabricDriverArtifactStagingDir = layout.buildDirectory.dir("generated/driver-lane-artifacts")
 
 gradle.projectsEvaluated {
     val fabricDriverRemapJar = fabricDriverProject.tasks.named("remapJar")
@@ -45,32 +47,68 @@ gradle.projectsEvaluated {
                 output.writeText(catalog.readText().trimEnd() + "\n")
             }
         }
+    val stageFabricDriverLaneArtifacts =
+        tasks.register("stageFabricDriverLaneArtifacts") {
+            dependsOn(fabricDriverLaneCatalogTask)
+            dependsOn(fabricDriverRemapJar)
+            inputs.file(fabricDriverLaneCatalog)
+            inputs.files(fabricDriverRemapJar)
+            outputs.dir(fabricDriverArtifactStagingDir)
+
+            doLast {
+                val outputRoot = fabricDriverArtifactStagingDir.get().asFile
+                outputRoot.deleteRecursively()
+                val catalog = JsonSlurper().parse(fabricDriverLaneCatalog.get().asFile) as Map<*, *>
+                val entries = catalog["entries"] as? List<*> ?: error("Fabric driver lane catalog entries must be a list")
+                entries.forEach { rawEntry ->
+                    val entry = rawEntry as? Map<*, *> ?: error("Fabric driver lane catalog entry must be an object")
+                    val artifactKey = entry["artifactKey"]?.toString() ?: error("Fabric driver lane entry requires artifactKey")
+                    val distributionPath =
+                        entry["distributionPath"]?.toString()
+                            ?: error("Fabric driver lane entry requires distributionPath")
+                    val relativePath = Path.of(distributionPath)
+                    require(!relativePath.isAbsolute && relativePath.normalize() == relativePath) {
+                        "Fabric driver lane distributionPath must be a relative normalized path: $distributionPath"
+                    }
+                    val source =
+                        when (artifactKey) {
+                            "fabric-current-remap-jar" ->
+                                fabricDriverRemapJar
+                                    .get()
+                                    .outputs
+                                    .files
+                                    .singleFile
+
+                            else -> error("Unsupported Fabric driver lane artifactKey: $artifactKey")
+                        }
+                    val target = outputRoot.toPath().resolve(relativePath).toFile()
+                    target.parentFile.mkdirs()
+                    source.copyTo(target, overwrite = true)
+                }
+            }
+        }
 
     distributions {
         main {
             contents {
                 from(driverModManifest)
-                into("mods") {
-                    from(fabricDriverRemapJar) {
-                        rename { fabricDriverModDistributionFileName }
-                    }
-                }
+                from(stageFabricDriverLaneArtifacts)
             }
         }
     }
 
     tasks.named("distZip") {
-        dependsOn(fabricDriverRemapJar)
+        dependsOn(stageFabricDriverLaneArtifacts)
         dependsOn(driverModManifest)
     }
 
     tasks.named("distTar") {
-        dependsOn(fabricDriverRemapJar)
+        dependsOn(stageFabricDriverLaneArtifacts)
         dependsOn(driverModManifest)
     }
 
     tasks.named("installDist") {
-        dependsOn(fabricDriverRemapJar)
+        dependsOn(stageFabricDriverLaneArtifacts)
         dependsOn(driverModManifest)
     }
 }

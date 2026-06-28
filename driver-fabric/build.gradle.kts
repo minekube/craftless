@@ -13,6 +13,7 @@ val fabricCompiledApiVersion = "0.128.2+1.21.6"
 val fabricCompiledJavaMajorVersion = 21
 val fabricCompiledLaneId = "fabric-current-lane"
 val fabricCompiledProviderId = "fabric-current-lane"
+val fabricCompiledArtifactKey = "fabric-current-remap-jar"
 val fabricCompiledMappingsFingerprint = "craftless-fabric-bindings"
 val generatedFabricLaneMetadataDir =
     layout.buildDirectory.dir("generated/sources/fabricCompiledLaneMetadata/kotlin")
@@ -135,6 +136,7 @@ val writeFabricDriverLaneCatalog =
         description = "Generates the internal Fabric driver lane catalog consumed by Craftless distributions."
 
         inputs.property("fabricCompiledProviderId", fabricCompiledProviderId)
+        inputs.property("fabricCompiledArtifactKey", fabricCompiledArtifactKey)
         inputs.property("fabricCompiledMinecraftVersion", fabricCompiledMinecraftVersion)
         inputs.property("fabricCompiledLoaderVersion", fabricCompiledLoaderVersion)
         inputs.property("fabricCompiledApiVersion", fabricCompiledApiVersion)
@@ -154,6 +156,7 @@ val writeFabricDriverLaneCatalog =
                       "loaderVersion": ${jsonString(fabricCompiledLoaderVersion)},
                       "path": "mods/craftless-driver-fabric.jar",
                       "providerId": ${jsonString(fabricCompiledProviderId)},
+                      "artifactKey": ${jsonString(fabricCompiledArtifactKey)},
                       "fabricApiVersion": ${jsonString(fabricCompiledApiVersion)},
                       "javaMajorVersion": $fabricCompiledJavaMajorVersion,
                       "distributionPath": "mods/craftless-driver-fabric.jar"

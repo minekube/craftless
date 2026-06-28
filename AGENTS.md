@@ -239,6 +239,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 126. driver manifest loader default.
 127. alias driver manifest loader default.
 128. generated driver lane catalog.
+129. catalog-driven driver artifact staging.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -974,6 +975,13 @@ This is build/package metadata plumbing only; it must not add compiled lanes,
 change Fabric dependency versions, claim new Minecraft support, add gameplay
 APIs, route families, CLI gameplay catalogs, Fabric descriptor/binding pairs,
 or scenario shortcuts.
+Phase 129 makes `cli` stage packaged Fabric driver artifacts from the generated
+driver lane catalog's private `artifactKey` and `distributionPath` metadata.
+The catalog may still contain only the current compiled lane until real
+additional driver artifacts exist. This is build/package metadata plumbing
+only; it must not add compiled lanes, change Fabric dependency versions, claim
+new Minecraft support, add gameplay APIs, route families, CLI gameplay
+catalogs, Fabric descriptor/binding pairs, or scenario shortcuts.
 
 ## Acceptance Scenarios Are Not Product APIs
 
