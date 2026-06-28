@@ -135,15 +135,52 @@ class ConfiguredClientRuntimeDriverModProvider(
     private val environment: Map<String, String> = System.getenv(),
 ) : ClientRuntimeDriverModProvider {
     override fun modFor(request: ClientRuntimeDriverModRequest): Path? =
-        when (request.loader) {
-            Loader.FABRIC -> environment[CRAFTLESS_FABRIC_DRIVER_MOD]?.takeIf { it.isNotBlank() }?.let(Path::of)
-            else -> null
-        }
+        manifestModFor(request)
+            ?: when (request.loader) {
+                Loader.FABRIC -> environment[CRAFTLESS_FABRIC_DRIVER_MOD]?.takeIf { it.isNotBlank() }?.let(Path::of)
+                else -> null
+            }
+
+    private fun manifestModFor(request: ClientRuntimeDriverModRequest): Path? {
+        val manifestPath =
+            environment[CRAFTLESS_DRIVER_MOD_MANIFEST]
+                ?.takeIf { it.isNotBlank() }
+                ?.let(Path::of)
+                ?.toAbsolutePath()
+                ?.normalize()
+                ?: return null
+        val manifest = launcherJson.decodeFromString<ConfiguredDriverModManifest>(Files.readString(manifestPath))
+        val entry =
+            manifest
+                .entries
+                .filter { entry ->
+                    entry.loader == request.loader &&
+                        entry.minecraftVersion == request.minecraftVersion &&
+                        (entry.loaderVersion == request.loaderVersion || entry.loaderVersion == null)
+                }.maxByOrNull { entry -> if (entry.loaderVersion == request.loaderVersion) 1 else 0 }
+                ?: return null
+        val path = Path.of(entry.path)
+        return if (path.isAbsolute) path.normalize() else manifestPath.parent.resolve(path).normalize()
+    }
 
     companion object {
+        const val CRAFTLESS_DRIVER_MOD_MANIFEST: String = "CRAFTLESS_DRIVER_MOD_MANIFEST"
         const val CRAFTLESS_FABRIC_DRIVER_MOD: String = "CRAFTLESS_FABRIC_DRIVER_MOD"
     }
 }
+
+@Serializable
+private data class ConfiguredDriverModManifest(
+    val entries: List<ConfiguredDriverModManifestEntry> = emptyList(),
+)
+
+@Serializable
+private data class ConfiguredDriverModManifestEntry(
+    val loader: Loader,
+    val minecraftVersion: String,
+    val loaderVersion: String? = null,
+    val path: String,
+)
 
 interface ClientRuntimeLauncher {
     fun launch(

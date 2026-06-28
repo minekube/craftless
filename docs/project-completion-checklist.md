@@ -3397,6 +3397,33 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-version-aware-driver-mod-selection.md`.
 
+## Phase 108: Driver Mod Manifest Provider
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-108-driver-mod-manifest-provider-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-108-driver-mod-manifest-provider-plan.md`.
+- [x] `ConfiguredClientRuntimeDriverModProvider` supports
+  `CRAFTLESS_DRIVER_MOD_MANIFEST` with entries keyed by loader, Minecraft
+  version, optional loader version, and local jar path.
+- [x] Exact manifest entries win over the single
+  `CRAFTLESS_FABRIC_DRIVER_MOD` fallback.
+- [x] Manifest misses fall back to `CRAFTLESS_FABRIC_DRIVER_MOD` for current
+  single-driver releases.
+- [x] Relative manifest entry paths resolve relative to the manifest file
+  directory.
+- [x] This phase adds no new compiled Fabric lane, public gameplay action,
+  generated route family, CLI gameplay catalog, Fabric gameplay binding,
+  scenario shortcut, public version-specific API, runnable latest/older lane,
+  or new Minecraft support claim.
+
+Verification:
+
+- Red/green guard:
+  `mise exec -- gradle :daemon:test --tests '*ConfiguredClientRuntimeDriverModProviderTest*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-driver-mod-manifest-provider.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3420,8 +3447,9 @@ Verification:
   installed CLI driver mod distribution, Phase 104 v0.1.1 release install
   evidence, Phase 105 active unsupported lane fixture cleanup, and Phase 106
   explicit unused/dead-code gates, and Phase 107 version-aware driver mod
-  selection. Phase 105 and Phase 107 do not satisfy the runnable latest/older
-  support requirement by themselves.
+  selection, and Phase 108 driver mod manifest provider. Phase 105, Phase 107,
+  and Phase 108 do not satisfy the runnable latest/older support requirement by
+  themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support
