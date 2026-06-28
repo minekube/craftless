@@ -103,6 +103,7 @@ object LocalMinecraftServerSmoke {
 private const val CRAFTLESS_SMOKE_SERVER_PORT_ENV = "CRAFTLESS_SMOKE_SERVER_PORT"
 private const val CRAFTLESS_SMOKE_ARTIFACTS_DIR_ENV = "CRAFTLESS_SMOKE_ARTIFACTS_DIR"
 private const val DEFAULT_MINECRAFT_SERVER_PORT = 25565
+private const val DEFAULT_SMOKE_MINECRAFT_VERSION = "latest-release"
 
 data class LocalMinecraftServerSmokeResult(
     val status: LocalMinecraftServerSmokeStatus,
@@ -172,7 +173,7 @@ enum class LocalMinecraftSmokeRuntimeLaneStatus {
 data class LocalMinecraftServerSmokeConfig(
     val enabled: Boolean,
     val root: Path,
-    val minecraftVersion: String = "1.21.6",
+    val minecraftVersion: String = DEFAULT_SMOKE_MINECRAFT_VERSION,
     val runtimeLane: LocalMinecraftSmokeRuntimeLane? = null,
     val javaSelection: JavaRuntimeSelection? = null,
     val port: Int = DEFAULT_MINECRAFT_SERVER_PORT,
@@ -241,7 +242,7 @@ data class LocalMinecraftServerSmokeConfig(
             return LocalMinecraftServerSmokeConfig(
                 enabled = enabled,
                 root = root,
-                minecraftVersion = env[VERSION]?.takeIf { it.isNotBlank() } ?: "1.21.6",
+                minecraftVersion = env[VERSION]?.takeIf { it.isNotBlank() } ?: DEFAULT_SMOKE_MINECRAFT_VERSION,
                 runtimeLane = runtimeLane,
                 javaSelection = javaSelection,
                 port =

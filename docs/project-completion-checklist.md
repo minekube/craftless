@@ -3607,6 +3607,30 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-local-server-latest-alias.md`.
 
+## Phase 116: Local Smoke Default Latest Alias
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-116-local-smoke-default-latest-alias-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-116-local-smoke-default-latest-alias-plan.md`.
+- [x] `LocalMinecraftServerSmokeConfig` defaults to `latest-release`.
+- [x] `LocalMinecraftServerSmokeConfig.fromEnvironment()` falls back to
+  `latest-release` when `CRAFTLESS_SMOKE_MINECRAFT_VERSION` is unset.
+- [x] Explicit smoke version overrides such as `1.21.6` remain preserved.
+- [x] This phase adds no new compiled Fabric lane, public gameplay action,
+  generated route family, CLI gameplay catalog, Fabric gameplay binding,
+  scenario shortcut, public version-specific API, runnable latest/older lane,
+  or new Minecraft support claim.
+
+Verification:
+
+- Red/green default guard:
+  `mise exec -- gradle :testkit:test --tests '*LocalMinecraftServerSmokeTest.local server smoke is disabled by default*'`
+- Focused testkit regression:
+  `mise exec -- gradle :testkit:test --tests '*LocalMinecraftServerSmokeTest.*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-local-smoke-default-latest-alias.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3635,9 +3659,10 @@ Verification:
   identity, and Phase 111 latest version alias resolution, and Phase 112
   resolved driver mod lane request, and Phase 113 shared version index
   resolution, and Phase 114 active docs latest alias, and Phase 115 local
-  server latest alias. Phase 105, Phase 107, Phase 108, Phase 109, Phase 110,
-  Phase 111, Phase 112, Phase 113, Phase 114, and Phase 115 do not satisfy
-  the runnable latest/older support requirement by
+  server latest alias, and Phase 116 local smoke default latest alias. Phase
+  105, Phase 107, Phase 108, Phase 109, Phase 110, Phase 111, Phase 112,
+  Phase 113, Phase 114, Phase 115, and Phase 116 do not satisfy the runnable
+  latest/older support requirement by
   themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,

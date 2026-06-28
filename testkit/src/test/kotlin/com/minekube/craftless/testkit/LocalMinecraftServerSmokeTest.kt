@@ -15,8 +15,19 @@ class LocalMinecraftServerSmokeTest {
         val config = LocalMinecraftServerSmokeConfig.fromEnvironment(emptyMap())
 
         assertFalse(config.enabled)
-        assertEquals("1.21.6", config.minecraftVersion)
+        assertEquals("latest-release", config.minecraftVersion)
         assertEquals(25565, config.port)
+    }
+
+    @Test
+    fun `local server smoke config defaults to latest release alias`() {
+        val config =
+            LocalMinecraftServerSmokeConfig(
+                enabled = false,
+                root = createTempDirectory("craftless-local-server-smoke-default"),
+            )
+
+        assertEquals("latest-release", config.minecraftVersion)
     }
 
     @Test
