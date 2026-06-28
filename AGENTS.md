@@ -225,6 +225,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 112. resolved driver mod lane request.
 113. shared version index resolution.
 114. active docs latest alias.
+115. local server latest alias.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -869,6 +870,12 @@ is docs/product-surface alignment only; it must not rewrite historical
 evidence, add compiled lanes, gameplay descriptors, static route families,
 scenario shortcuts, public version-specific APIs, or latest/older runnable
 support claims.
+Phase 115 makes local Minecraft server smoke provisioning resolve
+`latest-release` and `latest-snapshot` through the shared Mojang version-index
+helper and cache server jars under the resolved concrete Minecraft version.
+This is verification/runtime plumbing only; it must not add compiled lanes,
+gameplay descriptors, static route families, scenario shortcuts, public
+version-specific APIs, or latest/older runnable support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

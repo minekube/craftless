@@ -1,11 +1,11 @@
-package com.minekube.craftless.daemon
+package com.minekube.craftless.protocol
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
-internal fun String.versionManifestUrl(minecraftVersion: String): String {
+fun String.versionManifestUrl(minecraftVersion: String): String {
     val versions =
         Json
             .parseToJsonElement(this)
@@ -19,7 +19,7 @@ internal fun String.versionManifestUrl(minecraftVersion: String): String {
     return version.jsonObject["url"]?.jsonPrimitive?.content ?: error("minecraft version $minecraftVersion is missing metadata url")
 }
 
-internal fun String.resolveMinecraftVersion(minecraftVersion: String): String {
+fun String.resolveMinecraftVersion(minecraftVersion: String): String {
     val latestField =
         when (minecraftVersion) {
             "latest-release" -> "release"
@@ -41,7 +41,7 @@ internal fun String.resolveMinecraftVersion(minecraftVersion: String): String {
     return resolved
 }
 
-internal fun requireFileSafeCacheSegment(
+fun requireFileSafeCacheSegment(
     value: String,
     label: String,
 ) {

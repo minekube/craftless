@@ -13,6 +13,90 @@ import kotlin.test.assertEquals
 
 class MinecraftServerJarProvisionerTest {
     @Test
+    fun `fixture provisions latest release server jar under resolved version`() =
+        runBlocking {
+            val requestedUrls = mutableListOf<String>()
+            val http =
+                HttpClient(MockEngine) {
+                    engine {
+                        addHandler { request ->
+                            val url = request.url.toString()
+                            requestedUrls += url
+                            when (url) {
+                                "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json" ->
+                                    respond(
+                                        content =
+                                            """
+                                            {
+                                              "latest": {
+                                                "release": "26.2",
+                                                "snapshot": "26.3-snapshot-1"
+                                              },
+                                              "versions": [
+                                                {
+                                                  "id": "26.2",
+                                                  "url": "https://example.test/versions/26.2.json"
+                                                }
+                                              ]
+                                            }
+                                            """.trimIndent(),
+                                        status = HttpStatusCode.OK,
+                                        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                                    )
+
+                                "https://example.test/versions/26.2.json" ->
+                                    respond(
+                                        content =
+                                            """
+                                            {
+                                              "downloads": {
+                                                "server": {
+                                                  "url": "https://example.test/server-26.2.jar"
+                                                }
+                                              }
+                                            }
+                                            """.trimIndent(),
+                                        status = HttpStatusCode.OK,
+                                        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                                    )
+
+                                "https://example.test/server-26.2.jar" ->
+                                    respond(
+                                        content = "latest release server jar bytes",
+                                        status = HttpStatusCode.OK,
+                                        headers = headersOf(HttpHeaders.ContentType, "application/octet-stream"),
+                                    )
+
+                                else -> error("unexpected request $url")
+                            }
+                        }
+                    }
+                }
+            val layout =
+                LocalServerFixture(
+                    root = Files.createTempDirectory("craftless-server-jar-latest-release"),
+                    port = 25567,
+                ).prepare()
+
+            val provisioned =
+                layout.provisionMinecraftServerJar(
+                    version = "latest-release",
+                    provisioner = MinecraftServerJarProvisioner(http),
+                )
+
+            assertEquals(layout.artifactsDir.resolve("minecraft-server-26.2.jar"), provisioned)
+            assertEquals("latest release server jar bytes", Files.readString(provisioned))
+            assertEquals(
+                listOf(
+                    "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json",
+                    "https://example.test/versions/26.2.json",
+                    "https://example.test/server-26.2.jar",
+                ),
+                requestedUrls,
+            )
+        }
+
+    @Test
     fun `fixture provisions minecraft server jar from version manifest`() =
         runBlocking {
             val requestedUrls = mutableListOf<String>()

@@ -1,5 +1,8 @@
 package com.minekube.craftless.testkit
 
+import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
+import com.minekube.craftless.protocol.resolveMinecraftVersion
+import com.minekube.craftless.protocol.versionManifestUrl
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -11,38 +14,28 @@ import java.nio.file.Path
 
 class MinecraftServerJarProvisioner(
     private val http: HttpClient,
-    private val manifestUrl: String = DEFAULT_MANIFEST_URL,
+    private val manifestUrl: String = MINECRAFT_VERSION_INDEX_URL,
     private val json: Json = Json { ignoreUnknownKeys = true },
 ) {
     suspend fun provision(
         version: String,
-        target: Path,
+        artifactsDir: Path,
     ): Path {
         require(version.isNotBlank()) { "minecraft server version is required" }
-        val manifest =
-            json.decodeFromString<LauncherVersionManifest>(
-                http.get(manifestUrl).bodyAsText(),
-            )
-        val versionUrl =
-            manifest.versions
-                .firstOrNull { it.id == version }
-                ?.url
-                ?: error("minecraft server version $version not found in version manifest")
+        val manifest = http.get(manifestUrl).bodyAsText()
+        val resolvedVersion = manifest.resolveMinecraftVersion(version)
+        val versionUrl = manifest.versionManifestUrl(resolvedVersion)
         val versionMetadata =
             json.decodeFromString<LauncherVersionMetadata>(
                 http.get(versionUrl).bodyAsText(),
             )
         val serverUrl =
             versionMetadata.downloads.server?.url
-                ?: error("minecraft server version $version does not include a server download")
+                ?: error("minecraft server version $resolvedVersion does not include a server download")
+        val target = artifactsDir.resolve("minecraft-server-$resolvedVersion.jar")
         Files.createDirectories(target.parent)
         Files.write(target, http.get(serverUrl).body<ByteArray>())
         return target
-    }
-
-    companion object {
-        const val DEFAULT_MANIFEST_URL: String =
-            "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
     }
 }
 
@@ -52,19 +45,8 @@ suspend fun LocalServerLayout.provisionMinecraftServerJar(
 ): Path =
     provisioner.provision(
         version = version,
-        target = artifactsDir.resolve("minecraft-server-$version.jar"),
+        artifactsDir = artifactsDir,
     )
-
-@Serializable
-private data class LauncherVersionManifest(
-    val versions: List<LauncherVersionEntry> = emptyList(),
-)
-
-@Serializable
-private data class LauncherVersionEntry(
-    val id: String,
-    val url: String,
-)
 
 @Serializable
 private data class LauncherVersionMetadata(

@@ -18,6 +18,9 @@ import com.minekube.craftless.protocol.JavaRuntimeSelectionStatus
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.MINECRAFT_JAVA_RUNTIME_INDEX_URL
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
+import com.minekube.craftless.protocol.requireFileSafeCacheSegment
+import com.minekube.craftless.protocol.resolveMinecraftVersion
+import com.minekube.craftless.protocol.versionManifestUrl
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout

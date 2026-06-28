@@ -6,6 +6,8 @@ import com.minekube.craftless.protocol.JavaRuntimeRequirement
 import com.minekube.craftless.protocol.JavaRuntimeResolveRequest
 import com.minekube.craftless.protocol.JavaRuntimeSelection
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
+import com.minekube.craftless.protocol.resolveMinecraftVersion
+import com.minekube.craftless.protocol.versionManifestUrl
 import java.nio.file.Path
 
 class JavaRuntimeService(
