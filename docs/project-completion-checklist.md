@@ -49,7 +49,9 @@ the board honest.
   client through the supervisor API, not through a local manual mod drop.
 - [ ] CL-03a through CL-03c: Record the concrete `latest-release` version,
   resolved Java/runtime, Fabric Loader/API artifacts, driver artifact, cache
-  paths, and runtime metadata used by the packaged lane.
+  paths, and runtime metadata used by the packaged lane. Current progress:
+  Phase 181 packages the official `26.2` driver manifest entry and artifact,
+  but does not yet prove a packaged create/attach run.
 - [ ] CL-03f: Run one public API/CLI smoke on the latest/current lane using
   only generated operations/resources and generic invocation.
 
@@ -182,6 +184,15 @@ checked and the named evidence file exists.
      on a locally installed Java outside `mise`/resolved runtimes.
    - [ ] CL-03c: Fabric Loader/API and Craftless driver artifacts resolve
      through cache/manifest services, not hand-picked local files.
+     Progress:
+     - [x] CL-03c.1: The packaged CLI/Docker distribution includes a
+       manifest-backed official `26.2` Fabric lane with
+       `fabricApiVersion=0.153.0+26.2`, `javaMajorVersion=25`, and
+       `mods/fabric-26.2/craftless-driver-fabric-official.jar`. Evidence:
+       `docs/superpowers/evidence/2026-06-28-packaged-official-latest-lane.md`.
+     - [ ] CL-03c.2: A packaged latest-current create/attach run proves the
+       manifest entry is selected through the supervisor API and runtime cache
+       path.
    - [ ] CL-03d: Packaged CLI creates or attaches a latest/current client
      through the supervisor API.
    - [~] CL-03e: Generated per-client OpenAPI, actions/resources projections,

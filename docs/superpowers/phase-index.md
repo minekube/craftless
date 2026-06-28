@@ -63,6 +63,7 @@ not grow with every completed phase.
 - Phase 178: static gameplay guard closure.
 - Phase 179: official client-state world time operation.
 - Phase 180: official world time invocation.
+- Phase 181: packaged official latest Fabric lane.
 
 ## Current Direction
 
@@ -127,6 +128,14 @@ internal 26.x world-time provider and private adapter-key dispatch. This is
 still CL-03e progress only; connected OpenAPI/action/resource/SSE/JSON-RPC
 artifacts, packaged latest-lane create/attach, and public gameplay smoke
 remain open.
+The packaged CLI/Docker distribution now includes a `26.2` official Fabric
+driver manifest entry and staged
+`mods/fabric-26.2/craftless-driver-fabric-official.jar`, built through the
+Java 25 mise runtime. This removes the previous packaged manifest miss for
+`latest-release` resolving to `26.2`, but CL-03 remains open until the
+packaged latest-current create/attach run captures connected OpenAPI,
+actions/resources, SSE, JSON-RPC query/subscription, and public smoke
+artifacts.
 Continue by moving official 26.x support through shared Fabric
 discovery/projection/invocation, packaging, adaptive CLI/API smoke, and honest
 gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the

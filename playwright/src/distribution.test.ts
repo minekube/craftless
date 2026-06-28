@@ -59,10 +59,22 @@ describe("distribution surface", () => {
     expect(cliBuild).toContain("extraFabricDriverLaneRoot");
     expect(mise).toContain("-Pcraftless.fabric.artifactKey=fabric-1-20-6-remap-jar");
     expect(mise).toContain("-Pcraftless.fabric.distributionPath=mods/fabric-1.20.6/craftless-driver-fabric.jar");
-    expect(mise).toContain("-Pcraftless.extraFabricDriverLaneRoot=build/driver-lanes/older");
+    expect(mise).toContain("-Pcraftless.extraFabricDriverLaneRoot=build/driver-lanes");
     expect(mise).toContain("mods/fabric-1.20.6/craftless-driver-fabric.jar");
     expect(mise).toContain("minecraftVersion");
     expect(mise).toContain("1.20.6");
+  });
+
+  test("CLI distribution packages latest official fabric lane", () => {
+    const mise = read(".mise.toml");
+
+    expect(mise).toContain(":driver-fabric-official:jar");
+    expect(mise).toContain("build/driver-lanes/latest-official");
+    expect(mise).toContain("mods/fabric-26.2/craftless-driver-fabric-official.jar");
+    expect(mise).toContain('\\"minecraftVersion\\": \\"26.2\\"');
+    expect(mise).toContain('\\"fabricApiVersion\\": \\"0.153.0+26.2\\"');
+    expect(mise).toContain('\\"javaMajorVersion\\": 25');
+    expect(mise).toContain("java@temurin-25.0.3+9.0.LTS");
   });
 
   test("Dockerfile copies a built CLI distribution instead of building Craftless", () => {
