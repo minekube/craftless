@@ -17,6 +17,7 @@ fun fabricLaneIntProperty(
 ): Int = fabricLaneProperty(name, defaultValue.toString()).toInt()
 
 val fabricCompiledMinecraftVersion = fabricLaneProperty("craftless.fabric.minecraftVersion", "1.21.6")
+val fabricCompiledMappingMode = fabricLaneProperty("craftless.fabric.mappingMode", "yarn")
 val fabricCompiledYarnMappings = fabricLaneProperty("craftless.fabric.yarnMappings", "1.21.6+build.1")
 val fabricCompiledLoaderVersion = fabricLaneProperty("craftless.fabric.loaderVersion", "0.19.3")
 val fabricCompiledApiVersion = fabricLaneProperty("craftless.fabric.apiVersion", "0.128.2+1.21.6")
@@ -45,7 +46,11 @@ kotlin {
 
 dependencies {
     "minecraft"("com.mojang:minecraft:$fabricCompiledMinecraftVersion")
-    "mappings"("net.fabricmc:yarn:$fabricCompiledYarnMappings:v2")
+    when (fabricCompiledMappingMode) {
+        "yarn" -> "mappings"("net.fabricmc:yarn:$fabricCompiledYarnMappings:v2")
+        "official" -> Unit
+        else -> error("unsupported Craftless Fabric mapping mode: $fabricCompiledMappingMode")
+    }
     "modImplementation"("net.fabricmc:fabric-loader:$fabricCompiledLoaderVersion")
     "modImplementation"("net.fabricmc.fabric-api:fabric-api:$fabricCompiledApiVersion")
 

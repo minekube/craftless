@@ -255,6 +255,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 142. installed packaged older Fabric live attach.
 143. installed latest-release alias compatibility probe.
 144. latest driver lane preflight.
+145. latest official-mapping lane probe.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -329,6 +330,15 @@ asset objects, Java runtime files, or Fabric libraries. This is compatibility
 preflight only; it must not claim new Minecraft support, add per-version public
 routes, introduce gameplay catalogs, or replace the need for a real
 provider-backed latest/current Fabric driver lane.
+
+Phase 145 makes the latest/current Fabric lane blocker executable through a
+dedicated official-mapping probe. The probe must use Fabric's 26.x
+official/Mojang-mapping boundary instead of the existing Yarn/remap lane, write
+machine-readable status evidence, and keep failures as source-compatibility
+blockers until a real latest driver artifact compiles, packages, launches,
+attaches, and exposes generated OpenAPI/actions/resources. This phase must not
+mark `latest-release` supported by adding a static unsupported/supported matrix
+entry, cloning gameplay bindings, or changing public API shape.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final

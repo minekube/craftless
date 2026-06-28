@@ -240,6 +240,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-144-latest-driver-lane-preflight-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-144-latest-driver-lane-preflight-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-145-latest-official-mapping-lane-probe-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-145-latest-official-mapping-lane-probe-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -4076,6 +4080,39 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-latest-driver-lane-preflight.md`.
 
+## Phase 145: Latest Official Mapping Lane Probe
+
+- [x] `driver-fabric/build.gradle.kts` has an explicit
+  `craftless.fabric.mappingMode` lane property.
+- [x] The default Yarn/remap lane remains unchanged for the verified current
+  and older packaged paths.
+- [x] Official mode removes the Yarn `mappings` dependency instead of passing
+  `craftless.fabric.yarnMappings`.
+- [x] `.mise.toml` exposes `fabric-lane-check-latest-official`.
+- [x] The latest official probe runs Gradle through mise with
+  `java@temurin-25.0.3+9.0.LTS` and `gradle@9.6.0`.
+- [x] The latest official probe uses Minecraft `26.2`, Fabric Loader `0.19.3`,
+  Fabric API `0.153.0+26.2`, Java major version 25, and
+  `craftless-fabric-official-bindings-26-2`.
+- [x] The latest official probe writes
+  `build/reports/fabric-lane-check-latest-official.log` and
+  `build/reports/fabric-lane-check-latest-official.status`.
+- [x] Current probe evidence records:
+  `status=source-compatibility-blocked` and
+  `blockers=loom-remap-requires-mappings`.
+- [x] This phase adds no public gameplay API, static gameplay catalog,
+  version-specific public route family, survival shortcut, packaged 26.x
+  driver manifest entry, or final latest/current support claim.
+
+Verification:
+
+- Focused guard tests:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric compiled lane build is parameterized for compatibility probes' --tests '*FabricDriverModuleTest.mise latest lane probe uses official mapping boundary not yarn remap lane*'`.
+- Latest official lane probe:
+  `mise run fabric-lane-check-latest-official`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-latest-official-mapping-lane-probe.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -4123,14 +4160,15 @@ Verification:
   140 parameterized Fabric smoke client command, and Phase 141 representative
   older Fabric real-client smoke, and Phase 142 installed packaged older
   Fabric live attach, Phase 143 installed latest-release alias compatibility
-  probe, and Phase 144 latest driver lane preflight.
+  probe, Phase 144 latest driver lane preflight, and Phase 145 latest official
+  mapping lane probe.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
   122, Phase 123, Phase 124, Phase 125, Phase 126, Phase 127, Phase 128,
   Phase 129, Phase 130, Phase 131, Phase 132, Phase 133, Phase 134, Phase
   135, Phase 136, Phase 137, Phase 138, Phase 139, Phase 140, Phase 141,
-  Phase 142, Phase 143, and Phase 144 do not
+  Phase 142, Phase 143, Phase 144, and Phase 145 do not
   satisfy the full runnable latest/older support
   requirement by themselves.
   The broader project goal remains active until
@@ -4176,8 +4214,10 @@ Verification:
   installed packaged CLI launch, self-attach, generated OpenAPI, generated
   actions/resources, SSE events, and cleanup for Minecraft `1.20.6`. Phase
   144 makes missing latest/current driver lanes fail before heavy binary cache
-  downloads. Full product support still requires a runnable provider-backed
-  latest/current driver lane, final compatibility audit, and honest final
-  survival gameplay without server-provisioned inventory.
+  downloads. Phase 145 records the latest/current official-mapping probe
+  blocker as `loom-remap-requires-mappings`. Full product support still
+  requires a runnable provider-backed latest/current driver lane, final
+  compatibility audit, and honest final survival gameplay without
+  server-provisioned inventory.
 - [x] Changes are committed and pushed to `main`. This entry is current only
   after the checklist update that changes it is also pushed.

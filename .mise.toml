@@ -38,7 +38,7 @@ description = "Compile-probe the representative older Fabric driver lane and rec
 run = """
 mkdir -p build/reports
 set +e
-mise exec -- gradle :driver-fabric:compileKotlin :driver-fabric:processResources :driver-fabric:writeFabricDriverLaneCatalog \
+mise exec java@temurin-25.0.3+9.0.LTS gradle@9.6.0 -- gradle :driver-fabric:compileKotlin :driver-fabric:processResources :driver-fabric:writeFabricDriverLaneCatalog \
   -Pcraftless.fabric.minecraftVersion=1.20.6 \
   -Pcraftless.fabric.yarnMappings=1.20.6+build.3 \
   -Pcraftless.fabric.loaderVersion=0.19.3 \
@@ -67,6 +67,44 @@ if grep -q "Unresolved reference 'ClientWorldEvents'" build/reports/fabric-lane-
 fi
 printf 'status=source-compatibility-blocked\\nblockers=RecipeDisplayApi\\n' > build/reports/fabric-lane-check-older.status
 cat build/reports/fabric-lane-check-older.status
+"""
+
+[tasks.fabric-lane-check-latest-official]
+description = "Compile-probe the latest Fabric driver lane through the official Mojang mapping boundary"
+run = """
+mkdir -p build/reports
+set +e
+mise exec java@temurin-25.0.3+9.0.LTS gradle@9.6.0 -- gradle :driver-fabric:compileKotlin :driver-fabric:processResources :driver-fabric:writeFabricDriverLaneCatalog \
+  -Pcraftless.fabric.mappingMode=official \
+  -Pcraftless.fabric.minecraftVersion=26.2 \
+  -Pcraftless.fabric.loaderVersion=0.19.3 \
+  -Pcraftless.fabric.apiVersion=0.153.0+26.2 \
+  -Pcraftless.fabric.javaMajorVersion=25 \
+  -Pcraftless.fabric.laneId=fabric-latest-official-lane \
+  -Pcraftless.fabric.providerId=fabric-latest-official-lane \
+  -Pcraftless.fabric.artifactKey=fabric-latest-official-jar \
+  -Pcraftless.fabric.mappingsFingerprint=craftless-fabric-official-bindings-26-2 \
+  -Pcraftless.fabric.distributionPath=mods/fabric-26.2/craftless-driver-fabric.jar \
+  > build/reports/fabric-lane-check-latest-official.log 2>&1
+status=$?
+set -e
+cat build/reports/fabric-lane-check-latest-official.log
+if [ "$status" -eq 0 ]; then
+  printf 'status=compiled\\n' > build/reports/fabric-lane-check-latest-official.status
+  exit 0
+fi
+if grep -q "requires Java 25 but Gradle is using" build/reports/fabric-lane-check-latest-official.log; then
+  printf 'status=source-compatibility-blocked\\nblockers=java25-gradle-runtime\\n' > build/reports/fabric-lane-check-latest-official.status
+  cat build/reports/fabric-lane-check-latest-official.status
+  exit 0
+fi
+if grep -q "Configuration 'mappings' has no dependencies" build/reports/fabric-lane-check-latest-official.log; then
+  printf 'status=source-compatibility-blocked\\nblockers=loom-remap-requires-mappings\\n' > build/reports/fabric-lane-check-latest-official.status
+  cat build/reports/fabric-lane-check-latest-official.status
+  exit 0
+fi
+printf 'status=source-compatibility-blocked\\nblockers=official-mapping-source-port\\n' > build/reports/fabric-lane-check-latest-official.status
+cat build/reports/fabric-lane-check-latest-official.status
 """
 
 [tasks.package-cli]

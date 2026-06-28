@@ -255,6 +255,7 @@ class FabricDriverModuleTest {
         val buildScript = Files.readString(repositoryRoot().resolve("driver-fabric/build.gradle.kts"))
 
         assertTrue(buildScript.contains("craftless.fabric.minecraftVersion"))
+        assertTrue(buildScript.contains("craftless.fabric.mappingMode"))
         assertTrue(buildScript.contains("craftless.fabric.yarnMappings"))
         assertTrue(buildScript.contains("craftless.fabric.loaderVersion"))
         assertTrue(buildScript.contains("craftless.fabric.apiVersion"))
@@ -263,6 +264,32 @@ class FabricDriverModuleTest {
         assertTrue(buildScript.contains("craftless.fabric.providerId"))
         assertTrue(buildScript.contains("craftless.fabric.artifactKey"))
         assertTrue(buildScript.contains("craftless.fabric.mappingsFingerprint"))
+        assertTrue(buildScript.contains("\"official\" -> Unit"))
+        assertTrue(buildScript.contains("\"official\""))
+    }
+
+    @Test
+    fun `mise latest lane probe uses official mapping boundary not yarn remap lane`() {
+        val mise = Files.readString(repositoryRoot().resolve(".mise.toml"))
+        val latestTask =
+            mise.substringAfter("[tasks.fabric-lane-check-latest-official]", missingDelimiterValue = "")
+                .substringBefore("\n[tasks.", missingDelimiterValue = "")
+
+        assertTrue(latestTask.isNotBlank(), "latest official Fabric lane probe task is missing")
+        assertTrue(latestTask.contains("fabric-lane-check-latest-official.log"))
+        assertTrue(latestTask.contains("fabric-lane-check-latest-official.status"))
+        assertTrue(latestTask.contains("mise exec java@temurin-25.0.3+9.0.LTS gradle@9.6.0 -- gradle"))
+        assertTrue(latestTask.contains("-Pcraftless.fabric.mappingMode=official"))
+        assertTrue(latestTask.contains("-Pcraftless.fabric.minecraftVersion=26.2"))
+        assertTrue(latestTask.contains("-Pcraftless.fabric.loaderVersion=0.19.3"))
+        assertTrue(latestTask.contains("-Pcraftless.fabric.apiVersion=0.153.0+26.2"))
+        assertTrue(latestTask.contains("-Pcraftless.fabric.javaMajorVersion=25"))
+        assertTrue(latestTask.contains("-Pcraftless.fabric.laneId=fabric-latest-official-lane"))
+        assertTrue(latestTask.contains("-Pcraftless.fabric.providerId=fabric-latest-official-lane"))
+        assertTrue(latestTask.contains("-Pcraftless.fabric.artifactKey=fabric-latest-official-jar"))
+        assertTrue(latestTask.contains("-Pcraftless.fabric.mappingsFingerprint=craftless-fabric-official-bindings-26-2"))
+        assertTrue(latestTask.contains("-Pcraftless.fabric.distributionPath=mods/fabric-26.2/craftless-driver-fabric.jar"))
+        assertFalse(latestTask.contains("craftless.fabric.yarnMappings"))
     }
 
     @Test
