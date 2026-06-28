@@ -108,6 +108,19 @@ describe("distribution surface", () => {
     expect(readme).not.toContain("HMC-Specifics command");
   });
 
+  test("active docs prefer latest aliases over concrete latest ids", () => {
+    const readme = read("README.md");
+    const roadmap = read("docs/roadmap.md");
+    const fileManagement = read("docs/client-file-management.md");
+
+    expect(readme).toContain('"version": "latest-release"');
+    expect(readme).toContain("--mc latest-release");
+    expect(fileManagement).toContain("latest-release");
+    expect(fileManagement).toContain("latest-snapshot");
+    expect(roadmap).not.toContain("current latest `26.2`");
+    expect(roadmap).toContain("latest-release");
+  });
+
   test("installer and release workflow do not require Homebrew", () => {
     const install = read("install.sh");
     const workflow = read(".github/workflows/release.yml");

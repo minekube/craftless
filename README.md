@@ -153,7 +153,7 @@ curl -sS "$CRAFTLESS/clients" \
   -H 'content-type: application/json' \
   -d '{
     "id": "alice",
-    "version": "1.21.6",
+    "version": "latest-release",
     "loader": "FABRIC",
     "profile": { "kind": "OFFLINE", "name": "Alice" }
   }'
@@ -207,9 +207,8 @@ Craftless can prepare repeatable launch/cache state before running clients:
 
 ```sh
 craftless cache prepare \
-  --mc 1.21.6 \
+  --mc latest-release \
   --loader fabric \
-  --loader-version 0.19.3 \
   --workspace .craftless
 ```
 
@@ -217,6 +216,8 @@ Cache preparation resolves Minecraft metadata, the selected client jar,
 libraries, asset objects, native libraries, Fabric loader metadata, Java
 runtime requirements, launch arguments, classpath handles, logging metadata,
 asset indexes, and file layout inside a Craftless-owned workspace.
+Use `latest-release` or `latest-snapshot` for moving Mojang aliases, or a
+concrete Minecraft version id when a run must be pinned.
 
 Java selection is a product runtime concern, separate from repository build
 tooling. Craftless can evaluate configured, managed, mise, and system runtime

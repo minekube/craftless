@@ -3553,6 +3553,31 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-shared-version-index-resolution.md`.
 
+## Phase 114: Active Docs Latest Alias
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-114-active-docs-latest-alias-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-114-active-docs-latest-alias-plan.md`.
+- [x] README create-client and cache-prepare examples use `latest-release`.
+- [x] Client file-management docs describe `latest-release` and
+  `latest-snapshot` alias handling.
+- [x] Roadmap describes concrete latest ids as historical probe evidence
+  rather than the active current-version contract.
+- [x] Bun docs guard rejects active-doc drift back to concrete current-latest
+  wording.
+- [x] This phase adds no new compiled Fabric lane, public gameplay action,
+  generated route family, CLI gameplay catalog, Fabric gameplay binding,
+  scenario shortcut, public version-specific API, runnable latest/older lane,
+  or new Minecraft support claim.
+
+Verification:
+
+- Red/green docs guard:
+  `mise exec -- bun test playwright/src/distribution.test.ts --test-name-pattern "active docs prefer latest aliases over concrete latest ids"`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-active-docs-latest-alias.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3580,9 +3605,10 @@ Verification:
   packaged driver mod manifest, and Phase 110 strict Fabric runtime lane
   identity, and Phase 111 latest version alias resolution, and Phase 112
   resolved driver mod lane request, and Phase 113 shared version index
-  resolution. Phase 105, Phase 107, Phase 108, Phase 109, Phase 110, Phase
-  111, Phase 112, and Phase 113 do not satisfy the runnable latest/older
-  support requirement by themselves.
+  resolution, and Phase 114 active docs latest alias. Phase 105, Phase 107,
+  Phase 108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, and Phase
+  114 do not satisfy the runnable latest/older support requirement by
+  themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

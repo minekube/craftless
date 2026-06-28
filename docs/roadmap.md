@@ -61,12 +61,13 @@ collected materials, crafted and equipped a `Wooden Sword`, found Cows through
 `Leather`, and the Cow with `alive:false`, without server-provisioned
 inventory or static survival shortcuts.
 
-Multi-version work is foundation-level today. Live Mojang metadata and
-compatibility probes cover the current compiled Fabric lane plus latest `26.2`
-and representative older `1.20.6`; those latest/older probe records are
-historical diagnostics, not maintained product matrix entries. Active runtime
-code now lists provider-backed lanes and uses generic unsupported fallback until
-runnable support lands.
+Multi-version work is foundation-level today. Active runtime paths resolve
+Mojang `latest-release` / `latest-snapshot` aliases before cache, Java runtime,
+launch, and driver-mod lane selection. Historical compatibility probes record
+concrete latest and representative older ids such as `26.2` and `1.20.6`;
+those probe records are diagnostics, not maintained product matrix entries.
+Active runtime code now lists provider-backed lanes and uses generic
+unsupported fallback until runnable support lands.
 
 ## Completion Definition
 
@@ -245,9 +246,9 @@ Goal: make the Fabric driver robust across real client states.
 - Expand real Fabric client version support only after the target lane has
   cache preparation, Java runtime selection, Fabric Loader/API resolution,
   launch metadata, compatibility matrix, and smoke evidence. Unsupported lanes
-  such as current latest `26.2` and representative older `1.20.6` remain
-  historical diagnostics until then; active runtime code must not maintain
-  static unsupported lane catalogs.
+  discovered through `latest-release` and representative older-version probes
+  remain historical diagnostics until then; active runtime code must not
+  maintain static unsupported lane catalogs.
 
 Verification gate:
 

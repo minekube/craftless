@@ -224,6 +224,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 111. latest version alias resolution.
 112. resolved driver mod lane request.
 113. shared version index resolution.
+114. active docs latest alias.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -860,6 +861,14 @@ fetching concrete version metadata. This is metadata plumbing only; it must
 not add compiled lanes, gameplay descriptors, static route families, scenario
 shortcuts, public version-specific APIs, or latest/older runnable support
 claims.
+Phase 114 keeps active README, roadmap, and client file-management docs aligned
+with the alias-first version model. Active user examples should prefer
+`latest-release` when demonstrating current-version use and describe concrete
+latest ids as historical probe evidence, not durable product contracts. This
+is docs/product-surface alignment only; it must not rewrite historical
+evidence, add compiled lanes, gameplay descriptors, static route families,
+scenario shortcuts, public version-specific APIs, or latest/older runnable
+support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 
