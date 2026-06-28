@@ -113,7 +113,6 @@ class FakeDriverSession(
                         action = invocation.action,
                         status = DriverActionStatus.ACCEPTED,
                         message = event.message,
-                        eventType = event.type,
                     )
                 }
 
@@ -127,7 +126,6 @@ class FakeDriverSession(
                         action = invocation.action,
                         status = DriverActionStatus.ACCEPTED,
                         message = event.message,
-                        eventType = event.type,
                     )
                 }
 

@@ -197,7 +197,6 @@ data class DriverActionResult(
     val action: String,
     val status: DriverActionStatus,
     val message: String? = null,
-    val eventType: DriverEventType? = null,
     val data: JsonObject = buildJsonObject {},
 ) {
     init {

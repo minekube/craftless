@@ -12,7 +12,6 @@ import com.minekube.craftless.driver.api.DriverActionSource
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverClientSnapshot
 import com.minekube.craftless.driver.api.DriverEvent
-import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverOperationAdapter
 import com.minekube.craftless.driver.api.DriverOperationAdapters
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
@@ -864,7 +863,7 @@ class LocalSessionApiServerTest {
         }
 
     @Test
-    fun `server records action events from driver result metadata`() =
+    fun `server records action events from operation ids`() =
         withHttpClient { http ->
             LocalSessionApiServer
                 .inMemory(
@@ -888,7 +887,7 @@ class LocalSessionApiServerTest {
                     http.get(server.url("/clients/alice/events")).let { response ->
                         val body = response.bodyAsText()
                         assertEquals(HttpStatusCode.OK, response.status)
-                        assertTrue(body.contains("\"type\":\"movement\""))
+                        assertTrue(body.contains("\"type\":\"world.scan\""))
                         assertTrue(body.contains("scanned world radius 4"))
                     }
                 }
@@ -1903,7 +1902,7 @@ class LocalSessionApiServerTest {
                     assertEquals(HttpStatusCode.OK, response.status)
                     assertTrue(body.contains("client.connected"))
                     assertTrue(body.contains("chat"))
-                    assertTrue(body.contains("movement"))
+                    assertTrue(body.contains("player.move"))
                     assertTrue(body.contains("accepted player.move for alice"))
                     assertFalse(body.contains("unsupported fake action player.fly"))
                     assertTrue(body.contains("client.stopped"))
@@ -2275,7 +2274,6 @@ private class EventMetadataDriverSession(
             action = invocation.action,
             status = DriverActionStatus.ACCEPTED,
             message = "scanned world radius 4",
-            eventType = DriverEventType.MOVEMENT,
         )
 
     override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
@@ -2424,7 +2422,6 @@ private class GraphOperationAdapterDriverSession(
                             action = invocation.operation.id,
                             status = DriverActionStatus.ACCEPTED,
                             message = "adapter accepted ${invocation.arguments.getValue("message").jsonPrimitive.content}",
-                            eventType = DriverEventType.CHAT,
                         )
                     },
             ),

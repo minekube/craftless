@@ -213,6 +213,18 @@ class DriverSessionContractTest {
     }
 
     @Test
+    fun `driver action results do not carry static event type metadata`() {
+        val fieldNames =
+            DriverActionResult::class.java
+                .declaredFields
+                .filterNot { field -> field.isSynthetic }
+                .map { field -> field.name }
+                .toSet()
+
+        assertTrue("eventType" !in fieldNames, fieldNames.toString())
+    }
+
+    @Test
     fun `driver runtime metadata rejects non craftless public driver names`() {
         listOf(
             "",

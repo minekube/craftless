@@ -3,7 +3,6 @@ package com.minekube.craftless.driver.fabric.v1_21_6
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
-import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.booleanArgument
 import com.minekube.craftless.driver.api.intArgument
 import com.minekube.craftless.driver.api.stringArgument
@@ -671,7 +670,6 @@ private object FabricPlayerChatActionBinding : FabricActionBinding {
             action = invocation.action,
             status = DriverActionStatus.ACCEPTED,
             message = message,
-            eventType = DriverEventType.CHAT,
         )
     }
 }
@@ -726,7 +724,6 @@ private object FabricPlayerMoveActionBinding : FabricActionBinding {
             status = DriverActionStatus.ACCEPTED,
             message = "fabric ${context.modeId} action ${invocation.action} accepted for ${intent.ticks} tick(s)",
             data = data,
-            eventType = DriverEventType.MOVEMENT,
         )
     }
 }

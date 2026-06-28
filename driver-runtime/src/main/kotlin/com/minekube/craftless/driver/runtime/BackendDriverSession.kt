@@ -117,19 +117,9 @@ enum class DriverBackendAction {
 }
 
 private fun DriverActionResult.toDriverEvent(clientId: String): DriverEvent? {
-    if (message == null) {
-        return null
-    }
-    if (status != DriverActionStatus.ACCEPTED) {
-        return DriverEvent(
-            type = DriverEventType.ERROR,
-            client = clientId,
-            message = message,
-        )
-    }
-
+    if (message == null || status == DriverActionStatus.ACCEPTED) return null
     return DriverEvent(
-        type = eventType ?: return null,
+        type = DriverEventType.ERROR,
         client = clientId,
         message = message,
     )

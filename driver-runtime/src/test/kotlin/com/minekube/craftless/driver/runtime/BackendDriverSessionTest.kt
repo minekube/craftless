@@ -87,10 +87,7 @@ class BackendDriverSessionTest {
 
     @Test
     fun `runtime driver session invokes generic backend actions`() {
-        val backend =
-            RecordingDriverBackend(
-                resultEventType = DriverEventType.MOVEMENT,
-            )
+        val backend = RecordingDriverBackend()
         val session =
             BackendDriverSession(
                 clientId = "alice",
@@ -108,12 +105,7 @@ class BackendDriverSessionTest {
         assertEquals("player.move", result.action)
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
         assertEquals("action alice player.move forward=true ticks=20", backend.calls.single())
-        assertTrue(
-            session.events().any {
-                it.type == DriverEventType.MOVEMENT &&
-                    it.message == "action alice player.move forward=true ticks=20"
-            },
-        )
+        assertTrue(session.events().none { it.message == "action alice player.move forward=true ticks=20" })
 
         val chat =
             session.invoke(
@@ -159,11 +151,8 @@ class BackendDriverSessionTest {
     }
 
     @Test
-    fun `runtime driver session records accepted events from driver result metadata`() {
-        val backend =
-            RecordingDriverBackend(
-                resultEventType = DriverEventType.MOVEMENT,
-            )
+    fun `runtime driver session does not synthesize accepted events from action results`() {
+        val backend = RecordingDriverBackend()
         val session =
             BackendDriverSession(
                 clientId = "alice",
@@ -180,12 +169,7 @@ class BackendDriverSessionTest {
 
         assertEquals("world.scan", result.action)
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
-        assertTrue(
-            session.events().any {
-                it.type == DriverEventType.MOVEMENT &&
-                    it.message == "action alice world.scan radius=4"
-            },
-        )
+        assertTrue(session.events().none { it.message == "action alice world.scan radius=4" })
     }
 
     @Test
@@ -339,7 +323,6 @@ class BackendDriverSessionTest {
 
 private class RecordingDriverBackend(
     private val rejectedAction: String? = null,
-    private val resultEventType: DriverEventType? = null,
     private val graph: RuntimeCapabilityGraph = RuntimeCapabilityGraph(clientId = "alice"),
 ) : DriverBackend {
     val calls = mutableListOf<String>()
@@ -410,7 +393,6 @@ private class RecordingDriverBackend(
             action = invocation.action,
             status = DriverActionStatus.ACCEPTED,
             message = message,
-            eventType = resultEventType,
         )
     }
 }

@@ -181,7 +181,6 @@ private class RecordingDriverSession(
             action = invocation.action,
             status = DriverActionStatus.ACCEPTED,
             message = message,
-            eventType = DriverEventType.CHAT,
         )
     }
 

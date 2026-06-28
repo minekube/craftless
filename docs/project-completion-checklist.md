@@ -3655,6 +3655,36 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-live-event-action-fallback-removal.md`.
 
+## Phase 118: Action Result Event Type Removal
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-118-action-result-event-type-removal-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-118-action-result-event-type-removal-plan.md`.
+- [x] `DriverActionResult` no longer carries static `DriverEventType`
+  metadata.
+- [x] Accepted action session events use the invoked `operationId` as their
+  event type.
+- [x] Backend driver sessions no longer synthesize accepted driver events from
+  action result metadata.
+- [x] Failed or rejected action results still record `ERROR` events where the
+  driver session has a message.
+- [x] This phase adds no new public gameplay action, generated route family,
+  CLI gameplay catalog, Fabric gameplay binding, scenario shortcut, public
+  version-specific API, runnable latest/older lane, replacement action-event
+  enum, or new Minecraft support claim.
+
+Verification:
+
+- Red/green driver API contract guard:
+  `mise exec -- gradle :driver-api:test --tests '*DriverSessionContractTest.driver action results do not carry static event type metadata*'`
+- Focused runtime/daemon/Fabric regressions:
+  `mise exec -- gradle :driver-runtime:test --tests '*BackendDriverSessionTest.*'`
+  `mise exec -- gradle :daemon:test --tests '*LocalSessionApiServerTest.server streams generic graph invocation results without legacy event metadata*' --tests '*LocalSessionApiServerTest.server dispatches graph operations through registered operation adapters*' --tests '*LocalSessionApiServerTest.server streams filtered live client events as sse*'`
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverSelfAttachTest.*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-action-result-event-type-removal.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3684,10 +3714,10 @@ Verification:
   resolved driver mod lane request, and Phase 113 shared version index
   resolution, and Phase 114 active docs latest alias, and Phase 115 local
   server latest alias, and Phase 116 local smoke default latest alias, and
-  Phase 117 live event action fallback removal. Phase 105, Phase 107, Phase
-  108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
-  115, Phase 116, and Phase 117 do not satisfy the runnable latest/older
-  support requirement by
+  Phase 117 live event action fallback removal, and Phase 118 action result
+  event type removal. Phase 105, Phase 107, Phase 108, Phase 109, Phase 110,
+  Phase 111, Phase 112, Phase 113, Phase 114, Phase 115, Phase 116, Phase 117,
+  and Phase 118 do not satisfy the runnable latest/older support requirement by
   themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,

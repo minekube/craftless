@@ -228,6 +228,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 115. local server latest alias.
 116. local smoke default latest alias.
 117. live event action fallback removal.
+118. action result event type removal.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -890,6 +891,12 @@ such as `chat` or `movement` to concrete gameplay action ids such as
 operation ids or already-valid Craftless action ids. This is transport cleanup
 only; it must not add gameplay descriptors, static route families, CLI
 gameplay catalogs, Fabric bindings, scenario shortcuts, or support claims.
+Phase 118 removes static event-type classification from `DriverActionResult`.
+Action result DTOs must not carry `CHAT`, `MOVEMENT`, or replacement gameplay
+event enums; accepted action session events are operation-id-owned. This is
+driver contract cleanup only; it must not add gameplay descriptors, static
+route families, CLI gameplay catalogs, Fabric bindings, scenario shortcuts, or
+support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

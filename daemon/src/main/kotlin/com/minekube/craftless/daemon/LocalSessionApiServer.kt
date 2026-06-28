@@ -4,7 +4,6 @@ import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
-import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverOperationInvocation
 import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.ApiRouteCatalog
@@ -807,7 +806,7 @@ private fun DriverActionResult.toSessionEvent(
     }
 
     return SessionEvent(
-        type = eventType?.sessionEventType() ?: operationId,
+        type = operationId,
         client = clientId,
         message = message,
         operationId = operationId,
@@ -816,8 +815,6 @@ private fun DriverActionResult.toSessionEvent(
         payload = toJson(),
     )
 }
-
-private fun DriverEventType.sessionEventType(): String = name.lowercase().replace("_", ".")
 
 private sealed class RouteFailure(
     val status: HttpStatusCode,
