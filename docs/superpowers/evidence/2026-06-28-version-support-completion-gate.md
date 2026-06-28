@@ -34,6 +34,11 @@ does not add a new compiled Fabric lane or claim new Minecraft client support.
 Not waited on during active development. Local forced CI is the working gate;
 remote CI may continue in the background after push.
 
+## Push Evidence
+
+- `96993e4 docs: tighten version support completion gate` pushed to
+  `origin/main`.
+
 ## Notes
 
 - Latest `26.2` and representative older `1.20.6` compatibility records remain
