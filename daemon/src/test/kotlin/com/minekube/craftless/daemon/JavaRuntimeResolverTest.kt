@@ -74,6 +74,28 @@ class JavaRuntimeResolverTest {
     }
 
     @Test
+    fun `discovers system Java from PATH without JAVA_HOME`() {
+        val pathRoot = Files.createTempDirectory("craftless-system-path-java")
+        val pathJava = pathRoot.resolve("java")
+        fakeJava(pathJava, "25.0.3")
+
+        val selection =
+            JavaRuntimeResolver()
+                .resolve(
+                    requirement = java25Requirement(),
+                    context =
+                        JavaRuntimeDiscoveryContext(
+                            environment = mapOf("PATH" to pathRoot.toString()),
+                            home = Files.createTempDirectory("craftless-empty-home"),
+                        ),
+                )
+
+        assertEquals(JavaRuntimeSelectionStatus.SELECTED, selection.status)
+        assertEquals(JavaRuntimeProviderKind.SYSTEM, selection.selected?.provider)
+        assertEquals(pathJava.toString(), selection.selected?.executable)
+    }
+
+    @Test
     fun `returns unsatisfied when every candidate is too old`() {
         val systemJava = fakeJava("system-21", "21.0.11")
 

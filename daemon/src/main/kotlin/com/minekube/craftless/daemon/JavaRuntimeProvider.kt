@@ -1,6 +1,7 @@
 package com.minekube.craftless.daemon
 
 import com.minekube.craftless.protocol.JavaRuntimeProviderKind
+import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -68,11 +69,23 @@ class SystemJavaRuntimeProvider : JavaRuntimeProvider {
             context.environment["JAVA_HOME"]
                 ?.takeIf { it.isNotBlank() }
                 ?.let { Path.of(it).resolve("bin/java") }
-        return (listOfNotNull(javaHome) + context.systemExecutables)
+        val pathExecutables =
+            context.environment["PATH"]
+                ?.split(File.pathSeparatorChar)
+                .orEmpty()
+                .filter { it.isNotBlank() }
+                .flatMap { pathEntry -> Path.of(pathEntry).javaExecutableCandidates() }
+        return (listOfNotNull(javaHome) + pathExecutables + context.systemExecutables)
             .distinct()
             .map { executable -> JavaRuntimeCandidate(executable = executable, provider = kind) }
     }
 }
+
+private fun Path.javaExecutableCandidates(): List<Path> =
+    listOf(
+        resolve("java"),
+        resolve("java.exe"),
+    ).filter(Files::exists)
 
 private fun Path.findJavaExecutablesInChildren(): List<Path> {
     if (!Files.isDirectory(this)) return emptyList()

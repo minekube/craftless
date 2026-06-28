@@ -181,6 +181,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 68. full Codex evidence gate refresh.
 69. README and roadmap evidence alignment.
 70. public-agent operational workflow guidance.
+71. system Java PATH discovery.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -521,6 +522,13 @@ artifact guidance. It must not add product behavior, public gameplay actions,
 generated route families, CLI gameplay catalogs, Fabric descriptor/binding
 pairs, scenario shortcuts, new compiled lanes, public version-specific APIs,
 or new Minecraft support claims.
+Phase 71 improves supervisor/runtime Java resolution by letting the system
+provider discover `java`/`java.exe` from `PATH` and validate candidates through
+the existing bounded `ProcessBuilder` validator. Repository tooling still runs
+through `mise`, and this phase must not add public gameplay actions, generated
+route families, CLI gameplay catalogs, Fabric descriptor/binding pairs,
+scenario shortcuts, new compiled lanes, public version-specific APIs, or new
+Minecraft support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

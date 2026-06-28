@@ -2212,6 +2212,29 @@ Verification:
 - `mise run architecture-check`
 - `mise run ci`
 
+## Phase 71: System Java PATH Discovery
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-71-system-java-path-discovery-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-71-system-java-path-discovery-plan.md`.
+- [x] The system Java runtime provider discovers fake `java` executables from
+  `PATH` without requiring `JAVA_HOME`.
+- [x] The discovered `PATH` candidate is still validated by the bounded Java
+  validator and reported as provider `SYSTEM`.
+- [x] This phase changes supervisor/runtime Java discovery only. It adds no
+  public gameplay action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `mise exec -- gradle :daemon:test --tests '*JavaRuntimeResolverTest.discovers system Java from PATH without JAVA_HOME'`
+- `mise exec -- gradle :daemon:test --tests '*JavaRuntimeResolverTest*'`
+- `git diff --check`
+- `mise run architecture-check`
+- `mise run ci`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 68 evidence; the
