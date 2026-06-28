@@ -68,6 +68,11 @@ Result: all commands passed locally. `mise run architecture-check` included
 protocol, daemon, CLI, full `:driver-fabric:test`, and Bun Playwright checks.
 `mise run ci` completed Gradle lint, Gradle tests, and Bun Playwright tests.
 
+## Remote Verification
+
+Implementation commit `f02eed0` passed GitHub Actions `ci` run
+`28309091839`.
+
 ## Current Boundary
 
 Verified:

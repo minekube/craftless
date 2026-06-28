@@ -205,7 +205,7 @@
   verification result, and a note that this phase adds no gameplay actions or
   support claims.
 
-- [ ] **Step 4: Commit and push**
+- [x] **Step 4: Commit and push**
 
   Run:
 
@@ -215,7 +215,7 @@
   git push origin main
   ```
 
-- [ ] **Step 5: Verify remote CI**
+- [x] **Step 5: Verify remote CI**
 
   Run:
 
@@ -225,3 +225,6 @@
   ```
 
   Expected: pushed commit's GitHub Actions CI exits successfully.
+
+  Evidence: implementation commit `f02eed0` passed GitHub Actions `ci` run
+  `28309091839`.
