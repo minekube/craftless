@@ -12,6 +12,7 @@ import com.minekube.craftless.driver.fabric.discovery.SnapshotFabricRuntimeMetad
 import com.minekube.craftless.driver.fabric.discovery.fabricClientStateGraphFragment
 import com.minekube.craftless.driver.fabric.discovery.fabricEventGraphFragment
 import com.minekube.craftless.driver.fabric.discovery.fabricRegistryGraphFragment
+import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeFingerprint
 import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeGraph
 import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeMetadataGraphFragment
 import com.minekube.craftless.driver.runtime.DriverBackend
@@ -89,7 +90,9 @@ internal class OfficialFabricDriverBackend(
         )
 }
 
-private fun officialFabricRuntimeMetadataProvider(): FabricRuntimeMetadataProvider {
+internal fun officialFabricRuntimeMetadataProvider(
+    serverFeatureProvider: OfficialFabricServerFeatureProvider = MinecraftOfficialFabricServerFeatureProvider(),
+): FabricRuntimeMetadataProvider {
     val reader = FabricLoaderRuntimeMetadataReader()
     return FabricRuntimeMetadataProvider { clientId ->
         SnapshotFabricRuntimeMetadataProvider(
@@ -100,7 +103,12 @@ private fun officialFabricRuntimeMetadataProvider(): FabricRuntimeMetadataProvid
                 mappings = OFFICIAL_FABRIC_MAPPINGS_FINGERPRINT,
                 installedModsFingerprint = reader.installedModsFingerprint(),
                 registryFingerprint = "registries:not-discovered",
-                serverFeatureFingerprint = "server-features:not-connected",
+                serverFeatureFingerprint =
+                    fabricRuntimeFingerprint(
+                        "server-features",
+                        listOf("environment:${if (reader.isDevelopmentEnvironment()) "dev" else "runtime"}") +
+                            serverFeatureProvider.serverFeatures(),
+                    ),
                 permissionsFingerprint = "permissions:local-client",
             ),
         ).runtimeMetadata(clientId)

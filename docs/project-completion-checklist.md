@@ -4754,6 +4754,52 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-official-fabric-connected-client-state-probe.md`.
 
+## Phase 159: Official Fabric Connected Server Feature Metadata
+
+- [x] Spec written:
+  `docs/superpowers/specs/2026-06-28-159-official-fabric-connected-server-feature-metadata-design.md`.
+- [x] Plan written:
+  `docs/superpowers/plans/2026-06-28-159-official-fabric-connected-server-feature-metadata-plan.md`.
+- [x] `driver-fabric-official` owns a narrow
+  `OfficialFabricServerFeatureProvider` boundary plus
+  `MinecraftOfficialFabricServerFeatureProvider`.
+- [x] The production provider reads official/Mojang-mapped lifecycle metadata
+  only: connection presence, server kind, local-server state, and enabled
+  feature-set identity.
+- [x] `officialFabricRuntimeMetadataProvider(...)` accepts lane-provided
+  server-feature evidence and feeds it into the shared
+  `FabricRuntimeMetadataSnapshot.serverFeatureFingerprint` path.
+- [x] `OfficialFabricDriverBackend.runtimeGraph(...)` exposes the generated
+  server-feature fingerprint on the shared runtime resource evidence while
+  keeping `graph.operations` empty.
+- [x] The enabled connected official attach probe generated OpenAPI with
+  `x-craftless-server-feature-fingerprint=server-features:bd2c005ee588f506`,
+  `actions=0`, `resources=10`, `handles=10`, and `events=3`.
+- [x] This phase adds no packaged 26.x driver manifest entry, no public
+  gameplay API, no static gameplay catalog, no version-specific public route
+  family, no survival shortcut, no official-lane SSE completion claim, and no
+  final latest/current support claim.
+
+Verification:
+
+- Focused red check:
+  `mise exec -- gradle :driver-fabric-official:test --tests '*OfficialFabricSharedRuntimeMetadataTest.official runtime metadata uses lane server feature provider*'`
+  failed before the provider seam existed with missing
+  `serverFeatureProvider` and `OfficialFabricServerFeatureProvider`.
+- Focused green check:
+  `mise exec -- gradle :driver-fabric-official:test --tests '*OfficialFabricSharedRuntimeMetadataTest*'`.
+- Real enabled connected official attach probe:
+  `CRAFTLESS_OFFICIAL_FABRIC_ATTACH_PROBE=1`
+  `CRAFTLESS_OFFICIAL_ATTACH_PROBE_CONNECT=1`
+  `CRAFTLESS_OFFICIAL_ATTACH_PROBE_TIMEOUT_MS=180000`
+  `mise exec -- gradle :driver-fabric-official:officialFabricAttachProbe`.
+  Observed `status=CONNECTED`, `client=official-probe`,
+  `connectTarget=127.0.0.1:50188`, `actions=0`, `resources=10`,
+  `handles=10`, `events=3`, and
+  `serverFeatureFingerprint=server-features:bd2c005ee588f506`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-official-fabric-connected-server-feature-metadata.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -4810,8 +4856,9 @@ Verification:
   projection, Phase 153 shared Fabric runtime graph composition, and Phase 154
   shared Fabric registry graph projection, and Phase 155 shared Fabric event
   graph projection, Phase 156 shared Fabric client-state graph projection, and
-  Phase 157 official Fabric live client-state probe, and Phase 158 official
-  Fabric connected client-state probe.
+  Phase 157 official Fabric live client-state probe, Phase 158 official
+  Fabric connected client-state probe, and Phase 159 official Fabric connected
+  server-feature metadata.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
@@ -4820,8 +4867,8 @@ Verification:
   135, Phase 136, Phase 137, Phase 138, Phase 139, Phase 140, Phase 141,
   Phase 142, Phase 143, Phase 144, Phase 145, Phase 146, Phase 147, Phase
   148, Phase 149, Phase 150, Phase 151, Phase 152, Phase 153, Phase 154, and
-  Phase 155, Phase 156, Phase 157, and Phase 158 do not satisfy the full runnable
-  latest/older support requirement by themselves.
+  Phase 155, Phase 156, Phase 157, Phase 158, and Phase 159 do not satisfy the
+  full runnable latest/older support requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

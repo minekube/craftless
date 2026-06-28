@@ -478,6 +478,16 @@ gameplay actions, package the 26.x lane, or claim latest/current support until
 connected OpenAPI/actions/resources, streams, packaging, public API/CLI
 smoke, and honest gameplay evidence all pass.
 
+Phase 159 fixes connected official-lane server-feature runtime metadata. Once
+the official client is connected, generated OpenAPI must not keep publishing
+`server-features:not-connected`; the official lane should provide narrow
+official/Mojang-mapped lifecycle evidence and feed it through shared
+`DriverRuntimeMetadata`, runtime graph, and OpenAPI projection. This phase is
+metadata truth only: keep registry discovery unavailable until a real registry
+probe exists, keep `actions=0`, do not copy Yarn/remap gameplay gateways or
+adapters, do not package the 26.x lane, and do not claim latest/current
+support.
+
 The next unfinished product work is to keep collapsing lane-specific
 implementation into shared system pieces while proving real runtime behavior.
 Work on discovery, projection, invocation, attach, transport, artifact

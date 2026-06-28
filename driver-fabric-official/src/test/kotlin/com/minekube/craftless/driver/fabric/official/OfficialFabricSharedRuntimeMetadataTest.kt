@@ -112,6 +112,22 @@ class OfficialFabricSharedRuntimeMetadataTest {
     }
 
     @Test
+    fun `official runtime metadata uses lane server feature provider`() {
+        val provider =
+            officialFabricRuntimeMetadataProvider(
+                serverFeatureProvider =
+                    OfficialFabricServerFeatureProvider {
+                        listOf("connection:connected", "server:remote", "feature-set:abc123")
+                    },
+            )
+
+        val metadata = provider.runtimeMetadata("official-probe")
+
+        assertTrue(metadata.serverFeatureFingerprint.startsWith("server-features:"))
+        assertNotEquals("server-features:not-connected", metadata.serverFeatureFingerprint)
+    }
+
+    @Test
     fun `official backend connect delegates to lifecycle connector`() {
         val target = ConnectionTarget(host = "127.0.0.1", port = 25565)
         val observedTargets = mutableListOf<ConnectionTarget>()
@@ -159,23 +175,16 @@ class OfficialFabricSharedRuntimeMetadataTest {
 
     @Test
     fun `official backend projects client state from lane provider without adding operations`() {
+        val runtimeMetadataProvider =
+            officialFabricRuntimeMetadataProvider(
+                serverFeatureProvider =
+                    OfficialFabricServerFeatureProvider {
+                        listOf("connection:connected", "server:remote", "feature-set:abc123")
+                    },
+            )
         val backend =
             OfficialFabricDriverBackend(
-                runtimeMetadataProvider =
-                    FabricRuntimeMetadataProvider { clientId ->
-                        SnapshotFabricRuntimeMetadataProvider(
-                            FabricRuntimeMetadataSnapshot(
-                                loaderVersion = "0.19.3",
-                                driver = "craftless-driver-fabric-official",
-                                driverVersion = "0.1.0-SNAPSHOT",
-                                mappings = "craftless-official-bindings-26-2",
-                                installedModsFingerprint = fabricRuntimeFingerprint("mods", listOf("test-mod@1.0.0")),
-                                registryFingerprint = "registries:not-discovered",
-                                serverFeatureFingerprint = "server-features:not-connected",
-                                permissionsFingerprint = "permissions:local-client",
-                            ),
-                        ).runtimeMetadata(clientId)
-                    },
+                runtimeMetadataProvider = runtimeMetadataProvider,
                 clientStateProvider =
                     OfficialFabricClientStateProvider {
                         FabricClientStateGraphSnapshot(
@@ -191,11 +200,20 @@ class OfficialFabricSharedRuntimeMetadataTest {
                     },
             )
 
+        val metadata = runtimeMetadataProvider.runtimeMetadata("official-probe")
         val graph = backend.runtimeGraph("official-probe")
         val resources = graph.resources.associateBy { resource -> resource.id }
         val handles = graph.handles.associateBy { handle -> handle.id }
+        val runtimeEvidence =
+            resources
+                .getValue("runtime")
+                .sourceEvidence
+                .associateBy { evidence -> evidence.kind }
 
         assertEquals(emptyList(), graph.operations)
+        assertTrue(metadata.serverFeatureFingerprint.startsWith("server-features:"))
+        assertNotEquals("server-features:not-connected", metadata.serverFeatureFingerprint)
+        assertEquals(metadata.serverFeatureFingerprint, runtimeEvidence.getValue("server-features").fingerprint)
         assertEquals(RuntimeAvailability.available(), resources.getValue("client").availability)
         assertEquals(RuntimeAvailability.available(), resources.getValue("player").availability)
         assertEquals(RuntimeAvailability.available(), resources.getValue("inventory").availability)
