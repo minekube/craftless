@@ -44,7 +44,11 @@ public-compatible dispatch.
 - Result: exited `0`; Gradle lint/test succeeded and Bun Playwright tests
   reported `15 pass, 0 fail`.
 
-## Pending Push Gates
+## Push Gates
 
-- Push to `main`
-- GitHub Actions CI for pushed `main`
+- Push to `main`: commit `a42d5680efc959ad19040f88ee173382f5efbf4d`
+  (`driver-fabric: invoke through runtime graph`) pushed to
+  `origin/main`.
+- GitHub Actions CI for pushed `main`: run `28310090098`
+  (`https://github.com/minekube/craftless/actions/runs/28310090098`) passed;
+  job `verify` completed successfully in `4m44s`.

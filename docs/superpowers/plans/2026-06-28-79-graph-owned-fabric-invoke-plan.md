@@ -229,7 +229,7 @@
   Evidence: `git diff --check`, `mise run architecture-check`, and
   `mise run ci` exited `0` locally.
 
-- [ ] **Step 2: Commit and push**
+- [x] **Step 2: Commit and push**
 
   Run:
 
@@ -239,7 +239,11 @@
   git push origin main
   ```
 
-- [ ] **Step 3: Verify remote CI**
+  Evidence: commit `a42d5680efc959ad19040f88ee173382f5efbf4d`
+  (`driver-fabric: invoke through runtime graph`) was pushed to
+  `origin/main`.
+
+- [x] **Step 3: Verify remote CI**
 
   Run:
 
@@ -249,3 +253,6 @@
   ```
 
   Expected: pushed `main` CI passes.
+
+  Evidence: GitHub Actions run `28310090098` passed for commit
+  `a42d5680efc959ad19040f88ee173382f5efbf4d`.

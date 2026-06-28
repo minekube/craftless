@@ -2519,9 +2519,8 @@ Verification:
   `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend dispatch does not depend on fabric action discovery*' --tests '*FabricDriverModuleTest.fabric legacy invoke dispatches unavailable operations from runtime graph*' --tests '*FabricDriverModuleTest.fabric legacy invoke adapters come from private binding map*'`
 - Full Fabric regression:
   `mise exec -- gradle :driver-fabric:test`
-- Final local verification is recorded in
+- Final local and remote verification are recorded in
   `docs/superpowers/evidence/2026-06-28-graph-owned-fabric-invoke.md`.
-  Push and remote CI evidence must be added after this phase lands on `main`.
 
 ## Final Completion Gate
 
