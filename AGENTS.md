@@ -258,6 +258,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 145. latest official-mapping lane probe.
 146. latest official Fabric lane boundary.
 147. shared Fabric attach boundary.
+148. official Fabric runtime dependency packaging.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -360,6 +361,15 @@ isolated adapter is necessary. It must not clone gameplay bindings into the
 official module, add public gameplay actions, create per-version route trees,
 or package a 26.x driver manifest entry before launch/attach/generated
 OpenAPI/SSE/gameplay evidence exists.
+
+Phase 148 makes the latest/current official probe jar carry the shared
+Craftless runtime dependencies it needs to execute its metadata-only attach
+path in a Fabric client. This is packaging for the internal probe lane only:
+nest shared protocol, driver-api, driver-runtime, driver-fabric-attach, Ktor,
+Kotlin, coroutines, serialization, and required transport libraries as needed
+for self-attach. It must not add the official jar to `driver-mods.json`, claim
+26.x support, copy gameplay bindings, add public actions, or create a
+version-specific public API.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final

@@ -4189,6 +4189,45 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-shared-fabric-attach-boundary.md`.
 
+## Phase 148: Official Fabric Runtime Dependency Packaging
+
+- [x] Spec written:
+  `docs/superpowers/specs/2026-06-28-148-official-fabric-runtime-dependency-packaging-design.md`.
+- [x] Plan written:
+  `docs/superpowers/plans/2026-06-28-148-official-fabric-runtime-dependency-packaging-plan.md`.
+- [x] `driver-fabric-official` nests shared runtime dependencies required for
+  metadata-only self-attach.
+- [x] The official jar includes nested `protocol`, `driver-api`,
+  `driver-runtime`, `driver-fabric-attach`, Ktor, Kotlin, coroutines, and
+  serialization runtime jars.
+- [x] The official jar does not include `driver-fabric`, `daemon`, or
+  `bridge-hmc`.
+- [x] `mise run fabric-lane-check-latest-official` still records
+  `status=compiled`.
+- [x] This phase adds no packaged 26.x driver manifest entry, no public
+  gameplay API, no static gameplay catalog, no version-specific public route
+  family, no survival shortcut, and no final latest/current support claim.
+
+Verification:
+
+- Red guard before implementation:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.official lane packages shared attach runtime dependencies without yarn remap gameplay lane'`
+  failed before official nested includes existed.
+- Green guard:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.official lane packages shared attach runtime dependencies without yarn remap gameplay lane'`.
+- Official jar build and nested-jar inspection:
+  `mise exec -- gradle :driver-fabric-official:compileKotlin :driver-fabric-official:processResources :driver-fabric-official:jar`
+  and
+  `jar tf driver-fabric-official/build/libs/driver-fabric-official-0.1.0-SNAPSHOT.jar | grep '^META-INF/jars/' | sort`.
+- Latest official lane probe:
+  `mise run fabric-lane-check-latest-official`, with
+  `build/reports/fabric-lane-check-latest-official.status` containing
+  `status=compiled`.
+- Lint and whitespace:
+  `mise exec -- gradle lint` and `git diff --check`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-official-fabric-runtime-dependency-packaging.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -4237,16 +4276,17 @@ Verification:
   older Fabric real-client smoke, and Phase 142 installed packaged older
   Fabric live attach, Phase 143 installed latest-release alias compatibility
   probe, Phase 144 latest driver lane preflight, Phase 145 latest official
-  mapping lane probe, Phase 146 latest official Fabric lane boundary, and
-  Phase 147 shared Fabric attach boundary.
+  mapping lane probe, Phase 146 latest official Fabric lane boundary, Phase
+  147 shared Fabric attach boundary, and Phase 148 official Fabric runtime
+  dependency packaging.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
   122, Phase 123, Phase 124, Phase 125, Phase 126, Phase 127, Phase 128,
   Phase 129, Phase 130, Phase 131, Phase 132, Phase 133, Phase 134, Phase
   135, Phase 136, Phase 137, Phase 138, Phase 139, Phase 140, Phase 141,
-  Phase 142, Phase 143, Phase 144, Phase 145, Phase 146, and Phase 147 do not
-  satisfy the full runnable latest/older support
+  Phase 142, Phase 143, Phase 144, Phase 145, Phase 146, Phase 147, and Phase
+  148 do not satisfy the full runnable latest/older support
   requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,

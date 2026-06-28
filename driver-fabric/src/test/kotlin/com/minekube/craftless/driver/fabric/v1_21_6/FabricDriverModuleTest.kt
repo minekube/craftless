@@ -363,6 +363,39 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `official lane packages shared attach runtime dependencies without yarn remap gameplay lane`() {
+        val officialBuild = Files.readString(repositoryRoot().resolve("driver-fabric-official/build.gradle.kts"))
+        val requiredIncludes =
+            listOf(
+                "include(project(\":protocol\"))",
+                "include(project(\":driver-api\"))",
+                "include(project(\":driver-runtime\"))",
+                "include(project(\":driver-fabric-attach\"))",
+                "include(\"io.ktor:ktor-client-core-jvm:3.5.0\")",
+                "include(\"io.ktor:ktor-client-cio-jvm:3.5.0\")",
+                "include(\"io.ktor:ktor-server-core-jvm:3.5.0\")",
+                "include(\"io.ktor:ktor-server-cio-jvm:3.5.0\")",
+                "include(\"org.jetbrains.kotlin:kotlin-stdlib:2.4.0\")",
+                "include(\"org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.11.0\")",
+            )
+        val forbiddenIncludes =
+            listOf(
+                "include(project(\":driver-fabric\"))",
+                "include(project(\":daemon\"))",
+                "include(project(\":bridge-hmc\"))",
+            )
+
+        assertEquals(
+            emptyList(),
+            requiredIncludes.filterNot { include -> officialBuild.contains(include) },
+        )
+        assertEquals(
+            emptyList(),
+            forbiddenIncludes.filter { include -> officialBuild.contains(include) },
+        )
+    }
+
+    @Test
     fun `cli driver mod manifest projection carries runtime identity not build fields`() {
         val buildScript = Files.readString(repositoryRoot().resolve("cli/build.gradle.kts"))
 
