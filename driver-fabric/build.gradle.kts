@@ -13,6 +13,17 @@ val fabricCompiledApiVersion = "0.128.2+1.21.6"
 val fabricCompiledJavaMajorVersion = 21
 val fabricCompiledLaneId = "fabric-current-lane"
 val fabricCompiledProviderId = "fabric-current-lane"
+val fabricCompiledMappingsFingerprint = "craftless-fabric-bindings"
+val generatedFabricLaneMetadataDir =
+    layout.buildDirectory.dir("generated/sources/fabricCompiledLaneMetadata/kotlin")
+
+kotlin {
+    sourceSets {
+        named("main") {
+            kotlin.srcDir(generatedFabricLaneMetadataDir)
+        }
+    }
+}
 
 dependencies {
     "minecraft"("com.mojang:minecraft:$fabricCompiledMinecraftVersion")
@@ -81,6 +92,53 @@ fun jsonString(value: String): String =
     }
 
 fun jsonArray(values: List<String>): String = values.joinToString(prefix = "[", postfix = "]") { jsonString(it) }
+
+val generateFabricCompiledLaneMetadata =
+    tasks.register("generateFabricCompiledLaneMetadata") {
+        group = "build"
+        description = "Generates Kotlin metadata for the compiled Fabric lane from Gradle lane constants."
+
+        val outputFile =
+            generatedFabricLaneMetadataDir.map { directory ->
+                directory.file("com/minekube/craftless/driver/fabric/runtime/FabricCompiledLaneMetadata.kt")
+            }
+        inputs.property("fabricCompiledLaneId", fabricCompiledLaneId)
+        inputs.property("fabricCompiledProviderId", fabricCompiledProviderId)
+        inputs.property("fabricCompiledMinecraftVersion", fabricCompiledMinecraftVersion)
+        inputs.property("fabricCompiledLoaderVersion", fabricCompiledLoaderVersion)
+        inputs.property("fabricCompiledApiVersion", fabricCompiledApiVersion)
+        inputs.property("fabricCompiledJavaMajorVersion", fabricCompiledJavaMajorVersion)
+        inputs.property("fabricCompiledMappingsFingerprint", fabricCompiledMappingsFingerprint)
+        outputs.file(outputFile)
+
+        doLast {
+            val file = outputFile.get().asFile
+            file.parentFile.mkdirs()
+            file.writeText(
+                """
+                package com.minekube.craftless.driver.fabric.runtime
+
+                internal object FabricCompiledLaneMetadata {
+                    const val ID: String = ${jsonString(fabricCompiledLaneId)}
+                    const val PROVIDER_ID: String = ${jsonString(fabricCompiledProviderId)}
+                    const val MINECRAFT_VERSION: String = ${jsonString(fabricCompiledMinecraftVersion)}
+                    const val LOADER_VERSION: String = ${jsonString(fabricCompiledLoaderVersion)}
+                    const val FABRIC_API_VERSION: String = ${jsonString(fabricCompiledApiVersion)}
+                    const val JAVA_MAJOR_VERSION: Int = $fabricCompiledJavaMajorVersion
+                    const val MAPPINGS_FINGERPRINT: String = ${jsonString(fabricCompiledMappingsFingerprint)}
+                }
+                """.trimIndent() + "\n",
+            )
+        }
+    }
+
+tasks.named("compileKotlin") {
+    dependsOn(generateFabricCompiledLaneMetadata)
+}
+
+tasks.named("compileTestKotlin") {
+    dependsOn(generateFabricCompiledLaneMetadata)
+}
 
 fun envLong(name: String): Long? = System.getenv(name)?.toLongOrNull()
 

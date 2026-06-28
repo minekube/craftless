@@ -202,6 +202,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 89. navigation operation id source ownership.
 90. smoke bootstrap action id source ownership.
 91. version support completion gate.
+92. build-generated compiled lane metadata.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -712,6 +713,12 @@ evidence, but they must not satisfy final completion. Final completion requires
 runnable support evidence for latest/current and representative older runtime
 lanes, with generated API/CLI gameplay verification on those lanes, and this
 phase must not claim new support by changing docs alone.
+Phase 92 removes Gradle/Kotlin compiled-lane metadata drift by generating the
+Kotlin `FabricCompiledLaneMetadata` source from the same Gradle constants that
+configure Loom dependencies, Fabric resource expansion, and smoke lane JSON.
+It must delete the hand-written source copy, keep latest/older support lanes
+explicitly open until runnable support lands, and must not claim new version
+support by metadata-generation alone.
 
 ## Acceptance Scenarios Are Not Product APIs
 
