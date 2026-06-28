@@ -68,6 +68,7 @@ not grow with every completed phase.
 - Phase 183: latest-current generated primitive smoke.
 - Phase 184: representative older product lane.
 - Phase 185: user-facing usability docs.
+- Phase 186: final local release gates.
 
 ## Current Direction
 
@@ -157,3 +158,11 @@ Continue with CL-06: final local release-quality gates must rerun lint,
 architecture checks, CI, packaging, Docker/install smokes, latest/current
 packaged lane probe, representative older packaged lane probe, and
 `git diff --check` from the current worktree before any final gameplay claim.
+CL-06 is now closed. Local release gates passed after CL-05, including lint,
+architecture checks, CI, package build, Docker smoke, install smoke,
+latest/current packaged lane probe, representative older packaged lane probe,
+and `git diff --check`.
+Continue with CL-07: final honest survival gameplay must be driven through
+public generated API/CLI only, with generated OpenAPI as authority and no
+server-provisioned inventory, static scenario action, creative shortcut,
+direct in-process call, or human movement shortcut.

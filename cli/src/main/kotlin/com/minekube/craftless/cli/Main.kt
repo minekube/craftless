@@ -255,7 +255,9 @@ object CraftlessCli {
             }
             appendLine()
             appendLine("Generated gameplay commands are loaded from each live client's OpenAPI document.")
-            append("Use `craftless clients <id> actions --help --api <url>` or `craftless clients <id> <resource...> <action> --help --api <url>` after client discovery for generated action help.")
+            append("Use `craftless clients <id> actions --help --api <url>` or ")
+            append("`craftless clients <id> <resource...> <action> --help --api <url>` ")
+            append("after client discovery for generated action help.")
         }
 
     private fun cacheHelp(): String =

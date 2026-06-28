@@ -654,8 +654,14 @@ class CachePreparationServiceTest {
             assertEquals(listOf(nativeDirectory.handle), result.launch.nativePath)
             assertEquals("lwjgl-native", Files.readString(workspace.resolve(nativeDirectory.handle).resolve("libcraftless-lwjgl.dylib")))
             assertEquals("glfw-native", Files.readString(workspace.resolve(nativeDirectory.handle).resolve("libcraftless-glfw.dylib")))
-            assertEquals("lwjgl-native", Files.readString(workspace.resolve(nativeDirectory.handle).resolve("java/libcraftless-lwjgl.dylib")))
-            assertEquals("glfw-native", Files.readString(workspace.resolve(nativeDirectory.handle).resolve("java/libcraftless-glfw.dylib")))
+            assertEquals(
+                "lwjgl-native",
+                Files.readString(workspace.resolve(nativeDirectory.handle).resolve("java/libcraftless-lwjgl.dylib")),
+            )
+            assertEquals(
+                "glfw-native",
+                Files.readString(workspace.resolve(nativeDirectory.handle).resolve("java/libcraftless-glfw.dylib")),
+            )
 
             val launchArguments = result.artifacts.single { it.kind == CachePreparedArtifactKind.LAUNCH_ARGUMENTS }
             val launchArgumentsJson = Files.readString(workspace.resolve(launchArguments.handle))

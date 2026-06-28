@@ -403,7 +403,7 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `official lane has opt in launch attach probe task without packaging support claim`() {
+    fun `official lane has opt in attach probe and packaged latest runtime identity`() {
         val root = repositoryRoot()
         val settings = Files.readString(root.resolve("settings.gradle.kts"))
         val fabricBuild = Files.readString(root.resolve("driver-fabric/build.gradle.kts"))
@@ -554,10 +554,14 @@ class FabricDriverModuleTest {
         )
         assertTrue(probeRunner.contains("exitProcess(1)"))
         manifestFiles.forEach { manifest ->
-            assertFalse(
-                Files.readString(manifest).contains("driver-fabric-official"),
-                "${root.relativize(manifest)} must not package the official probe lane as supported",
-            )
+            val manifestText = Files.readString(manifest)
+            assertTrue(manifestText.contains("\"minecraftVersion\": \"26.2\""))
+            assertTrue(manifestText.contains("\"fabricApiVersion\": \"0.153.0+26.2\""))
+            assertTrue(manifestText.contains("\"javaMajorVersion\": 25"))
+            assertTrue(manifestText.contains("\"mappingsFingerprint\": \"craftless-fabric-official-26-2\""))
+            assertTrue(manifestText.contains("\"path\": \"mods/fabric-26.2/craftless-driver-fabric-official.jar\""))
+            assertFalse(manifestText.contains("\"artifactKey\""))
+            assertFalse(manifestText.contains("\"distributionPath\""))
         }
     }
 

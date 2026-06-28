@@ -12,12 +12,12 @@ import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeFingerprint
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import com.minekube.craftless.protocol.RuntimeAvailability
 import com.minekube.craftless.protocol.RuntimeSourceEvidence
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.long
 
 class OfficialFabricSharedRuntimeMetadataTest {
     @Test

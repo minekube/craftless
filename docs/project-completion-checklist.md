@@ -28,10 +28,10 @@ blocked with an exact blocker and next command.
 
 | Field | Current State |
 | --- | --- |
-| Active gate | CL-06 final local release gates |
-| Exact next work | Run final local release commands and compatibility probes, then write CL-06 evidence |
-| Do not do yet | Do not claim CL-07, CL-08, or final project completion |
-| Current blocker | CL-06 evidence file does not exist yet |
+| Active gate | CL-07 final honest public gameplay |
+| Exact next work | Write the CL-07 gameplay spec/plan, then run gameplay through public generated API/CLI only |
+| Do not do yet | Do not claim CL-08 or final project completion |
+| Current blocker | CL-07 evidence file does not exist yet |
 | Completion rule | Close one gate only when its evidence file contains fresh commands and results |
 
 ## Gate Board
@@ -43,51 +43,46 @@ blocked with an exact blocker and next command.
 | CL-03 | [x] | Latest/current Minecraft `26.2` packaged lane completes create/attach/connect/OpenAPI/projections/SSE/JSON-RPC/adaptive CLI invocation. | `docs/superpowers/evidence/2026-06-28-latest-current-generated-primitive-smoke.md` |
 | CL-04 | [x] | Representative older Minecraft `1.20.6` packaged lane completes the same public product gate set as CL-03. | `docs/superpowers/evidence/2026-06-28-representative-older-product-lane.md` |
 | CL-05 | [x] | External users and agents can install, run, inspect, stream, invoke, and debug Craftless without reading source. | `docs/superpowers/evidence/2026-06-28-user-facing-usability-docs.md` |
-| CL-06 | [~] | Local release-quality gates pass after CL-05 is closed. | `docs/superpowers/evidence/2026-06-28-final-local-release-gates.md` |
-| CL-07 | [ ] | Honest survival gameplay succeeds through public generated API/CLI only. | `docs/superpowers/evidence/2026-06-28-final-public-gameplay.md` |
+| CL-06 | [x] | Local release-quality gates pass after CL-05 is closed. | `docs/superpowers/evidence/2026-06-28-final-local-release-gates.md` |
+| CL-07 | [~] | Honest survival gameplay succeeds through public generated API/CLI only. | `docs/superpowers/evidence/2026-06-28-final-public-gameplay.md` |
 | CL-08 | [ ] | Final state is clean, committed, pushed to `main`, and indexed. | `docs/superpowers/evidence/2026-06-28-final-completion.md` |
 
-## Current Execution Packet: CL-06
+## Current Execution Packet: CL-07
 
 Only this packet is active. Treat checked items here as local progress, not as
-gate closure. CL-06 closes only when its evidence file exists and the Gate
+gate closure. CL-07 closes only when its evidence file exists and the Gate
 Board row is changed to `[x]`.
 
 | Step | Status | Required Output |
 | --- | --- | --- |
-| 1 | [ ] | Run `mise run lint` and record output. |
-| 2 | [ ] | Run `mise run architecture-check` and record output. |
-| 3 | [ ] | Run `mise run ci` and record output. |
-| 4 | [ ] | Run `mise run package-cli` and record output. |
-| 5 | [ ] | Run fresh Docker runtime smoke and install script smoke. |
-| 6 | [ ] | Run latest/current packaged lane probe and representative older packaged lane probe. |
-| 7 | [ ] | Run `git diff --check`. |
-| 8 | [ ] | Write `docs/superpowers/evidence/2026-06-28-final-local-release-gates.md`. |
-| 9 | [ ] | Update checklist and phase index, commit, and push. |
+| 1 | [ ] | Write CL-07 spec and implementation plan before new gameplay work. |
+| 2 | [ ] | Start Craftless supervisor and a real Minecraft server from packaged/public surfaces. |
+| 3 | [ ] | Create or attach a real Craftless-controlled client through public API/CLI. |
+| 4 | [ ] | Fetch generated per-client OpenAPI and select only generated operations. |
+| 5 | [ ] | Capture actions/resources projections, SSE or JSON-RPC subscription events, and server logs. |
+| 6 | [ ] | Write chat through public API/CLI. |
+| 7 | [ ] | Observe player/world/entity and inventory state through public API/CLI. |
+| 8 | [ ] | Collect a resource, craft/equip an item, mine/place a block, interact with or attack an entity, and pick up or drop an item without shortcuts. |
+| 9 | [ ] | Write `docs/superpowers/evidence/2026-06-28-final-public-gameplay.md` and artifact summary under `driver-fabric/build/craftless-final-gameplay/artifacts/`. |
+| 10 | [ ] | Update checklist and phase index, commit, and push. |
 
 ### Exact Next Commands
 
-Run these before editing the CL-06 evidence file:
+Start by writing the gameplay spec and plan:
 
 ```sh
-mise run lint
-mise run architecture-check
-mise run ci
+docs/superpowers/specs/2026-06-28-187-final-public-gameplay-design.md
+docs/superpowers/plans/2026-06-28-187-final-public-gameplay-plan.md
+```
+
+Then use packaged public surfaces only:
+
+```sh
 mise run package-cli
+build/docker/craftless/bin/craftless server start --port 0 --workspace driver-fabric/build/craftless-final-gameplay/workspace
 ```
 
-Then rerun runtime and product probes with fresh artifacts:
-
-```sh
-docker build -t craftless:cl06 .
-docker run --rm craftless:cl06 /opt/craftless/bin/craftless server start --once --port 0 --workspace /tmp/craftless
-```
-
-Run the latest/current and representative older packaged lane probes from the
-existing project scripts or tests that produced CL-03 and CL-04 evidence. Do
-not close CL-06 unless both probes are fresh and public API/CLI based.
-
-CL-06 final verification:
+CL-07 final verification:
 
 ```sh
 git diff --check
@@ -175,9 +170,9 @@ and staged Fabric gameplay evidence.
 
 CL-03 is closed for latest/current Minecraft `26.2`. CL-04 is closed for
 representative older Minecraft `1.20.6`. CL-05 is closed for external-user
-and agent usability. CL-06 is the active blocker: run final local
-release-quality gates from fresh artifacts after the CL-05 docs and CLI help
-changes.
+and agent usability. CL-06 is closed for local release-quality gates. CL-07 is
+the active blocker: perform final honest survival gameplay through public
+generated API/CLI only.
 
 ## Closed Evidence Index
 
@@ -201,3 +196,5 @@ changes.
   `docs/superpowers/evidence/2026-06-28-representative-older-product-lane.md`.
 - CL-05:
   `docs/superpowers/evidence/2026-06-28-user-facing-usability-docs.md`.
+- CL-06:
+  `docs/superpowers/evidence/2026-06-28-final-local-release-gates.md`.
