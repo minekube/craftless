@@ -55,7 +55,7 @@ class CachePreparationService(
         val versionIndex = metadataFetcher.fetchText(MINECRAFT_VERSION_INDEX_URL)
         val versionManifestUrl = versionIndex.versionManifestUrl(request.minecraftVersion)
         val versionManifest = metadataFetcher.fetchText(versionManifestUrl)
-        val clientJarUrl = versionManifest.clientJarUrl(request.minecraftVersion)
+        val clientJar = versionManifest.clientJarDownload(request.minecraftVersion)
         val minecraftLibraries = versionManifest.minecraftLibraries()
         val minecraftNativeLibraries = versionManifest.minecraftNativeLibraries()
         val assetIndexMetadata = versionManifest.assetIndexMetadata(request.minecraftVersion)
@@ -77,7 +77,11 @@ class CachePreparationService(
                 .map { artifact ->
                     when (artifact.kind) {
                         CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST -> artifact.copy(source = versionManifestUrl)
-                        CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR -> artifact.copy(source = clientJarUrl)
+                        CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR ->
+                            artifact.copy(
+                                source = clientJar.url,
+                                sha1 = clientJar.sha1,
+                            )
                         CachePreparedArtifactKind.MINECRAFT_ASSET_INDEX ->
                             artifact.copy(
                                 handle = "cache/assets/indexes/${assetIndexMetadata.id}.json",
@@ -127,7 +131,7 @@ class CachePreparationService(
         )
         writeFetchedBytesArtifact(
             result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR },
-            clientJarUrl,
+            clientJar.url,
         )
         writeTextArtifact(
             result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_ASSET_INDEX },
@@ -467,6 +471,18 @@ private data class JavaRuntimeCacheMetadata(
     val artifacts: List<CachePreparedArtifact> = listOf(indexArtifact, manifestArtifact) + files.map { it.artifact }
 }
 
+private data class DownloadArtifactMetadata(
+    val url: String,
+    val sha1: String? = null,
+) {
+    init {
+        require(url.isNotBlank()) { "download artifact url is required" }
+        sha1?.let { digest ->
+            require(MINECRAFT_ASSET_HASH_PATTERN.matches(digest)) { "download artifact sha1 must be a SHA-1 hex string" }
+        }
+    }
+}
+
 @Serializable
 private data class CacheLaunchArgumentsFile(
     val schemaVersion: Int = 1,
@@ -520,16 +536,14 @@ private fun String.versionManifestUrl(minecraftVersion: String): String {
     return version.jsonObject["url"]?.jsonPrimitive?.content ?: error("minecraft version $minecraftVersion is missing metadata url")
 }
 
-private fun String.clientJarUrl(minecraftVersion: String): String =
+private fun String.clientJarDownload(minecraftVersion: String): DownloadArtifactMetadata =
     Json
         .parseToJsonElement(this)
         .jsonObject["downloads"]
         ?.jsonObject
         ?.get("client")
         ?.jsonObject
-        ?.get("url")
-        ?.jsonPrimitive
-        ?.content
+        ?.downloadArtifactMetadata()
         ?: error("minecraft version $minecraftVersion is missing client jar url")
 
 private fun String.assetIndexMetadata(minecraftVersion: String): AssetIndexMetadata {
@@ -789,15 +803,14 @@ private fun String.javaRuntimeFiles(
                     ?.jsonObject
                     ?.get("raw")
                     ?.jsonObject
-                    ?.get("url")
-                    ?.jsonPrimitive
-                    ?.content
+                    ?.downloadArtifactMetadata()
                     ?: return@mapNotNull null
             JavaRuntimeFileArtifact(
                 platform = platform,
                 component = component,
                 path = path,
-                source = source,
+                source = source.url,
+                sha1 = source.sha1,
                 executable = path.isJavaExecutablePath(),
             )
         }
@@ -835,13 +848,21 @@ private fun String.fabricLibraries(): List<FabricLibraryArtifact> =
                 ?.get("artifact")
                 ?.jsonObject
                 ?.let { artifact ->
-                    val url = artifact["url"]?.jsonPrimitive?.content ?: return@let null
-                    return@mapNotNull FabricLibraryArtifact(url, name?.mavenLibraryKey())
+                    val download = artifact.downloadArtifactMetadata() ?: return@let null
+                    return@mapNotNull FabricLibraryArtifact(
+                        source = download.url,
+                        sha1 = download.sha1,
+                        key = name?.mavenLibraryKey(),
+                    )
                 }
             name ?: return@mapNotNull null
             val baseUrl = item["url"]?.jsonPrimitive?.content ?: return@mapNotNull null
             val path = name.mavenPath()
-            FabricLibraryArtifact(baseUrl.trimEnd('/') + "/$path", name.mavenLibraryKey())
+            FabricLibraryArtifact(
+                source = baseUrl.trimEnd('/') + "/$path",
+                sha1 = null,
+                key = name.mavenLibraryKey(),
+            )
         }
 
 private fun String.minecraftLibraries(): List<MinecraftLibraryArtifact> =
@@ -860,10 +881,14 @@ private fun String.minecraftLibraries(): List<MinecraftLibraryArtifact> =
                 ?.jsonObject
                 ?.get("artifact")
                 ?.jsonObject
-                ?.get("url")
-                ?.jsonPrimitive
-                ?.content
-                ?.let { source -> MinecraftLibraryArtifact(source, key) }
+                ?.downloadArtifactMetadata()
+                ?.let { download ->
+                    MinecraftLibraryArtifact(
+                        source = download.url,
+                        sha1 = download.sha1,
+                        key = key,
+                    )
+                }
         }
 
 private fun List<MinecraftLibraryArtifact>.withoutLibrariesReplacedBy(
@@ -882,21 +907,19 @@ private fun String.minecraftNativeLibraries(): List<MinecraftNativeLibraryArtifa
         .orEmpty()
         .flatMap { library ->
             val item = library.jsonObject
-            val artifactUrl =
+            val artifactDownload =
                 item["downloads"]
                     ?.jsonObject
                     ?.get("artifact")
                     ?.jsonObject
-                    ?.get("url")
-                    ?.jsonPrimitive
-                    ?.content
+                    ?.downloadArtifactMetadata()
             val nativeFromArtifact =
                 item["name"]
                     ?.jsonPrimitive
                     ?.content
                     ?.nativeClassifier()
                     ?.takeIf { classifier -> item.libraryRulesAllowCurrentPlatform() && classifier.matchesCurrentNativeArtifact() }
-                    ?.let { artifactUrl }
+                    ?.let { artifactDownload }
 
             val classifier =
                 item["natives"]
@@ -912,11 +935,14 @@ private fun String.minecraftNativeLibraries(): List<MinecraftNativeLibraryArtifa
                         ?.jsonObject
                         ?.get(it)
                         ?.jsonObject
-                        ?.get("url")
-                        ?.jsonPrimitive
-                        ?.content
+                        ?.downloadArtifactMetadata()
                 }
-            listOfNotNull(nativeFromArtifact, nativeFromLegacy).map(::MinecraftNativeLibraryArtifact)
+            listOfNotNull(nativeFromArtifact, nativeFromLegacy).map { download ->
+                MinecraftNativeLibraryArtifact(
+                    source = download.url,
+                    sha1 = download.sha1,
+                )
+            }
         }
 
 private fun JsonObject.libraryRulesAllowCurrentPlatform(): Boolean {
@@ -1028,6 +1054,7 @@ private data class MinecraftLoggingConfigArtifact(
 
 private data class MinecraftLibraryArtifact(
     val source: String,
+    val sha1: String?,
     val key: MavenLibraryKey?,
 ) {
     private val handle: String = "cache/libraries/minecraft/${source.sha256Hex()}.jar"
@@ -1037,12 +1064,14 @@ private data class MinecraftLibraryArtifact(
             kind = CachePreparedArtifactKind.MINECRAFT_LIBRARY,
             handle = handle,
             source = source,
+            sha1 = sha1,
             status = CachePreparedArtifactStatus.CACHED,
         )
 }
 
 private data class MinecraftNativeLibraryArtifact(
     val source: String,
+    val sha1: String?,
 ) {
     private val fingerprint: String = source.sha256Hex()
 
@@ -1051,6 +1080,7 @@ private data class MinecraftNativeLibraryArtifact(
             kind = CachePreparedArtifactKind.MINECRAFT_NATIVE_LIBRARY,
             handle = "cache/libraries/native/$fingerprint.jar",
             source = source,
+            sha1 = sha1,
             status = CachePreparedArtifactStatus.CACHED,
         )
 
@@ -1067,6 +1097,7 @@ private data class JavaRuntimeFileArtifact(
     val component: String,
     val path: String,
     val source: String,
+    val sha1: String?,
     val executable: Boolean,
 ) {
     init {
@@ -1085,12 +1116,14 @@ private data class JavaRuntimeFileArtifact(
                 },
             handle = "cache/runtimes/$platform/$component/image/$path",
             source = source,
+            sha1 = sha1,
             status = CachePreparedArtifactStatus.CACHED,
         )
 }
 
 private data class FabricLibraryArtifact(
     val source: String,
+    val sha1: String?,
     val key: MavenLibraryKey?,
 ) {
     private val handle: String = "cache/libraries/fabric/${source.sha256Hex()}.jar"
@@ -1099,8 +1132,20 @@ private data class FabricLibraryArtifact(
         CachePreparedArtifact(
             kind = CachePreparedArtifactKind.FABRIC_LIBRARY,
             handle = handle,
+            source = source,
+            sha1 = sha1,
             status = CachePreparedArtifactStatus.CACHED,
         )
+}
+
+private fun JsonObject.downloadArtifactMetadata(): DownloadArtifactMetadata? {
+    val url = this["url"]?.jsonPrimitive?.content ?: return null
+    val sha1 =
+        this["sha1"]
+            ?.jsonPrimitive
+            ?.content
+            ?.lowercase()
+    return DownloadArtifactMetadata(url = url, sha1 = sha1)
 }
 
 private data class MavenLibraryKey(

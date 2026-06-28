@@ -460,7 +460,7 @@ class CachePreparationServiceTest {
             assertTrue(nativeDirectory.handle.startsWith("cache/natives/"))
             assertEquals("EXTRACTED", nativeDirectory.status.name)
             val fabricLibrary = result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LIBRARY }
-            assertEquals(null, fabricLibrary.source)
+            assertEquals(fabricLoaderJarUrl, fabricLibrary.source)
             assertTrue(fabricLibrary.handle.startsWith("cache/libraries/fabric/"))
             assertEquals(
                 listOf(
@@ -871,6 +871,189 @@ class CachePreparationServiceTest {
         }
 
     @Test
+    fun `cache preparation refetches corrupt metadata checksum binaries`() =
+        runBlocking {
+            val workspace = Files.createTempDirectory("craftless-cache-corrupt-metadata-resume")
+            val versionUrl = "https://metadata.test/1.21.6.json"
+            val clientJarUrl = "https://metadata.test/client.jar"
+            val minecraftLibraryUrl = "https://libraries.minecraft.net/com/mojang/authlib/6.0.54/authlib-6.0.54.jar"
+            val nativeArtifact = currentTestNativeArtifact()
+            val nativeUrl = "https://libraries.minecraft.net/org/lwjgl/lwjgl/3.3.3/lwjgl-3.3.3-${nativeArtifact.classifier}.jar"
+            val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
+            val javaRuntimeManifestUrl = "https://metadata.test/runtime/java-runtime-gamma/manifest.json"
+            val javaExecutableUrl = "https://metadata.test/runtime/java-runtime-gamma/bin/java"
+            val javaRuntimeFileUrl = "https://metadata.test/runtime/java-runtime-gamma/lib/runtime.txt"
+            val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
+            val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.17.2/profile/json"
+            val fabricLoaderJarUrl = "https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.17.2/fabric-loader-0.17.2.jar"
+            val nativeBytes = nativeZipBytes("downloaded-native")
+            val corruptNativeBytes = nativeZipBytes("corrupt-native")
+            val javaExecutableBytes = fakeJavaBytes("21.0.11")
+            val corruptJavaExecutableBytes = fakeJavaBytes("21.0.99")
+            val javaRuntimePlatform = currentTestJavaRuntimePlatformKey()
+            val clientJar = workspace.resolve("cache/minecraft/versions/1.21.6/client.jar")
+            val minecraftLibrary = workspace.resolve("cache/libraries/minecraft/${minecraftLibraryUrl.sha256HexForTest()}.jar")
+            val nativeLibrary = workspace.resolve("cache/libraries/native/${nativeUrl.sha256HexForTest()}.jar")
+            val javaExecutable = workspace.resolve("cache/runtimes/$javaRuntimePlatform/java-runtime-gamma/image/bin/java")
+            val javaRuntimeFile = workspace.resolve("cache/runtimes/$javaRuntimePlatform/java-runtime-gamma/image/lib/runtime.txt")
+            val fabricLibrary = workspace.resolve("cache/libraries/fabric/${fabricLoaderJarUrl.sha256HexForTest()}.jar")
+            val fetcher =
+                CountingCacheMetadataFetcher(
+                    responses =
+                        mapOf(
+                            MINECRAFT_VERSION_INDEX_URL to
+                                """
+                                { "versions": [{ "id": "1.21.6", "url": "$versionUrl" }] }
+                                """.trimIndent(),
+                            versionUrl to
+                                """
+                                {
+                                  "id": "1.21.6",
+                                  "assetIndex": {
+                                    "id": "1.21.6",
+                                    "url": "$assetIndexUrl"
+                                  },
+                                  "javaVersion": {
+                                    "component": "java-runtime-gamma",
+                                    "majorVersion": 21
+                                  },
+                                  "mainClass": "test.minecraft.Main",
+                                  "arguments": {
+                                    "jvm": [],
+                                    "game": ["--gameDir", "${'$'}{game_directory}"]
+                                  },
+                                  "libraries": [
+                                    {
+                                      "name": "com.mojang:authlib:6.0.54",
+                                      "downloads": {
+                                        "artifact": {
+                                          "url": "$minecraftLibraryUrl",
+                                          "sha1": "${"downloaded-library".sha1HexForTest()}"
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "name": "org.lwjgl:lwjgl:3.3.3",
+                                      "natives": {
+                                        "${nativeArtifact.osName}": "${nativeArtifact.classifier}"
+                                      },
+                                      "downloads": {
+                                        "classifiers": {
+                                          "${nativeArtifact.classifier}": {
+                                            "url": "$nativeUrl",
+                                            "sha1": "${nativeBytes.sha1HexForTest()}"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  ],
+                                  "downloads": {
+                                    "client": {
+                                      "url": "$clientJarUrl",
+                                      "sha1": "${"downloaded-client".sha1HexForTest()}"
+                                    }
+                                  }
+                                }
+                                """.trimIndent(),
+                            MINECRAFT_JAVA_RUNTIME_INDEX_URL to javaRuntimeIndexJson(javaRuntimeManifestUrl),
+                            javaRuntimeManifestUrl to
+                                """
+                                {
+                                  "files": {
+                                    "bin/java": {
+                                      "type": "file",
+                                      "downloads": {
+                                        "raw": {
+                                          "url": "$javaExecutableUrl",
+                                          "sha1": "${javaExecutableBytes.sha1HexForTest()}"
+                                        }
+                                      }
+                                    },
+                                    "lib/runtime.txt": {
+                                      "type": "file",
+                                      "downloads": {
+                                        "raw": {
+                                          "url": "$javaRuntimeFileUrl",
+                                          "sha1": "${"runtime-file".sha1HexForTest()}"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                                """.trimIndent(),
+                            assetIndexUrl to """{"objects":{}}""",
+                            loaderVersionsUrl to """[{ "loader": { "version": "0.17.2", "stable": true } }]""",
+                            loaderProfileUrl to
+                                """
+                                {
+                                  "id": "fabric-loader-0.17.2-1.21.6",
+                                  "libraries": [
+                                    {
+                                      "name": "net.fabricmc:fabric-loader:0.17.2",
+                                      "downloads": {
+                                        "artifact": {
+                                          "url": "$fabricLoaderJarUrl",
+                                          "sha1": "${"downloaded-fabric".sha1HexForTest()}"
+                                        }
+                                      }
+                                    }
+                                  ]
+                                }
+                                """.trimIndent(),
+                        ),
+                    binaryResponses =
+                        mapOf(
+                            clientJarUrl to "downloaded-client".encodeToByteArray(),
+                            minecraftLibraryUrl to "downloaded-library".encodeToByteArray(),
+                            nativeUrl to nativeBytes,
+                            javaExecutableUrl to javaExecutableBytes,
+                            javaRuntimeFileUrl to "runtime-file".encodeToByteArray(),
+                            fabricLoaderJarUrl to "downloaded-fabric".encodeToByteArray(),
+                        ),
+                )
+            writeTestFile(clientJar, "corrupt-client".encodeToByteArray())
+            writeTestFile(minecraftLibrary, "corrupt-library".encodeToByteArray())
+            writeTestFile(nativeLibrary, corruptNativeBytes)
+            writeTestFile(javaExecutable, corruptJavaExecutableBytes)
+            javaExecutable.toFile().setExecutable(true, true)
+            writeTestFile(javaRuntimeFile, "corrupt-runtime-file".encodeToByteArray())
+            writeTestFile(fabricLibrary, "corrupt-fabric".encodeToByteArray())
+            val service = CachePreparationService(workspaceRoot = workspace, metadataFetcher = fetcher)
+
+            service.prepare(CachePrepareRequest("1.21.6", Loader.FABRIC))
+
+            val extractedNative =
+                workspace
+                    .resolve("cache/natives/${nativeUrl.sha256HexForTest()}")
+                    .resolve("libcraftless-test.dylib")
+            assertEquals("downloaded-client", Files.readString(clientJar))
+            assertEquals("downloaded-library", Files.readString(minecraftLibrary))
+            assertEquals("downloaded-native", Files.readString(extractedNative))
+            assertTrue(Files.readString(javaExecutable).contains("21.0.11"))
+            assertEquals("runtime-file", Files.readString(javaRuntimeFile))
+            assertEquals("downloaded-fabric", Files.readString(fabricLibrary))
+            listOf(
+                clientJarUrl,
+                minecraftLibraryUrl,
+                nativeUrl,
+                javaExecutableUrl,
+                javaRuntimeFileUrl,
+                fabricLoaderJarUrl,
+            ).forEach { url -> assertEquals(1, fetcher.binaryFetchCount(url), url) }
+
+            service.prepare(CachePrepareRequest("1.21.6", Loader.FABRIC))
+
+            listOf(
+                clientJarUrl,
+                minecraftLibraryUrl,
+                nativeUrl,
+                javaExecutableUrl,
+                javaRuntimeFileUrl,
+                fabricLoaderJarUrl,
+            ).forEach { url -> assertEquals(1, fetcher.binaryFetchCount(url), url) }
+        }
+
+    @Test
     fun `cache preparation resumes after per-file artifact fetch failure`() =
         runBlocking {
             val workspace = Files.createTempDirectory("craftless-cache-retry")
@@ -1004,11 +1187,11 @@ class CachePreparationServiceTest {
         }
 }
 
-private fun nativeZipBytes(): ByteArray {
+private fun nativeZipBytes(content: String = "native-bytes"): ByteArray {
     val output = ByteArrayOutputStream()
     ZipOutputStream(output).use { zip ->
         zip.putNextEntry(ZipEntry("libcraftless-test.dylib"))
-        zip.write("native-bytes".encodeToByteArray())
+        zip.write(content.encodeToByteArray())
         zip.closeEntry()
         zip.putNextEntry(ZipEntry("META-INF/ignored.txt"))
         zip.write("ignored".encodeToByteArray())
@@ -1041,6 +1224,16 @@ private fun currentTestNativeArtifact(): TestNativeArtifact {
     }
 }
 
+private fun currentTestJavaRuntimePlatformKey(): String {
+    val os = System.getProperty("os.name").lowercase()
+    val arch = System.getProperty("os.arch").lowercase()
+    return when {
+        "win" in os -> "windows-x64"
+        "mac" in os || "darwin" in os -> if ("aarch64" in arch || "arm64" in arch) "mac-os-arm64" else "mac-os"
+        else -> "linux"
+    }
+}
+
 private fun fakeJavaBytes(version: String): ByteArray =
     """
     #!/usr/bin/env sh
@@ -1054,6 +1247,22 @@ private fun String.sha256HexForTest(): String =
         .getInstance("SHA-256")
         .digest(encodeToByteArray())
         .joinToString("") { byte -> "%02x".format(byte) }
+
+private fun String.sha1HexForTest(): String = encodeToByteArray().sha1HexForTest()
+
+private fun ByteArray.sha1HexForTest(): String =
+    java.security.MessageDigest
+        .getInstance("SHA-1")
+        .digest(this)
+        .joinToString("") { byte -> "%02x".format(byte) }
+
+private fun writeTestFile(
+    path: java.nio.file.Path,
+    bytes: ByteArray,
+) {
+    Files.createDirectories(path.parent)
+    Files.write(path, bytes)
+}
 
 private fun javaRuntimeIndexJson(manifestUrl: String): String =
     """

@@ -2283,6 +2283,35 @@ Verification:
 - `mise run architecture-check`
 - `mise run ci`
 
+## Phase 74: Metadata Binary Checksums
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-74-metadata-binary-checksums-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-74-metadata-binary-checksums-plan.md`.
+- [x] Minecraft client jar artifacts carry optional SHA-1 from Mojang version
+  manifests.
+- [x] Minecraft library and native classifier artifacts carry optional SHA-1
+  from Mojang version manifests.
+- [x] Managed Java runtime file artifacts carry optional SHA-1 from Java
+  runtime manifests.
+- [x] Fabric profile `downloads.artifact` library artifacts carry optional
+  SHA-1 when Fabric metadata provides it.
+- [x] Cache preparation re-fetches corrupt cached binary artifacts when
+  upstream SHA-1 metadata is known.
+- [x] This phase changes cache integrity only. It adds no public gameplay
+  action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `mise exec -- gradle :daemon:test --tests '*CachePreparationServiceTest.cache preparation refetches corrupt metadata checksum binaries'`
+- `mise exec -- gradle :daemon:test --tests '*CachePreparationServiceTest*'`
+- `git diff --check`
+- `mise run architecture-check`
+- `mise run ci`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 68 evidence; the

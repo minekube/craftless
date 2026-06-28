@@ -184,6 +184,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 71. system Java PATH discovery.
 72. generated actions help.
 73. asset object integrity resume.
+74. metadata binary checksums.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -544,6 +545,13 @@ asset objects instead of blindly reusing any existing file. It must not add
 public gameplay actions, generated route families, CLI gameplay catalogs,
 Fabric descriptor/binding pairs, scenario shortcuts, new compiled lanes, public
 version-specific APIs, or new Minecraft support claims.
+Phase 74 extends cache integrity to upstream metadata-backed binary downloads:
+Minecraft client jars, Minecraft libraries and native classifiers, Java
+runtime raw files, and Fabric profile artifact downloads when SHA-1 metadata is
+present. It must not add public gameplay actions, generated route families,
+CLI gameplay catalogs, Fabric descriptor/binding pairs, scenario shortcuts,
+new compiled lanes, public version-specific APIs, or new Minecraft support
+claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 
