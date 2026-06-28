@@ -16,6 +16,7 @@ val fabricCompiledProviderId = "fabric-current-lane"
 val fabricCompiledMappingsFingerprint = "craftless-fabric-bindings"
 val generatedFabricLaneMetadataDir =
     layout.buildDirectory.dir("generated/sources/fabricCompiledLaneMetadata/kotlin")
+val generatedFabricDriverLaneCatalog = layout.buildDirectory.file("generated/driver-lanes/fabric-driver-lanes.json")
 
 extensions.extraProperties["fabricCompiledMinecraftVersion"] = fabricCompiledMinecraftVersion
 extensions.extraProperties["fabricCompiledLoaderVersion"] = fabricCompiledLoaderVersion
@@ -127,6 +128,42 @@ fun jsonString(value: String): String =
     }
 
 fun jsonArray(values: List<String>): String = values.joinToString(prefix = "[", postfix = "]") { jsonString(it) }
+
+val writeFabricDriverLaneCatalog =
+    tasks.register("writeFabricDriverLaneCatalog") {
+        group = "build"
+        description = "Generates the internal Fabric driver lane catalog consumed by Craftless distributions."
+
+        inputs.property("fabricCompiledProviderId", fabricCompiledProviderId)
+        inputs.property("fabricCompiledMinecraftVersion", fabricCompiledMinecraftVersion)
+        inputs.property("fabricCompiledLoaderVersion", fabricCompiledLoaderVersion)
+        inputs.property("fabricCompiledApiVersion", fabricCompiledApiVersion)
+        inputs.property("fabricCompiledJavaMajorVersion", fabricCompiledJavaMajorVersion)
+        outputs.file(generatedFabricDriverLaneCatalog)
+
+        doLast {
+            val output = generatedFabricDriverLaneCatalog.get().asFile
+            output.parentFile.mkdirs()
+            output.writeText(
+                """
+                {
+                  "entries": [
+                    {
+                      "loader": "FABRIC",
+                      "minecraftVersion": ${jsonString(fabricCompiledMinecraftVersion)},
+                      "loaderVersion": ${jsonString(fabricCompiledLoaderVersion)},
+                      "path": "mods/craftless-driver-fabric.jar",
+                      "providerId": ${jsonString(fabricCompiledProviderId)},
+                      "fabricApiVersion": ${jsonString(fabricCompiledApiVersion)},
+                      "javaMajorVersion": $fabricCompiledJavaMajorVersion,
+                      "distributionPath": "mods/craftless-driver-fabric.jar"
+                    }
+                  ]
+                }
+                """.trimIndent() + "\n",
+            )
+        }
+    }
 
 val generateFabricCompiledLaneMetadata =
     tasks.register("generateFabricCompiledLaneMetadata") {

@@ -246,6 +246,15 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric build generates driver lane catalog for distribution packaging`() {
+        val buildScript = Files.readString(repositoryRoot().resolve("driver-fabric/build.gradle.kts"))
+
+        assertTrue(buildScript.contains("writeFabricDriverLaneCatalog"))
+        assertTrue(buildScript.contains("fabric-driver-lanes.json"))
+        assertTrue(buildScript.contains("distributionPath"))
+    }
+
+    @Test
     fun `fabric gateway does not expose raw command dispatch`() {
         assertTrue(FabricClientGateway::class.java.methods.none { it.name == "dispatchCommand" })
     }

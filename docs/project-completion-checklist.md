@@ -3901,11 +3901,11 @@ Verification:
   removal, Phase 122 removed survival namespace wording, and Phase 123
   create-client loader version, and Phase 124 CLI create-client loader
   version, Phase 125 driver-mod manifest miss, Phase 126 driver manifest
-  loader default, and Phase 127 alias driver manifest loader default. Phase
-  105, Phase 107, Phase
+  loader default, Phase 127 alias driver manifest loader default, and Phase
+  128 generated driver lane catalog. Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
-  122, Phase 123, Phase 124, Phase 125, Phase 126, and Phase 127 do not satisfy the runnable
+  122, Phase 123, Phase 124, Phase 125, Phase 126, Phase 127, and Phase 128 do not satisfy the runnable
   latest/older support
   requirement by themselves.
   The broader project goal remains active until

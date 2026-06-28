@@ -26,7 +26,11 @@ describe("distribution surface", () => {
     const mise = read(".mise.toml");
 
     expect(cliBuild).toContain("driver-mods.json");
+    expect(cliBuild).toContain("fabric-driver-lanes.json");
+    expect(cliBuild).toContain("writeFabricDriverLaneCatalog");
     expect(cliBuild).toContain("mods/craftless-driver-fabric.jar");
+    expect(cliBuild).not.toContain('extensions.extraProperties["fabricCompiledMinecraftVersion"]');
+    expect(cliBuild).not.toContain('extensions.extraProperties["fabricCompiledLoaderVersion"]');
     expect(mise).toContain("driver-mods.json");
     expect(mise).toContain("tar -tf cli/build/distributions/craftless-*.tar | grep -q '/driver-mods.json$'");
     expect(mise).toContain("jar tf cli/build/distributions/craftless-*.zip | grep -q '/driver-mods.json$'");
