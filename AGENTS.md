@@ -249,6 +249,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 136. reflective movement input shim.
 137. reflective recipe bridge.
 138. packaged representative older Fabric lane.
+139. packaged older Fabric lane selection smoke.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -273,6 +274,13 @@ may build the older lane through repository tooling and merge its private lane
 catalog into the packaged driver-mod manifest, but it must not claim runtime
 support until that older packaged lane is launched, attached, queried through
 generated OpenAPI, and smoke tested.
+
+Phase 139 proves the supervisor create-client path can select the packaged
+older Fabric lane from a multi-entry driver-mod manifest and put that lane's
+driver jar into the prepared launch plan. It is still a selection smoke, not
+runtime support completion: the older lane is not complete until a real older
+client launches, attaches, exposes generated OpenAPI, and passes public
+API/CLI gameplay smoke.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final

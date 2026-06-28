@@ -216,6 +216,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-95-launch-mod-materialization-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-95-launch-mod-materialization-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-139-packaged-older-lane-selection-smoke-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-139-packaged-older-lane-selection-smoke-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -3866,6 +3870,36 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-driver-mod-manifest-miss.md`.
 
+## Phase 139: Packaged Older Fabric Lane Selection Smoke
+
+- [x] `AGENTS.md` records Phase 139 as selection smoke only, not older runtime
+  support completion.
+- [x] A daemon create-client smoke uses a packaged-style two-entry
+  `driver-mods.json` containing current `1.21.6` and representative older
+  `1.20.6` Fabric lanes.
+- [x] The `1.20.6` create-client request prepares the older Fabric runtime
+  metadata with Fabric Loader `0.19.3`, Fabric API `0.100.8+1.20.6`, and Java
+  major version 21.
+- [x] The prepared launch plan stages
+  `mods/fabric-1.20.6/craftless-driver-fabric.jar` content and does not stage
+  the current lane driver jar content.
+- [x] This phase adds no public gameplay API, static gameplay catalog,
+  version-specific public route family, survival shortcut, real process launch,
+  attach proof, generated OpenAPI proof, gameplay proof, or older support
+  completion claim.
+
+Verification:
+
+- Red test:
+  `mise exec -- gradle :daemon:test --tests '*LocalSessionApiServerTest.prepared runtime selects packaged older fabric lane from manifest'`
+  failed at `:daemon:compileTestKotlin` because
+  `preparedRuntimeMetadataFetcherWithOlderLane` did not exist yet.
+- Green test:
+  `mise exec -- gradle :daemon:test --tests '*LocalSessionApiServerTest.prepared runtime selects packaged older fabric lane from manifest'`
+  passed.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-packaged-older-lane-selection-smoke.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3909,13 +3943,13 @@ Verification:
   Phase 134 parameterized Fabric compiled lane build, Phase 135 reflective
   Fabric world-change callback, Phase 136 reflective movement input shim, Phase
   137 reflective recipe bridge, and Phase 138 packaged representative older
-  Fabric lane.
+  Fabric lane, and Phase 139 packaged older Fabric lane selection smoke.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
   122, Phase 123, Phase 124, Phase 125, Phase 126, Phase 127, Phase 128,
   Phase 129, Phase 130, Phase 131, Phase 132, Phase 133, Phase 134, Phase
-  135, Phase 136, Phase 137, and Phase 138 do not satisfy the runnable
+  135, Phase 136, Phase 137, Phase 138, and Phase 139 do not satisfy the runnable
   latest/older support
   requirement by themselves.
   The broader project goal remains active until

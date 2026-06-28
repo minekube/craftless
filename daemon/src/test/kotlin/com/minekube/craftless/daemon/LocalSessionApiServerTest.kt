@@ -851,6 +851,91 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `prepared runtime selects packaged older fabric lane from manifest`() =
+        withHttpClient { http ->
+            val workspace = Files.createTempDirectory("craftless-packaged-older-lane-workspace")
+            val distribution = Files.createTempDirectory("craftless-packaged-older-lane-selection")
+            val currentDriverMod = distribution.resolve("mods/craftless-driver-fabric.jar")
+            val olderDriverMod = distribution.resolve("mods/fabric-1.20.6/craftless-driver-fabric.jar")
+            Files.createDirectories(olderDriverMod.parent)
+            Files.writeString(currentDriverMod, "current-driver-mod")
+            Files.writeString(olderDriverMod, "older-driver-mod")
+            val manifest = distribution.resolve("driver-mods.json")
+            Files.writeString(
+                manifest,
+                """
+                {
+                  "entries": [
+                    {
+                      "loader": "FABRIC",
+                      "minecraftVersion": "1.21.6",
+                      "loaderVersion": "0.19.3",
+                      "fabricApiVersion": "0.128.2+1.21.6",
+                      "javaMajorVersion": 21,
+                      "mappingsFingerprint": "craftless-fabric-bindings",
+                      "path": "mods/craftless-driver-fabric.jar"
+                    },
+                    {
+                      "loader": "FABRIC",
+                      "minecraftVersion": "1.20.6",
+                      "loaderVersion": "0.19.3",
+                      "fabricApiVersion": "0.100.8+1.20.6",
+                      "javaMajorVersion": 21,
+                      "mappingsFingerprint": "craftless-fabric-bindings-1-20-6",
+                      "path": "mods/fabric-1.20.6/craftless-driver-fabric.jar"
+                    }
+                  ]
+                }
+                """.trimIndent(),
+            )
+            val launcher = RecordingClientRuntimeLauncher()
+
+            LocalSessionApiServer
+                .inMemory(
+                    workspaceRoot = workspace,
+                    cacheMetadataFetcher = preparedRuntimeMetadataFetcherWithOlderLane(),
+                    clientRuntimeLauncher = launcher,
+                    clientRuntimeDriverModProvider =
+                        ConfiguredClientRuntimeDriverModProvider(
+                            environment =
+                                mapOf(
+                                    ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_DRIVER_MOD_MANIFEST to
+                                        manifest.toString(),
+                                ),
+                        ),
+                ).use { server ->
+                    server.start()
+
+                    val response =
+                        http.post(server.url("/clients")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "id": "alice",
+                                  "version": "1.20.6",
+                                  "loader": "FABRIC",
+                                  "loaderVersion": "0.19.3",
+                                  "profile": { "kind": "OFFLINE", "name": "Alice" }
+                                }
+                                """.trimIndent(),
+                            )
+                        }
+
+                    assertEquals(HttpStatusCode.Created, response.status)
+                    val launch = launcher.launches.single()
+                    assertEquals("cache/prepared/1.20.6-fabric-0.19.3.json", launch.prepared.manifest)
+                    val stagedModContents =
+                        launch
+                            .launch
+                            .mods
+                            .map { handle -> Files.readString(workspace.resolve(handle)) }
+                    assertTrue(stagedModContents.contains("older-driver-mod"))
+                    assertFalse(stagedModContents.contains("current-driver-mod"))
+                }
+        }
+
+    @Test
     fun `process client runtime launcher starts prepared command`() {
         val workspace = Files.createTempDirectory("craftless-process-client-runtime")
         val marker = workspace.resolve("launched.txt")
@@ -2186,10 +2271,13 @@ private class ServerStaticCacheMetadataFetcher(
 }
 
 private const val SERVER_DEFAULT_TEST_FABRIC_API_VERSION = "0.129.0+1.21.6"
+private const val SERVER_OLDER_TEST_FABRIC_API_VERSION = "0.100.8+1.20.6"
 private const val SERVER_DEFAULT_TEST_FABRIC_API_METADATA_URL =
     "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml"
 private const val SERVER_DEFAULT_TEST_FABRIC_API_JAR_URL =
     "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/0.129.0+1.21.6/fabric-api-0.129.0+1.21.6.jar"
+private const val SERVER_OLDER_TEST_FABRIC_API_JAR_URL =
+    "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/0.100.8+1.20.6/fabric-api-0.100.8+1.20.6.jar"
 
 private fun serverDefaultTestFabricApiMetadata(): String =
     """
@@ -2452,6 +2540,104 @@ private fun preparedRuntimeMetadataFetcher(): CacheMetadataFetcher {
                 javaExecutableUrl to serverFakeJavaBytes("21.0.11"),
                 fabricLoaderJarUrl to "fabric-loader-jar".encodeToByteArray(),
                 pinnedFabricLoaderJarUrl to "pinned-fabric-loader-jar".encodeToByteArray(),
+            ),
+    )
+}
+
+private fun preparedRuntimeMetadataFetcherWithOlderLane(): CacheMetadataFetcher {
+    val currentVersionUrl = "https://metadata.test/1.21.6.json"
+    val olderVersionUrl = "https://metadata.test/1.20.6.json"
+    val olderClientJarUrl = "https://metadata.test/client-1.20.6.jar"
+    val olderAssetIndexUrl = "https://metadata.test/assets/1.20.6.json"
+    val javaRuntimeManifestUrl = "https://metadata.test/runtime/java-runtime-gamma/manifest.json"
+    val javaExecutableUrl = "https://metadata.test/runtime/java-runtime-gamma/bin/java"
+    val olderLoaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.20.6"
+    val olderLoaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.20.6/0.19.3/profile/json"
+    val olderFabricLoaderJarUrl =
+        "https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.19.3/fabric-loader-0.19.3.jar"
+    return ServerStaticCacheMetadataFetcher(
+        mapOf(
+            MINECRAFT_VERSION_INDEX_URL to
+                """
+                {
+                  "latest": {
+                    "release": "1.21.6",
+                    "snapshot": "26.3-snapshot-1"
+                  },
+                  "versions": [
+                    { "id": "1.21.6", "url": "$currentVersionUrl" },
+                    { "id": "1.20.6", "url": "$olderVersionUrl" }
+                  ]
+                }
+                """.trimIndent(),
+            olderVersionUrl to
+                """
+                {
+                  "id": "1.20.6",
+                  "assetIndex": { "id": "1.20.6", "url": "$olderAssetIndexUrl" },
+                  "javaVersion": {
+                    "component": "java-runtime-gamma",
+                    "majorVersion": 21
+                  },
+                  "mainClass": "test.minecraft.Main",
+                  "arguments": {
+                    "jvm": ["-cp", "${'$'}{classpath}"],
+                    "game": ["--gameDir", "${'$'}{game_directory}"]
+                  },
+                  "downloads": {
+                    "client": { "url": "$olderClientJarUrl" }
+                  }
+                }
+                """.trimIndent(),
+            MINECRAFT_JAVA_RUNTIME_INDEX_URL to serverJavaRuntimeIndexJson(javaRuntimeManifestUrl),
+            javaRuntimeManifestUrl to
+                """
+                {
+                  "files": {
+                    "bin/java": {
+                      "type": "file",
+                      "downloads": {
+                        "raw": { "url": "$javaExecutableUrl" }
+                      }
+                    }
+                  }
+                }
+                """.trimIndent(),
+            olderAssetIndexUrl to """{"objects":{}}""",
+            olderLoaderVersionsUrl to """[{ "loader": { "version": "0.19.3", "stable": true } }]""",
+            olderLoaderProfileUrl to
+                """
+                {
+                  "id": "fabric-loader-0.19.3-1.20.6",
+                  "mainClass": "test.fabric.Main",
+                  "libraries": [
+                    {
+                      "name": "net.fabricmc:fabric-loader:0.19.3",
+                      "url": "https://maven.fabricmc.net/"
+                    }
+                  ]
+                }
+                """.trimIndent(),
+            SERVER_DEFAULT_TEST_FABRIC_API_METADATA_URL to
+                """
+                <metadata>
+                  <groupId>net.fabricmc.fabric-api</groupId>
+                  <artifactId>fabric-api</artifactId>
+                  <versioning>
+                    <versions>
+                      <version>$SERVER_DEFAULT_TEST_FABRIC_API_VERSION</version>
+                      <version>$SERVER_OLDER_TEST_FABRIC_API_VERSION</version>
+                    </versions>
+                  </versioning>
+                </metadata>
+                """.trimIndent(),
+        ),
+        binaryResponses =
+            mapOf(
+                olderClientJarUrl to "older-client-jar".encodeToByteArray(),
+                javaExecutableUrl to serverFakeJavaBytes("21.0.11"),
+                olderFabricLoaderJarUrl to "older-fabric-loader-jar".encodeToByteArray(),
+                SERVER_OLDER_TEST_FABRIC_API_JAR_URL to "older-fabric-api-jar".encodeToByteArray(),
             ),
     )
 }
