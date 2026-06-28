@@ -68,8 +68,18 @@ internal data class FabricActionContext(
 
 internal fun defaultFabricActionBindings(): List<FabricActionBinding> =
     listOf(
+        FabricPlayerQueryActionBinding,
+        FabricPlayerLookActionBinding,
+        FabricPlayerRaycastActionBinding,
         FabricPlayerMoveActionBinding,
         FabricPlayerChatActionBinding,
+        FabricInventoryQueryActionBinding,
+        FabricInventoryEquipActionBinding,
+        FabricWorldTimeQueryActionBinding,
+        FabricWorldBlockBreakActionBinding,
+        FabricWorldBlockInteractActionBinding,
+        FabricScreenQueryActionBinding,
+        FabricScreenCloseActionBinding,
     )
 
 internal object FabricPlayerQueryActionBinding : FabricActionBinding {

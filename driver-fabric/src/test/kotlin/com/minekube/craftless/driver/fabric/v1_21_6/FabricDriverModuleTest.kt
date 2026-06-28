@@ -649,6 +649,7 @@ class FabricDriverModuleTest {
     @Test
     fun `fabric backend maps player move action to movement intent`() {
         val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
         val backend = FabricDriverBackend.real(gateway)
         gateway.queryResult =
             buildJsonObject {
@@ -729,6 +730,7 @@ class FabricDriverModuleTest {
     @Test
     fun `fabric backend maps player chat action to chat execution`() {
         val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
         val backend = FabricDriverBackend.real(gateway)
 
         val result =
@@ -1056,26 +1058,7 @@ class FabricDriverModuleTest {
 
     @Test
     fun `fabric backend can expose unavailable actions only from runtime discovery probes`() {
-        val backend =
-            FabricDriverBackend.metadataOnly(
-                actionDiscovery =
-                    FabricActionDiscovery { context ->
-                        assertEquals("metadata-only", context.modeId)
-                        assertEquals(null, context.gateway)
-                        listOf(
-                            FabricDiscoveredAction(
-                                descriptor =
-                                    DriverActionDescriptor(
-                                        id = "player.raycast",
-                                        schemaVersion = "1",
-                                        source = DriverActionSource.RUNTIME_PROBE,
-                                        availability = DriverActionAvailability.UNAVAILABLE,
-                                        availabilityReason = "client-not-connected",
-                                    ),
-                            ),
-                        )
-                    },
-            )
+        val backend = FabricDriverBackend.metadataOnly()
 
         val action = backend.actions("alice").single { it.id == "player.raycast" }
         val result = backend.invoke("alice", DriverActionInvocation("player.raycast"))
@@ -1086,6 +1069,64 @@ class FabricDriverModuleTest {
         assertEquals("client-not-connected", action.availabilityReason)
         assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
         assertEquals("client-not-connected", result.message)
+    }
+
+    @Test
+    fun `fabric backend dispatch does not depend on fabric action discovery`() {
+        val source =
+            Files.readString(
+                repositoryRoot().resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverBackend.kt",
+                ),
+            )
+
+        assertFalse(source.contains("FabricActionDiscovery"))
+        assertFalse(source.contains("discoveredActions"))
+    }
+
+    @Test
+    fun `fabric legacy invoke dispatches unavailable operations from runtime graph`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = false
+        val backend =
+            FabricDriverBackend.real(
+                gateway = gateway,
+                runtimeMetadataProvider = blockQueryRuntimeMetadataProvider(),
+            )
+
+        val result = backend.invoke("alice", DriverActionInvocation("player.raycast"))
+
+        assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
+        assertEquals("client-not-connected", result.message)
+        assertEquals(0, gateway.graphCapabilityProbeQueries)
+        assertEquals(0, gateway.capabilityProbeQueries)
+        assertEquals(emptyList(), gateway.actions)
+    }
+
+    @Test
+    fun `fabric legacy invoke adapters come from private binding map`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        val backend =
+            FabricDriverBackend.real(
+                gateway = gateway,
+                runtimeMetadataProvider = blockQueryRuntimeMetadataProvider(),
+            )
+
+        val result =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "player.chat",
+                    arguments = mapOf("message" to JsonPrimitive("hello graph invoke")),
+                ),
+            )
+
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        assertEquals("hello graph invoke", result.message)
+        assertEquals(2, gateway.graphCapabilityProbeQueries)
+        assertEquals(0, gateway.capabilityProbeQueries)
+        assertEquals(listOf("client-action"), gateway.actions)
     }
 
     @Test
@@ -2748,8 +2789,8 @@ class FabricDriverModuleTest {
 
         assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
         assertEquals("interaction-unavailable", result.message)
-        assertEquals(1, gateway.capabilityProbeQueries)
-        assertEquals(2, gateway.graphCapabilityProbeQueries)
+        assertEquals(0, gateway.capabilityProbeQueries)
+        assertEquals(4, gateway.graphCapabilityProbeQueries)
     }
 
     @Test
@@ -2787,6 +2828,7 @@ class FabricDriverModuleTest {
         assertEquals("screen-not-open", metadataOnlyClose.availabilityReason)
 
         val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
         gateway.screenOpen = false
         val backend = FabricDriverBackend.real(gateway)
 
@@ -2798,7 +2840,8 @@ class FabricDriverModuleTest {
         assertEquals("screen-not-open", close.availabilityReason)
         assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
         assertEquals("screen-not-open", result.message)
-        assertEquals(1, gateway.screenProbeQueries)
+        assertEquals(0, gateway.screenProbeQueries)
+        assertEquals(4, gateway.graphCapabilityProbeQueries)
         assertEquals(emptyList(), gateway.actions)
         assertEquals(0, gateway.scheduled)
     }
@@ -2817,8 +2860,8 @@ class FabricDriverModuleTest {
         assertEquals(DriverActionAvailability.AVAILABLE, close.availability)
         assertEquals(null, close.availabilityReason)
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
-        assertEquals(1, gateway.screenProbeQueries)
-        assertEquals(2, gateway.graphCapabilityProbeQueries)
+        assertEquals(0, gateway.screenProbeQueries)
+        assertEquals(4, gateway.graphCapabilityProbeQueries)
         assertEquals(listOf("client-action"), gateway.actions)
         assertEquals(1, gateway.scheduled)
     }
@@ -2843,6 +2886,7 @@ class FabricDriverModuleTest {
     @Test
     fun `fabric backend reports missing player chat message as action failure`() {
         val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
         val backend = FabricDriverBackend.real(gateway)
 
         val result =
@@ -2866,6 +2910,7 @@ class FabricDriverModuleTest {
     @Test
     fun `fabric backend reports blank player chat message as action failure`() {
         val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
         val backend = FabricDriverBackend.real(gateway)
 
         val result =
@@ -2889,6 +2934,7 @@ class FabricDriverModuleTest {
     @Test
     fun `fabric backend rejects raw minecraft command strings as chat action input`() {
         val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
         val backend = FabricDriverBackend.real(gateway)
 
         val result =

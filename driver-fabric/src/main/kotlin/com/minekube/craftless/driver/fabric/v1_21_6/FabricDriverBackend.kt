@@ -71,7 +71,6 @@ class FabricDriverBackend private constructor(
     private val mode: Mode,
     private val gateway: FabricClientGateway?,
     actionBindings: List<FabricActionBinding> = defaultFabricActionBindings(),
-    private val actionDiscovery: FabricActionDiscovery = defaultFabricActionDiscovery(),
     private val capabilityDiscovery: FabricCapabilityDiscovery = defaultFabricCapabilityDiscovery(),
     private val runtimeMetadataProvider: FabricRuntimeMetadataProvider = staticFabricRuntimeMetadataProvider(),
     private val pathfinderBackend: FabricPathfinderBackend = UnavailableFabricPathfinderBackend,
@@ -119,10 +118,9 @@ class FabricDriverBackend private constructor(
     override fun operationAdapters(clientId: String): DriverOperationAdapters {
         val adapters =
             navigationTaskOperationAdapters() +
-                discoveredActions(clientId)
-                    .mapNotNull { discoveredAction ->
-                        val binding = discoveredAction.binding ?: return@mapNotNull null
-                        discoveredAction.descriptor.id.fabricOperationAdapterKey() to
+                actionBindingsById.values
+                    .map { binding ->
+                        binding.descriptor.id.fabricOperationAdapterKey() to
                             DriverOperationAdapter { invocation ->
                                 binding.invoke(
                                     clientId = invocation.clientId,
@@ -148,31 +146,35 @@ class FabricDriverBackend private constructor(
         invocation: DriverActionInvocation,
     ): DriverActionResult {
         require(invocation.action.isNotBlank()) { "action is required" }
-        val discoveredAction = discoveredActions(clientId).firstOrNull { it.descriptor.id == invocation.action }
-        if (discoveredAction == null) {
+        val operation = runtimeGraph(clientId).operations.firstOrNull { operation -> operation.id == invocation.action }
+        if (operation == null) {
             return DriverActionResult(
                 action = invocation.action,
                 status = DriverActionStatus.UNSUPPORTED,
                 message = "unsupported Fabric action ${invocation.action}",
             )
         }
-        val binding = discoveredAction.binding
-        if (binding == null) {
+        if (operation.availability.state == RuntimeAvailabilityState.UNAVAILABLE) {
             return DriverActionResult(
                 action = invocation.action,
                 status = DriverActionStatus.UNSUPPORTED,
-                message = discoveredAction.descriptor.availabilityReason ?: "unavailable Fabric action ${invocation.action}",
+                message = operation.availability.reason ?: "unavailable Fabric action ${invocation.action}",
             )
         }
-        return binding.invoke(
-            clientId = clientId,
-            invocation = invocation,
-            context =
-                FabricActionContext(
-                    modeId = mode.id,
-                    gateway = gateway,
-                    record = ::record,
-                ),
+        val adapters = operationAdapters(clientId)
+        if (operation.adapter !in adapters.adapterKeys()) {
+            return DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.UNSUPPORTED,
+                message = "missing Fabric operation adapter ${operation.adapter}",
+            )
+        }
+        return adapters.invoke(
+            DriverOperationInvocation(
+                clientId = clientId,
+                operation = operation,
+                arguments = invocation.arguments,
+            ),
         )
     }
 
@@ -185,16 +187,6 @@ class FabricDriverBackend private constructor(
     }
 
     fun events(): List<String> = events.toList()
-
-    private fun discoveredActions(clientId: String): List<FabricDiscoveredAction> =
-        actionDiscovery.discover(
-            FabricActionDiscoveryContext(
-                clientId = clientId,
-                modeId = mode.id,
-                gateway = gateway,
-                bindings = actionBindingsById,
-            ),
-        )
 
     private fun record(event: String) {
         events += event
@@ -1025,44 +1017,37 @@ class FabricDriverBackend private constructor(
         @Volatile
         private var installed: FabricDriverBackend? = null
 
-        fun metadataOnly(): FabricDriverBackend = metadataOnly(defaultFabricActionDiscovery())
+        fun metadataOnly(): FabricDriverBackend =
+            metadataOnly(
+                pathfinderBackend = UnavailableFabricPathfinderBackend,
+                taskExecutor = UnavailableFabricTaskExecutor,
+            )
 
         internal fun metadataOnly(
-            actionDiscovery: FabricActionDiscovery = defaultFabricActionDiscovery(),
             pathfinderBackend: FabricPathfinderBackend = UnavailableFabricPathfinderBackend,
             taskExecutor: FabricTaskExecutor = UnavailableFabricTaskExecutor,
         ): FabricDriverBackend =
             FabricDriverBackend(
                 mode = Mode.METADATA_ONLY,
                 gateway = null,
-                actionDiscovery = actionDiscovery,
                 pathfinderBackend = pathfinderBackend,
                 taskExecutor = taskExecutor,
             )
 
         fun real(gateway: FabricClientGateway = MinecraftFabricClientGateway()): FabricDriverBackend =
-            real(gateway, defaultFabricActionDiscovery())
-
-        internal fun real(
-            gateway: FabricClientGateway,
-            actionDiscovery: FabricActionDiscovery,
-        ): FabricDriverBackend =
             real(
                 gateway = gateway,
-                actionDiscovery = actionDiscovery,
                 runtimeMetadataProvider = FabricLoaderRuntimeMetadataProvider(gateway),
             )
 
         internal fun real(
             gateway: FabricClientGateway,
-            actionDiscovery: FabricActionDiscovery = defaultFabricActionDiscovery(),
             runtimeMetadataProvider: FabricRuntimeMetadataProvider,
         ): FabricDriverBackend {
             val pathfinderBackend = ReflectiveFabricPathfinderBackend(gateway = gateway)
             return FabricDriverBackend(
                 mode = Mode.REAL_CLIENT,
                 gateway = gateway,
-                actionDiscovery = actionDiscovery,
                 runtimeMetadataProvider = runtimeMetadataProvider,
                 pathfinderBackend = pathfinderBackend,
                 taskExecutor = UnavailableFabricTaskExecutor,

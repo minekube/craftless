@@ -148,6 +148,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-78-graph-native-fabric-schemas-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-78-graph-native-fabric-schemas-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-79-graph-owned-fabric-invoke-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-79-graph-owned-fabric-invoke-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -2482,13 +2486,50 @@ Verification:
 - Final local and remote verification are recorded in
   `docs/superpowers/evidence/2026-06-28-graph-native-fabric-schemas.md`.
 
+## Phase 79: Graph-Owned Fabric Invoke Dispatch
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-79-graph-owned-fabric-invoke-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-79-graph-owned-fabric-invoke-plan.md`.
+- [x] `FabricDriverBackend.invoke(...)` looks up operations in
+  `RuntimeCapabilityGraph.operations`.
+- [x] Legacy invoke returns graph availability reasons when operations are
+  unavailable.
+- [x] Legacy invoke dispatches available operations through
+  `DriverOperationAdapters`.
+- [x] `FabricDriverBackend` no longer accepts or calls `FabricActionDiscovery`
+  for public-compatible dispatch.
+- [x] Current transitional `FabricActionBinding` implementations are
+  consolidated into the private adapter map. This phase does not add new Fabric
+  descriptor/binding pairs or gameplay breadth.
+- [~] Standalone `FabricActionDiscovery` remains a later cleanup target, but it
+  is no longer the Fabric backend's public descriptor, schema, or invocation
+  source of truth.
+- [~] The broader binding-exit blocker remains active until future gameplay
+  breadth is generated from generic runtime discovery instead of
+  hand-maintained bootstrap operation definitions.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric descriptor/binding pair, scenario shortcut, new
+  compiled lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Green focused tests:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend dispatch does not depend on fabric action discovery*' --tests '*FabricDriverModuleTest.fabric legacy invoke dispatches unavailable operations from runtime graph*' --tests '*FabricDriverModuleTest.fabric legacy invoke adapters come from private binding map*'`
+- Full Fabric regression:
+  `mise exec -- gradle :driver-fabric:test`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-graph-owned-fabric-invoke.md`.
+  Push and remote CI evidence must be added after this phase lands on `main`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
   76 completion audit, Phase 77 graph-owned public Fabric action descriptors,
-  and Phase 78 graph-native bootstrap operation schemas. The broader project
-  goal remains active until transitional bootstrap code no longer owns future
-  public gameplay breadth,
+  Phase 78 graph-native bootstrap operation schemas, and Phase 79 graph-owned
+  legacy invoke dispatch. The broader project goal remains active until
+  transitional bootstrap code no longer owns future public gameplay breadth,
   latest and representative older runtime lanes have the requested support or
   an explicitly accepted support boundary, and every generic-discovery,
   multi-version, transport, CLI, docs, and gameplay requirement is reverified
