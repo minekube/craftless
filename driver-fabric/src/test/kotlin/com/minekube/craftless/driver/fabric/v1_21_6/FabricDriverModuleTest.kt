@@ -39,13 +39,6 @@ class FabricDriverModuleTest {
         generateSequence(Path.of("").toAbsolutePath()) { path -> path.parent }
             .first { path -> Files.exists(path.resolve("settings.gradle.kts")) }
 
-    private fun transitionalFabricActionAllowlist(root: Path): List<String> =
-        Files
-            .readAllLines(root.resolve("docs/architecture/transitional-fabric-action-allowlist.txt"))
-            .map { line -> line.substringBefore("#").trim() }
-            .filter { line -> line.isNotBlank() }
-            .sorted()
-
     private fun readArtifact(
         artifactsDir: Path,
         name: String,
@@ -413,8 +406,8 @@ class FabricDriverModuleTest {
 
     @Test
     fun `transitional fabric binding operation ids are represented as runtime graph operations`() {
-        val root = repositoryRoot()
         val bindingIds = defaultFabricActionBindings().map { binding -> binding.operationId }.sorted()
+        val definitionIds = fabricBootstrapOperationDefinitions().map { definition -> definition.id }.sorted()
         val graphOperationIds =
             FabricDriverBackend
                 .metadataOnly()
@@ -424,9 +417,9 @@ class FabricDriverModuleTest {
                 .sorted()
 
         assertEquals(
-            transitionalFabricActionAllowlist(root),
+            definitionIds.filter { id -> id in bindingIds },
             bindingIds,
-            "Private Fabric bindings must expose operation ids only for the current transitional executable graph operations.",
+            "Private Fabric bindings must expose operation ids only through bootstrap definitions.",
         )
         assertEquals(bindingIds, graphOperationIds.filter { it in bindingIds })
     }

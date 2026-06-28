@@ -241,6 +241,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 128. generated driver lane catalog.
 129. catalog-driven driver artifact staging.
 130. projected driver mod manifest.
+131. transitional Fabric action allowlist deletion.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -992,6 +993,14 @@ is manifest-schema hygiene only; it must not add compiled lanes, change Fabric
 dependency versions, claim new Minecraft support, add gameplay APIs, route
 families, CLI gameplay catalogs, Fabric descriptor/binding pairs, or scenario
 shortcuts.
+Phase 131 deletes the stale `docs/architecture/transitional-fabric-action-allowlist.txt`
+file. The remaining transitional source for current private executable Fabric
+bootstrap operations is `fabricBootstrapOperationDefinitions()`, and tests must
+compare private bindings to those definitions rather than to a static docs
+allowlist. This is static-artifact cleanup only; it must not add or remove
+runtime operations, compiled lanes, Fabric versions, support claims, public
+gameplay APIs, generated route families, CLI gameplay catalogs, Fabric
+descriptor/binding pairs, or scenario shortcuts.
 
 ## Acceptance Scenarios Are Not Product APIs
 

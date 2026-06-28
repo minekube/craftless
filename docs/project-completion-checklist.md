@@ -2466,7 +2466,7 @@ Verification:
   SSE streaming, compatibility probes, and final honest public API/CLI
   gameplay evidence.
 - [x] Current open gates are recorded: public gameplay breadth still depends on
-  the transitional hand-written Fabric action allowlist, latest `26.2` and
+  the transitional hand-written Fabric bootstrap operation definitions, latest `26.2` and
   representative older `1.20.6` are explicit unsupported lanes rather than
   supported runtime lanes, and adding more descriptor/binding pairs is not
   completion progress.
@@ -3903,10 +3903,12 @@ Verification:
   version, Phase 125 driver-mod manifest miss, Phase 126 driver manifest
   loader default, Phase 127 alias driver manifest loader default, Phase
   128 generated driver lane catalog, Phase 129 catalog-driven driver
-  artifact staging, and Phase 130 projected driver mod manifest. Phase 105, Phase 107, Phase
+  artifact staging, Phase 130 projected driver mod manifest, and Phase 131
+  transitional Fabric action allowlist deletion. Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
-  122, Phase 123, Phase 124, Phase 125, Phase 126, Phase 127, Phase 128, Phase 129, and Phase 130 do not satisfy the runnable
+  122, Phase 123, Phase 124, Phase 125, Phase 126, Phase 127, Phase 128,
+  Phase 129, Phase 130, and Phase 131 do not satisfy the runnable
   latest/older support
   requirement by themselves.
   The broader project goal remains active until
