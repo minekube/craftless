@@ -122,13 +122,14 @@ object CraftlessCli {
         afterStart: (ApiServerMetadata) -> Unit = {},
         env: Map<String, String> = System.getenv(),
         cacheMetadataFetcher: CacheMetadataFetcher = KtorCacheMetadataFetcher(),
+        distributionRoot: Path? = installedDistributionRoot(),
     ): Int {
         if (args.isRootHelp()) {
             stdout(rootHelp())
             return 0
         }
         if (args.take(2) == listOf("server", "start")) {
-            return runServerStart(args.drop(2), stdout, stderr, afterStart, env, cacheMetadataFetcher)
+            return runServerStart(args.drop(2), stdout, stderr, afterStart, env, cacheMetadataFetcher, distributionRoot)
         }
         if (args.take(2) == listOf("cache", "prepare")) {
             return prepareCache(args.drop(2), stdout, stderr, cacheMetadataFetcher)
@@ -880,6 +881,7 @@ object CraftlessCli {
         afterStart: (ApiServerMetadata) -> Unit,
         env: Map<String, String>,
         cacheMetadataFetcher: CacheMetadataFetcher,
+        distributionRoot: Path?,
     ): Int {
         val once = args.contains("--once")
         val host = args.optionValue("--host") ?: "127.0.0.1"
@@ -889,6 +891,7 @@ object CraftlessCli {
             return 2
         }
         val workspaceRoot = args.optionValue("--workspace")?.let(Path::of)
+        val serverEnvironment = env.withPackagedFabricDriverMod(distributionRoot)
 
         LocalSessionApiServer
             .inMemory(
@@ -896,7 +899,7 @@ object CraftlessCli {
                 port = port,
                 workspaceRoot = workspaceRoot,
                 cacheMetadataFetcher = cacheMetadataFetcher,
-                clientRuntimeDriverModProvider = ConfiguredClientRuntimeDriverModProvider(environment = env),
+                clientRuntimeDriverModProvider = ConfiguredClientRuntimeDriverModProvider(environment = serverEnvironment),
             ).use { server ->
                 server.start()
                 val metadata =
@@ -915,6 +918,33 @@ object CraftlessCli {
             }
         return 0
     }
+
+    private fun Map<String, String>.withPackagedFabricDriverMod(distributionRoot: Path?): Map<String, String> {
+        val key = ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_FABRIC_DRIVER_MOD
+        if (!get(key).isNullOrBlank()) {
+            return this
+        }
+        val packagedDriverMod =
+            distributionRoot
+                ?.resolve("mods")
+                ?.resolve("craftless-driver-fabric.jar")
+                ?.takeIf(Files::isRegularFile)
+                ?: return this
+        return this + (key to packagedDriverMod.toString())
+    }
+
+    private fun installedDistributionRoot(): Path? =
+        runCatching {
+            val codeSource = CraftlessCli::class.java.protectionDomain.codeSource
+            val codeSourceUri = codeSource.location.toURI()
+            val location = Path.of(codeSourceUri).toAbsolutePath().normalize()
+            val parent = location.parent
+            if (Files.isRegularFile(location) && parent?.fileName?.toString() == "lib") {
+                parent.parent
+            } else {
+                null
+            }
+        }.getOrNull()
 
     private fun List<String>.optionValue(name: String): String? {
         val index = indexOf(name)

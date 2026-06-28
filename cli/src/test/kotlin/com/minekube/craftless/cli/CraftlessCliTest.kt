@@ -278,6 +278,60 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `server start uses packaged fabric driver mod when env is absent`() {
+        val output = StringBuilder()
+        val workspace = Files.createTempDirectory("craftless-cli-packaged-driver-mod")
+        val distribution = Files.createTempDirectory("craftless-cli-distribution")
+        val packagedDriverMod = distribution.resolve("mods/craftless-driver-fabric.jar")
+        Files.createDirectories(packagedDriverMod.parent)
+        Files.writeString(packagedDriverMod, "packaged-driver-mod")
+        var createStatus = 0
+        var createBody = ""
+
+        val exit =
+            CraftlessCli.run(
+                listOf("server", "start", "--once", "--workspace", workspace.toString()),
+                stdout = { output.appendLine(it) },
+                env = emptyMap(),
+                cacheMetadataFetcher = preparedRuntimeMetadataFetcher(),
+                distributionRoot = distribution,
+                afterStart = { metadata ->
+                    kotlinx.coroutines.runBlocking {
+                        HttpClient(CIO).use { http ->
+                            val response =
+                                http.post("${metadata.url}/clients") {
+                                    contentType(ContentType.Application.Json)
+                                    setBody(
+                                        """
+                                        {
+                                          "id": "alice",
+                                          "version": "1.21.6",
+                                          "loader": "FABRIC",
+                                          "profile": { "kind": "OFFLINE", "name": "Alice" }
+                                        }
+                                        """.trimIndent(),
+                                    )
+                                }
+                            createStatus = response.status.value
+                            createBody = response.bodyAsText()
+                        }
+                    }
+                },
+            )
+
+        assertEquals(0, exit)
+        assertEquals(201, createStatus, createBody)
+        val modCache = workspace.resolve("cache/mods/craftless")
+        assertTrue(Files.isDirectory(modCache))
+        Files.list(modCache).use { cachedMods ->
+            assertTrue(
+                cachedMods.anyMatch { cached -> Files.readString(cached) == "packaged-driver-mod" },
+                "packaged driver mod was not copied into the Craftless mod cache",
+            )
+        }
+    }
+
+    @Test
     fun `client create uses configured api request timeout`() {
         SlowCreateApiServer(delayMillis = 250).use { server ->
             val timeoutOutput = StringBuilder()

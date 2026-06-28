@@ -20,8 +20,8 @@ gameplay SDK.
 | Runtime | Kotlin/JVM under `com.minekube.craftless` |
 | Tooling | Pinned with `mise`; Bun only through `mise exec -- bun` |
 | HTTP | Ktor Server and Ktor Client |
-| CLI | Released `craftless` binary with install script |
-| Distribution | Runtime Docker image and reusable GitHub Action |
+| CLI | Released `craftless` binary with install script and packaged driver-mod discovery |
+| Distribution | CLI tar/zip, runtime Docker image, and reusable GitHub Action |
 | API | Stable supervisor OpenAPI plus generated per-client OpenAPI |
 | Gameplay surface | Runtime capability graph projection, not a static catalog |
 | Events | SSE streams plus JSON-RPC-style HTTP control/query calls |
@@ -49,6 +49,12 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/minekube/craftless/main/in
 
 The installer writes the launcher symlink to `$HOME/.local/bin` by default.
 Set `CRAFTLESS_INSTALL_DIR` to use another directory.
+
+The installed CLI distribution carries
+`mods/craftless-driver-fabric.jar`. `craftless server start` auto-discovers
+that packaged driver mod unless `CRAFTLESS_FABRIC_DRIVER_MOD` is set
+explicitly, so daemon-managed Fabric clients do not need extra driver-mod
+configuration.
 
 Check the CLI:
 
@@ -93,8 +99,9 @@ jobs:
       - run: curl -fsSL "${{ steps.craftless.outputs.api-url }}/openapi.json"
 ```
 
-The action installs the released CLI and can optionally start
-`craftless server start` for the job.
+The action installs the released CLI distribution and can optionally start
+`craftless server start` for the job. Fabric driver-mod discovery follows the
+same installed-distribution path as the install script.
 
 ## How Craftless Works
 
@@ -230,8 +237,8 @@ Verified surfaces:
 - cache preparation for Minecraft/Fabric metadata, libraries, assets, natives,
   Java runtime files, launch arguments, classpaths, logging, and instance file
   layout;
-- release workflow, install script, Docker runtime image, packaged CLI, and
-  reusable GitHub Action;
+- release workflow, install script, Docker runtime image, packaged CLI
+  distribution with the Fabric driver mod, and reusable GitHub Action;
 - bridge lifecycle-only behavior after removal of bridge-owned gameplay
   descriptors and helpers.
 

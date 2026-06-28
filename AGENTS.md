@@ -213,6 +213,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 100. Fabric driver self-attach.
 101. packaged driver runtime dependencies.
 102. packaged live attach and cold-cache usability.
+103. installed CLI driver mod distribution.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -780,6 +781,14 @@ cover real launch work and asset downloads should be bounded-parallel. This is
 distribution/runtime plumbing only; it must not add gameplay descriptors,
 static route families, Fabric action bindings, scenario shortcuts, or version
 support claims.
+Phase 103 makes the normal CLI tar/zip distribution carry the same packaged
+Fabric driver mod that the Docker image uses, and lets installed `craftless
+server start` auto-discover it when `CRAFTLESS_FABRIC_DRIVER_MOD` is not set.
+This closes install-script and reusable GitHub Action usability for
+daemon-managed Fabric clients. It is distribution/runtime plumbing only; it
+must not add gameplay descriptors, static route families, Fabric action
+bindings, scenario shortcuts, compile-time daemon dependencies on
+`driver-fabric`, or version support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

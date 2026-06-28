@@ -46,8 +46,8 @@ Craftless currently has:
   entity query/attack, recipe query/craft, screen query, world time query,
   navigation plan/follow/stop, and event streaming;
 - bridge code treated as evidence infrastructure only;
-- release workflow, install script, Docker runtime image, reusable GitHub
-  Action, and packaged CLI distribution;
+- release workflow, install script, packaged CLI distribution with the Fabric
+  driver mod, Docker runtime image, and reusable GitHub Action;
 - repo-local agent skill guidance for using generated OpenAPI, actions,
   resources, SSE, and public-state verification;
 - local server, Fabric client, compatibility, distribution, Docker, installer,
@@ -262,6 +262,10 @@ Goal: make Craftless usable as local and CI infrastructure.
 
 - Package the CLI, daemon, Fabric driver artifact, and test fixtures with
   consistent Craftless metadata.
+- Keep the normal CLI tar/zip distribution and Docker context on the same
+  packaged Fabric driver mod path so install-script and reusable Action users
+  can create daemon-managed Fabric clients without manual driver-mod
+  configuration.
 - Add Docker or CI runtime documentation only after the real-client smoke is
   automated.
 - Expand configuration for profiles, client files, logs, auth mode, and runtime

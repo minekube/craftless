@@ -3066,9 +3066,8 @@ Verification:
   workspace and included in `CacheLaunchPlan.mods`.
 - [x] Focused daemon tests prove the configured driver mod launch artifact
   appears in the prepared runtime manifest and launch plan.
-- [~] Actual live in-client attach and generated API execution remain open
-  until the launched driver connects back to the supervisor and public API/CLI
-  gameplay verification uses that path.
+- [x] Actual live in-client attach and generated API execution are covered by
+  Phase 102; normal installed CLI distribution closure is covered by Phase 103.
 - [x] This phase adds no public gameplay action, generated route family, CLI
   gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
   lane, public version-specific API, or new Minecraft support claim.
@@ -3124,9 +3123,8 @@ Verification:
   endpoint.
 - [x] Fabric in-client endpoint startup is resolved by Phase 100 unit-level
   loopback endpoint evidence.
-- [~] Actual live packaged in-client attach and generated API execution remain
-  open until public API/CLI gameplay verification uses the launched-driver
-  self-attach path.
+- [x] Actual live packaged in-client attach and generated API execution are
+  covered by Phase 102.
 - [x] This phase adds no public gameplay action, generated route family, CLI
   gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
   lane, public version-specific API, or new Minecraft support claim.
@@ -3152,9 +3150,8 @@ Verification:
   process.
 - [x] Fabric in-client endpoint startup and self-attach are resolved by Phase
   100 unit-level transport evidence.
-- [~] Actual live packaged in-client attach and generated API execution remain
-  open until public API/CLI gameplay verification uses the launched-driver
-  self-attach path.
+- [x] Actual live packaged in-client attach and generated API execution are
+  covered by Phase 102.
 - [x] This phase adds no public gameplay action, generated route family, CLI
   gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
   lane, public version-specific API, or new Minecraft support claim.
@@ -3260,6 +3257,37 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-packaged-live-attach-cold-cache-usability.md`.
 
+## Phase 103: Installed CLI Driver Mod Distribution
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-103-installed-cli-driver-mod-distribution-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-103-installed-cli-driver-mod-distribution-plan.md`.
+- [x] Normal CLI tar/zip distributions include
+  `mods/craftless-driver-fabric.jar` from the remapped Fabric driver mod.
+- [x] `craftless server start` uses explicit
+  `CRAFTLESS_FABRIC_DRIVER_MOD` when set and otherwise auto-discovers the
+  distribution-local `mods/craftless-driver-fabric.jar`.
+- [x] `package-cli` verifies both tar and zip distributions contain the
+  packaged driver mod before refreshing the Docker context.
+- [x] Docker staging still verifies Fabric metadata and nested runtime jars for
+  the same packaged driver mod path.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric execution binding, scenario shortcut, compile-time
+  daemon dependency on `driver-fabric`, public version-specific API, or new
+  Minecraft support claim.
+
+Verification:
+
+- Red/green guard:
+  `mise exec -- gradle :cli:test --tests '*CraftlessCliTest.server start uses packaged fabric driver mod when env is absent*'`
+- Red/green guard:
+  `mise exec -- gradle :protocol:test --tests '*NamespacePolicyTest.package cli stages craftless fabric driver mod for docker runtime*'`
+- Package smoke:
+  `mise run package-cli`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-installed-cli-driver-mod-distribution.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3279,7 +3307,8 @@ Verification:
   driver mod launch artifact, Phase 97 packaged driver mod distribution, Phase
   98 driver attach proxy, Phase 99 launch attach environment, and Phase 100
   Fabric driver self-attach, Phase 101 packaged driver runtime dependencies,
-  and Phase 102 packaged live attach and cold-cache usability.
+  Phase 102 packaged live attach and cold-cache usability, and Phase 103
+  installed CLI driver mod distribution.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

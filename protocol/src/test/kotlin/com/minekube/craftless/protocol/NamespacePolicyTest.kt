@@ -180,8 +180,29 @@ class NamespacePolicyTest {
     fun `package cli stages craftless fabric driver mod for docker runtime`() {
         val root = repositoryRoot()
         val mise = Files.readString(root.resolve(".mise.toml"))
+        val cliBuild = Files.readString(root.resolve("cli/build.gradle.kts"))
         val dockerfile = Files.readString(root.resolve("Dockerfile"))
 
+        assertTrue(
+            cliBuild.contains("project(\":driver-fabric\")"),
+            "CLI distribution must depend on the Fabric driver module as a packaged runtime artifact",
+        )
+        assertTrue(
+            cliBuild.contains("tasks.named(\"remapJar\")"),
+            "CLI distribution must package the remapped Fabric driver jar, not the dev jar",
+        )
+        assertTrue(
+            cliBuild.contains("into(\"mods\")") && cliBuild.contains("\"craftless-driver-fabric.jar\""),
+            "CLI distribution must include the Fabric driver mod under the deterministic mods path",
+        )
+        assertTrue(
+            mise.contains("tar -tf cli/build/distributions/craftless-*.tar"),
+            "package-cli must verify the tar distribution contains the Fabric driver mod",
+        )
+        assertTrue(
+            mise.contains("jar tf cli/build/distributions/craftless-*.zip"),
+            "package-cli must verify the zip distribution contains the Fabric driver mod",
+        )
         assertTrue(
             mise.contains(":driver-fabric:remapJar"),
             "package-cli must build the remapped Fabric driver mod jar",

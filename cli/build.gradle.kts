@@ -21,3 +21,33 @@ application {
     applicationName = "craftless"
     mainClass.set("com.minekube.craftless.cli.MainKt")
 }
+
+val fabricDriverProject = project(":driver-fabric")
+
+gradle.projectsEvaluated {
+    val fabricDriverRemapJar = fabricDriverProject.tasks.named("remapJar")
+
+    distributions {
+        main {
+            contents {
+                into("mods") {
+                    from(fabricDriverRemapJar) {
+                        rename { "craftless-driver-fabric.jar" }
+                    }
+                }
+            }
+        }
+    }
+
+    tasks.named("distZip") {
+        dependsOn(fabricDriverRemapJar)
+    }
+
+    tasks.named("distTar") {
+        dependsOn(fabricDriverRemapJar)
+    }
+
+    tasks.named("installDist") {
+        dependsOn(fabricDriverRemapJar)
+    }
+}
