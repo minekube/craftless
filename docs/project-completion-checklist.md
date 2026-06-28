@@ -4922,6 +4922,47 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-official-fabric-event-source-metadata.md`.
 
+## Phase 162: Official Fabric Connected SSE Evidence
+
+- [x] Spec written:
+  `docs/superpowers/specs/2026-06-28-162-official-fabric-connected-sse-evidence-design.md`.
+- [x] Plan written:
+  `docs/superpowers/plans/2026-06-28-162-official-fabric-connected-sse-evidence-plan.md`.
+- [x] Phase history is maintained in `docs/superpowers/phase-index.md`, not
+  appended to root `AGENTS.md`.
+- [x] The official attach probe now fetches the existing public
+  `GET /clients/{id}/events:stream` route and writes
+  `client-events-stream.sse`.
+- [x] `probe-result.json` records parsed `streamedEventTypes` from the SSE
+  artifact.
+- [x] The enabled connected official attach probe generated SSE evidence with
+  `event: client.created`, `event: client.attached`, and
+  `event: client.connected`.
+- [x] The same connected probe preserved `actions=0`.
+- [x] This phase adds no packaged 26.x driver manifest entry, no public
+  gameplay API, no static gameplay catalog, no version-specific public route
+  family, no action adapter, no survival shortcut, and no final latest/current
+  support claim.
+
+Verification:
+
+- Red artifact check:
+  `test -f driver-fabric-official/build/craftless-official-attach-probe/client-events-stream.sse`
+  failed before implementation with exit code `1`.
+- Focused green check:
+  `mise exec -- gradle :driver-fabric-official:test --tests '*OfficialFabricSharedRuntimeMetadataTest*'`.
+- Real enabled connected official attach probe:
+  `CRAFTLESS_OFFICIAL_FABRIC_ATTACH_PROBE=1`
+  `CRAFTLESS_OFFICIAL_ATTACH_PROBE_CONNECT=1`
+  `CRAFTLESS_OFFICIAL_ATTACH_PROBE_TIMEOUT_MS=180000`
+  `mise exec -- gradle :driver-fabric-official:officialFabricAttachProbe`.
+  Observed `status=CONNECTED`, `client=official-probe`,
+  `connectTarget=127.0.0.1:53132`, streamed event types
+  `client.created`, `client.attached`, and `client.connected`, and
+  `actions=0`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-official-fabric-connected-sse-evidence.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -4981,7 +5022,8 @@ Verification:
   Phase 157 official Fabric live client-state probe, Phase 158 official
   Fabric connected client-state probe, Phase 159 official Fabric connected
   server-feature metadata, Phase 160 official Fabric registry metadata probe,
-  and Phase 161 official Fabric event-source metadata.
+  Phase 161 official Fabric event-source metadata, and Phase 162 official
+  Fabric connected SSE evidence.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
@@ -4991,8 +5033,8 @@ Verification:
   Phase 142, Phase 143, Phase 144, Phase 145, Phase 146, Phase 147, Phase
   148, Phase 149, Phase 150, Phase 151, Phase 152, Phase 153, Phase 154, and
   Phase 155, Phase 156, Phase 157, Phase 158, Phase 159, Phase 160, and Phase
-  161 do not satisfy the full runnable latest/older support requirement by
-  themselves.
+  161, and Phase 162 do not satisfy the full runnable latest/older support
+  requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

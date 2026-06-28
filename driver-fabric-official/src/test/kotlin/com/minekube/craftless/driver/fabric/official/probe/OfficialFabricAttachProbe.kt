@@ -99,8 +99,10 @@ private class OfficialFabricAttachProbe(
                                 )
                         val eventsText = http.get("$daemonUrl/events").bodyAsText()
                         val openApiText = http.get("$daemonUrl/clients/${config.clientId}/openapi.json").bodyAsText()
+                        val clientEventsStreamText = http.get("$daemonUrl/clients/${config.clientId}/events:stream").bodyAsText()
                         config.artifactsDir.resolve("daemon-events.json").writeText(eventsText + "\n")
                         config.artifactsDir.resolve("client-openapi.json").writeText(openApiText + "\n")
+                        config.artifactsDir.resolve("client-events-stream.sse").writeText(clientEventsStreamText + "\n")
                         if (connected) {
                             config.artifactsDir.resolve("client-openapi-connected.json").writeText(openApiText + "\n")
                         }
@@ -115,6 +117,7 @@ private class OfficialFabricAttachProbe(
                             daemonUrl = daemonUrl,
                             connectTarget = if (config.connectEnabled) "127.0.0.1:${config.connectPort}" else null,
                             connectedResources = connectedResourceIds(openApiText),
+                            streamedEventTypes = sseEventTypes(clientEventsStreamText),
                             message =
                                 if (connected) {
                                     "official Fabric probe observed connected client state for ${config.clientId}"
@@ -250,6 +253,13 @@ private class OfficialFabricAttachProbe(
                 id?.takeIf { availability == "available" }
             }
 
+    private fun sseEventTypes(sse: String): List<String> =
+        sse
+            .lineSequence()
+            .mapNotNull { line ->
+                line.removePrefix("event: ").takeIf { eventType -> eventType != line }
+            }.toList()
+
     private companion object {
         val CONNECTED_CLIENT_STATE_RESOURCES = setOf("client", "player", "inventory", "world")
     }
@@ -297,6 +307,7 @@ private data class OfficialFabricAttachProbeResult(
     val message: String,
     val connectTarget: String? = null,
     val connectedResources: List<String> = emptyList(),
+    val streamedEventTypes: List<String> = emptyList(),
 )
 
 @Serializable
