@@ -37,6 +37,10 @@ support.
 Not waited on during active development. Local forced CI is the working gate;
 remote CI may continue in the background after push.
 
+## Push Evidence
+
+- `772ad2f daemon: resolve fabric api cache artifacts` pushed to `origin/main`.
+
 ## Notes
 
 - Fabric API resolution uses Fabric Maven metadata at

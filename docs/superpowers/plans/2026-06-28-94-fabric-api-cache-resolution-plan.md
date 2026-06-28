@@ -135,7 +135,7 @@
 **Files:**
 - All modified files from Tasks 1-4
 
-- [ ] **Step 1: Commit and push**
+- [x] **Step 1: Commit and push**
 
   ```sh
   git add AGENTS.md docs/project-completion-checklist.md docs/superpowers/specs/2026-06-28-94-fabric-api-cache-resolution-design.md docs/superpowers/plans/2026-06-28-94-fabric-api-cache-resolution-plan.md docs/superpowers/evidence/2026-06-28-fabric-api-cache-resolution.md protocol/src/main/kotlin/com/minekube/craftless/protocol/CacheModels.kt daemon/src/main/kotlin/com/minekube/craftless/daemon/CachePreparationService.kt daemon/src/test/kotlin/com/minekube/craftless/daemon/CachePreparationServiceTest.kt
