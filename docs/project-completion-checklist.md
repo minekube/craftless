@@ -2555,9 +2555,8 @@ Verification:
   `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric standalone action discovery layer is removed*'`
 - Full Fabric regression:
   `mise exec -- gradle :driver-fabric:test`
-- Final local verification is recorded in
+- Final local and remote verification are recorded in
   `docs/superpowers/evidence/2026-06-28-action-discovery-deletion.md`.
-  Push and remote CI evidence must be added after this phase lands on `main`.
 
 ## Final Completion Gate
 

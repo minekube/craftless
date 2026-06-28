@@ -36,7 +36,10 @@ the runtime capability graph still uses it to compute live availability.
 - Result: exited `0`; Gradle lint/test succeeded and Bun Playwright tests
   reported `15 pass, 0 fail`.
 
-## Pending Push Gates
+## Push Gates
 
-- Push to `main`
-- GitHub Actions CI for pushed `main`
+- Push to `main`: commit `5c6f2d3a0fb166c32cccc6e261a19ea243c6c90d`
+  (`driver-fabric: delete stale action discovery`) pushed to `origin/main`.
+- GitHub Actions CI for pushed `main`: run `28310453815`
+  (`https://github.com/minekube/craftless/actions/runs/28310453815`) passed;
+  job `verify` completed successfully in `4m44s`.

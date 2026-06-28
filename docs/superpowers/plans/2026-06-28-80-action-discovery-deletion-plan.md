@@ -205,7 +205,7 @@
   Evidence: `git diff --check`, `mise run architecture-check`, and
   `mise run ci` exited `0` locally.
 
-- [ ] **Step 2: Commit and push**
+- [x] **Step 2: Commit and push**
 
   Run:
 
@@ -215,7 +215,11 @@
   git push origin main
   ```
 
-- [ ] **Step 3: Verify remote CI**
+  Evidence: commit `5c6f2d3a0fb166c32cccc6e261a19ea243c6c90d`
+  (`driver-fabric: delete stale action discovery`) was pushed to
+  `origin/main`.
+
+- [x] **Step 3: Verify remote CI**
 
   Run:
 
@@ -225,6 +229,9 @@
   ```
 
   Expected: pushed `main` CI passes.
+
+  Evidence: GitHub Actions run `28310453815` passed for commit
+  `5c6f2d3a0fb166c32cccc6e261a19ea243c6c90d`.
 
 ## Self-Review
 
