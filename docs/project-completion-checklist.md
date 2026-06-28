@@ -160,6 +160,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-81-hmc-bridge-gameplay-removal-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-81-hmc-bridge-gameplay-removal-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-82-readme-public-entrypoint-overhaul-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-82-readme-public-entrypoint-overhaul-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -2594,13 +2598,48 @@ Verification:
 - Final local and remote verification are recorded in
   `docs/superpowers/evidence/2026-06-28-hmc-bridge-gameplay-removal.md`.
 
+## Phase 82: README Public Entrypoint Overhaul
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-82-readme-public-entrypoint-overhaul-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-82-readme-public-entrypoint-overhaul-plan.md`.
+- [x] README now leads with product shape, status at a glance, install,
+  Docker, GitHub Actions, generated API usage, cache/runtime preparation,
+  current verification, comparison, roadmap, development, and docs.
+- [x] README states that gameplay breadth comes from the runtime capability
+  graph and generated per-client OpenAPI.
+- [x] README states that HMC bridge code is lifecycle/launch evidence only and
+  not a gameplay adapter.
+- [x] README preserves current final gameplay evidence without
+  server-provisioned inventory.
+- [x] Distribution tests guard quickstart strings and the generated-API/bridge
+  lifecycle-only wording.
+- [x] This phase changes README/docs/tests only and adds no public gameplay
+  action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Red README guard:
+  `mise exec -- bun test playwright`
+- Green README guard:
+  `mise exec -- bun test playwright`
+- Final local gates:
+  `git diff --check`
+  `mise run ci`
+- Final local and remote verification are recorded in
+  `docs/superpowers/evidence/2026-06-28-readme-public-entrypoint-overhaul.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
   76 completion audit, Phase 77 graph-owned public Fabric action descriptors,
   Phase 78 graph-native bootstrap operation schemas, Phase 79 graph-owned
   legacy invoke dispatch, Phase 80 deletion of standalone action discovery,
-  and Phase 81 HMC bridge gameplay removal.
+  Phase 81 HMC bridge gameplay removal, and Phase 82 README public entrypoint
+  overhaul.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest and representative older runtime lanes have the requested support or

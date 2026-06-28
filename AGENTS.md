@@ -192,6 +192,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 79. graph-owned Fabric invoke dispatch.
 80. action discovery deletion.
 81. HMC bridge gameplay removal.
+82. README public entrypoint overhaul.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -628,6 +629,13 @@ capability graph and generated per-client OpenAPI path. This phase must not add
 public gameplay actions, generated route families, CLI gameplay catalogs,
 Fabric descriptor/binding pairs, scenario shortcuts, new compiled lanes, public
 version-specific APIs, or new Minecraft support claims.
+Phase 82 keeps README as a clean public entrypoint after recent evidence and
+bridge cleanup. README must lead with install/run/use status, generated
+per-client OpenAPI, runtime capability graph ownership, lifecycle-only bridge
+status, explicit unsupported version lanes, and remaining completion gates. It
+must not present legacy TypeScript SDK, Homebrew, HMC gameplay, static gameplay
+catalogs, scenario tasks, or server-provisioned final gameplay as active
+product surfaces.
 
 ## Acceptance Scenarios Are Not Product APIs
 

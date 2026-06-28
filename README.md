@@ -3,39 +3,32 @@
 ![Craftless hero: generated local APIs controlling real Minecraft Java clients](docs/assets/craftless-hero.png)
 
 Craftless is automation infrastructure for real Minecraft Java clients,
-headless or visible, with generated local APIs for agents, tools, tests, and
-CI.
+headless or visible. It runs or attaches to real clients, loads a small
+in-client driver, discovers the live runtime capability graph, and exposes
+generated local APIs for agents, tools, tests, and CI.
 
-It runs a real Minecraft Java client, loads a small in-client driver, discovers
-what that exact runtime can do, and exposes local OpenAPI contracts for
-automation. The available gameplay surface is generated from the live client
-runtime instead of maintained as a hand-written SDK or a fixed command catalog.
+The product shape is intentionally thin: stable lifecycle control outside the
+client, generated per-client OpenAPI inside the live runtime, and adaptive
+consumers that discover before they invoke. Craftless should feel like
+Browserless-style infrastructure for Minecraft Java, not a hand-written
+gameplay SDK.
 
-If Browserless gives automation systems a real browser behind an API,
-Craftless is the same kind of infrastructure for Minecraft Java clients.
+## Status At A Glance
 
-## Why Craftless
-
-Minecraft automation usually starts in one of two places:
-
-- protocol bots that speak Minecraft without running the real client;
-- in-game mods or pathfinders that are powerful, but not packaged as a clean
-  local API for external agents and CI.
-
-Craftless takes a different path. It keeps the real client as the source of
-truth and adds a thin control plane around it:
-
-1. launch or attach to a Minecraft Java client;
-2. load the Craftless driver;
-3. discover the runtime capability graph from the client, server, loader, mods,
-   registries, screens, inventory, world, entities, permissions, and events;
-4. generate per-client OpenAPI/action/resource contracts;
-5. let agents and tools discover, invoke, stream, and verify behavior through
-   those contracts.
-
-The durable API is Craftless-owned. Fabric, Yarn, Minecraft internals, launcher
-details, and mod implementation names are inputs to discovery, not public
-contracts.
+| Area | Current state |
+| --- | --- |
+| Runtime | Kotlin/JVM under `com.minekube.craftless` |
+| Tooling | Pinned with `mise`; Bun only through `mise exec -- bun` |
+| HTTP | Ktor Server and Ktor Client |
+| CLI | Released `craftless` binary with install script |
+| Distribution | Runtime Docker image and reusable GitHub Action |
+| API | Stable supervisor OpenAPI plus generated per-client OpenAPI |
+| Gameplay surface | Runtime capability graph projection, not a static catalog |
+| Events | SSE streams plus JSON-RPC-style HTTP control/query calls |
+| Current Fabric lane | Verified for the compiled lane |
+| Latest and older lanes | Latest `26.2` and older `1.20.6` are explicit unsupported lanes with machine-readable reasons |
+| Final gameplay evidence | Public API/CLI path completed survival evidence without server-provisioned inventory |
+| Completion | Still active; see `docs/project-completion-checklist.md` |
 
 ## Quickstart
 
@@ -63,9 +56,9 @@ Check the CLI:
 craftless --help
 ```
 
-The CLI has a small stable core for lifecycle, cache, runtime, and server
-management. Gameplay commands are loaded from each live client's generated
-OpenAPI document.
+The CLI has a small stable core for daemon lifecycle, client lifecycle, cache,
+runtime, discovery, output, and generic invocation. Gameplay commands and help
+come from each live client's generated OpenAPI document.
 
 ## Docker
 
@@ -103,30 +96,36 @@ jobs:
 The action installs the released CLI and can optionally start
 `craftless server start` for the job.
 
-## API Model
+## How Craftless Works
 
-Craftless has two API layers.
+Craftless keeps the API layers separate:
 
-`GET /openapi.json` is the stable supervisor API. It owns lifecycle,
-workspaces, clients, cache preparation, Java runtime resolution, files, events,
-and discovery of per-client API documents.
+1. Supervisor API: stable lifecycle, workspaces, clients, cache preparation,
+   Java runtime resolution, files, events, and per-client spec discovery.
+2. Live generated API: one `GET /clients/{id}/openapi.json` document per
+   running client, reflecting that client's version, loader, driver runtime,
+   installed mods, registries, server features, permissions, screens,
+   inventory, entities, resources, actions, schemas, availability, and
+   fingerprints.
+3. Runtime capability graph: internal graph of discovered resources,
+   operations, handles, schemas, availability, events, fingerprints, and source
+   evidence.
+4. Fabric discovery and projection: client-thread probes inspect the real
+   Minecraft runtime and project Craftless-owned graph nodes.
+5. Generic invocation: `POST /clients/{id}:run` dispatches graph-projected
+   operations through private client-thread adapters.
+6. Live streams: Server-Sent Events carry lifecycle, runtime, capability, and
+   gameplay observations; JSON-RPC-style HTTP calls handle invoke, subscribe,
+   unsubscribe, and query control.
+7. Adaptive consumers: the CLI, agent skills, exported tools, and future
+   generated clients fetch live specs instead of shipping gameplay catalogs.
 
-`GET /clients/{id}/openapi.json` is generated for one live client. It reflects
-that client's Minecraft version, loader, driver runtime, mappings, installed
-mods, registries, server features, permissions, screens, inventory, entities,
-resources, handles, actions, schemas, availability, and fingerprints.
+The HMC bridge code is lifecycle/launch evidence only and is not a gameplay adapter.
+It is not the product path for chat, movement, inventory, world,
+entity, screen, or building behavior. Gameplay breadth belongs in the Fabric
+runtime capability graph and generated per-client OpenAPI.
 
-Convenience projections come from that same generated live contract:
-
-- `GET /clients/{id}/actions`
-- `GET /clients/{id}/resources`
-- `GET /clients/{id}/events`
-- `GET /clients/{id}/events:stream`
-- `POST /clients/{id}:run`
-
-Agents should discover first, then invoke. Do not assume a static action list.
-
-## Example: Discover Then Invoke
+## Use The Generated API
 
 Start the supervisor:
 
@@ -161,7 +160,7 @@ curl -sS "$CRAFTLESS/clients/alice:connect" \
   -d '{"host":"localhost","port":25565}'
 ```
 
-Discover the generated live API:
+Discover the live contract before invoking actions:
 
 ```sh
 curl -sS "$CRAFTLESS/clients/alice/openapi.json"
@@ -169,7 +168,7 @@ curl -sS "$CRAFTLESS/clients/alice/actions"
 curl -sS "$CRAFTLESS/clients/alice/resources"
 ```
 
-Invoke an action by id through the generic endpoint:
+Invoke an action only after the generated live API advertises it:
 
 ```sh
 curl -sS "$CRAFTLESS/clients/alice:run" \
@@ -209,82 +208,54 @@ craftless cache prepare \
 
 Cache preparation resolves Minecraft metadata, the selected client jar,
 libraries, asset objects, native libraries, Fabric loader metadata, Java
-runtime requirements, launch arguments, classpath handles, and file layout
-inside a Craftless-owned workspace.
+runtime requirements, launch arguments, classpath handles, logging metadata,
+asset indexes, and file layout inside a Craftless-owned workspace.
 
 Java selection is a product runtime concern, separate from repository build
 tooling. Craftless can evaluate configured, managed, mise, and system runtime
 providers against Minecraft version requirements.
 
-## Architecture
+## Current Verification
 
-![Craftless architecture: generated APIs and control plane driving attached real Minecraft Java clients](docs/assets/craftless-architecture-generated.png)
+Verified surfaces:
 
-The internal shape is deliberately layered:
+- stable supervisor OpenAPI at `GET /openapi.json`;
+- generated per-client OpenAPI at `GET /clients/{id}/openapi.json`;
+- graph-projected actions, resources, handles, schemas, availability,
+  fingerprints, generated aliases, and event metadata;
+- generic action invocation through `POST /clients/{id}:run`;
+- SSE event streams plus JSON-RPC-style HTTP control/query calls;
+- adaptive CLI discovery, generated help, generated aliases, action
+  invocation, event watching, tools export, and OpenAPI cache revalidation;
+- cache preparation for Minecraft/Fabric metadata, libraries, assets, natives,
+  Java runtime files, launch arguments, classpaths, logging, and instance file
+  layout;
+- release workflow, install script, Docker runtime image, packaged CLI, and
+  reusable GitHub Action;
+- bridge lifecycle-only behavior after removal of bridge-owned gameplay
+  descriptors and helpers.
 
-- supervisor API: stable lifecycle, files, cache, runtimes, events, and
-  per-client spec discovery;
-- runtime capability graph: internal graph of resources, operations, handles,
-  schemas, availability, events, fingerprints, and source evidence;
-- Fabric discovery/projection: runtime probes inspect the real client and
-  project Craftless-owned graph nodes;
-- live per-client OpenAPI: generated machine contract for one running client;
-- generic invocation: `POST /clients/{id}:run` dispatches graph-projected
-  operations through internal client-thread adapters;
-- SSE and JSON-RPC-style control: event streams and structured control calls
-  for agents and tools;
-- adaptive consumers: CLI, agent skills, and future generated clients fetch
-  the live specs instead of shipping gameplay catalogs.
-
-The driver contract stays small: lifecycle, runtime metadata, events, action
-discovery, and generic invocation. Public gameplay breadth belongs in generated
-per-client OpenAPI, not in static driver methods.
-
-## Current Status
-
-Verified now:
-
-- Kotlin/JVM project under `com.minekube.craftless`, with all repository
-  tooling pinned through `mise`.
-- Ktor supervisor API, Ktor Client based CLI/runtime helpers, and no
-  product-side OkHttp, Java `HttpClient`, `com.sun.net.httpserver`, npm, yarn,
-  pnpm, or Node workflows.
-- Released `craftless` CLI, install script, Docker runtime image, and reusable
-  GitHub Action.
-- Stable supervisor OpenAPI at `GET /openapi.json`.
-- Generated per-client OpenAPI at `GET /clients/{id}/openapi.json`.
-- Runtime-graph-projected actions, resources, handles, schemas,
-  availability, fingerprints, and event metadata.
-- Generic action invocation through `POST /clients/{id}:run`.
-- SSE event streams plus JSON-RPC-style HTTP control/query calls.
-- Adaptive CLI discovery, generated help, generated aliases, action
-  invocation, event watching, tool export, and OpenAPI cache revalidation.
-- Cache preparation for Minecraft/Fabric metadata, libraries, assets, natives,
-  Java runtime files, launch arguments, classpaths, and instance file layout.
-- Version-aware runtime metadata and compatibility probes. The current
-  compiled Fabric client lane is verified; latest `26.2` and representative
-  older `1.20.6` lanes are resolved from live Mojang metadata and currently
-  reported as explicit unsupported Fabric client lanes with machine-readable
-  reasons, not as supported client breadth.
-- Current final gameplay evidence uses generated public APIs only: the
-  external public-agent path fetched generated OpenAPI/actions/resources,
-  consumed SSE evidence, collected materials, crafted and equipped a
-  `Wooden Sword`, found Cows through `entity.query`, killed a Cow through
-  `entity.attack`, and observed `Raw Beef`, `Leather`, and the Cow with
-  `alive:false`. The run completed without server-provisioned inventory or
-  static survival macro evidence.
+Current final gameplay evidence uses generated public APIs only. The external
+public-agent path fetched generated OpenAPI/actions/resources, consumed SSE
+evidence, collected materials, crafted and equipped a `Wooden Sword`, found
+Cows through `entity.query`, killed a Cow through `entity.attack`, and observed
+`Raw Beef`, `Leather`, and the Cow with `alive:false`. The run completed
+without server-provisioned inventory or static survival macro evidence.
 
 Still open before the broader project can be called complete:
 
-- Broaden Fabric discovery/projection across more Minecraft versions, mods,
+- broaden Fabric discovery/projection across more Minecraft versions, mods,
   registries, screens, world/entity/inventory resources, permissions, and
-  installed runtime affordances.
-- Turn more gameplay breadth into generic discovery/projection instead of
-  relying on transitional bootstrap bindings.
-- Strengthen navigation/pathfinding and building evidence through the same
-  generated public API path.
-- Finish the completion audit across CI, release, Docker, installer,
-  compatibility, docs, and public API/CLI gameplay gates.
+  installed runtime affordances;
+- turn future gameplay breadth into generic discovery/projection instead of
+  transitional bootstrap bindings;
+- strengthen navigation/pathfinding and building evidence through generated
+  public API/CLI/SSE only;
+- land real additional Fabric client lanes only when cache preparation,
+  Java/runtime selection, loader/API resolution, launch metadata, compatibility
+  matrix, and smoke evidence prove them;
+- keep the completion audit current across CI, release, Docker, installer,
+  compatibility, docs, and public gameplay gates.
 
 Craftless is not considered complete until the active checklist proves every
 remaining generic-discovery, multi-version, transport, CLI, docs, and gameplay
@@ -292,43 +263,42 @@ gate with current Codex-verifiable evidence.
 
 ## Comparison
 
-| Area | Craftless | Mineflayer | Baritone |
-| --- | --- | --- | --- |
-| Runs the real Minecraft Java client | Yes | No, protocol bot | Yes |
-| Local OpenAPI control plane | Yes | No | No |
-| Live per-client generated API | Yes | No | No |
-| Runtime discovery from version/mod/server state | Core design | Protocol data oriented | In-client pathing state |
-| External agent and CI usage | Primary use case | Script/library use | Mod/API use |
-| Pathfinding maturity | Growing | Mature bot movement ecosystem | Mature pathfinding |
-| Public gameplay surface | Generated Craftless actions/resources | Library API | Java/mod commands/API |
-| Best fit | Real-client automation infrastructure | Fast protocol bot scripts | In-game navigation/pathing |
+| Area | Craftless | Mineflayer | Baritone | Prism Launcher |
+| --- | --- | --- | --- | --- |
+| Runs the real Minecraft Java client | Yes | No, protocol bot | Yes | Yes |
+| Local OpenAPI control plane | Yes | No | No | No |
+| Live per-client generated API | Yes | No | No | No |
+| Runtime discovery from version/mod/server state | Core design | Protocol data oriented | In-client pathing state | Launcher/profile state |
+| External agent and CI usage | Primary use case | Script/library use | Mod/API use | Launch management |
+| Pathfinding maturity | Growing | Mature bot movement ecosystem | Mature pathfinding | Not a pathfinder |
+| Public gameplay surface | Generated Craftless actions/resources | Library API | Java/mod commands/API | None |
+| Best fit | Real-client automation infrastructure | Fast protocol bot scripts | In-game navigation/pathing | Client installation and launch UX |
 
-Craftless is not trying to replace Mineflayer or Baritone. The goal is a
-Browserless-style runtime for real Minecraft clients where agents can discover
-the live API and operate through stable local contracts.
+Craftless is not trying to replace Mineflayer, Baritone, or Prism Launcher.
+The goal is a Browserless-style runtime for real Minecraft clients where
+agents can discover the live API and operate through stable local contracts.
 
 ## Roadmap
 
-The active roadmap is tracked in:
+The source of truth is:
 
-- [docs/roadmap.md](docs/roadmap.md)
 - [docs/project-completion-checklist.md](docs/project-completion-checklist.md)
+- [docs/roadmap.md](docs/roadmap.md)
 - [docs/final-gameplay-runbook.md](docs/final-gameplay-runbook.md)
 
 Next work focuses on:
 
-- making the runtime capability graph more complete so new public gameplay
+- completing the generic runtime capability graph so new public gameplay
   breadth comes from discovery/projection, not descriptor/binding catalog
   growth;
-- landing real additional Fabric client lanes only when cache preparation,
-  Java/runtime selection, loader/API resolution, launch metadata, and smoke
-  evidence prove them;
-- strengthening navigation/pathfinding, block placement/building, and
-  longer-running gameplay through public OpenAPI/CLI/SSE only;
+- landing real multi-version support with verified cache, Java, Fabric
+  Loader/API, launch metadata, compatibility probes, and smoke evidence;
+- improving pathfinding, block placement/building, longer gameplay, and
+  failure recovery through public OpenAPI/CLI/SSE only;
 - keeping install, Docker, GitHub Actions, release checks, and agent skill docs
   easy for external users;
-- running the final completion audit and keeping the active checklist as the
-  source of truth.
+- running the final completion audit only after current generic-discovery,
+  multi-version, transport, CLI, docs, and gameplay gates are reverified.
 
 ## Development
 
@@ -364,7 +334,7 @@ CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientS
 CRAFTLESS_FINAL_GAMEPLAY=1 mise exec -- gradle :driver-fabric:fabricFinalGameplay
 ```
 
-The final gameplay task is the completion gate, not a normal CI check.
+The final gameplay task is a completion gate, not a normal CI check.
 
 ## Docs
 
