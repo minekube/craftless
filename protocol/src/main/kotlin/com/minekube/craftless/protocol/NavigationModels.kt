@@ -84,7 +84,7 @@ data class NavigationTaskRequest(
     init {
         require(task.isCraftlessActionId()) { "invalid navigation task id $task" }
         require(task.startsWith("task.")) { "navigation task id must be Craftless-owned" }
-        require(!task.startsWith("task.survival.")) { "navigation task id must not use legacy survival scenario namespace" }
+        require(!task.startsWith("task.survival.")) { "navigation task id must not use removed survival scenario namespace" }
         require(!task.hasRawNavigationBackendName()) { "navigation task id must not expose backend names" }
         args.keys.forEach { key ->
             require(key.isCraftlessActionArgumentName()) { "invalid navigation task argument $key" }
@@ -120,7 +120,7 @@ data class NavigationProgressEvent(
             "navigation progress event type must be Craftless-owned"
         }
         require(!type.startsWith("task.survival.")) {
-            "navigation progress event type must not use legacy survival scenario namespace"
+            "navigation progress event type must not use removed survival scenario namespace"
         }
         require(!type.hasRawNavigationBackendName()) { "navigation progress event type must not expose backend names" }
         require(message.isNotBlank()) { "navigation progress event message is required" }

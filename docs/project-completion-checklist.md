@@ -3763,6 +3763,29 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-metadata-fallback-naming-removal.md`.
 
+## Phase 122: Removed Survival Namespace Wording
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-122-removed-survival-namespace-wording-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-122-removed-survival-namespace-wording-plan.md`.
+- [x] Active protocol validation messages describe `task.survival.*` as a
+  removed survival scenario namespace, not as an old API generation.
+- [x] Active protocol tests guard against reintroducing stale old-path survival
+  wording in protocol source/tests.
+- [x] `task.survival.*` remains rejected; this phase adds no public gameplay
+  action, generated route family, CLI gameplay catalog, Fabric gameplay
+  binding, scenario shortcut, public version-specific API, runnable
+  latest/older lane, replacement gameplay event enum, runtime behavior change,
+  or new Minecraft support claim.
+
+Verification:
+
+- Red/green protocol wording guard and navigation model regression:
+  `mise exec -- gradle :protocol:test --tests '*NavigationModelsTest.*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-removed-survival-namespace-wording.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3795,10 +3818,11 @@ Verification:
   Phase 117 live event action fallback removal, and Phase 118 action result
   event type removal, Phase 119 driver event type gameplay removal, and Phase
   120 invoke fallback naming removal, and Phase 121 metadata fallback naming
-  removal. Phase 105, Phase 107, Phase 108, Phase 109, Phase 110, Phase 111,
-  Phase 112, Phase 113, Phase 114, Phase 115, Phase 116, Phase 117, Phase 118,
-  Phase 119, Phase 120, and Phase 121 do not satisfy the runnable latest/older
-  support requirement by themselves.
+  removal, and Phase 122 removed survival namespace wording. Phase 105, Phase
+  107, Phase 108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase
+  114, Phase 115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase
+  121, and Phase 122 do not satisfy the runnable latest/older support
+  requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

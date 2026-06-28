@@ -4,6 +4,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -101,9 +103,30 @@ class NavigationModelsTest {
             NavigationProgressEvent(
                 taskId = "task:alice:0001",
                 type = "task.survival.progress",
-                message = "legacy survival task event",
+                message = "removed survival task event",
             )
         }
+    }
+
+    @Test
+    fun `navigation protocol calls survival namespace removed not legacy`() {
+        val root = repositoryRoot()
+        val files =
+            listOf(
+                "protocol/src/main/kotlin/com/minekube/craftless/protocol/NavigationModels.kt",
+                "protocol/src/test/kotlin/com/minekube/craftless/protocol/NavigationModelsTest.kt",
+            )
+        val forbidden = "legacy " + "survival"
+        val violations =
+            files.filter { relative ->
+                Files.readString(root.resolve(relative)).contains(forbidden, ignoreCase = true)
+            }
+
+        assertTrue(
+            violations.isEmpty(),
+            "Navigation protocol source/tests must call task.survival.* removed, not legacy:\n" +
+                violations.joinToString("\n"),
+        )
     }
 
     @Test
@@ -132,4 +155,12 @@ class NavigationModelsTest {
             status.copy(message = "")
         }
     }
+}
+
+private fun repositoryRoot(): Path {
+    var current = Path.of("").toAbsolutePath().normalize()
+    while (!Files.exists(current.resolve("settings.gradle.kts"))) {
+        current = requireNotNull(current.parent) { "repository root not found" }
+    }
+    return current
 }
