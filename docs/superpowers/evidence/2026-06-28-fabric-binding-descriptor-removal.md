@@ -28,12 +28,29 @@ from `FabricActionBindings.kt`.
 - `git diff --check`
 - `mise run architecture-check`
 - `mise run ci`
+- `mise exec -- gradle :protocol:test --tests '*NamespacePolicyTest.private fabric gameplay bindings are limited to transitional bootstrap operation allowlist*' --rerun-tasks`
+- `mise exec -- gradle lint test --rerun-tasks`
+- `mise exec -- bun test playwright`
 
-All local final gates passed before commit.
+The first local `mise run ci` passed with cached protocol tests before the
+initial push. Remote CI then failed on a clean checkout because
+`NamespacePolicyTest` still searched `FabricActionBindings.kt` for descriptor
+`id = "..."` declarations. The guard was updated to enforce the Phase 83
+invariant directly: private Fabric binding `operationId` values must match the
+transitional bootstrap allowlist, and the binding file must not own
+`DriverActionDescriptor` or `DriverActionArgument` metadata.
+
+The corrected guard, forced Gradle lint/test suite, and Bun Playwright tests
+all passed locally before the follow-up push.
 
 ## Remote CI
 
-Pending until this phase is pushed to `main` and GitHub Actions passes.
+- Initial push `c288286f21f7d0558cc6bd75372906e17344a311` failed in GitHub
+  Actions run `28311666609` because
+  `NamespacePolicyTest.hand written fabric gameplay descriptors are limited to
+  transitional bootstrap allowlist` still expected descriptor ids in
+  `FabricActionBindings.kt`.
+- Follow-up remote CI is pending.
 
 ## Notes
 

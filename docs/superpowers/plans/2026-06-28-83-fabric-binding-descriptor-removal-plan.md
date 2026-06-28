@@ -169,6 +169,24 @@
   git push origin main
   ```
 
+- [x] **Step 2a: Correct stale protocol policy guard**
+
+  The initial push failed remote CI because
+  `NamespacePolicyTest.hand written fabric gameplay descriptors are limited to
+  transitional bootstrap allowlist` still scanned for descriptor `id = "..."`
+  declarations. Update the guard to scan private binding `operationId` values
+  and assert `FabricActionBindings.kt` does not own descriptor/schema classes.
+
+  Run:
+
+  ```sh
+  mise exec -- gradle :protocol:test --tests '*NamespacePolicyTest.private fabric gameplay bindings are limited to transitional bootstrap operation allowlist*' --rerun-tasks
+  mise exec -- gradle lint test --rerun-tasks
+  mise exec -- bun test playwright
+  ```
+
+  Expected: all exit `0`.
+
 - [ ] **Step 3: Verify remote CI**
 
   Run:

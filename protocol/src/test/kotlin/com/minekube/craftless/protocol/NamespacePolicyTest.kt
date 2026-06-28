@@ -177,7 +177,7 @@ class NamespacePolicyTest {
     }
 
     @Test
-    fun `hand written fabric gameplay descriptors are limited to transitional bootstrap allowlist`() {
+    fun `private fabric gameplay bindings are limited to transitional bootstrap operation allowlist`() {
         val root = repositoryRoot()
         val allowlistPath = root.resolve("docs/architecture/transitional-fabric-action-allowlist.txt")
         val allowlist =
@@ -192,8 +192,8 @@ class NamespacePolicyTest {
                     "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricActionBindings.kt",
                 ),
             )
-        val handWrittenActionIds =
-            Regex("""id = "([a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)*)"""")
+        val bindingOperationIds =
+            Regex("""operationId(?:\s*:\s*String)?\s*=\s*"([a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)*)"""")
                 .findAll(actionBindings)
                 .map { match -> match.groupValues[1] }
                 .distinct()
@@ -201,10 +201,14 @@ class NamespacePolicyTest {
                 .toList()
 
         assertTrue(
-            handWrittenActionIds == allowlist,
-            "Hand-written Fabric gameplay descriptors are transitional only.\n" +
+            bindingOperationIds == allowlist,
+            "Private Fabric gameplay bindings are transitional execution adapters only.\n" +
                 "If a new public gameplay action is needed, add it through the runtime capability graph first.\n" +
-                "handWritten=$handWrittenActionIds\nallowlist=$allowlist",
+                "bindingOperationIds=$bindingOperationIds\nallowlist=$allowlist",
+        )
+        assertTrue(
+            "DriverActionDescriptor" !in actionBindings && "DriverActionArgument" !in actionBindings,
+            "Private Fabric gameplay bindings must not own public descriptors or schemas.",
         )
     }
 
