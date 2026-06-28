@@ -3900,10 +3900,11 @@ Verification:
   120 invoke fallback naming removal, and Phase 121 metadata fallback naming
   removal, Phase 122 removed survival namespace wording, and Phase 123
   create-client loader version, and Phase 124 CLI create-client loader
-  version, and Phase 125 driver-mod manifest miss. Phase 105, Phase 107, Phase
+  version, Phase 125 driver-mod manifest miss, and Phase 126 driver manifest
+  loader default. Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
-  122, Phase 123, Phase 124, and Phase 125 do not satisfy the runnable
+  122, Phase 123, Phase 124, Phase 125, and Phase 126 do not satisfy the runnable
   latest/older support
   requirement by themselves.
   The broader project goal remains active until

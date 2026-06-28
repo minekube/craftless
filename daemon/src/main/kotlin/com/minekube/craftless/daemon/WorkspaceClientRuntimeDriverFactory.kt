@@ -45,13 +45,22 @@ class WorkspaceClientRuntimeDriverFactory(
         cachePreparationService: CachePreparationService,
         attachEnvironment: ClientDriverAttachEnvironment? = null,
     ): PreparedClientRuntime {
+        val loaderVersion =
+            request.loaderVersion
+                ?: driverModProvider.preferredLoaderVersion(
+                    ClientRuntimeDriverModRequest(
+                        loader = request.loader,
+                        minecraftVersion = request.version,
+                        loaderVersion = null,
+                    ),
+                )
         val cache =
             cachePreparationService
                 .prepare(
                     CachePrepareRequest(
                         minecraftVersion = request.version,
                         loader = request.loader,
-                        loaderVersion = request.loaderVersion,
+                        loaderVersion = loaderVersion,
                     ),
                 ).withConfiguredDriverMod()
         val files = request.instanceFiles()
@@ -116,6 +125,8 @@ data class ClientDriverAttachEnvironment(
 
 fun interface ClientRuntimeDriverModProvider {
     fun modFor(request: ClientRuntimeDriverModRequest): Path?
+
+    fun preferredLoaderVersion(request: ClientRuntimeDriverModRequest): String? = null
 }
 
 data class ClientRuntimeDriverModRequest(
@@ -135,6 +146,14 @@ object NoClientRuntimeDriverModProvider : ClientRuntimeDriverModProvider {
 class ConfiguredClientRuntimeDriverModProvider(
     private val environment: Map<String, String> = System.getenv(),
 ) : ClientRuntimeDriverModProvider {
+    override fun preferredLoaderVersion(request: ClientRuntimeDriverModRequest): String? {
+        if (request.loader != Loader.FABRIC || request.loaderVersion != null) return null
+        val manifestPath = configuredManifestPath() ?: return null
+        return manifestEntriesFor(request, manifestPath)
+            .firstOrNull { entry -> entry.loaderVersion != null }
+            ?.loaderVersion
+    }
+
     override fun modFor(request: ClientRuntimeDriverModRequest): Path? {
         val manifestPath = configuredManifestPath()
         if (manifestPath != null) {
@@ -165,18 +184,26 @@ class ConfiguredClientRuntimeDriverModProvider(
         request: ClientRuntimeDriverModRequest,
         manifestPath: Path,
     ): Path? {
-        val manifest = launcherJson.decodeFromString<ConfiguredDriverModManifest>(Files.readString(manifestPath))
         val entry =
-            manifest
-                .entries
-                .filter { entry ->
-                    entry.loader == request.loader &&
-                        entry.minecraftVersion == request.minecraftVersion &&
-                        (entry.loaderVersion == request.loaderVersion || entry.loaderVersion == null)
-                }.maxByOrNull { entry -> if (entry.loaderVersion == request.loaderVersion) 1 else 0 }
+            manifestEntriesFor(request, manifestPath)
+                .filter { entry -> entry.loaderVersion == request.loaderVersion || entry.loaderVersion == null }
+                .maxByOrNull { entry -> if (entry.loaderVersion == request.loaderVersion) 1 else 0 }
                 ?: return null
         val path = Path.of(entry.path)
         return if (path.isAbsolute) path.normalize() else manifestPath.parent.resolve(path).normalize()
+    }
+
+    private fun manifestEntriesFor(
+        request: ClientRuntimeDriverModRequest,
+        manifestPath: Path,
+    ): List<ConfiguredDriverModManifestEntry> {
+        val manifest = launcherJson.decodeFromString<ConfiguredDriverModManifest>(Files.readString(manifestPath))
+        return manifest
+            .entries
+            .filter { entry ->
+                entry.loader == request.loader &&
+                    entry.minecraftVersion == request.minecraftVersion
+            }
     }
 
     companion object {

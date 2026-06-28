@@ -9,6 +9,45 @@ import kotlin.test.assertTrue
 
 class ConfiguredClientRuntimeDriverModProviderTest {
     @Test
+    fun `manifest provides preferred loader version for matching fabric lane`() {
+        val root = Files.createTempDirectory("craftless-driver-mod-manifest-preferred-loader")
+        val manifest = root.resolve("driver-mods.json")
+        Files.writeString(
+            manifest,
+            """
+            {
+              "entries": [
+                {
+                  "loader": "FABRIC",
+                  "minecraftVersion": "1.21.6",
+                  "loaderVersion": "0.16.14",
+                  "path": "mods/craftless-driver-fabric-1.21.6.jar"
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+        val provider =
+            ConfiguredClientRuntimeDriverModProvider(
+                environment =
+                    mapOf(
+                        ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_DRIVER_MOD_MANIFEST to manifest.toString(),
+                    ),
+            )
+
+        val preferred =
+            provider.preferredLoaderVersion(
+                ClientRuntimeDriverModRequest(
+                    loader = Loader.FABRIC,
+                    minecraftVersion = "1.21.6",
+                    loaderVersion = null,
+                ),
+            )
+
+        assertEquals("0.16.14", preferred)
+    }
+
+    @Test
     fun `manifest exact runtime lane wins over single fabric fallback`() {
         val root = Files.createTempDirectory("craftless-driver-mod-manifest")
         val manifestMod = root.resolve("mods/craftless-driver-fabric-1.21.6.jar")

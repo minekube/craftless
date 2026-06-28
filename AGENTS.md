@@ -236,6 +236,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 123. create-client loader version.
 124. CLI create-client loader version.
 125. driver-mod manifest miss.
+126. driver manifest loader default.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -950,6 +951,13 @@ instead of falling back to a single incompatible Fabric driver jar. This is
 runtime artifact safety only; it must not add gameplay descriptors, static
 route families, CLI gameplay catalogs, Fabric bindings, scenario shortcuts,
 compiled lanes, public version-specific APIs, or support claims.
+Phase 126 lets a configured packaged driver-mod manifest provide the default
+Fabric Loader version for an exact Minecraft runtime lane when the
+create-client request does not explicitly pin `loaderVersion`. Explicit
+requested loader versions remain authoritative, and strict manifest miss
+handling still applies after cache preparation. It must not add compiled
+lanes, claim new Minecraft support, add gameplay APIs, route families, CLI
+gameplay catalogs, Fabric descriptor/binding pairs, or scenario shortcuts.
 
 ## Acceptance Scenarios Are Not Product APIs
 
