@@ -152,6 +152,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-79-graph-owned-fabric-invoke-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-79-graph-owned-fabric-invoke-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-80-action-discovery-deletion-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-80-action-discovery-deletion-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -2503,9 +2507,8 @@ Verification:
 - [x] Current transitional `FabricActionBinding` implementations are
   consolidated into the private adapter map. This phase does not add new Fabric
   descriptor/binding pairs or gameplay breadth.
-- [~] Standalone `FabricActionDiscovery` remains a later cleanup target, but it
-  is no longer the Fabric backend's public descriptor, schema, or invocation
-  source of truth.
+- [x] Phase 80 deletes standalone `FabricActionDiscovery`; it is no longer a
+  later cleanup target.
 - [~] The broader binding-exit blocker remains active until future gameplay
   breadth is generated from generic runtime discovery instead of
   hand-maintained bootstrap operation definitions.
@@ -2522,12 +2525,47 @@ Verification:
 - Final local and remote verification are recorded in
   `docs/superpowers/evidence/2026-06-28-graph-owned-fabric-invoke.md`.
 
+## Phase 80: Action Discovery Deletion
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-80-action-discovery-deletion-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-80-action-discovery-deletion-plan.md`.
+- [x] `FabricActionDiscovery.kt` is deleted.
+- [x] `FabricActionDiscovery`, `FabricActionProbe`,
+  `FabricActionDiscoveryContext`, `FabricDiscoveredAction`, and
+  `defaultFabricActionDiscovery` no longer appear in driver-fabric main or
+  test source outside the guard's forbidden-name list.
+- [x] `FabricClientCapabilitySnapshot` now belongs to the capability-probe
+  graph layer.
+- [x] Fabric backend `actions(...)` and `invoke(...)` remain graph-owned.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric descriptor/binding pair, scenario shortcut, new
+  compiled lane, public version-specific API, or new Minecraft support claim.
+- [~] The broader binding-exit blocker remains active until future gameplay
+  breadth is generated from generic runtime discovery instead of
+  hand-maintained bootstrap operation definitions.
+
+Verification:
+
+- Red guard:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric standalone action discovery layer is removed*'`
+  failed before deletion because `FabricActionDiscovery.kt` still existed.
+- Green focused guard:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric standalone action discovery layer is removed*'`
+- Full Fabric regression:
+  `mise exec -- gradle :driver-fabric:test`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-action-discovery-deletion.md`.
+  Push and remote CI evidence must be added after this phase lands on `main`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
   76 completion audit, Phase 77 graph-owned public Fabric action descriptors,
-  Phase 78 graph-native bootstrap operation schemas, and Phase 79 graph-owned
-  legacy invoke dispatch. The broader project goal remains active until
+  Phase 78 graph-native bootstrap operation schemas, Phase 79 graph-owned
+  legacy invoke dispatch, and Phase 80 deletion of standalone action discovery.
+  The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest and representative older runtime lanes have the requested support or
   an explicitly accepted support boundary, and every generic-discovery,

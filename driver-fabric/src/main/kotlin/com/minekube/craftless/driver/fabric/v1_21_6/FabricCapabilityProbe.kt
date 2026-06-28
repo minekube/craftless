@@ -34,6 +34,29 @@ internal data class FabricCapabilityGraphFragment(
     val events: List<RuntimeEventNode> = emptyList(),
 )
 
+internal data class FabricClientCapabilitySnapshot(
+    val connected: Boolean,
+    val player: Boolean,
+    val inventory: Boolean,
+    val camera: Boolean,
+    val interactionManager: Boolean,
+    val world: Boolean,
+    val recipes: Boolean = false,
+    val recipeCrafting: Boolean = false,
+) {
+    companion object {
+        fun disconnected(): FabricClientCapabilitySnapshot =
+            FabricClientCapabilitySnapshot(
+                connected = false,
+                player = false,
+                inventory = false,
+                camera = false,
+                interactionManager = false,
+                world = false,
+            )
+    }
+}
+
 internal fun defaultFabricCapabilityDiscovery(
     probes: List<FabricCapabilityProbe> = defaultFabricCapabilityProbes(),
 ): FabricCapabilityDiscovery =

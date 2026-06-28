@@ -2,7 +2,6 @@ package com.minekube.craftless.driver.fabric.v1_21_6
 
 import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.api.DriverActionAvailability
-import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionSource
 import com.minekube.craftless.driver.api.DriverActionStatus
@@ -29,7 +28,6 @@ import java.nio.file.Path
 import java.util.Collections
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
@@ -1085,6 +1083,43 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric standalone action discovery layer is removed`() {
+        val root = repositoryRoot()
+        assertFalse(
+            Files.exists(
+                root.resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricActionDiscovery.kt",
+                ),
+            ),
+        )
+        val sourceFiles =
+            root
+                .resolve("driver-fabric/src")
+                .toFile()
+                .walkTopDown()
+                .filter { file -> file.isFile && file.extension == "kt" }
+                .toList()
+        val staleNames =
+            listOf(
+                "FabricActionDiscovery",
+                "FabricActionProbe",
+                "FabricActionDiscoveryContext",
+                "FabricDiscoveredAction",
+                "defaultFabricActionDiscovery",
+            )
+        val offenders =
+            sourceFiles
+                .flatMap { file ->
+                    val text = file.readText()
+                    staleNames
+                        .filter { staleName -> text.contains(staleName) }
+                        .map { staleName -> root.relativize(file.toPath()).toString() to staleName }
+                }.filterNot { (path, _) -> path.endsWith("FabricDriverModuleTest.kt") }
+
+        assertEquals(emptyList(), offenders)
+    }
+
+    @Test
     fun `fabric legacy invoke dispatches unavailable operations from runtime graph`() {
         val gateway = RecordingFabricClientGateway()
         gateway.connected = false
@@ -1127,95 +1162,6 @@ class FabricDriverModuleTest {
         assertEquals(2, gateway.graphCapabilityProbeQueries)
         assertEquals(0, gateway.capabilityProbeQueries)
         assertEquals(listOf("client-action"), gateway.actions)
-    }
-
-    @Test
-    fun `fabric default discovery is composed from runtime probes`() {
-        val discovery =
-            defaultFabricActionDiscovery(
-                probes =
-                    listOf(
-                        FabricActionProbe { context ->
-                            assertEquals("metadata-only", context.modeId)
-                            listOf(
-                                FabricDiscoveredAction(
-                                    descriptor =
-                                        DriverActionDescriptor(
-                                            id = "player.raycast",
-                                            schemaVersion = "1",
-                                            source = DriverActionSource.RUNTIME_PROBE,
-                                            availability = DriverActionAvailability.UNAVAILABLE,
-                                            availabilityReason = "client-not-connected",
-                                        ),
-                                ),
-                            )
-                        },
-                        FabricActionProbe {
-                            listOf(
-                                FabricDiscoveredAction(
-                                    descriptor =
-                                        DriverActionDescriptor(
-                                            id = "screen.query",
-                                            schemaVersion = "1",
-                                            source = DriverActionSource.RUNTIME_PROBE,
-                                            availability = DriverActionAvailability.UNAVAILABLE,
-                                            availabilityReason = "screen-unavailable",
-                                        ),
-                                ),
-                            )
-                        },
-                    ),
-            )
-        val actions =
-            discovery.discover(
-                FabricActionDiscoveryContext(
-                    clientId = "alice",
-                    modeId = "metadata-only",
-                    gateway = null,
-                    bindings = emptyMap(),
-                ),
-            )
-
-        assertEquals(listOf("player.raycast", "screen.query"), actions.map { it.descriptor.id })
-    }
-
-    @Test
-    fun `fabric discovery rejects duplicate action ids from probes`() {
-        val discovery =
-            defaultFabricActionDiscovery(
-                probes =
-                    listOf(
-                        FabricActionProbe {
-                            listOf(
-                                FabricDiscoveredAction(
-                                    descriptor = FabricPlayerQueryActionBinding.descriptor,
-                                    binding = FabricPlayerQueryActionBinding,
-                                ),
-                            )
-                        },
-                        FabricActionProbe {
-                            listOf(
-                                FabricDiscoveredAction(
-                                    descriptor = FabricPlayerQueryActionBinding.descriptor,
-                                    binding = FabricPlayerQueryActionBinding,
-                                ),
-                            )
-                        },
-                    ),
-            )
-        val error =
-            assertFailsWith<IllegalArgumentException> {
-                discovery.discover(
-                    FabricActionDiscoveryContext(
-                        clientId = "alice",
-                        modeId = "metadata-only",
-                        gateway = null,
-                        bindings = emptyMap(),
-                    ),
-                )
-            }
-
-        assertEquals("duplicate discovered Fabric action id player.query", error.message)
     }
 
     @Test
@@ -2864,23 +2810,6 @@ class FabricDriverModuleTest {
         assertEquals(4, gateway.graphCapabilityProbeQueries)
         assertEquals(listOf("client-action"), gateway.actions)
         assertEquals(1, gateway.scheduled)
-    }
-
-    @Test
-    fun `fabric discovery rejects available actions without execution binding`() {
-        val error =
-            assertFailsWith<IllegalArgumentException> {
-                FabricDiscoveredAction(
-                    descriptor =
-                        DriverActionDescriptor(
-                            id = "player.look",
-                            schemaVersion = "1",
-                        ),
-                    binding = null,
-                )
-            }
-
-        assertEquals("discovered action player.look must have a binding or unavailable runtime-probe metadata", error.message)
     }
 
     @Test
