@@ -141,7 +141,7 @@
   mise run ci
   ```
 
-- [ ] **Step 3: Commit, push, and verify CI**
+- [x] **Step 3: Commit, push, and verify CI**
 
   Run:
 
@@ -151,6 +151,9 @@
   git push origin main
   gh run watch <latest-run-id> --repo minekube/craftless --exit-status
   ```
+
+  Evidence: `cb72b3b` pushed to `main`; GitHub Actions run
+  `28307751811` completed successfully for `mise run ci`.
 
 ### Guardrails
 
