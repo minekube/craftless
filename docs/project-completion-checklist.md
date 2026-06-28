@@ -3093,9 +3093,8 @@ Verification:
   `build/docker/craftless/mods/craftless-driver-fabric.jar`.
 - [x] Docker runtime configuration sets `CRAFTLESS_FABRIC_DRIVER_MOD` to the
   staged driver mod path.
-- [~] Actual live in-client attach and generated API execution remain open
-  until the launched driver connects back to the supervisor and public API/CLI
-  gameplay verification uses that path.
+- [x] Actual live in-client attach and generated API execution are covered by
+  Phase 102; normal installed CLI distribution closure is covered by Phase 103.
 - [x] This phase adds no public gameplay action, generated route family, CLI
   gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
   lane, public version-specific API, or new Minecraft support claim.
