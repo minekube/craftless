@@ -196,4 +196,35 @@ class FabricRuntimeGraphTest {
         assertEquals(unavailable, fragment.resources.single { resource -> resource.id == "entity" }.availability)
         assertTrue(fragment.handles.all { handle -> handle.availability == unavailable })
     }
+
+    @Test
+    fun `client state world time operation reflects world availability`() {
+        val connected =
+            fabricClientStateWorldTimeQueryOperation(
+                snapshot =
+                    FabricClientStateGraphSnapshot(
+                        connected = true,
+                        player = true,
+                        inventory = false,
+                        camera = false,
+                        interactionManager = false,
+                        world = true,
+                    ),
+                adapter = "fabric.world-time-query",
+            )
+        val disconnected =
+            fabricClientStateWorldTimeQueryOperation(
+                snapshot = FabricClientStateGraphSnapshot.disconnected(),
+                adapter = "fabric.world-time-query",
+            )
+
+        assertEquals("world.time.query", connected.id)
+        assertEquals("world.time", connected.resource)
+        assertEquals("fabric.world-time-query", connected.adapter)
+        assertEquals(RuntimeAvailability.available(), connected.availability)
+        assertEquals(listOf("client-state"), connected.sourceEvidence.map { evidence -> evidence.kind })
+        assertEquals(listOf("world-available"), connected.sourceEvidence.map { evidence -> evidence.fingerprint })
+        assertEquals(RuntimeAvailability.unavailable("client-not-connected"), disconnected.availability)
+        assertEquals(listOf("client-not-connected"), disconnected.sourceEvidence.map { evidence -> evidence.fingerprint })
+    }
 }

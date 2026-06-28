@@ -108,16 +108,16 @@ checked and the named evidence file exists.
      - [x] CL-02f.2: Private Fabric execution adapters cannot own public
        operation id string literals, public descriptors, or public schemas;
        they must reference operation ids represented by runtime graph sources.
-       Evidence in progress: Phase 178 protocol guard.
+       Evidence: Phase 178 protocol guard.
      - [x] CL-02f.3: Production CLI source rejects static gameplay command
        catalogs. The CLI may own lifecycle/config/discovery/generic dispatch,
        but gameplay help and invocation must be adaptive from live OpenAPI or
-       `/actions` projection metadata. Evidence in progress: Phase 178
-       production-source policy guard.
+       `/actions` projection metadata. Evidence: Phase 178 production-source
+       policy guard.
      - [x] CL-02f.4: Production daemon source rejects static gameplay alias
        route families. Per-client aliases must be generated from the
-       per-client OpenAPI document, not handwritten route lists. Evidence in
-       progress: Phase 178 production-source policy guard.
+       per-client OpenAPI document, not handwritten route lists. Evidence:
+       Phase 178 production-source policy guard.
      - [x] CL-02f.5: Daemon live-event normalization does not synthesize
        gameplay action ids from event fallback types. Existing evidence:
        protocol namespace policy test.
@@ -151,8 +151,17 @@ checked and the named evidence file exists.
      through cache/manifest services, not hand-picked local files.
    - [ ] CL-03d: Packaged CLI creates or attaches a latest/current client
      through the supervisor API.
-   - [ ] CL-03e: Generated per-client OpenAPI, actions/resources projections,
+   - [~] CL-03e: Generated per-client OpenAPI, actions/resources projections,
      SSE, JSON-RPC query, and JSON-RPC subscription evidence are captured.
+
+     Progress sub-gates:
+     - [x] CL-03e.1: The official 26.x lane projects at least one generated
+       client-state operation from shared Fabric discovery instead of reporting
+       zero actions. Evidence:
+       `docs/superpowers/evidence/2026-06-28-official-client-state-world-time-operation.md`.
+     - [ ] CL-03e.2: A connected official 26.x client captures generated
+       per-client OpenAPI, actions/resources, SSE, JSON-RPC query, and
+       JSON-RPC subscription artifacts from the packaged/latest lane.
    - [ ] CL-03f: A public API/CLI gameplay smoke executes generated
      primitives on the latest/current lane.
 

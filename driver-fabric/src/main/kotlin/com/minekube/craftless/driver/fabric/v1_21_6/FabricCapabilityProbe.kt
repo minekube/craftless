@@ -4,6 +4,7 @@ import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.fabric.discovery.FabricClientStateGraphSnapshot
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeGraphFragment
 import com.minekube.craftless.driver.fabric.discovery.fabricClientStateGraphFragment
+import com.minekube.craftless.driver.fabric.discovery.fabricClientStateWorldTimeQueryOperation
 import com.minekube.craftless.driver.fabric.discovery.fabricEventGraphFragment
 import com.minekube.craftless.driver.fabric.discovery.fabricRegistryGraphFragment
 import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeGraph
@@ -12,7 +13,6 @@ import com.minekube.craftless.driver.fabric.runtime.FabricCompatibilityLane
 import com.minekube.craftless.protocol.RuntimeAvailability
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import com.minekube.craftless.protocol.RuntimeOperationNode
-import com.minekube.craftless.protocol.RuntimeSchema
 import com.minekube.craftless.protocol.RuntimeSourceEvidence
 
 internal fun interface FabricCapabilityDiscovery {
@@ -288,33 +288,13 @@ private fun FabricClientCapabilitySnapshot.blockInteractReason(): String? =
 
 private fun FabricClientCapabilitySnapshot.clientStateOperations(): List<RuntimeOperationNode> =
     listOf(
-        RuntimeOperationNode(
-            id = FabricBootstrapOperationIds.WORLD_TIME_QUERY,
-            resource = FabricBootstrapOperationIds.WORLD_TIME_QUERY.substringBeforeLast("."),
+        fabricClientStateWorldTimeQueryOperation(
+            snapshot = toGraphSnapshot(),
             adapter =
                 requireNotNull(fabricBootstrapOperationAdapterKey(FabricBootstrapOperationIds.WORLD_TIME_QUERY)) {
                     "missing bootstrap operation adapter for ${FabricBootstrapOperationIds.WORLD_TIME_QUERY}"
                 },
-            result =
-                RuntimeSchema(
-                    type = "object",
-                    properties =
-                        mapOf(
-                            "action" to RuntimeSchema("string", required = true),
-                            "status" to RuntimeSchema("string", required = true),
-                            "message" to RuntimeSchema("string"),
-                            "data" to RuntimeSchema.objectSchema(),
-                        ),
-                ),
-            availability = worldAvailability(),
-            sourceEvidence = listOf(clientStateWorldEvidence()),
         ),
-    )
-
-private fun FabricClientCapabilitySnapshot.clientStateWorldEvidence(): RuntimeSourceEvidence =
-    RuntimeSourceEvidence(
-        kind = "client-state",
-        fingerprint = worldReason() ?: "world-available",
     )
 
 private fun availability(reason: String?): RuntimeAvailability =

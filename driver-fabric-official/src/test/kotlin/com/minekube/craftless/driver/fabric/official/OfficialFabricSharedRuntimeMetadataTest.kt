@@ -1,6 +1,7 @@
 package com.minekube.craftless.driver.fabric.official
 
 import com.minekube.craftless.driver.api.ConnectionTarget
+import com.minekube.craftless.driver.api.DriverActionAvailability
 import com.minekube.craftless.driver.fabric.discovery.FabricClientStateGraphSnapshot
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataProvider
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataSnapshot
@@ -195,7 +196,7 @@ class OfficialFabricSharedRuntimeMetadataTest {
     }
 
     @Test
-    fun `official backend projects client state from lane provider without adding operations`() {
+    fun `official backend projects client state operations from lane provider`() {
         val runtimeMetadataProvider =
             officialFabricRuntimeMetadataProvider(
                 registryProvider =
@@ -234,6 +235,8 @@ class OfficialFabricSharedRuntimeMetadataTest {
 
         val metadata = runtimeMetadataProvider.runtimeMetadata("official-probe")
         val graph = backend.runtimeGraph("official-probe")
+        val operations = graph.operations.associateBy { operation -> operation.id }
+        val actions = backend.actions("official-probe").associateBy { action -> action.id }
         val resources = graph.resources.associateBy { resource -> resource.id }
         val handles = graph.handles.associateBy { handle -> handle.id }
         val events = graph.events.associateBy { event -> event.id }
@@ -243,7 +246,10 @@ class OfficialFabricSharedRuntimeMetadataTest {
                 .sourceEvidence
                 .associateBy { evidence -> evidence.kind }
 
-        assertEquals(emptyList(), graph.operations)
+        assertEquals(RuntimeAvailability.available(), operations.getValue("world.time.query").availability)
+        assertEquals("world.time", operations.getValue("world.time.query").resource)
+        assertEquals(listOf("client-state"), operations.getValue("world.time.query").sourceEvidence.map { evidence -> evidence.kind })
+        assertEquals(DriverActionAvailability.AVAILABLE, actions.getValue("world.time.query").availability)
         assertTrue(metadata.serverFeatureFingerprint.startsWith("server-features:"))
         assertNotEquals("server-features:not-connected", metadata.serverFeatureFingerprint)
         assertEquals(metadata.serverFeatureFingerprint, runtimeEvidence.getValue("server-features").fingerprint)

@@ -8,13 +8,16 @@ import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.fabric.discovery.FabricLoaderRuntimeMetadataReader
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataProvider
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataSnapshot
+import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeGraphFragment
 import com.minekube.craftless.driver.fabric.discovery.SnapshotFabricRuntimeMetadataProvider
 import com.minekube.craftless.driver.fabric.discovery.fabricClientStateGraphFragment
+import com.minekube.craftless.driver.fabric.discovery.fabricClientStateWorldTimeQueryOperation
 import com.minekube.craftless.driver.fabric.discovery.fabricEventGraphFragment
 import com.minekube.craftless.driver.fabric.discovery.fabricRegistryGraphFragment
 import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeFingerprint
 import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeGraph
 import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeMetadataGraphFragment
+import com.minekube.craftless.driver.fabric.discovery.toFabricRuntimeEventNode
 import com.minekube.craftless.driver.runtime.DriverBackend
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import com.minekube.craftless.driver.runtime.DriverBackendResult
@@ -48,6 +51,12 @@ internal class OfficialFabricDriverBackend(
 
     override fun runtimeGraph(clientId: String) =
         runtimeMetadata(clientId).let { metadata ->
+            val clientState = clientStateProvider.snapshot()
+            val clientStateOperation =
+                fabricClientStateWorldTimeQueryOperation(
+                    snapshot = clientState,
+                    adapter = WORLD_TIME_QUERY_ADAPTER_KEY,
+                )
             val eventSourceEvidence = eventSourceProvider.sourceEvidence()
             fabricRuntimeGraph(
                 clientId = clientId,
@@ -70,7 +79,11 @@ internal class OfficialFabricDriverBackend(
                             sourceEvidence = eventSourceEvidence,
                             available = eventSourceEvidence.isNotEmpty(),
                         ),
-                        fabricClientStateGraphFragment(clientStateProvider.snapshot()),
+                        fabricClientStateGraphFragment(clientState),
+                        FabricRuntimeGraphFragment(
+                            operations = listOf(clientStateOperation),
+                            events = listOf(clientStateOperation.toFabricRuntimeEventNode()),
+                        ),
                     ),
             )
         }
@@ -122,3 +135,4 @@ private const val OFFICIAL_FABRIC_DRIVER_ID = "craftless-driver-fabric-official"
 private const val OFFICIAL_FABRIC_DRIVER_VERSION = "0.1.0-SNAPSHOT"
 private const val OFFICIAL_FABRIC_MAPPINGS_FINGERPRINT = "craftless-official-bindings-26-2"
 private const val REGISTRIES_NOT_DISCOVERED = "registries:not-discovered"
+private const val WORLD_TIME_QUERY_ADAPTER_KEY = "fabric.world-time-query"

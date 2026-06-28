@@ -1,9 +1,12 @@
 package com.minekube.craftless.driver.fabric.discovery
 
 import com.minekube.craftless.protocol.RuntimeAvailability
+import com.minekube.craftless.protocol.RuntimeEventNode
 import com.minekube.craftless.protocol.RuntimeHandleNode
+import com.minekube.craftless.protocol.RuntimeOperationNode
 import com.minekube.craftless.protocol.RuntimeResourceNode
 import com.minekube.craftless.protocol.RuntimeSchema
+import com.minekube.craftless.protocol.RuntimeSourceEvidence
 
 data class FabricClientStateGraphSnapshot(
     val connected: Boolean,
@@ -77,6 +80,38 @@ fun fabricClientStateGraphFragment(snapshot: FabricClientStateGraphSnapshot): Fa
     )
 }
 
+fun fabricClientStateWorldTimeQueryOperation(
+    snapshot: FabricClientStateGraphSnapshot,
+    adapter: String,
+): RuntimeOperationNode =
+    RuntimeOperationNode(
+        id = CLIENT_STATE_WORLD_TIME_QUERY_OPERATION_ID,
+        resource = CLIENT_STATE_WORLD_TIME_QUERY_OPERATION_RESOURCE,
+        adapter = adapter,
+        result =
+            RuntimeSchema(
+                type = "object",
+                properties =
+                    mapOf(
+                        "action" to RuntimeSchema("string", required = true),
+                        "status" to RuntimeSchema("string", required = true),
+                        "message" to RuntimeSchema("string"),
+                        "data" to RuntimeSchema.objectSchema(),
+                    ),
+            ),
+        availability = snapshot.worldAvailability(),
+        sourceEvidence = listOf(snapshot.clientStateWorldEvidence()),
+    )
+
+fun RuntimeOperationNode.toFabricRuntimeEventNode(): RuntimeEventNode =
+    RuntimeEventNode(
+        id = id,
+        resource = resource,
+        payload = RuntimeSchema.objectSchema(),
+        availability = availability,
+        sourceEvidence = sourceEvidence,
+    )
+
 private fun FabricClientStateGraphSnapshot.connectedAvailability(): RuntimeAvailability =
     if (connected) RuntimeAvailability.available() else RuntimeAvailability.unavailable("client-not-connected")
 
@@ -126,5 +161,14 @@ private fun FabricClientStateGraphSnapshot.blockQueryReason(): String? =
     playerReason()
         ?: worldReason()
 
+private fun FabricClientStateGraphSnapshot.clientStateWorldEvidence(): RuntimeSourceEvidence =
+    RuntimeSourceEvidence(
+        kind = "client-state",
+        fingerprint = worldReason() ?: "world-available",
+    )
+
 private fun availability(reason: String?): RuntimeAvailability =
     if (reason == null) RuntimeAvailability.available() else RuntimeAvailability.unavailable(reason)
+
+private const val CLIENT_STATE_WORLD_TIME_QUERY_OPERATION_RESOURCE = "world.time"
+private const val CLIENT_STATE_WORLD_TIME_QUERY_OPERATION_ID = "$CLIENT_STATE_WORLD_TIME_QUERY_OPERATION_RESOURCE.query"

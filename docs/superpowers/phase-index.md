@@ -61,6 +61,7 @@ not grow with every completed phase.
 - Phase 176: bootstrap adapter key separation.
 - Phase 177: client-state operation discovery.
 - Phase 178: static gameplay guard closure.
+- Phase 179: official client-state world time operation.
 
 ## Current Direction
 
@@ -114,6 +115,12 @@ private Fabric execution adapters cannot own public operation id literals or
 schemas, production CLI/daemon sources cannot own static gameplay catalogs or
 alias route families, scenario shortcut ids remain rejected, and daemon event
 normalization cannot synthesize gameplay action ids.
+The official 26.x/latest-current lane now projects the existing
+`world.time.query` operation from shared Fabric client-state discovery, so it
+no longer reports zero runtime operations when a world is observed. This is
+CL-03e progress only; official invocation, packaged latest-lane create/attach,
+fresh connected OpenAPI/action/resource/SSE/JSON-RPC artifacts, and public
+gameplay smoke remain open.
 Continue by moving official 26.x support through shared Fabric
 discovery/projection/invocation, packaging, adaptive CLI/API smoke, and honest
 gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the

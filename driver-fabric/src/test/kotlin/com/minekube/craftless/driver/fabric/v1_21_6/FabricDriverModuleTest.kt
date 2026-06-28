@@ -904,6 +904,12 @@ class FabricDriverModuleTest {
                     "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricCapabilityProbe.kt",
                 ),
             )
+        val sharedClientStateGraph =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric-discovery/src/main/kotlin/com/minekube/craftless/driver/fabric/discovery/FabricClientStateGraphSnapshot.kt",
+                ),
+            )
         val forbidden =
             listOf(
                 "\"player.chat\"",
@@ -928,7 +934,8 @@ class FabricDriverModuleTest {
             "FabricClientStateCapabilityProbe must not own bootstrap operation definitions; " +
                 "they belong in the transitional graph bootstrap definition layer.",
         )
-        assertTrue(source.contains("client-state"))
+        assertTrue(source.contains("fabricClientStateWorldTimeQueryOperation"))
+        assertTrue(sharedClientStateGraph.contains("client-state"))
     }
 
     @Test
