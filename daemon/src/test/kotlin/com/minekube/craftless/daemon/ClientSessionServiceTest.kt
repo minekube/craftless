@@ -26,7 +26,11 @@ import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.OpenApiResourceAvailability
 import com.minekube.craftless.protocol.OpenApiResponse
 import com.minekube.craftless.protocol.Profile
+import com.minekube.craftless.protocol.RuntimeAvailability
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
+import com.minekube.craftless.protocol.RuntimeOperationNode
+import com.minekube.craftless.protocol.RuntimeResourceNode
+import com.minekube.craftless.protocol.RuntimeSchema
 import com.minekube.craftless.testkit.FakeDriverSession
 import com.minekube.craftless.testkit.fakeDriverRuntimeMetadata
 import kotlinx.serialization.json.JsonPrimitive
@@ -728,6 +732,34 @@ class ClientSessionServiceTest {
     }
 
     @Test
+    fun `client route list is projected from generated runtime graph openapi`() {
+        val service =
+            ClientSessionService.inMemory { request ->
+                GraphOnlyRouteTestDriverSession(request.id)
+            }
+        service.createClient(
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.6",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            ),
+        )
+
+        val document = service.openApiFor("alice")
+        val routes = service.routesFor("alice")
+        val clientDocumentPaths =
+            document.paths.keys
+                .filter { path -> path == "/clients/alice" || path.startsWith("/clients/alice/") || path.startsWith("/clients/alice:") }
+                .sorted()
+
+        assertEquals(clientDocumentPaths, routes.map { it.path }.distinct().sorted())
+        assertTrue(routes.any { it.path == "/clients/alice/player:chat" && it.actionId == "player.chat" })
+        assertFalse(routes.any { it.path == "/clients/alice/player:move" })
+        assertEquals(listOf("player.chat"), document.actions.map { it.id })
+    }
+
+    @Test
     fun `client specific openapi derives nested resource action aliases`() {
         val service =
             ClientSessionService.inMemory { request ->
@@ -921,6 +953,41 @@ private class AttachedTestDriverSession(
     override fun stop(): DriverClientSnapshot = fake.stop()
 
     override fun events() = fake.events()
+}
+
+private class GraphOnlyRouteTestDriverSession(
+    override val clientId: String,
+) : DriverSession {
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.RUNNING)
+
+    override fun connect(target: ConnectionTarget): DriverClientSnapshot = snapshot()
+
+    override fun actions(): List<DriverActionDescriptor> = error("routes must be projected from generated runtime graph OpenAPI")
+
+    override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
+
+    override fun runtimeGraph(): RuntimeCapabilityGraph =
+        RuntimeCapabilityGraph(
+            clientId = clientId,
+            resources = listOf(RuntimeResourceNode("player", RuntimeAvailability.available())),
+            operations =
+                listOf(
+                    RuntimeOperationNode(
+                        id = "player.chat",
+                        resource = "player",
+                        adapter = "graph.chat",
+                        arguments = mapOf("message" to RuntimeSchema("string", required = true)),
+                        availability = RuntimeAvailability.available(),
+                    ),
+                ),
+        )
+
+    override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
+        DriverActionResult(invocation.action, DriverActionStatus.ACCEPTED)
+
+    override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
+
+    override fun events() = emptyList<com.minekube.craftless.driver.api.DriverEvent>()
 }
 
 private fun fakeClientSessionService(fileStore: InstanceFileStore? = null): ClientSessionService =

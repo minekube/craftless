@@ -31,6 +31,105 @@ Codex-verifiable evidence:
 - Current multi-version compatibility evidence.
 - Public API/CLI final gameplay artifacts.
 
+## Current Goal Worklist
+
+This is the operator-facing checklist. Keep this section short and current.
+Move historical detail into phase entries and evidence files instead of
+growing this list.
+
+### A. System Design And Governance
+
+- [x] Root and module `AGENTS.md` files are short routing files.
+- [x] Durable repository rules live in `docs/agent-operating-contract.md`.
+- [x] Durable module rules live in `docs/agent-module-contracts.md`.
+- [ ] README, roadmap, checklist, specs, plans, and repository agent skills all
+  say the same thing: work on discovery/projection/invocation/streaming
+  systems, not hand-written gameplay catalogs.
+  Evidence needed: docs search for stale static SDK/action wording, plus
+  `git diff --check` and relevant docs/architecture tests.
+
+### B. Runtime Graph As Public API Authority
+
+- [x] `DriverSession.actions()` defaults to runtime graph operation projection.
+- [x] `DriverBackend.actions(clientId)` defaults to runtime graph operation
+  projection.
+- [x] `ClientSessionService.routesFor(clientId)` is moved to project
+  from generated per-client OpenAPI instead of a separate action list.
+  Evidence: Phase 168 red/green daemon tests and `mise run ci`.
+- [ ] `/clients/{id}/actions`, `/clients/{id}/resources`, generated aliases,
+  CLI help, tool export, and agent workflows are all verified as projections
+  of generated per-client OpenAPI/runtime graph.
+  Evidence needed: focused API/CLI tests where graph-backed sessions work even
+  when independent action-list catalogs are unavailable.
+
+### C. Binding-Exit Work
+
+- [~] Transitional Fabric bootstrap operation definitions still own current
+  gameplay operation ids/schemas.
+- [ ] New gameplay breadth is generated from reflection/mapping/registry/
+  callback/screen/handler discovery and projection, not by adding another
+  descriptor/binding pair.
+- [ ] Bootstrap/navigation operation constants are either reduced to narrow
+  compatibility adapters or replaced by generic runtime discovery evidence.
+  Evidence needed: tests that fail if future public gameplay operations are
+  added through hand-maintained bootstrap catalogs.
+
+### D. Multi-Version Foundation
+
+- [x] Version manifest handling, Java/runtime selection, Fabric Loader/API
+  resolution, cache layout, launch metadata, and compatibility probes have
+  staged evidence.
+- [~] Latest/current official lane has launch/attach/projection/SSE/JSON-RPC
+  probe evidence, but is not yet packaged as supported runtime gameplay lane.
+- [~] Representative older lane has historical and installed-smoke evidence,
+  but final support still requires current end-to-end public API/CLI gameplay
+  verification.
+- [ ] Latest/current and representative older supported versions pass the same
+  public API/CLI gates as the default lane.
+  Evidence needed: packaged launch, self-attach, generated OpenAPI/actions/
+  resources, SSE/JSON-RPC, CLI smoke, and gameplay artifacts for both lanes.
+
+### E. Transport And Consumers
+
+- [x] JVM HTTP/client/SSE foundation uses Ktor.
+- [x] Generic invocation exists at `POST /clients/{id}:run`.
+- [x] SSE stream and JSON-RPC-style query/subscription evidence exists.
+- [ ] JSON-RPC invocation and SSE event streaming are documented and verified
+  as generated-client friendly across current supported lanes.
+  Evidence needed: protocol/daemon tests plus docs examples that use generated
+  OpenAPI metadata and event filters.
+
+### F. Distribution And Agent Usability
+
+- [x] CLI binary is `craftless`.
+- [x] Install script, Docker runtime image, release checks, and packaged CLI
+  smoke have current evidence.
+- [ ] Reusable GitHub Action and agent skill docs are current and verified
+  against the generated OpenAPI/CLI workflow.
+- [ ] README quickstart presents current install, Docker, API, CLI, and agent
+  usage without legacy TypeScript SDK or static gameplay catalog wording.
+
+### G. Quality Gates
+
+- [x] Kotlin lint, formatting, unused/dead-code checks, and mise tasks exist.
+- [x] Current Phase 168 working tree passes `mise run ci`.
+- [x] Current Phase 168 working tree passes `git diff --check`.
+- [x] Current Phase 168 work is committed and pushed to `main`. This entry is
+  current only after the checklist update that contains it is also pushed.
+
+### H. Final Gameplay Gate
+
+- [~] Existing final gameplay evidence proves useful public API/CLI smoke, but
+  the goal remains open until the design exits transitional static gameplay
+  catalogs and multi-version support is current.
+- [ ] Final honest survival gameplay is rerun through public API/CLI only,
+  without server-provisioned inventory and without product hard-coded survival
+  shortcuts, after the API authority, binding-exit, and multi-version gates
+  above are complete.
+  Evidence needed: generated OpenAPI/actions/resources, SSE/JSON-RPC event
+  stream, CLI/API transcript, gameplay artifacts, inventory/world/entity
+  observations, and no provisioning shortcuts.
+
 ## Current Baseline
 
 - [x] Repository is named Craftless and uses `com.minekube.craftless`.
@@ -5168,6 +5267,40 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-backend-runtime-graph-action-default.md`.
 
+## Phase 168: OpenAPI Route Authority
+
+- [x] Spec written:
+  `docs/superpowers/specs/2026-06-28-168-openapi-route-authority-design.md`.
+- [x] Plan written:
+  `docs/superpowers/plans/2026-06-28-168-openapi-route-authority-plan.md`.
+- [x] `ClientSessionService.routesFor(clientId)` now projects client routes
+  from `openApiFor(clientId)` instead of asking the driver for a second
+  sorted action list.
+- [x] A graph-backed driver regression proves `routesFor(clientId)` can expose
+  `/clients/{id}/player:chat` from generated runtime graph OpenAPI even when
+  `DriverSession.actions()` is deliberately unavailable.
+- [x] The route projection filters the generated document to the concrete
+  `/clients/{id}` surface while preserving action ids and route metadata from
+  OpenAPI operation extensions.
+- [x] This phase adds no gameplay operation, no public route shape, no CLI
+  command, no action adapter, no static action catalog, no scenario shortcut,
+  no version lane, and no support claim.
+
+Verification:
+
+- Red daemon regression:
+  `mise exec -- gradle :daemon:test --tests '*ClientSessionServiceTest.client route list is projected from generated runtime graph openapi*'`
+  failed before implementation because `routesFor(clientId)` called
+  `DriverSession.actions()`.
+- Focused green daemon regression:
+  `mise exec -- gradle :daemon:test --tests '*ClientSessionServiceTest.client route list is projected from generated runtime graph openapi*'`.
+- Client session regression:
+  `mise exec -- gradle :daemon:test --tests '*ClientSessionServiceTest*'`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-openapi-route-authority.md`.
+- Current local CI:
+  `mise run ci`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -5232,7 +5365,7 @@ Verification:
   projection endpoints, Phase 164 official Fabric JSON-RPC query evidence,
   Phase 165 official Fabric JSON-RPC subscription SSE evidence, Phase 166
   runtime graph default action projection, and Phase 167 backend runtime graph
-  action default.
+  action default, and Phase 168 OpenAPI route authority.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
@@ -5242,8 +5375,8 @@ Verification:
   Phase 142, Phase 143, Phase 144, Phase 145, Phase 146, Phase 147, Phase
   148, Phase 149, Phase 150, Phase 151, Phase 152, Phase 153, Phase 154, and
   Phase 155, Phase 156, Phase 157, Phase 158, Phase 159, Phase 160, and Phase
-  161, Phase 162, Phase 163, Phase 164, Phase 165, Phase 166, and Phase 167 do
-  not satisfy the full runnable latest/older support requirement by
+  161, Phase 162, Phase 163, Phase 164, Phase 165, Phase 166, Phase 167, and
+  Phase 168 do not satisfy the full runnable latest/older support requirement by
   themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,

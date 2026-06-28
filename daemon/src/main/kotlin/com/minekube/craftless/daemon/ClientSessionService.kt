@@ -22,6 +22,7 @@ import com.minekube.craftless.protocol.OpenApiActionResult
 import com.minekube.craftless.protocol.OpenApiActionSchema
 import com.minekube.craftless.protocol.OpenApiActionSource
 import com.minekube.craftless.protocol.OpenApiDocument
+import com.minekube.craftless.protocol.OpenApiOperation
 import com.minekube.craftless.protocol.OpenApiResource
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import com.minekube.craftless.protocol.isCraftlessClientId
@@ -90,7 +91,7 @@ class ClientSessionService private constructor(
 
     fun routesFor(clientId: String): List<ApiRoute> {
         require(clients.containsKey(clientId)) { "client $clientId not found" }
-        return routesFor(clientId, driverFor(clientId).sortedActions())
+        return openApiFor(clientId).toApiRoutes(clientId)
     }
 
     fun resourcesFor(clientId: String): List<OpenApiResource> = openApiFor(clientId).resources
@@ -194,6 +195,40 @@ private fun OpenApiDocument.withConcreteClientId(clientId: String): OpenApiDocum
                 path.replace("/clients/{id}", "/clients/$clientId")
             },
     )
+
+private fun OpenApiDocument.toApiRoutes(clientId: String): List<ApiRoute> {
+    val prefix = "/clients/$clientId"
+    return paths
+        .filterKeys { path -> path == prefix || path.startsWith("$prefix/") || path.startsWith("$prefix:") }
+        .flatMap { (path, operations) ->
+            listOfNotNull(
+                operations.get?.toApiRoute(method = "GET", path = path),
+                operations.post?.toApiRoute(method = "POST", path = path),
+            )
+        }
+}
+
+private fun OpenApiOperation.toApiRoute(
+    method: String,
+    path: String,
+): ApiRoute {
+    val owner = requireNotNull(extensions["x-craftless-owner"]) { "openapi operation $operationId is missing owner metadata" }
+    val target = requireNotNull(extensions["x-craftless-target"]) { "openapi operation $operationId is missing target metadata" }
+    val source = requireNotNull(extensions["x-craftless-source"]) { "openapi operation $operationId is missing source metadata" }
+    val returnKind = requireNotNull(extensions["x-craftless-return"]) { "openapi operation $operationId is missing return metadata" }
+    return ApiRoute(
+        method = method,
+        path = path,
+        operationId = operationId,
+        tag = tags.firstOrNull() ?: owner,
+        owner = owner,
+        member = extensions["x-craftless-member"],
+        target = target,
+        source = source,
+        returnKind = returnKind,
+        actionId = extensions["x-craftless-action"],
+    )
+}
 
 private fun DriverSession.sortedActions(): List<DriverActionDescriptor> {
     val actions = actions()

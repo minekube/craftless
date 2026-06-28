@@ -50,6 +50,7 @@ not grow with every completed phase.
 - Phase 165: official Fabric JSON-RPC subscription SSE evidence.
 - Phase 166: runtime graph default action projection.
 - Phase 167: backend runtime graph action default.
+- Phase 168: OpenAPI route authority.
 
 ## Current Direction
 
@@ -63,6 +64,9 @@ second hand-written action-list projection path.
 The shared backend contract now also defaults `DriverBackend.actions(clientId)`
 to runtime graph projection, which removes another empty-list fallback and
 lets Fabric use shared runtime behavior instead of a duplicate override.
+Client-specific route projections now derive from the generated per-client
+OpenAPI document, so graph-backed sessions no longer need a separate action
+list merely to expose alias routes through `routesFor(clientId)`.
 Continue by moving official 26.x support through shared Fabric
 discovery/projection/invocation, packaging, adaptive CLI/API smoke, and honest
 gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the
