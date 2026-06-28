@@ -29,6 +29,16 @@ material.
 - Avoid stale public routes such as `/player/sendChat`; use
   `POST /clients/{id}:run` and generated aliases such as
   `POST /clients/{id}/player:chat` when discussing action invocation.
+- Keep the active completion condition centered on Codex-verifiable evidence:
+  generated runtime graph/OpenAPI/actions/resources, SSE/JSON-RPC streams,
+  adaptive CLI/API use, multi-version launch/attach support, and honest
+  gameplay through public surfaces. Human Minecraft co-play or chat
+  confirmation may be documented only as optional diagnostic evidence.
+- When adding a new phase, update the root `AGENTS.md` phase list, this docs
+  guardrail if the completion story changes, and
+  `docs/project-completion-checklist.md`. Do not leave future agents to infer
+  whether a phase was foundation work, diagnostic evidence, or completion
+  evidence.
 
 ## Verification
 

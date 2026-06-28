@@ -33,6 +33,10 @@ protocol DTOs.
   graph, artifact, availability, and invocation data. Do not add one protocol
   type per Minecraft version, loader generation, mapping namespace, or Fabric
   API release.
+- Avoid protocol-level shortcut concepts that encode a single gameplay plan.
+  The protocol should make live affordances discoverable and invocable, so
+  agents can compose tasks outside the product without Craftless owning
+  `survival`, `cow`, `sword`, or similar scenario APIs.
 
 ## Verification
 

@@ -21,6 +21,9 @@ real clients before the Fabric driver is complete.
   invocation path.
 - Do not add bridge-specific version compatibility fallbacks. Multi-version
   support belongs in resolver/cache/driver-manifest/Fabric lane plumbing.
+- Do not use bridge success as a reason to keep or reintroduce static gameplay
+  methods anywhere else. Bridge observations can motivate generic Fabric graph
+  discovery or adapters, but they are not product API design.
 - Keep real-client smoke tests opt-in and guarded by environment variables.
 - Default tests must not download Minecraft/server artifacts or launch a real
   client.

@@ -48,6 +48,10 @@ sessions.
   whether the prepared runtime session was replaced by an attached in-client
   driver before generated gameplay OpenAPI/actions/resources are claimed as
   working.
+- Do not use daemon route additions to paper over missing driver discovery.
+  Missing gameplay breadth should become runtime graph evidence, generated
+  OpenAPI, adapter availability, SSE events, or explicit unsupported metadata,
+  not a new stable route family or version-specific endpoint.
 
 ## Verification
 

@@ -60,6 +60,12 @@ divergence that forced it.
   Minecraft client when available. Keep it to lane-provided booleans projected
   through shared discovery; do not turn this module into a copied Yarn/remap
   gateway or gameplay binding catalog.
+- Official-lane server connection work is allowed only as lifecycle/attach
+  evidence needed to observe connected client-state. Keep it as a narrow
+  official-mapped adapter for the actual Minecraft API divergence, and feed the
+  result into the shared driver session and shared graph. Do not use it as a
+  reason to copy chat, movement, inventory, block, recipe, or entity gameplay
+  bindings from the Yarn/remap lane.
 - Do not package this module as a supported driver lane or add it to
   `driver-mods.json` until launch, self-attach, generated OpenAPI/actions,
   resources, SSE, and public API/CLI gameplay evidence pass.

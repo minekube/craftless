@@ -278,6 +278,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 155. shared Fabric event graph projection.
 156. shared Fabric client-state graph projection.
 157. official Fabric live client-state probe.
+158. official Fabric connected client-state probe.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -464,6 +465,25 @@ official lane may read booleans such as player, world, inventory, camera,
 interaction manager, recipe access, and screen availability, but it must not
 copy Yarn/remap gateways or gameplay bindings, add public gameplay actions,
 package the 26.x official lane, or claim latest/current support.
+
+Phase 158 proves that the latest/current official lane can move from title
+screen attachment to connected-client state through a real server connection
+and the shared client-state graph. Treat server connect/stop as lifecycle
+primitives on the driver session, not gameplay breadth. The phase may add a
+narrow official-mapped connector adapter for the proven `ConnectScreen` /
+`ServerData` / `ServerAddress` divergence, but it must keep OpenAPI
+generation, runtime graph projection, SSE transport, invocation plumbing, and
+public names shared. It must not copy Yarn/remap gameplay bindings, add static
+gameplay actions, package the 26.x lane, or claim latest/current support until
+connected OpenAPI/actions/resources, streams, packaging, public API/CLI
+smoke, and honest gameplay evidence all pass.
+
+The next unfinished product work is to keep collapsing lane-specific
+implementation into shared system pieces while proving real runtime behavior.
+Work on discovery, projection, invocation, attach, transport, artifact
+resolution, Java/runtime selection, packaging, and verification. Do not fill
+gaps by adding one more hand-written gameplay action, one more static CLI
+command, or one more version-specific public API shape.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final

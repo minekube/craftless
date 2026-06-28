@@ -65,6 +65,11 @@ or a reason to fork the generated OpenAPI model.
   prepared runtime session, generated actions/resources are non-empty when the
   runtime supports them, and public API output stays Craftless-owned.
 - Do not depend on the HMC bridge for final Fabric behavior.
+- When a future Minecraft/Fabric version breaks current code, first identify
+  the exact divergence and decide whether it belongs in shared discovery,
+  shared attach, shared projection, resolver metadata, generated lane metadata,
+  or a narrow per-lane adapter. Do not start by copying the current gameplay
+  gateway or action adapter set into another version package.
 
 ## Verification
 

@@ -32,6 +32,9 @@ this module while reusing the same attach contract.
   transport DTO just because one Minecraft/Fabric version currently needs a
   workaround. First model the difference as metadata, availability, or a narrow
   lane adapter; this module should remain reusable by every lane.
+- If a lane cannot attach, fix the common attach contract or the narrow lane
+  adapter that feeds it. Do not fork loopback transport, invent per-version
+  attach endpoints, or add gameplay routes to prove a lane works.
 
 ## Verification
 

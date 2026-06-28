@@ -37,6 +37,10 @@
   output fetched from the live client.
 - CLI smoke evidence must prove the installed/packaged command talks to the
   same generated OpenAPI/actions/resources that agents would use.
+- Do not encode survival scenarios, material recipes, combat flows, or
+  Minecraft-version workarounds as built-in CLI gameplay commands. If a user or
+  agent can do it, the CLI should discover the live operation/resource schema
+  and invoke generic `run`/JSON-RPC/SSE flows from the per-client OpenAPI.
 
 ## Verification
 

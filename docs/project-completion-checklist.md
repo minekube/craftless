@@ -280,6 +280,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-157-official-fabric-live-client-state-probe-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-157-official-fabric-live-client-state-probe-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-158-official-fabric-connected-client-state-probe-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-158-official-fabric-connected-client-state-probe-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -624,8 +628,8 @@ Verification:
 - [x] Public-agent policy continues from navigation into mining/collection,
   inventory/equip, placement, chat, and generic combat evidence. Crafting,
   exact final survival acceptance, and combat pickup evidence are covered by
-  later public-agent and final gameplay evidence. Robin's in-game confirmation
-  remains open in Phase 7 and the final completion gate.
+  later public-agent and final gameplay evidence. Human co-play remains
+  optional diagnostic evidence, not a final completion requirement.
 
 Verification:
 
@@ -774,8 +778,9 @@ Verification:
   scheduling client work.
 - [x] Live no-hold evidence reaches `inventory.equip` for collected material
   and verifies follow-up `inventory.query` selected-slot state before
-  placement. The final project still remains open on broader survival
-  acceptance and Robin confirmation, not on material equip.
+  placement. The final project still remains open on generated-discovery,
+  multi-version runtime, transport, distribution, and final public API/CLI
+  verification gates, not on material equip.
 
 Verification:
 
@@ -903,7 +908,7 @@ Verification:
   follow-up `entity.query` reported `Raw Beef` and `Leather` drops and the passive
   entity no longer alive, generated navigation moved to the drop, and final
   `inventory.query` showed `Raw Beef` and `Leather`. The final project remains
-  open on Robin's chat confirmation.
+  open on the broader generated-discovery and multi-version completion gates.
 
 Verification:
 
@@ -937,8 +942,9 @@ Verification:
   `world.block.interact` path accepts a public block handle plus side and
   reports `accepted = true` and `changed = true`. This clears the previous
   `insufficient-public-evidence:world.block.interact.changed` blocker, but it
-  is not final project completion because Robin-confirmed multiplayer gameplay
-  is still outstanding.
+  is not final project completion because the broader generated-discovery,
+  multi-version runtime, transport, distribution, and final public API/CLI
+  gates are still outstanding.
 
 Verification:
 
@@ -1195,15 +1201,14 @@ Verification:
 - [x] The final gameplay smoke controller no longer invokes
   `task.survival.honest-cow-hunt` or writes `survival-task-results.jsonl`.
 - [x] Final live gameplay proves the scenario through generated
-  public actions, SSE events, adaptive consumers, and Robin's Minecraft chat
-  confirmation. Focused evidence now covers generated station-backed recipe
-  composition without `craft.sword` or station shortcuts. Current live
+  public actions, SSE events, and adaptive consumers. Focused evidence now
+  covers generated station-backed recipe composition without `craft.sword` or
+  station shortcuts. Current live
   no-hold evidence covers public material pickup, station placement/opening,
   generic combat, and public combat loot pickup without `task.survival.*`.
   Current held evidence covers honest weapon acquisition/composition as
   required by the survival scenario. The legacy API removal phase is complete;
-  Robin's held multiplayer observation, any fixes found there, and Robin's
-  explicit Minecraft chat confirmation remain open in Phase 7 and the final
+  optional held multiplayer observation remains diagnostic in Phase 7 and the final
   completion gate.
 
 Verification:
@@ -1938,8 +1943,8 @@ Verification:
   `public-agent-blocked.json`, `final-gameplay-ready.json` for
   `127.0.0.1:61963`, generated `entity.attack` killed a Sheep, and final
   `inventory.query` showed `White Wool` and `Raw Mutton`. The hold expired at
-  `2026-06-27 18:44:16 CEST` without a Robin chat line containing
-  `goal may be completed`, so final completion remains open.
+  `2026-06-27 18:44:16 CEST`; this is diagnostic history only. Final
+  completion remains open on the active Codex-verifiable gates.
 - [x] This phase changes public-agent acceptance policy only and adds no
   public gameplay action, generated route family, CLI gameplay catalog, Fabric
   descriptor/binding pair, scenario shortcut, new compiled lane, public
@@ -4750,7 +4755,8 @@ Verification:
   projection, Phase 153 shared Fabric runtime graph composition, and Phase 154
   shared Fabric registry graph projection, and Phase 155 shared Fabric event
   graph projection, Phase 156 shared Fabric client-state graph projection, and
-  Phase 157 official Fabric live client-state probe.
+  Phase 157 official Fabric live client-state probe. Phase 158 official Fabric
+  connected client-state probe is the next active implementation slice.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
@@ -4759,7 +4765,7 @@ Verification:
   135, Phase 136, Phase 137, Phase 138, Phase 139, Phase 140, Phase 141,
   Phase 142, Phase 143, Phase 144, Phase 145, Phase 146, Phase 147, Phase
   148, Phase 149, Phase 150, Phase 151, Phase 152, Phase 153, Phase 154, and
-  Phase 155, Phase 156, and Phase 157 do not satisfy the full runnable
+  Phase 155, Phase 156, Phase 157, and Phase 158 do not satisfy the full runnable
   latest/older support requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,

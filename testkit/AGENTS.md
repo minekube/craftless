@@ -24,6 +24,10 @@
   Minecraft version, loader, loader version, Fabric API version, Java major,
   mappings/lane fingerprint, and driver artifact. They must not encode one
   version as the implicit happy path for all future tests.
+- Test helpers may compose public gameplay scenarios for verification, but they
+  must do it as an outside user or agent through OpenAPI/actions/resources,
+  JSON-RPC/SSE, and adaptive CLI/API calls. Do not add fake product shortcuts
+  that would make static gameplay APIs look acceptable.
 
 ## Verification
 

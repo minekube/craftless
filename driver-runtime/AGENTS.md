@@ -36,6 +36,10 @@ real divergence.
   session contract itself cannot represent the divergence.
 - Attached in-client drivers must replace prepared-runtime placeholders before
   their generated OpenAPI/actions/resources are used as evidence.
+- Do not compensate for a weak backend by adding runtime-side static gameplay
+  branches. Runtime should route stable lifecycle calls, expose the graph, and
+  dispatch generic invocations; the backend/lane supplies discovered evidence
+  and narrow adapters only where the runtime actually diverges.
 
 ## Verification
 

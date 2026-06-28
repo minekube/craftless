@@ -52,6 +52,10 @@ driver lanes.
   or future Fabric versions diverge, model the difference as lane-provided
   metadata, evidence, availability, or a narrow adapter before adding
   per-version code.
+- This module should grow when two lanes need the same system behavior. Prefer
+  shared graph fragments, metadata providers, projection helpers, fingerprint
+  helpers, and schema helpers here over parallel copies in lane modules. Keep
+  actual Minecraft game-class calls and gameplay execution out of this module.
 - Do not depend on `driver-fabric`, `driver-fabric-official`, `daemon`, or
   `cli`.
 

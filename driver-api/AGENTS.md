@@ -31,6 +31,11 @@ and backend adapter behavior rather than stable API forks.
   and generic invocation payloads.
 - Do not add Craftless-owned enums for foreign concepts that already have
   standard protocol forms or should remain data from the runtime graph.
+- Keep lifecycle primitives distinct from gameplay breadth. Connect, stop,
+  snapshot, metadata, events, action discovery, graph snapshot, and generic
+  invoke may stay stable; chat, raycast, inventory, block, entity, recipe,
+  navigation, and similar affordances must arrive through discovered actions,
+  resources, handles, and schemas.
 
 ## Verification
 

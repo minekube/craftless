@@ -18,6 +18,8 @@
 - Helper tests must stay adaptive to live OpenAPI/actions. Do not add
   TypeScript-side static gameplay catalogs, Minecraft-version command tables,
   or scenario macros.
+- Browser/helper automation can be used as an external user-level verifier, but
+  it must not become a hidden SDK or duplicate product action catalog.
 
 ## Verification
 
