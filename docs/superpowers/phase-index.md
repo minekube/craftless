@@ -45,12 +45,13 @@ not grow with every completed phase.
 - Phase 160: official Fabric registry metadata probe.
 - Phase 161: official Fabric event-source metadata.
 - Phase 162: official Fabric connected SSE evidence.
+- Phase 163: official Fabric public projection endpoints.
 
 ## Current Direction
 
 The latest/current official lane has launch, attach, connected client-state,
 connected server-feature, registry, event-source metadata, and public SSE
-lifecycle evidence.
+lifecycle and projection endpoint evidence.
 Continue by moving official 26.x support through shared Fabric
 discovery/projection/invocation, packaging, SSE, adaptive CLI/API smoke, and
 honest gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the

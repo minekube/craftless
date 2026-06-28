@@ -4963,6 +4963,45 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-official-fabric-connected-sse-evidence.md`.
 
+## Phase 163: Official Fabric Public Projection Endpoints
+
+- [x] Spec written:
+  `docs/superpowers/specs/2026-06-28-163-official-fabric-public-projection-endpoints-design.md`.
+- [x] Plan written:
+  `docs/superpowers/plans/2026-06-28-163-official-fabric-public-projection-endpoints-plan.md`.
+- [x] Phase history is maintained in `docs/superpowers/phase-index.md`, not
+  appended to root `AGENTS.md`.
+- [x] The official attach probe now fetches the existing public
+  `GET /clients/{id}/actions` and `GET /clients/{id}/resources` endpoints.
+- [x] The probe writes `client-actions.json` and `client-resources.json`.
+- [x] `probe-result.json` records `publicActionCount` and
+  `publicResourceIds` from those endpoint bodies.
+- [x] The enabled connected official attach probe generated projection
+  evidence with `actions=0` and resource ids `runtime`, `registry`, `event`,
+  `client`, `player`, `inventory`, `recipe`, `world`, `entity`, and `screen`.
+- [x] This phase adds no packaged 26.x driver manifest entry, no public
+  gameplay API, no static gameplay catalog, no version-specific public route
+  family, no action adapter, no survival shortcut, and no final latest/current
+  support claim.
+
+Verification:
+
+- Red artifact check:
+  `test -f driver-fabric-official/build/craftless-official-attach-probe/client-actions.json && test -f driver-fabric-official/build/craftless-official-attach-probe/client-resources.json`
+  failed before implementation with exit code `1`.
+- Focused green check:
+  `mise exec -- gradle :driver-fabric-official:test --tests '*OfficialFabricSharedRuntimeMetadataTest*'`.
+- Real enabled connected official attach probe:
+  `CRAFTLESS_OFFICIAL_FABRIC_ATTACH_PROBE=1`
+  `CRAFTLESS_OFFICIAL_ATTACH_PROBE_CONNECT=1`
+  `CRAFTLESS_OFFICIAL_ATTACH_PROBE_TIMEOUT_MS=180000`
+  `mise exec -- gradle :driver-fabric-official:officialFabricAttachProbe`.
+  Observed public projection endpoint artifacts with `publicActionCount=0`
+  and public resource ids `runtime`, `registry`, `event`, `client`, `player`,
+  `inventory`, `recipe`, `world`, `entity`, and `screen`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-official-fabric-public-projection-endpoints.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -5023,7 +5062,8 @@ Verification:
   Fabric connected client-state probe, Phase 159 official Fabric connected
   server-feature metadata, Phase 160 official Fabric registry metadata probe,
   Phase 161 official Fabric event-source metadata, and Phase 162 official
-  Fabric connected SSE evidence.
+  Fabric connected SSE evidence, and Phase 163 official Fabric public
+  projection endpoints.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
@@ -5033,8 +5073,8 @@ Verification:
   Phase 142, Phase 143, Phase 144, Phase 145, Phase 146, Phase 147, Phase
   148, Phase 149, Phase 150, Phase 151, Phase 152, Phase 153, Phase 154, and
   Phase 155, Phase 156, Phase 157, Phase 158, Phase 159, Phase 160, and Phase
-  161, and Phase 162 do not satisfy the full runnable latest/older support
-  requirement by themselves.
+  161, Phase 162, and Phase 163 do not satisfy the full runnable latest/older
+  support requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support
