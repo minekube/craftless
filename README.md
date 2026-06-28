@@ -26,8 +26,8 @@ gameplay SDK.
 | Gameplay surface | Runtime capability graph projection, not a static catalog |
 | Events | SSE streams plus JSON-RPC-style HTTP control/query calls |
 | Current Fabric lane | Verified for the compiled lane |
-| Latest and older lanes | Historical probes exist; active runtime code uses provider-backed lanes plus generic unsupported fallback until runnable support lands |
-| Final gameplay evidence | Public API/CLI path completed survival evidence without server-provisioned inventory |
+| Latest and older lanes | Representative older `1.20.6` packaged attach is verified; `latest-release` currently resolves to `26.2` and fails honestly because no packaged 26.x driver lane exists |
+| Final gameplay evidence | Historical public API/CLI survival evidence exists; final completion still requires a refreshed run after latest/current compatibility work |
 | Completion | Still active; see `docs/project-completion-checklist.md` |
 
 ## Quickstart
@@ -243,12 +243,14 @@ Verified surfaces:
 - bridge lifecycle-only behavior after removal of bridge-owned gameplay
   descriptors and helpers.
 
-Current final gameplay evidence uses generated public APIs only. The external
-public-agent path fetched generated OpenAPI/actions/resources, consumed SSE
-evidence, collected materials, crafted and equipped a `Wooden Sword`, found
-Cows through `entity.query`, killed a Cow through `entity.attack`, and observed
-`Raw Beef`, `Leather`, and the Cow with `alive:false`. The run completed
-without server-provisioned inventory or static survival macro evidence.
+Historical final gameplay evidence uses generated public APIs only. The
+external public-agent path fetched generated OpenAPI/actions/resources,
+consumed SSE evidence, collected materials, crafted and equipped a
+`Wooden Sword`, found Cows through `entity.query`, killed a Cow through
+`entity.attack`, and observed `Raw Beef`, `Leather`, and the Cow with
+`alive:false`. That run completed without server-provisioned inventory or
+static survival macro evidence. Final completion still requires a refreshed
+public API/CLI gameplay run after the latest/current compatibility work.
 
 Still open before the broader project can be called complete:
 
@@ -261,7 +263,8 @@ Still open before the broader project can be called complete:
   public API/CLI/SSE only;
 - land real additional Fabric client lanes only when cache preparation,
   Java/runtime selection, loader/API resolution, launch metadata, compatibility
-  matrix, and smoke evidence prove them;
+  matrix, packaged driver manifests, attach evidence, and generated API/CLI
+  smoke evidence prove them;
 - keep the completion audit current across CI, release, Docker, installer,
   compatibility, docs, and public gameplay gates.
 

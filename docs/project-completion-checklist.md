@@ -232,6 +232,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-142-installed-packaged-older-fabric-live-attach-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-142-installed-packaged-older-fabric-live-attach-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-143-installed-latest-release-alias-compatibility-probe-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-143-installed-latest-release-alias-compatibility-probe-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -4006,6 +4010,39 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-installed-packaged-older-fabric-live-attach.md`.
 
+## Phase 143: Installed Latest Release Alias Compatibility Probe
+
+- [x] The live Mojang manifest was captured and reported latest release `26.2`
+  and latest snapshot `26.3-snapshot-1`.
+- [x] `mise run package-cli` passed before the installed probe.
+- [x] The packaged binary started a supervisor at `http://127.0.0.1:18083`
+  with workspace `/tmp/craftless-packaged-latest-release-probe/workspace`.
+- [x] The packaged CLI request for `clients create latest-cli --version
+  latest-release --loader fabric` resolved the moving alias to Minecraft
+  `26.2`.
+- [x] Prepared runtime evidence shows Java major version 25,
+  `java-runtime-epsilon`, asset index `32`, Fabric Loader `0.19.3`, and Fabric
+  API `0.153.0+26.2`.
+- [x] The packaged driver manifest contains provider-backed Craftless driver
+  entries for `1.21.6` and `1.20.6`, but no `26.2` entry.
+- [x] The packaged create request failed honestly with:
+  `driver mod manifest has no Fabric entry for 26.2 0.19.3
+  fabricApiVersion=0.153.0+26.2 javaMajorVersion=25`.
+- [x] The supervisor was stopped and no managed Craftless/latest-release probe
+  processes remained.
+- [x] This phase adds no public gameplay API, static gameplay catalog,
+  version-specific public route family, survival shortcut, or final
+  latest/current support claim.
+
+Verification:
+
+- Package build:
+  `mise run package-cli` passed.
+- Packaged latest-release probe artifact root:
+  `/tmp/craftless-packaged-latest-release-probe/artifacts/`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-installed-latest-release-alias-compatibility-probe.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -4052,14 +4089,15 @@ Verification:
   Fabric lane, Phase 139 packaged older Fabric lane selection smoke, and Phase
   140 parameterized Fabric smoke client command, and Phase 141 representative
   older Fabric real-client smoke, and Phase 142 installed packaged older
-  Fabric live attach.
+  Fabric live attach, and Phase 143 installed latest-release alias
+  compatibility probe.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
   122, Phase 123, Phase 124, Phase 125, Phase 126, Phase 127, Phase 128,
   Phase 129, Phase 130, Phase 131, Phase 132, Phase 133, Phase 134, Phase
-  135, Phase 136, Phase 137, Phase 138, Phase 139, Phase 140, Phase 141, and
-  Phase 142 do not
+  135, Phase 136, Phase 137, Phase 138, Phase 139, Phase 140, Phase 141,
+  Phase 142, and Phase 143 do not
   satisfy the full runnable latest/older support
   requirement by themselves.
   The broader project goal remains active until
@@ -4104,8 +4142,8 @@ Verification:
   diagnostic generated-action smoke for Minecraft `1.20.6`. Phase 142 proves
   installed packaged CLI launch, self-attach, generated OpenAPI, generated
   actions/resources, SSE events, and cleanup for Minecraft `1.20.6`. Full
-  product support still requires latest/current-version evidence refresh,
-  final compatibility audit, and honest final survival gameplay without
-  server-provisioned inventory.
+  product support still requires a runnable provider-backed latest/current
+  driver lane, final compatibility audit, and honest final survival gameplay
+  without server-provisioned inventory.
 - [x] Changes are committed and pushed to `main`. This entry is current only
   after the checklist update that changes it is also pushed.

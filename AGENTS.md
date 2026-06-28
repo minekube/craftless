@@ -253,6 +253,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 140. parameterized Fabric smoke client command.
 141. representative older Fabric real-client smoke.
 142. installed packaged older Fabric live attach.
+143. installed latest-release alias compatibility probe.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -307,6 +308,17 @@ packaged `craftless clients create --version 1.20.6 --loader fabric
 --loader-version 0.19.3`, then fetch generated OpenAPI/actions/resources and
 events. This closes the packaged older-lane proof gap, but still does not prove
 honest final survival gameplay.
+
+Phase 143 refreshes the installed packaged product behavior for the moving
+`latest-release` alias against the current Mojang manifest. If the alias
+resolves to a Minecraft 26.x release such as `26.2`, the probe must capture
+the exact runtime resolution, Java/runtime requirement, Fabric Loader/API
+resolution, and driver-lane result through the packaged CLI/API surface. This
+phase may record an unsupported installed latest-release result, but it must
+not satisfy final latest/current support. Runnable 26.x support requires a real
+provider-backed driver lane, likely using official/Mojang mappings rather than
+the current Yarn-based compiled lane, plus launch, attach, generated OpenAPI,
+generated actions/resources, SSE, and public gameplay evidence.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final
