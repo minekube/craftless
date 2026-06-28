@@ -564,6 +564,109 @@ class CachePreparationServiceTest {
         }
 
     @Test
+    fun `cache preparation uses one aggregate native directory for launch variables`() =
+        runBlocking {
+            val workspace = Files.createTempDirectory("craftless-cache-aggregate-natives")
+            val nativeArtifact = currentTestNativeArtifact()
+            val versionUrl = "https://metadata.test/26.2.json"
+            val clientJarUrl = "https://metadata.test/client.jar"
+            val assetIndexUrl = "https://metadata.test/assets/26.json"
+            val lwjglNativeUrl = "https://libraries.minecraft.net/org/lwjgl/lwjgl/3.4.1/lwjgl-3.4.1-${nativeArtifact.classifier}.jar"
+            val glfwNativeUrl =
+                "https://libraries.minecraft.net/org/lwjgl/lwjgl-glfw/3.4.1/lwjgl-glfw-3.4.1-${nativeArtifact.classifier}.jar"
+            val service =
+                CachePreparationService(
+                    workspaceRoot = workspace,
+                    metadataFetcher =
+                        StaticCacheMetadataFetcher(
+                            mapOf(
+                                MINECRAFT_VERSION_INDEX_URL to
+                                    """
+                                    { "versions": [{ "id": "26.2", "url": "$versionUrl" }] }
+                                    """.trimIndent(),
+                                versionUrl to
+                                    """
+                                    {
+                                      "id": "26.2",
+                                      "assetIndex": {
+                                        "id": "26",
+                                        "url": "$assetIndexUrl"
+                                      },
+                                      "mainClass": "test.minecraft.Main",
+                                      "arguments": {
+                                        "jvm": [
+                                          "-Djava.library.path=${'$'}{natives_directory}",
+                                          "-Djna.tmpdir=${'$'}{natives_directory}/jna",
+                                          "-Dorg.lwjgl.system.SharedLibraryExtractPath=${'$'}{natives_directory}/lwjgl",
+                                          "-Dio.netty.native.workdir=${'$'}{natives_directory}/netty",
+                                          "-cp",
+                                          "${'$'}{classpath}"
+                                        ],
+                                        "game": ["--gameDir", "${'$'}{game_directory}"]
+                                      },
+                                      "libraries": [
+                                        {
+                                          "name": "org.lwjgl:lwjgl:3.4.1",
+                                          "natives": {
+                                            "${nativeArtifact.osName}": "${nativeArtifact.classifier}"
+                                          },
+                                          "downloads": {
+                                            "classifiers": {
+                                              "${nativeArtifact.classifier}": {
+                                                "url": "$lwjglNativeUrl"
+                                              }
+                                            }
+                                          }
+                                        },
+                                        {
+                                          "name": "org.lwjgl:lwjgl-glfw:3.4.1",
+                                          "natives": {
+                                            "${nativeArtifact.osName}": "${nativeArtifact.classifier}"
+                                          },
+                                          "downloads": {
+                                            "classifiers": {
+                                              "${nativeArtifact.classifier}": {
+                                                "url": "$glfwNativeUrl"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      ],
+                                      "downloads": {
+                                        "client": { "url": "$clientJarUrl" }
+                                      }
+                                    }
+                                    """.trimIndent(),
+                                assetIndexUrl to """{"objects":{}}""",
+                            ),
+                            binaryResponses =
+                                mapOf(
+                                    clientJarUrl to "client-jar".encodeToByteArray(),
+                                    lwjglNativeUrl to nativeZipBytes("lwjgl-native", "libcraftless-lwjgl.dylib"),
+                                    glfwNativeUrl to nativeZipBytes("glfw-native", "libcraftless-glfw.dylib"),
+                                ),
+                        ),
+                )
+
+            val result = service.prepare(CachePrepareRequest("26.2", Loader.VANILLA))
+
+            val nativeDirectory = result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_NATIVE_DIRECTORY }
+            assertEquals(listOf(nativeDirectory.handle), result.launch.nativePath)
+            assertEquals("lwjgl-native", Files.readString(workspace.resolve(nativeDirectory.handle).resolve("libcraftless-lwjgl.dylib")))
+            assertEquals("glfw-native", Files.readString(workspace.resolve(nativeDirectory.handle).resolve("libcraftless-glfw.dylib")))
+            assertEquals("lwjgl-native", Files.readString(workspace.resolve(nativeDirectory.handle).resolve("java/libcraftless-lwjgl.dylib")))
+            assertEquals("glfw-native", Files.readString(workspace.resolve(nativeDirectory.handle).resolve("java/libcraftless-glfw.dylib")))
+
+            val launchArguments = result.artifacts.single { it.kind == CachePreparedArtifactKind.LAUNCH_ARGUMENTS }
+            val launchArgumentsJson = Files.readString(workspace.resolve(launchArguments.handle))
+            assertTrue(launchArgumentsJson.contains("\"-Djava.library.path=${nativeDirectory.handle}\""))
+            assertTrue(launchArgumentsJson.contains("\"-Djna.tmpdir=${nativeDirectory.handle}/jna\""))
+            assertTrue(launchArgumentsJson.contains("\"-Dorg.lwjgl.system.SharedLibraryExtractPath=${nativeDirectory.handle}/lwjgl\""))
+            assertTrue(launchArgumentsJson.contains("\"-Dio.netty.native.workdir=${nativeDirectory.handle}/netty\""))
+            assertFalse(launchArgumentsJson.contains("${File.pathSeparator}cache/natives/"))
+        }
+
+    @Test
     fun `cache preparation resolves and stores minecraft version metadata`() =
         runBlocking {
             val workspace = Files.createTempDirectory("craftless-cache-resolution")
@@ -1461,9 +1564,10 @@ class CachePreparationServiceTest {
 
             service.prepare(CachePrepareRequest("1.21.6", Loader.FABRIC))
 
+            val nativeDirectoryHandle = "cache/natives/${"cache/prepared/1.21.6-fabric-0.17.2.json".sha256HexForTest()}"
             val extractedNative =
                 workspace
-                    .resolve("cache/natives/${nativeUrl.sha256HexForTest()}")
+                    .resolve(nativeDirectoryHandle)
                     .resolve("libcraftless-test.dylib")
             assertEquals("downloaded-client", Files.readString(clientJar))
             assertEquals("downloaded-library", Files.readString(minecraftLibrary))
@@ -1626,10 +1730,13 @@ class CachePreparationServiceTest {
         }
 }
 
-private fun nativeZipBytes(content: String = "native-bytes"): ByteArray {
+private fun nativeZipBytes(
+    content: String = "native-bytes",
+    entryName: String = "libcraftless-test.dylib",
+): ByteArray {
     val output = ByteArrayOutputStream()
     ZipOutputStream(output).use { zip ->
-        zip.putNextEntry(ZipEntry("libcraftless-test.dylib"))
+        zip.putNextEntry(ZipEntry(entryName))
         zip.write(content.encodeToByteArray())
         zip.closeEntry()
         zip.putNextEntry(ZipEntry("META-INF/ignored.txt"))

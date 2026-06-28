@@ -91,7 +91,6 @@ class CachePreparationService(
         val versionManifest = metadataFetcher.fetchText(versionManifestUrl)
         val clientJar = versionManifest.clientJarDownload(resolvedRequest.minecraftVersion)
         val minecraftLibraries = versionManifest.minecraftLibraries()
-        val minecraftNativeLibraries = versionManifest.minecraftNativeLibraries()
         val assetIndexMetadata = versionManifest.assetIndexMetadata(resolvedRequest.minecraftVersion)
         val assetIndex = metadataFetcher.fetchText(assetIndexMetadata.url)
         val assetObjects = assetIndex.assetObjects()
@@ -102,6 +101,13 @@ class CachePreparationService(
         val fabricMods = listOfNotNull(fabricMetadata?.fabricApi)
         val effectiveMinecraftLibraries = minecraftLibraries.withoutLibrariesReplacedBy(fabricLibraries)
         val baseResult = CachePrepareResult.forRequest(resolvedRequest, fabricMetadata?.loaderVersion)
+        val minecraftNativeLibraries =
+            versionManifest
+                .minecraftNativeLibraries()
+                .map { native ->
+                    native.copy(nativeDirectoryHandle = baseResult.aggregateNativeDirectoryHandle())
+                }
+        val minecraftNativeDirectoryArtifact = minecraftNativeLibraries.firstOrNull()?.directoryArtifact
         val launchArgumentsArtifact =
             baseResult.launchArgumentsArtifact(
                 versionManifest = versionManifest,
@@ -138,7 +144,8 @@ class CachePreparationService(
                 listOfNotNull(launchArgumentsArtifact) +
                 listOfNotNull(loggingConfig?.artifact) +
                 effectiveMinecraftLibraries.map { it.artifact } +
-                minecraftNativeLibraries.flatMap { native -> listOf(native.libraryArtifact, native.directoryArtifact) } +
+                minecraftNativeLibraries.map { native -> native.libraryArtifact } +
+                listOfNotNull(minecraftNativeDirectoryArtifact) +
                 loaderMetadataArtifacts +
                 assetObjects.map { it.artifact } +
                 fabricLibraries.map { it.artifact } +
@@ -484,6 +491,18 @@ class CachePreparationService(
         bytes: ByteArray,
     ) {
         val targetRoot = resolveHandle(native.directoryArtifact.handle)
+        listOf("jna", "lwjgl", "netty").forEach { child ->
+            Files.createDirectories(targetRoot.resolve(child))
+        }
+        listOf(targetRoot, targetRoot.resolve("java")).forEach { root ->
+            extractNativeLibraryTo(root, bytes)
+        }
+    }
+
+    private fun extractNativeLibraryTo(
+        targetRoot: Path,
+        bytes: ByteArray,
+    ) {
         Files.createDirectories(targetRoot)
         ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
             generateSequence { zip.nextEntry }.forEach { entry ->
@@ -671,6 +690,8 @@ private fun CachePrepareResult.cleanupHandles(): List<String> =
         artifacts.map { artifact -> artifact.handle } +
             manifest
     ).distinct()
+
+private fun CachePrepareResult.aggregateNativeDirectoryHandle(): String = "cache/natives/${manifest.sha256Hex()}"
 
 private fun CachePrepareResult.launchArgumentsArtifact(
     versionManifest: String,
@@ -1140,6 +1161,7 @@ private data class MinecraftLibraryArtifact(
 private data class MinecraftNativeLibraryArtifact(
     val source: String,
     val sha1: String?,
+    val nativeDirectoryHandle: String = "cache/natives/${source.sha256Hex()}",
 ) {
     private val fingerprint: String = source.sha256Hex()
 
@@ -1155,7 +1177,7 @@ private data class MinecraftNativeLibraryArtifact(
     val directoryArtifact: CachePreparedArtifact =
         CachePreparedArtifact(
             kind = CachePreparedArtifactKind.MINECRAFT_NATIVE_DIRECTORY,
-            handle = "cache/natives/$fingerprint",
+            handle = nativeDirectoryHandle,
             status = CachePreparedArtifactStatus.EXTRACTED,
         )
 }

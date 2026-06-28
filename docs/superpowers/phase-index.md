@@ -64,6 +64,7 @@ not grow with every completed phase.
 - Phase 179: official client-state world time operation.
 - Phase 180: official world time invocation.
 - Phase 181: packaged official latest Fabric lane.
+- Phase 182: packaged latest-current attach artifacts.
 
 ## Current Direction
 
@@ -119,23 +120,24 @@ alias route families, scenario shortcut ids remain rejected, and daemon event
 normalization cannot synthesize gameplay action ids.
 The official 26.x/latest-current lane now projects the existing
 `world.time.query` operation from shared Fabric client-state discovery, so it
-no longer reports zero runtime operations when a world is observed. This is
-CL-03e progress only; official invocation, packaged latest-lane create/attach,
-fresh connected OpenAPI/action/resource/SSE/JSON-RPC artifacts, and public
-gameplay smoke remain open.
+no longer reports zero runtime operations when a world is observed.
 The official lane now also invokes generated `world.time.query` through an
-internal 26.x world-time provider and private adapter-key dispatch. This is
-still CL-03e progress only; connected OpenAPI/action/resource/SSE/JSON-RPC
-artifacts, packaged latest-lane create/attach, and public gameplay smoke
-remain open.
+internal 26.x world-time provider and private adapter-key dispatch.
 The packaged CLI/Docker distribution now includes a `26.2` official Fabric
 driver manifest entry and staged
 `mods/fabric-26.2/craftless-driver-fabric-official.jar`, built through the
 Java 25 mise runtime. This removes the previous packaged manifest miss for
-`latest-release` resolving to `26.2`, but CL-03 remains open until the
-packaged latest-current create/attach run captures connected OpenAPI,
-actions/resources, SSE, JSON-RPC query/subscription, and public smoke
-artifacts.
+`latest-release` resolving to `26.2`.
+The packaged latest-current probe now resolves `latest-release` to Minecraft
+`26.2`, selects a mise-managed Java 25 runtime, creates and attaches the
+official Fabric client through the packaged CLI/supervisor API, connects to a
+real local Minecraft server, and captures connected generated OpenAPI,
+actions/resources, SSE, JSON-RPC query, and JSON-RPC subscription artifacts.
+The native launch bug was fixed in shared cache preparation by using one
+aggregate native directory for `${natives_directory}` while keeping classpath
+and library artifacts separate. CL-03 now only waits on CL-03f: a public
+packaged API or adaptive CLI invocation of a generated operation with a
+captured transcript.
 Continue by moving official 26.x support through shared Fabric
 discovery/projection/invocation, packaging, adaptive CLI/API smoke, and honest
 gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the

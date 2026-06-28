@@ -77,6 +77,26 @@ describe("distribution surface", () => {
     expect(mise).toContain("java@temurin-25.0.3+9.0.LTS");
   });
 
+  test("packaged latest current probe is a mise-managed product surface", () => {
+    const mise = read(".mise.toml");
+    const script = read("scripts/packaged-latest-current-probe.sh");
+
+    expect(mise).toContain("[tasks.packaged-latest-current-probe]");
+    expect(mise).toContain("CRAFTLESS_LOCAL_SERVER_SMOKE=1");
+    expect(mise).toContain("CRAFTLESS_SMOKE_JAVA_EXECUTABLE=$HOME/.local/share/mise/installs/java/temurin-25.0.3+9.0.LTS/bin/java");
+    expect(mise).toContain("CRAFTLESS_PACKAGED_LATEST_TIMEOUT_MS=900000");
+    expect(mise).toContain("$PWD/scripts/packaged-latest-current-probe.sh");
+    expect(mise).toContain("mise run package-cli");
+    expect(script).toContain("build/docker/craftless/bin/craftless");
+    expect(script).toContain("--version latest-release");
+    expect(script).toContain("supervisor-openapi.json");
+    expect(script).toContain("clients-create-latest-release.log");
+    expect(script).toContain("client-openapi-connected.json");
+    expect(script).toContain("client-rpc-subscribe.json");
+    expect(script).toContain("mise exec -- bun");
+    expect(script).not.toContain("task.survival");
+  });
+
   test("Dockerfile copies a built CLI distribution instead of building Craftless", () => {
     const dockerfile = read("Dockerfile");
 
