@@ -21,6 +21,7 @@ include(
     "protocol",
     "driver-api",
     "driver-runtime",
+    "driver-fabric-attach",
     "driver-fabric",
     "driver-fabric-official",
     "testkit",

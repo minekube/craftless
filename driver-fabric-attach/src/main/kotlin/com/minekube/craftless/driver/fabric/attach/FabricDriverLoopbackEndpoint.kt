@@ -1,4 +1,4 @@
-package com.minekube.craftless.driver.fabric
+package com.minekube.craftless.driver.fabric.attach
 
 import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.api.DriverActionInvocation
@@ -18,7 +18,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.net.ServerSocket
 
-internal class FabricDriverLoopbackEndpoint(
+class FabricDriverLoopbackEndpoint(
     private val session: DriverSession,
     private val host: String = LOOPBACK_HOST,
     requestedPort: Int = 0,

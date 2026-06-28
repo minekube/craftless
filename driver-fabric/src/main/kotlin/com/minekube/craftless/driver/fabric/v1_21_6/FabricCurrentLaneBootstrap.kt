@@ -1,7 +1,7 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
 import com.minekube.craftless.driver.fabric.FabricDriverBootstrap
-import com.minekube.craftless.driver.fabric.FabricDriverSelfAttach
+import com.minekube.craftless.driver.fabric.attach.FabricDriverSelfAttach
 import com.minekube.craftless.driver.fabric.runtime.FabricCompiledLaneMetadata
 import com.minekube.craftless.driver.runtime.BackendDriverSession
 

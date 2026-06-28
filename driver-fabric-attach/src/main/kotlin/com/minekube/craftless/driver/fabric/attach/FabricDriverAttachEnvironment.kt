@@ -1,6 +1,6 @@
-package com.minekube.craftless.driver.fabric
+package com.minekube.craftless.driver.fabric.attach
 
-internal data class FabricDriverAttachEnvironment(
+data class FabricDriverAttachEnvironment(
     val clientId: String,
     val daemonUrl: String,
 ) {

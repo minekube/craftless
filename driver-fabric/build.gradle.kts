@@ -56,6 +56,7 @@ dependencies {
 
     implementation(project(":driver-api"))
     implementation(project(":driver-runtime"))
+    implementation(project(":driver-fabric-attach"))
     implementation(project(":daemon"))
     implementation("io.ktor:ktor-client-core-jvm:3.5.0")
     implementation("io.ktor:ktor-client-cio-jvm:3.5.0")
@@ -64,6 +65,7 @@ dependencies {
     include(project(":protocol"))
     include(project(":driver-api"))
     include(project(":driver-runtime"))
+    include(project(":driver-fabric-attach"))
     include(project(":daemon"))
     include(project(":bridge-hmc"))
     include("io.ktor:ktor-client-core-jvm:3.5.0")

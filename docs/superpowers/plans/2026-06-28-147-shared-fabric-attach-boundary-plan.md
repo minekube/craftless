@@ -15,7 +15,7 @@
 **Files:**
 - Modify: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt`
 
-- [ ] **Step 1: Write the failing guard test**
+- [x] **Step 1: Write the failing guard test**
 
 Add a test named:
 
@@ -40,7 +40,7 @@ Assert:
 - the official entrypoint references `FabricDriverSelfAttach.startFromEnvironment`;
 - no official-lane file contains public gameplay descriptor/catalog names.
 
-- [ ] **Step 2: Run the guard test red**
+- [x] **Step 2: Run the guard test red**
 
 ```sh
 mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.official lane uses shared fabric attach boundary without depending on yarn remap lane'
@@ -60,17 +60,17 @@ not exist and the official entrypoint does not start shared attach.
 - Move: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/FabricDriverSelfAttach.kt`
 - Move: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/FabricDriverSelfAttachTest.kt`
 
-- [ ] **Step 1: Register the module**
+- [x] **Step 1: Register the module**
 
 Add `driver-fabric-attach` to `settings.gradle.kts`.
 
-- [ ] **Step 2: Add module instructions**
+- [x] **Step 2: Add module instructions**
 
 Create `driver-fabric-attach/AGENTS.md` stating that the module owns
 version-neutral Fabric attach/loopback transport only. It must not contain
 gameplay bindings, per-version route trees, or public action catalogs.
 
-- [ ] **Step 3: Add the Gradle build**
+- [x] **Step 3: Add the Gradle build**
 
 Create `driver-fabric-attach/build.gradle.kts` with:
 
@@ -87,7 +87,7 @@ dependencies {
 }
 ```
 
-- [ ] **Step 4: Move attach sources**
+- [x] **Step 4: Move attach sources**
 
 Move the three attach source files into
 `driver-fabric-attach/src/main/kotlin/com/minekube/craftless/driver/fabric/attach/`.
@@ -99,13 +99,13 @@ package com.minekube.craftless.driver.fabric.attach
 
 Make the classes/functions public where they are consumed by other modules.
 
-- [ ] **Step 5: Move attach tests**
+- [x] **Step 5: Move attach tests**
 
 Move `FabricDriverSelfAttachTest.kt` into
 `driver-fabric-attach/src/test/kotlin/com/minekube/craftless/driver/fabric/attach/`
 and update the package/imports.
 
-- [ ] **Step 6: Verify shared attach tests**
+- [x] **Step 6: Verify shared attach tests**
 
 ```sh
 mise exec -- gradle :driver-fabric-attach:test
@@ -119,7 +119,7 @@ Expected: moved self-attach tests pass.
 - Modify: `driver-fabric/build.gradle.kts`
 - Modify: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricCurrentLaneBootstrap.kt`
 
-- [ ] **Step 1: Add module dependency**
+- [x] **Step 1: Add module dependency**
 
 Add:
 
@@ -130,7 +130,7 @@ include(project(":driver-fabric-attach"))
 
 to `driver-fabric/build.gradle.kts` using the existing dependency/include style.
 
-- [ ] **Step 2: Update imports**
+- [x] **Step 2: Update imports**
 
 Update `FabricCurrentLaneBootstrap.kt` to import:
 
@@ -138,7 +138,7 @@ Update `FabricCurrentLaneBootstrap.kt` to import:
 import com.minekube.craftless.driver.fabric.attach.FabricDriverSelfAttach
 ```
 
-- [ ] **Step 3: Verify current lane behavior**
+- [x] **Step 3: Verify current lane behavior**
 
 ```sh
 mise exec -- gradle :driver-fabric:test
@@ -153,7 +153,7 @@ Expected: existing Fabric driver tests pass.
 - Modify: `driver-fabric-official/src/main/kotlin/com/minekube/craftless/driver/fabric/official/CraftlessFabricOfficialEntrypoint.kt`
 - Create: `driver-fabric-official/src/main/kotlin/com/minekube/craftless/driver/fabric/official/OfficialFabricDriverBackend.kt`
 
-- [ ] **Step 1: Add dependencies**
+- [x] **Step 1: Add dependencies**
 
 Add dependencies on:
 
@@ -165,14 +165,14 @@ implementation(project(":driver-fabric-attach"))
 
 Do not add `project(":driver-fabric")`.
 
-- [ ] **Step 2: Add metadata-only backend**
+- [x] **Step 2: Add metadata-only backend**
 
 Create `OfficialFabricDriverBackend` implementing the stable runtime backend
 contract. It should return runtime metadata for the official lane, expose no
 gameplay actions until generic discovery/projection is shared, and reject
 generic gameplay invocation with a structured unavailable result.
 
-- [ ] **Step 3: Start shared attach**
+- [x] **Step 3: Start shared attach**
 
 Update `CraftlessFabricOfficialEntrypoint` to create the metadata-only backend
 and call:
@@ -185,7 +185,7 @@ FabricDriverSelfAttach.startFromEnvironment(
 )
 ```
 
-- [ ] **Step 4: Verify official compile boundary**
+- [x] **Step 4: Verify official compile boundary**
 
 ```sh
 mise exec -- gradle :driver-fabric-official:compileKotlin :driver-fabric-official:processResources :driver-fabric-official:jar
@@ -200,7 +200,7 @@ Expected: all official lane tasks pass.
 - Modify: `README.md`
 - Create: `docs/superpowers/evidence/2026-06-28-shared-fabric-attach-boundary.md`
 
-- [ ] **Step 1: Run the latest official probe**
+- [x] **Step 1: Run the latest official probe**
 
 ```sh
 mise run fabric-lane-check-latest-official
@@ -209,7 +209,7 @@ mise run fabric-lane-check-latest-official
 Expected: `build/reports/fabric-lane-check-latest-official.status` contains
 `status=compiled`.
 
-- [ ] **Step 2: Run lint and whitespace checks**
+- [x] **Step 2: Run lint and whitespace checks**
 
 ```sh
 mise exec -- gradle lint
@@ -218,13 +218,13 @@ git diff --check
 
 Expected: both commands pass.
 
-- [ ] **Step 3: Update docs**
+- [x] **Step 3: Update docs**
 
 Record that the official lane now shares attach/runtime handoff code, while
 still lacking launch/attach evidence, generated gameplay discovery breadth,
 packaged 26.x manifest support, and final latest/current gameplay support.
 
-- [ ] **Step 4: Commit and push**
+- [x] **Step 4: Commit and push**
 
 ```sh
 git add AGENTS.md driver-fabric/AGENTS.md driver-fabric-official/AGENTS.md driver-runtime/AGENTS.md daemon/AGENTS.md cli/AGENTS.md docs/AGENTS.md testkit/AGENTS.md bridge-hmc/AGENTS.md playwright/AGENTS.md settings.gradle.kts driver-fabric-attach driver-fabric driver-fabric-official docs/project-completion-checklist.md README.md docs/superpowers/specs/2026-06-28-147-shared-fabric-attach-boundary-design.md docs/superpowers/plans/2026-06-28-147-shared-fabric-attach-boundary-plan.md docs/superpowers/evidence/2026-06-28-shared-fabric-attach-boundary.md

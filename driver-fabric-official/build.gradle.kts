@@ -12,6 +12,9 @@ dependencies {
     "minecraft"("com.mojang:minecraft:26.2")
     implementation("net.fabricmc:fabric-loader:0.19.3")
     implementation("net.fabricmc.fabric-api:fabric-api:0.153.0+26.2")
+    implementation(project(":driver-api"))
+    implementation(project(":driver-runtime"))
+    implementation(project(":driver-fabric-attach"))
 }
 
 tasks.processResources {

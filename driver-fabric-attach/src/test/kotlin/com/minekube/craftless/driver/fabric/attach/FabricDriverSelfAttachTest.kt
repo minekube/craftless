@@ -1,4 +1,4 @@
-package com.minekube.craftless.driver.fabric
+package com.minekube.craftless.driver.fabric.attach
 
 import com.minekube.craftless.daemon.HttpDriverSession
 import com.minekube.craftless.driver.api.ConnectionTarget

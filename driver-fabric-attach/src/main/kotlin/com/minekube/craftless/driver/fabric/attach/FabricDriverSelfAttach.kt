@@ -1,4 +1,4 @@
-package com.minekube.craftless.driver.fabric
+package com.minekube.craftless.driver.fabric.attach
 
 import com.minekube.craftless.driver.api.DriverSession
 import io.ktor.client.HttpClient
@@ -15,7 +15,7 @@ import kotlinx.serialization.json.Json
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.concurrent.thread
 
-internal class FabricDriverSelfAttach(
+class FabricDriverSelfAttach(
     private val http: HttpClient = HttpClient(CIO),
     private val endpointFactory: (DriverSession) -> FabricDriverLoopbackEndpoint = { session ->
         FabricDriverLoopbackEndpoint(session)
@@ -95,7 +95,7 @@ internal class FabricDriverSelfAttach(
     }
 }
 
-internal class FabricDriverAttachment(
+class FabricDriverAttachment(
     private val endpoint: FabricDriverLoopbackEndpoint,
 ) : AutoCloseable {
     val endpointUrl: String = endpoint.url

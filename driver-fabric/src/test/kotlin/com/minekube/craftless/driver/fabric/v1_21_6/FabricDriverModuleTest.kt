@@ -317,6 +317,52 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `official lane uses shared fabric attach boundary without depending on yarn remap lane`() {
+        val root = repositoryRoot()
+        val settings = Files.readString(root.resolve("settings.gradle.kts"))
+        val fabricBuild = Files.readString(root.resolve("driver-fabric/build.gradle.kts"))
+        val officialBuild = Files.readString(root.resolve("driver-fabric-official/build.gradle.kts"))
+        val officialEntrypoint =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric-official/src/main/kotlin/com/minekube/craftless/driver/fabric/official/CraftlessFabricOfficialEntrypoint.kt",
+                ),
+            )
+        val officialSources =
+            Files.walk(root.resolve("driver-fabric-official/src/main")).use { paths ->
+                paths
+                    .filter { path -> Files.isRegularFile(path) }
+                    .map { path -> root.relativize(path) to Files.readString(path) }
+                    .toList()
+            }
+        val forbiddenGameplayCatalogTokens =
+            listOf(
+                "DriverActionDescriptor(",
+                "RuntimeOperationNode(",
+                "player.chat",
+                "inventory.query",
+                "world.block.break",
+                "entity.attack",
+                "scenario",
+            )
+
+        assertTrue(settings.contains("\"driver-fabric-attach\""))
+        assertTrue(fabricBuild.contains("project(\":driver-fabric-attach\")"))
+        assertTrue(officialBuild.contains("project(\":driver-fabric-attach\")"))
+        assertFalse(officialBuild.contains("project(\":driver-fabric\")"))
+        assertTrue(officialEntrypoint.contains("FabricDriverSelfAttach.startFromEnvironment"))
+        assertEquals(
+            emptyList(),
+            officialSources
+                .flatMap { (path, source) ->
+                    forbiddenGameplayCatalogTokens
+                        .filter { token -> source.contains(token) }
+                        .map { token -> "$path contains $token" }
+                },
+        )
+    }
+
+    @Test
     fun `cli driver mod manifest projection carries runtime identity not build fields`() {
         val buildScript = Files.readString(repositoryRoot().resolve("cli/build.gradle.kts"))
 

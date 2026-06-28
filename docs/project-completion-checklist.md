@@ -4157,19 +4157,37 @@ Verification:
   version-agnostic rule: shared Fabric attach/runtime/discovery/projection
   infrastructure by default, per-version code only where Minecraft, Fabric
   API, mappings, loader, or bytecode signatures actually diverge.
-- [ ] `settings.gradle.kts` includes a neutral shared Fabric attach module.
-- [ ] `driver-fabric` consumes shared attach/loopback infrastructure without
+- [x] `settings.gradle.kts` includes a neutral shared Fabric attach module.
+- [x] `driver-fabric` consumes shared attach/loopback infrastructure without
   changing the verified Yarn/remap runtime behavior.
-- [ ] `driver-fabric-official` consumes shared attach/loopback infrastructure
+- [x] `driver-fabric-official` consumes shared attach/loopback infrastructure
   without depending on the Yarn/remap `driver-fabric` module.
-- [ ] The latest/current official entrypoint starts the shared self-attach
+- [x] The latest/current official entrypoint starts the shared self-attach
   path with a metadata-only runtime backend.
-- [ ] Existing self-attach tests cover the shared module.
-- [ ] `mise run fabric-lane-check-latest-official` still records
+- [x] Existing self-attach tests cover the shared module.
+- [x] `mise run fabric-lane-check-latest-official` still records
   `status=compiled`.
-- [ ] This phase adds no packaged 26.x driver manifest entry, no public
+- [x] This phase adds no packaged 26.x driver manifest entry, no public
   gameplay API, no static gameplay catalog, no version-specific public route
   family, no survival shortcut, and no final latest/current support claim.
+
+Verification:
+
+- Red guard before implementation:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.official lane uses shared fabric attach boundary without depending on yarn remap lane'`
+  failed before the shared module existed.
+- Shared attach tests:
+  `mise exec -- gradle :driver-fabric-attach:test`.
+- Official lane compile boundary:
+  `mise exec -- gradle :driver-fabric-official:compileKotlin :driver-fabric-official:processResources :driver-fabric-official:jar`.
+- Current Yarn/remap lane regression:
+  `mise exec -- gradle :driver-fabric:test`.
+- Latest official lane probe:
+  `mise run fabric-lane-check-latest-official`, with
+  `build/reports/fabric-lane-check-latest-official.status` containing
+  `status=compiled`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-shared-fabric-attach-boundary.md`.
 
 ## Final Completion Gate
 
