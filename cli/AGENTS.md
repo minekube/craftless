@@ -27,6 +27,10 @@
 - Keep version selection and compatibility visible as data from the supervisor
   and live OpenAPI. Do not add separate static CLI command trees for Minecraft
   versions, loaders, or Fabric lanes.
+- CLI UX may expose `--version`, `--loader`, and `--loader-version`, but support
+  breadth must come from supervisor resolution, packaged driver manifests, and
+  generated live OpenAPI. Do not add static commands or hidden fallbacks for a
+  specific Minecraft release.
 - CLI smoke evidence must prove the installed/packaged command talks to the
   same generated OpenAPI/actions/resources that agents would use.
 

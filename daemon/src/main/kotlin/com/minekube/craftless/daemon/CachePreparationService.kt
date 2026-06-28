@@ -64,6 +64,25 @@ class CachePreparationService(
         return versionIndex.resolveMinecraftVersion(minecraftVersion)
     }
 
+    suspend fun resolveClientRuntimeDriverModRequest(request: CachePrepareRequest): ClientRuntimeDriverModRequest {
+        val versionIndex = fetchMinecraftVersionIndex()
+        val resolvedRequest =
+            request.copy(minecraftVersion = versionIndex.resolveMinecraftVersion(request.minecraftVersion))
+        val versionManifestUrl = versionIndex.versionManifestUrl(resolvedRequest.minecraftVersion)
+        val versionManifest = metadataFetcher.fetchText(versionManifestUrl)
+        val fabricMetadata = resolveFabricMetadata(resolvedRequest)
+        val javaMajorVersion =
+            (resolvedRequest.java ?: MinecraftJavaRuntimeRequirementResolver().derive(versionManifest, resolvedRequest.minecraftVersion))
+                .majorVersion
+        return ClientRuntimeDriverModRequest(
+            loader = resolvedRequest.loader,
+            minecraftVersion = resolvedRequest.minecraftVersion,
+            loaderVersion = fabricMetadata?.loaderVersion ?: resolvedRequest.loaderVersion,
+            fabricApiVersion = fabricMetadata?.fabricApi?.version,
+            javaMajorVersion = javaMajorVersion,
+        )
+    }
+
     suspend fun prepare(request: CachePrepareRequest): CachePrepareResult {
         val versionIndex = fetchMinecraftVersionIndex()
         val resolvedRequest =
@@ -879,7 +898,7 @@ private fun String.fabricApiModArtifact(minecraftVersion: String): FabricModArti
     val source =
         "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/" +
             "$selectedVersion/fabric-api-$selectedVersion.jar"
-    return FabricModArtifact(source)
+    return FabricModArtifact(version = selectedVersion, source = source)
 }
 
 private fun String.fabricLibraries(): List<FabricLibraryArtifact> =
@@ -1188,9 +1207,11 @@ private data class FabricLibraryArtifact(
 }
 
 private data class FabricModArtifact(
+    val version: String,
     val source: String,
 ) {
     init {
+        require(version.isNotBlank()) { "Fabric mod version is required" }
         require(source.isNotBlank()) { "Fabric mod source is required" }
     }
 

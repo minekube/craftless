@@ -31,11 +31,18 @@ reflection/compatibility shim is not practical.
   from a runtime discovery probe that inspected the running client and records
   why the operation is unavailable.
 - Prefer shared reflection/mapping probes, compatibility lanes, and generated
-  metadata over copied per-version driver trees.
+  metadata over copied per-version driver trees. The default implementation
+  must be version-agnostic; a per-version file, package, source set, or lane is
+  acceptable only after the divergence is proven by Minecraft, Fabric API,
+  mappings, or bytecode signature differences.
 - When version-specific code is unavoidable, isolate only the diverging adapter,
   accessor, mixin, or provider behind a lane boundary. Keep action/resource
   naming, schemas, invocation dispatch, Ktor loopback, self-attach, and OpenAPI
   projection shared.
+- Do not pin durable behavior to the currently packaged lane. Latest/current
+  and older-version support should be advanced by shared compatibility shims,
+  generated lane metadata, and real launch/attach evidence, not by cloning the
+  current driver implementation for each Minecraft release.
 - Every new lane must prove the same public contracts: self-attach replaces the
   prepared runtime session, generated actions/resources are non-empty when the
   runtime supports them, and public API output stays Craftless-owned.

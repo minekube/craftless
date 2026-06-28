@@ -254,6 +254,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 141. representative older Fabric real-client smoke.
 142. installed packaged older Fabric live attach.
 143. installed latest-release alias compatibility probe.
+144. latest driver lane preflight.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -319,6 +320,15 @@ not satisfy final latest/current support. Runnable 26.x support requires a real
 provider-backed driver lane, likely using official/Mojang mappings rather than
 the current Yarn-based compiled lane, plus launch, attach, generated OpenAPI,
 generated actions/resources, SSE, and public gameplay evidence.
+
+Phase 144 moves the missing-driver-lane check before heavyweight binary cache
+population. Client creation must resolve the requested Minecraft alias,
+preferred Fabric Loader, Fabric API artifact version, and Java major version,
+then check the packaged driver-mod manifest before downloading client jars,
+asset objects, Java runtime files, or Fabric libraries. This is compatibility
+preflight only; it must not claim new Minecraft support, add per-version public
+routes, introduce gameplay catalogs, or replace the need for a real
+provider-backed latest/current Fabric driver lane.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final

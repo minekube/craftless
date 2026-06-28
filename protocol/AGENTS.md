@@ -29,6 +29,10 @@ protocol DTOs.
 - Do not model Minecraft/Fabric version differences with new static protocol
   enums or duplicated DTOs unless the public machine contract itself truly
   changes.
+- Public protocol changes for version support must describe generic resolver,
+  graph, artifact, availability, and invocation data. Do not add one protocol
+  type per Minecraft version, loader generation, mapping namespace, or Fabric
+  API release.
 
 ## Verification
 

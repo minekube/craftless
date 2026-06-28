@@ -936,6 +936,77 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `client creation rejects missing latest fabric driver lane before binary downloads`() =
+        withHttpClient { http ->
+            val workspace = Files.createTempDirectory("craftless-latest-lane-preflight")
+            val distribution = Files.createTempDirectory("craftless-latest-lane-preflight-distribution")
+            val currentDriverMod = distribution.resolve("mods/craftless-driver-fabric.jar")
+            Files.createDirectories(currentDriverMod.parent)
+            Files.writeString(currentDriverMod, "current-driver-mod")
+            val manifest = distribution.resolve("driver-mods.json")
+            Files.writeString(
+                manifest,
+                """
+                {
+                  "entries": [
+                    {
+                      "loader": "FABRIC",
+                      "minecraftVersion": "1.21.6",
+                      "loaderVersion": "0.19.3",
+                      "fabricApiVersion": "0.128.2+1.21.6",
+                      "javaMajorVersion": 21,
+                      "path": "mods/craftless-driver-fabric.jar"
+                    }
+                  ]
+                }
+                """.trimIndent(),
+            )
+            val metadataFetcher = preparedRuntimeMetadataFetcherWithLatestRelease26()
+            val launcher = RecordingClientRuntimeLauncher()
+
+            LocalSessionApiServer
+                .inMemory(
+                    workspaceRoot = workspace,
+                    cacheMetadataFetcher = metadataFetcher,
+                    clientRuntimeLauncher = launcher,
+                    clientRuntimeDriverModProvider =
+                        ConfiguredClientRuntimeDriverModProvider(
+                            environment =
+                                mapOf(
+                                    ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_DRIVER_MOD_MANIFEST to
+                                        manifest.toString(),
+                                ),
+                        ),
+                ).use { server ->
+                    server.start()
+
+                    val response =
+                        http.post(server.url("/clients")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "id": "latest",
+                                  "version": "latest-release",
+                                  "loader": "FABRIC",
+                                  "profile": { "kind": "OFFLINE", "name": "Latest" }
+                                }
+                                """.trimIndent(),
+                            )
+                        }
+
+                    assertEquals(HttpStatusCode.BadRequest, response.status)
+                    val body = response.bodyAsText()
+                    assertTrue(body.contains("driver mod manifest has no Fabric entry for 26.2 0.19.3"))
+                    assertTrue(body.contains("fabricApiVersion=0.153.0+26.2"))
+                    assertTrue(body.contains("javaMajorVersion=25"))
+                    assertEquals(emptyList(), launcher.launches)
+                    assertEquals(emptyList(), metadataFetcher.binaryFetches)
+                    assertFalse(Files.exists(workspace.resolve("cache/assets/objects")))
+                }
+        }
+
+    @Test
     fun `process client runtime launcher starts prepared command`() {
         val workspace = Files.createTempDirectory("craftless-process-client-runtime")
         val marker = workspace.resolve("launched.txt")
@@ -2270,14 +2341,36 @@ private class ServerStaticCacheMetadataFetcher(
         }
 }
 
+private class RecordingServerStaticCacheMetadataFetcher(
+    private val responses: Map<String, String>,
+    private val binaryResponses: Map<String, ByteArray> = emptyMap(),
+) : CacheMetadataFetcher {
+    val binaryFetches = mutableListOf<String>()
+
+    override suspend fun fetchText(url: String): String =
+        requireNotNull(responses[url] ?: serverDefaultTestTextResponse(url)) {
+            "missing test response for $url"
+        }
+
+    override suspend fun fetchBytes(url: String): ByteArray {
+        binaryFetches += url
+        return requireNotNull(binaryResponses[url] ?: serverDefaultTestBinaryResponse(url)) {
+            "missing test binary response for $url"
+        }
+    }
+}
+
 private const val SERVER_DEFAULT_TEST_FABRIC_API_VERSION = "0.129.0+1.21.6"
 private const val SERVER_OLDER_TEST_FABRIC_API_VERSION = "0.100.8+1.20.6"
+private const val SERVER_LATEST_TEST_FABRIC_API_VERSION = "0.153.0+26.2"
 private const val SERVER_DEFAULT_TEST_FABRIC_API_METADATA_URL =
     "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml"
 private const val SERVER_DEFAULT_TEST_FABRIC_API_JAR_URL =
     "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/0.129.0+1.21.6/fabric-api-0.129.0+1.21.6.jar"
 private const val SERVER_OLDER_TEST_FABRIC_API_JAR_URL =
     "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/0.100.8+1.20.6/fabric-api-0.100.8+1.20.6.jar"
+private const val SERVER_LATEST_TEST_FABRIC_API_JAR_URL =
+    "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/0.153.0+26.2/fabric-api-0.153.0+26.2.jar"
 
 private fun serverDefaultTestFabricApiMetadata(): String =
     """
@@ -2642,6 +2735,114 @@ private fun preparedRuntimeMetadataFetcherWithOlderLane(): CacheMetadataFetcher 
     )
 }
 
+private fun preparedRuntimeMetadataFetcherWithLatestRelease26(): RecordingServerStaticCacheMetadataFetcher {
+    val versionUrl = "https://metadata.test/26.2.json"
+    val clientJarUrl = "https://metadata.test/client-26.2.jar"
+    val assetIndexUrl = "https://metadata.test/assets/26.2.json"
+    val javaRuntimeManifestUrl = "https://metadata.test/runtime/java-runtime-epsilon/manifest.json"
+    val javaExecutableUrl = "https://metadata.test/runtime/java-runtime-epsilon/bin/java"
+    val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/26.2"
+    val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/26.2/0.19.3/profile/json"
+    val latestFabricLoaderJarUrl =
+        "https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.19.3/fabric-loader-0.19.3.jar"
+    return RecordingServerStaticCacheMetadataFetcher(
+        mapOf(
+            MINECRAFT_VERSION_INDEX_URL to
+                """
+                {
+                  "latest": {
+                    "release": "26.2",
+                    "snapshot": "26.3-snapshot-1"
+                  },
+                  "versions": [
+                    { "id": "26.2", "url": "$versionUrl" }
+                  ]
+                }
+                """.trimIndent(),
+            versionUrl to
+                """
+                {
+                  "id": "26.2",
+                  "assetIndex": { "id": "32", "url": "$assetIndexUrl" },
+                  "javaVersion": {
+                    "component": "java-runtime-epsilon",
+                    "majorVersion": 25
+                  },
+                  "mainClass": "test.minecraft.Main",
+                  "arguments": {
+                    "jvm": ["-cp", "${'$'}{classpath}"],
+                    "game": ["--gameDir", "${'$'}{game_directory}"]
+                  },
+                  "downloads": {
+                    "client": { "url": "$clientJarUrl" }
+                  }
+                }
+                """.trimIndent(),
+            MINECRAFT_JAVA_RUNTIME_INDEX_URL to serverJavaRuntimeIndexJson(javaRuntimeManifestUrl, "java-runtime-epsilon"),
+            javaRuntimeManifestUrl to
+                """
+                {
+                  "files": {
+                    "bin/java": {
+                      "type": "file",
+                      "downloads": {
+                        "raw": { "url": "$javaExecutableUrl" }
+                      }
+                    }
+                  }
+                }
+                """.trimIndent(),
+            assetIndexUrl to
+                """
+                {
+                  "objects": {
+                    "minecraft/sounds/example.ogg": {
+                      "hash": "0123456789abcdef0123456789abcdef01234567",
+                      "size": 1
+                    }
+                  }
+                }
+                """.trimIndent(),
+            loaderVersionsUrl to """[{ "loader": { "version": "0.19.3", "stable": true } }]""",
+            loaderProfileUrl to
+                """
+                {
+                  "id": "fabric-loader-0.19.3-26.2",
+                  "mainClass": "test.fabric.Main",
+                  "libraries": [
+                    {
+                      "name": "net.fabricmc:fabric-loader:0.19.3",
+                      "url": "https://maven.fabricmc.net/"
+                    }
+                  ]
+                }
+                """.trimIndent(),
+            SERVER_DEFAULT_TEST_FABRIC_API_METADATA_URL to
+                """
+                <metadata>
+                  <groupId>net.fabricmc.fabric-api</groupId>
+                  <artifactId>fabric-api</artifactId>
+                  <versioning>
+                    <versions>
+                      <version>$SERVER_DEFAULT_TEST_FABRIC_API_VERSION</version>
+                      <version>$SERVER_LATEST_TEST_FABRIC_API_VERSION</version>
+                    </versions>
+                  </versioning>
+                </metadata>
+                """.trimIndent(),
+        ),
+        binaryResponses =
+            mapOf(
+                clientJarUrl to "latest-client-jar".encodeToByteArray(),
+                javaExecutableUrl to serverFakeJavaBytes("25.0.3"),
+                latestFabricLoaderJarUrl to "latest-fabric-loader-jar".encodeToByteArray(),
+                SERVER_LATEST_TEST_FABRIC_API_JAR_URL to "latest-fabric-api-jar".encodeToByteArray(),
+                "https://resources.download.minecraft.net/01/0123456789abcdef0123456789abcdef01234567" to
+                    "a".encodeToByteArray(),
+            ),
+    )
+}
+
 private fun serverFakeJavaBytes(version: String): ByteArray =
     """
     #!/usr/bin/env sh
@@ -2650,26 +2851,29 @@ private fun serverFakeJavaBytes(version: String): ByteArray =
     echo '    os.arch = aarch64' >&2
     """.trimIndent().encodeToByteArray()
 
-private fun serverJavaRuntimeIndexJson(manifestUrl: String): String =
+private fun serverJavaRuntimeIndexJson(
+    manifestUrl: String,
+    component: String = "java-runtime-gamma",
+): String =
     """
     {
       "linux": {
-        "java-runtime-gamma": [
+        "$component": [
           { "manifest": { "url": "$manifestUrl" } }
         ]
       },
       "mac-os": {
-        "java-runtime-gamma": [
+        "$component": [
           { "manifest": { "url": "$manifestUrl" } }
         ]
       },
       "mac-os-arm64": {
-        "java-runtime-gamma": [
+        "$component": [
           { "manifest": { "url": "$manifestUrl" } }
         ]
       },
       "windows-x64": {
-        "java-runtime-gamma": [
+        "$component": [
           { "manifest": { "url": "$manifestUrl" } }
         ]
       }

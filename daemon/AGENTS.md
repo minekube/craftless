@@ -31,6 +31,14 @@ sessions.
   manifests, Fabric loader/API resolution, Java runtime selection, driver mod
   manifests, and compatibility probes. Do not branch daemon routes or public API
   shapes per Minecraft version.
+- Preflight version/loader/Fabric API/Java identity and driver-mod manifest
+  selection before downloading heavyweight binary artifacts whenever the
+  request cannot possibly attach a packaged driver. Missing latest/current or
+  older lanes should fail early with concrete resolved identity data.
+- The daemon may select different driver artifacts per resolved lane, but it
+  must not grow per-version route trees, session APIs, action catalogs, or
+  client-management behavior. Version differences are data and artifact
+  selection until a real runtime boundary requires an isolated adapter.
 - A launched client is not enough completion evidence. The daemon must surface
   whether the prepared runtime session was replaced by an attached in-client
   driver before generated gameplay OpenAPI/actions/resources are claimed as

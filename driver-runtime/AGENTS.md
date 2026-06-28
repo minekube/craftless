@@ -23,6 +23,10 @@
 - Keep runtime adapters version-neutral. Minecraft/Fabric version divergence
   should arrive as runtime metadata, capability graph nodes, compatibility lane
   decisions, or backend-specific adapters, not duplicated session mechanics.
+- Do not add version-specific `DriverSession` implementations or lifecycle
+  forks just because one Fabric lane currently works. Keep the session contract
+  shared and let version-specific driver code stay behind backend/lane
+  boundaries only where the backend truly diverges.
 - Attached in-client drivers must replace prepared-runtime placeholders before
   their generated OpenAPI/actions/resources are used as evidence.
 

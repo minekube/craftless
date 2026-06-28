@@ -46,6 +46,15 @@ class WorkspaceClientRuntimeDriverFactory(
         attachEnvironment: ClientDriverAttachEnvironment? = null,
     ): PreparedClientRuntime {
         val loaderVersion = request.loaderVersion ?: preferredLoaderVersion(request, cachePreparationService)
+        val driverModRequest =
+            cachePreparationService.resolveClientRuntimeDriverModRequest(
+                CachePrepareRequest(
+                    minecraftVersion = request.version,
+                    loader = request.loader,
+                    loaderVersion = loaderVersion,
+                ),
+            )
+        driverModProvider.modFor(driverModRequest)
         val cache =
             cachePreparationService
                 .prepare(

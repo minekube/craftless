@@ -22,6 +22,10 @@ in-client automation implementation.
 - Keep the contract Minecraft-version-neutral. Version-specific divergence
   belongs in driver implementations and compatibility lanes, not in stable API
   methods, enums, or DTO forks.
+- Do not add stable API methods, DTO variants, or enums for one Minecraft
+  release, loader lane, or Fabric API generation. The stable API should carry
+  discovered data, runtime metadata, action descriptors, availability reasons,
+  and generic invocation payloads.
 - Do not add Craftless-owned enums for foreign concepts that already have
   standard protocol forms or should remain data from the runtime graph.
 

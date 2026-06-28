@@ -236,6 +236,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-143-installed-latest-release-alias-compatibility-probe-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-143-installed-latest-release-alias-compatibility-probe-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-144-latest-driver-lane-preflight-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-144-latest-driver-lane-preflight-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -4043,6 +4047,35 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-installed-latest-release-alias-compatibility-probe.md`.
 
+## Phase 144: Latest Driver Lane Preflight
+
+- [x] `WorkspaceClientRuntimeDriverFactory.prepare` resolves the requested
+  Minecraft version, preferred Fabric Loader version, Fabric API artifact
+  version, and Java major version before full cache preparation.
+- [x] The resolved driver-mod manifest lookup runs before client jars, asset
+  objects, Java runtime files, Fabric libraries, or Fabric API jars are fetched.
+- [x] A missing packaged `latest-release` lane for resolved Minecraft `26.2`,
+  Fabric Loader `0.19.3`, Fabric API `0.153.0+26.2`, and Java major version
+  25 fails with a concrete HTTP 400 error.
+- [x] The regression test asserts no runtime launcher invocation, no binary
+  fetches, and no asset-object cache directory for the unsupported latest lane.
+- [x] Root and nested module `AGENTS.md` files state the same version-agnostic
+  rule: shared resolver/graph/runtime behavior by default, per-version code
+  only where Minecraft, Fabric API, mappings, or bytecode signatures actually
+  diverge.
+- [x] This phase adds no public gameplay API, static gameplay catalog,
+  version-specific public route family, survival shortcut, or final
+  latest/current support claim.
+
+Verification:
+
+- Focused daemon regression coverage:
+  `mise exec -- gradle :daemon:test --tests '*LocalSessionApiServerTest.client creation rejects missing latest fabric driver lane before binary downloads' --tests '*LocalSessionApiServerTest.prepared runtime selects packaged older fabric lane from manifest' --tests '*ConfiguredClientRuntimeDriverModProviderTest*'`.
+- Whitespace verification:
+  `git diff --check`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-latest-driver-lane-preflight.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -4089,15 +4122,15 @@ Verification:
   Fabric lane, Phase 139 packaged older Fabric lane selection smoke, and Phase
   140 parameterized Fabric smoke client command, and Phase 141 representative
   older Fabric real-client smoke, and Phase 142 installed packaged older
-  Fabric live attach, and Phase 143 installed latest-release alias
-  compatibility probe.
+  Fabric live attach, Phase 143 installed latest-release alias compatibility
+  probe, and Phase 144 latest driver lane preflight.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
   122, Phase 123, Phase 124, Phase 125, Phase 126, Phase 127, Phase 128,
   Phase 129, Phase 130, Phase 131, Phase 132, Phase 133, Phase 134, Phase
   135, Phase 136, Phase 137, Phase 138, Phase 139, Phase 140, Phase 141,
-  Phase 142, and Phase 143 do not
+  Phase 142, Phase 143, and Phase 144 do not
   satisfy the full runnable latest/older support
   requirement by themselves.
   The broader project goal remains active until
@@ -4141,9 +4174,10 @@ Verification:
   Phase 141 proves real Gradle-harness launch, attach, generated API, SSE, and
   diagnostic generated-action smoke for Minecraft `1.20.6`. Phase 142 proves
   installed packaged CLI launch, self-attach, generated OpenAPI, generated
-  actions/resources, SSE events, and cleanup for Minecraft `1.20.6`. Full
-  product support still requires a runnable provider-backed latest/current
-  driver lane, final compatibility audit, and honest final survival gameplay
-  without server-provisioned inventory.
+  actions/resources, SSE events, and cleanup for Minecraft `1.20.6`. Phase
+  144 makes missing latest/current driver lanes fail before heavy binary cache
+  downloads. Full product support still requires a runnable provider-backed
+  latest/current driver lane, final compatibility audit, and honest final
+  survival gameplay without server-provisioned inventory.
 - [x] Changes are committed and pushed to `main`. This entry is current only
   after the checklist update that changes it is also pushed.
