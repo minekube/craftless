@@ -88,7 +88,7 @@
   mise run ci
   ```
 
-- [ ] **Step 3: Commit and push**
+- [x] **Step 3: Commit and push**
 
   ```sh
   git add AGENTS.md docs/project-completion-checklist.md docs/superpowers/specs/2026-06-28-79-graph-owned-fabric-invoke-design.md docs/superpowers/plans/2026-06-28-79-graph-owned-fabric-invoke-plan.md docs/superpowers/specs/2026-06-28-120-invoke-fallback-naming-removal-design.md docs/superpowers/plans/2026-06-28-120-invoke-fallback-naming-removal-plan.md docs/superpowers/evidence/2026-06-28-invoke-fallback-naming-removal.md protocol/src/test/kotlin/com/minekube/craftless/protocol/NamespacePolicyTest.kt daemon/src/test/kotlin/com/minekube/craftless/daemon/LocalSessionApiServerTest.kt driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt
