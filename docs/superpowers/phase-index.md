@@ -66,6 +66,7 @@ not grow with every completed phase.
 - Phase 181: packaged official latest Fabric lane.
 - Phase 182: packaged latest-current attach artifacts.
 - Phase 183: latest-current generated primitive smoke.
+- Phase 184: representative older product lane.
 
 ## Current Direction
 
@@ -141,6 +142,13 @@ CL-03 is now closed. The packaged latest-current probe selects
 `world.time.query` from live per-client OpenAPI `x-craftless-actions`, invokes
 it through public JSON-RPC `method=invoke`, invokes it again through the
 adaptive packaged CLI, and captures both transcripts with `ACCEPTED` results.
-Continue with CL-04: the representative older packaged lane must pass the same
-product gate set as CL-03. Do not copy the Yarn/remap gameplay gateway into
-the official module and do not add static gameplay catalogs.
+CL-04 is now closed. The packaged representative older probe creates,
+attaches, and connects Minecraft `1.20.6` through the packaged CLI/supervisor
+path, captures generated OpenAPI, projections, SSE, JSON-RPC query and
+subscription artifacts, then selects generated non-`task.*` `entity.query`
+from live `x-craftless-actions` and invokes it through both JSON-RPC and the
+adaptive packaged CLI with `ACCEPTED` results.
+Continue with CL-05: external-user usability and docs must prove install,
+Docker runtime, reusable GitHub Action, adaptive CLI, generated OpenAPI/SSE/
+JSON-RPC examples, and agent onboarding without static gameplay SDK wording or
+scenario shortcuts.

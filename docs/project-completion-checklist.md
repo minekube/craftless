@@ -31,61 +31,57 @@ blocked with an exact blocker and next command.
 | CL-01 | [x] | Public gameplay authority is generated runtime graph/OpenAPI, not `/actions` or static lists. | Phases 171-173. |
 | CL-02 | [x] | Static gameplay catalog regressions are guarded; transitional Fabric bootstrap cannot become public API authority. | Phase 178. |
 | CL-03 | [x] | Latest/current packaged lane creates, attaches, connects, captures generated API/stream artifacts, and invokes a generated operation through JSON-RPC plus adaptive CLI for Minecraft `26.2`. | `docs/superpowers/evidence/2026-06-28-latest-current-generated-primitive-smoke.md` |
-| CL-04 | [~] | Representative older packaged lane passes the same public product gate set as CL-03 for Minecraft `1.20.6`. | `docs/superpowers/evidence/2026-06-28-representative-older-product-lane.md` |
-| CL-05 | [ ] | External users and agents can install, run, inspect, stream, invoke, and debug Craftless without reading source. | `docs/superpowers/evidence/2026-06-28-user-facing-usability-docs.md` |
+| CL-04 | [x] | Representative older packaged lane passes the same public product gate set as CL-03 for Minecraft `1.20.6`. | `docs/superpowers/evidence/2026-06-28-representative-older-product-lane.md` |
+| CL-05 | [~] | External users and agents can install, run, inspect, stream, invoke, and debug Craftless without reading source. | `docs/superpowers/evidence/2026-06-28-user-facing-usability-docs.md` |
 | CL-06 | [ ] | Final local release-quality gates pass after CL-01 through CL-05. | `docs/superpowers/evidence/2026-06-28-final-local-release-gates.md` |
 | CL-07 | [ ] | Honest survival gameplay is performed through public generated API/CLI only. | `docs/superpowers/evidence/2026-06-28-final-public-gameplay.md` |
 | CL-08 | [ ] | Final state is committed, pushed to `main`, and clean. | `docs/superpowers/evidence/2026-06-28-final-completion.md` |
 
 ## Current Execution Packet
 
-Close CL-04 next. Do not start CL-05, CL-06, or CL-07 except for docs-only
-cleanup that keeps this board accurate.
+Close CL-05 next. Do not start CL-06 or CL-07 except for docs-only cleanup that
+keeps this board accurate.
 
-1. [x] Write the representative older lane spec:
-   `docs/superpowers/specs/2026-06-28-184-representative-older-product-lane-design.md`.
-2. [x] Write the representative older lane plan:
-   `docs/superpowers/plans/2026-06-28-184-representative-older-product-lane-plan.md`.
-3. [x] Add a failing distribution guard that requires a packaged
-   representative older probe instead of a Gradle-only smoke.
-4. [~] Finish `scripts/packaged-representative-older-probe.sh` and make the
-   distribution guard pass.
-5. [ ] Run the live product probe:
-   `mise run packaged-representative-older-probe`.
-6. [ ] Inspect artifact root:
-   `driver-fabric/build/craftless-packaged-representative-older-probe/artifacts/`.
-7. [ ] Write CL-04 evidence:
-   `docs/superpowers/evidence/2026-06-28-representative-older-product-lane.md`.
-8. [ ] Mark CL-04 `[x]` only if the evidence proves the full public packaged
-   gate set below.
-9. [ ] Update `docs/superpowers/phase-index.md` with Phase 184 status.
-10. [ ] Run `git diff --check`, commit, and push.
+1. [ ] Audit README, install script, Dockerfile, reusable GitHub Action, CLI
+   help, and agent skill docs against the current product shape.
+2. [ ] Remove or rewrite stale docs that imply an active TypeScript SDK,
+   previous brand name, `.dev` domain, HMC final-driver path, static gameplay
+   SDK, server-cheat completion, or scenario shortcut usage.
+3. [ ] Verify install script smoke from a clean temporary install directory.
+4. [ ] Verify Docker runtime smoke from the copied packaged artifact image.
+5. [ ] Verify adaptive CLI help/examples for generated gameplay invocation.
+6. [ ] Write CL-05 evidence:
+   `docs/superpowers/evidence/2026-06-28-user-facing-usability-docs.md`.
+7. [ ] Mark CL-05 `[x]` only if the evidence proves the external-user and
+   agent usability gate below.
+8. [ ] Update `docs/superpowers/phase-index.md`, run focused verification,
+   commit, and push.
 
-## CL-04 Product Gate Set
+## Closed CL-04 Product Gate Set
 
 The representative older lane must prove the same external product behavior as
 CL-03, using Minecraft `1.20.6` as the older compatibility lane.
 
-- [ ] Packaged CLI exists before the probe runs: `mise run package-cli`.
-- [ ] Packaged CLI creates or attaches the client through supervisor API.
-- [ ] Runtime/cache/Fabric resolution uses shared product services.
-- [ ] Java selection comes from managed runtime resolution, not random local
+- [x] Packaged CLI exists before the probe runs: `mise run package-cli`.
+- [x] Packaged CLI creates or attaches the client through supervisor API.
+- [x] Runtime/cache/Fabric resolution uses shared product services.
+- [x] Java selection comes from managed runtime resolution, not random local
   Java installs.
-- [ ] Fabric Loader/API and Craftless driver artifacts come from the packaged
+- [x] Fabric Loader/API and Craftless driver artifacts come from the packaged
   manifest/cache path.
-- [ ] Client connects to a real local server.
-- [ ] Connected per-client OpenAPI is captured.
-- [ ] `/clients/{id}/actions` projection is captured as evidence only.
-- [ ] `/clients/{id}/resources` projection is captured as evidence only.
-- [ ] SSE event stream is captured.
-- [ ] JSON-RPC query captures OpenAPI/actions/resources.
-- [ ] JSON-RPC subscription captures filtered stream output.
-- [ ] A generated invocable operation is selected from live
+- [x] Client connects to a real local server.
+- [x] Connected per-client OpenAPI is captured.
+- [x] `/clients/{id}/actions` projection is captured as evidence only.
+- [x] `/clients/{id}/resources` projection is captured as evidence only.
+- [x] SSE event stream is captured.
+- [x] JSON-RPC query captures OpenAPI/actions/resources.
+- [x] JSON-RPC subscription captures filtered stream output.
+- [x] A generated invocable operation is selected from live
   `x-craftless-actions`.
-- [ ] JSON-RPC `method: "invoke"` invokes that generated operation.
-- [ ] Adaptive CLI invokes that generated operation.
-- [ ] Probe uses no `task.*`, no server-provisioned inventory, no static
-  gameplay catalog, and no `:driver-fabric:runClient` shortcut.
+- [x] JSON-RPC `method: "invoke"` invokes that generated operation.
+- [x] Adaptive CLI invokes that generated operation.
+- [x] Probe uses no `task.*` invocation, no server-provisioned inventory, no
+  static gameplay catalog, and no `:driver-fabric:runClient` shortcut.
 
 ## Remaining Gates
 
@@ -165,10 +161,10 @@ generated per-client OpenAPI, graph-projected actions/resources, generic
 invocation, SSE plus JSON-RPC-style query/control, packaged distribution paths,
 and staged Fabric gameplay evidence.
 
-CL-03 is closed for latest/current Minecraft `26.2`. CL-04 is the active
-blocker: prove representative older Minecraft `1.20.6` through the same
-packaged public product path before moving to usability, final release gates,
-and final honest gameplay.
+CL-03 is closed for latest/current Minecraft `26.2`. CL-04 is closed for
+representative older Minecraft `1.20.6`. CL-05 is the active blocker: prove
+that external users and agents can install, run, inspect, stream, invoke, and
+debug Craftless from docs and packaged artifacts without reading source.
 
 ## Closed Evidence Index
 
@@ -188,3 +184,5 @@ and final honest gameplay.
   `docs/superpowers/evidence/2026-06-28-official-world-time-invocation.md`,
   `docs/superpowers/evidence/2026-06-28-packaged-latest-current-attach-artifacts.md`,
   `docs/superpowers/evidence/2026-06-28-latest-current-generated-primitive-smoke.md`.
+- CL-04:
+  `docs/superpowers/evidence/2026-06-28-representative-older-product-lane.md`.

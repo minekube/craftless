@@ -3,12 +3,12 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 CRAFTLESS_BIN="$ROOT/build/docker/craftless/bin/craftless"
-ARTIFACTS_DIR="${CRAFTLESS_SMOKE_ARTIFACTS_DIR:-$ROOT/build/craftless-packaged-latest-current-probe/artifacts}"
-WORKSPACE="${CRAFTLESS_PACKAGED_LATEST_WORKSPACE:-$ROOT/build/craftless-packaged-latest-current-probe/workspace}"
-CLIENT_ID="${CRAFTLESS_PACKAGED_LATEST_CLIENT_ID:-latest-current}"
+ARTIFACTS_DIR="${CRAFTLESS_SMOKE_ARTIFACTS_DIR:-$ROOT/build/craftless-packaged-representative-older-probe/artifacts}"
+WORKSPACE="${CRAFTLESS_PACKAGED_OLDER_WORKSPACE:-$ROOT/build/craftless-packaged-representative-older-probe/workspace}"
+CLIENT_ID="${CRAFTLESS_PACKAGED_OLDER_CLIENT_ID:-representative-older}"
 SERVER_PORT="${CRAFTLESS_SMOKE_SERVER_PORT:?CRAFTLESS_SMOKE_SERVER_PORT is required}"
-DAEMON_PORT="${CRAFTLESS_PACKAGED_LATEST_DAEMON_PORT:-18084}"
-TIMEOUT_MS="${CRAFTLESS_PACKAGED_LATEST_TIMEOUT_MS:-300000}"
+DAEMON_PORT="${CRAFTLESS_PACKAGED_OLDER_DAEMON_PORT:-18085}"
+TIMEOUT_MS="${CRAFTLESS_PACKAGED_OLDER_TIMEOUT_MS:-300000}"
 API="http://127.0.0.1:$DAEMON_PORT"
 GENERATED_ACTION_ID=""
 
@@ -55,10 +55,11 @@ process.exit(1);
 CRAFTLESS_HTTP_REQUEST_TIMEOUT_MS="$TIMEOUT_MS" \
   "$CRAFTLESS_BIN" clients create "$CLIENT_ID" \
   --api "$API" \
-  --version latest-release \
+  --version 1.20.6 \
   --loader fabric \
-  --offline-name LatestCurrent \
-  > "$ARTIFACTS_DIR/clients-create-latest-release.log" 2>&1
+  --loader-version 0.19.3 \
+  --offline-name OlderProduct \
+  > "$ARTIFACTS_DIR/clients-create-representative-older.log" 2>&1
 
 API="$API" CLIENT_ID="$CLIENT_ID" TIMEOUT_MS="$TIMEOUT_MS" mise exec -- bun --eval '
 const api = process.env.API;
@@ -82,7 +83,7 @@ process.exit(1);
   --api "$API" \
   --host 127.0.0.1 \
   --port "$SERVER_PORT" \
-  > "$ARTIFACTS_DIR/clients-connect-latest-release.log" 2>&1
+  > "$ARTIFACTS_DIR/clients-connect-representative-older.log" 2>&1
 
 API="$API" CLIENT_ID="$CLIENT_ID" ARTIFACTS_DIR="$ARTIFACTS_DIR" TIMEOUT_MS="$TIMEOUT_MS" mise exec -- bun --eval '
 const fs = await import("node:fs/promises");
@@ -239,8 +240,8 @@ const summary = {
   status: "connected",
   api,
   clientId,
-  minecraftVersion: "latest-release",
-  concreteLatestVersion: "26.2",
+  minecraftVersion: "1.20.6",
+  representativeOlderVersion: "1.20.6",
   generatedInvocationAction: selectedAction.id,
   actionCount: actions.length,
   resourceIds: resources.map((resource) => resource.id),

@@ -97,10 +97,37 @@ describe("distribution surface", () => {
     expect(script).toContain("client-rpc-invoke-generated.json");
     expect(script).toContain("client-cli-invoke-generated.log");
     expect(script).toContain("x-craftless-actions");
+    expect(script).toContain('!action.id.startsWith("task.")');
     expect(script).toContain('method: "invoke"');
     expect(script).toContain('clients "$CLIENT_ID" run "$GENERATED_ACTION_ID"');
     expect(script).toContain("mise exec -- bun");
     expect(script).not.toContain("task.survival");
+  });
+
+  test("packaged representative older probe is a matching product surface", () => {
+    const mise = read(".mise.toml");
+    const script = read("scripts/packaged-representative-older-probe.sh");
+
+    expect(mise).toContain("[tasks.packaged-representative-older-probe]");
+    expect(mise).toContain("CRAFTLESS_SMOKE_MINECRAFT_VERSION=1.20.6");
+    expect(mise).toContain("$PWD/scripts/packaged-representative-older-probe.sh");
+    expect(mise).toContain("mise run package-cli");
+    expect(script).toContain("build/docker/craftless/bin/craftless");
+    expect(script).toContain("--version 1.20.6");
+    expect(script).toContain("--loader-version 0.19.3");
+    expect(script).toContain("clients-create-representative-older.log");
+    expect(script).toContain("client-openapi-connected.json");
+    expect(script).toContain("client-rpc-subscribe.json");
+    expect(script).toContain("client-generated-action-selected.json");
+    expect(script).toContain("client-rpc-invoke-generated.json");
+    expect(script).toContain("client-cli-invoke-generated.log");
+    expect(script).toContain("x-craftless-actions");
+    expect(script).toContain('!action.id.startsWith("task.")');
+    expect(script).toContain('method: "invoke"');
+    expect(script).toContain('clients "$CLIENT_ID" run "$GENERATED_ACTION_ID"');
+    expect(script).toContain("mise exec -- bun");
+    expect(script).not.toContain("task.survival");
+    expect(script).not.toContain(":driver-fabric:runClient");
   });
 
   test("Dockerfile copies a built CLI distribution instead of building Craftless", () => {
