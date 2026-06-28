@@ -386,11 +386,13 @@ Phase 149 adds an opt-in latest/current official Fabric launch/self-attach
 probe harness. The harness may start a local Craftless daemon/client record
 and launch `:driver-fabric-official:runClient` with `CRAFTLESS_CLIENT_ID` and
 `CRAFTLESS_DAEMON_URL`, then record whether the in-client official driver
-replaces the prepared session through `/clients/{id}:attach`. This phase is
-diagnostic launch/attach evidence only. It must not add the official lane to
-the packaged driver manifest, require gameplay actions, copy current-lane
-bindings, or claim latest/current support before generated OpenAPI/resources,
-SSE, packaging, and public API/CLI gameplay gates pass.
+replaces the prepared session through `/clients/{id}:attach` and whether a
+per-client OpenAPI document can be fetched while the client remains attached.
+This phase is diagnostic launch/attach/OpenAPI-metadata evidence only. It must
+not add the official lane to the packaged driver manifest, require gameplay
+actions, copy current-lane bindings, or claim latest/current support before
+generated gameplay actions/resources, SSE, packaging, and public API/CLI
+gameplay gates pass.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final

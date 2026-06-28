@@ -8,9 +8,11 @@ Phase 149 adds an opt-in diagnostic launch/self-attach probe harness for the
 latest/current official Fabric lane.
 
 This phase does not claim Minecraft 26.x/latest support. The official lane is
-still not added to the packaged driver manifest and still needs a real enabled
-launch that observes `client.attached`, generated OpenAPI/actions/resources,
-SSE, packaging, and public API/CLI gameplay evidence.
+still not added to the packaged driver manifest. The enabled probe now proves
+launch, self-attach, and generated OpenAPI metadata for the official 26.x lane,
+but generated gameplay actions are still empty and packaged distribution, SSE,
+generated gameplay resources/actions, and public API/CLI gameplay evidence
+remain open.
 
 ## Red Evidence
 
@@ -103,6 +105,54 @@ The controlled child command log proved attach environment injection:
 client=official-probe daemon=http://127.0.0.1:<ephemeral>
 ```
 
+Real enabled default probe:
+
+```sh
+CRAFTLESS_OFFICIAL_FABRIC_ATTACH_PROBE=1 \
+CRAFTLESS_OFFICIAL_ATTACH_PROBE_TIMEOUT_MS=120000 \
+mise exec -- gradle :driver-fabric-official:officialFabricAttachProbe
+```
+
+Observed:
+
+```text
+official Fabric probe observed client attach for official-probe
+BUILD SUCCESSFUL
+```
+
+The probe wrote:
+
+```json
+{
+    "status": "ATTACHED",
+    "clientId": "official-probe",
+    "daemonUrl": "http://127.0.0.1:<ephemeral>",
+    "message": "official Fabric probe observed client attach for official-probe"
+}
+```
+
+The event artifact contained:
+
+```text
+client.created
+client.attached
+```
+
+The per-client OpenAPI artifact was captured before the child process was
+stopped. Summary:
+
+```json
+{
+  "client": "official-probe",
+  "minecraft": "26.2",
+  "loader": "FABRIC",
+  "loaderVersion": "0.19.3",
+  "driver": "craftless-driver-fabric-official",
+  "actions": 0,
+  "resources": 1
+}
+```
+
 Lint and whitespace:
 
 ```sh
@@ -119,6 +169,10 @@ BUILD SUCCESSFUL
 ## Guardrails
 
 - The probe runner lives under `driver-fabric-official/src/test`.
+- The probe fetches daemon events and per-client OpenAPI before stopping the
+  launched client.
+- The probe suppresses expected child output-stream `IOException` during
+  shutdown and does not print a reader-thread stack trace for normal teardown.
 - No packaged 26.x driver manifest entry was added.
 - Root and driver-local `AGENTS.md` files keep version support as shared
   system work by default, with per-version code only for documented lane

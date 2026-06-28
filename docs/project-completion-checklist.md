@@ -4246,6 +4246,16 @@ Verification:
   safely.
 - [x] Enabled probes fail when no attach is observed, and write timeout
   artifacts instead of producing false green evidence.
+- [x] The enabled default probe launched the latest/current official Fabric
+  client, observed `client.attached`, and wrote `probe-result.json` with
+  `status=ATTACHED`.
+- [x] The enabled default probe captured per-client OpenAPI before stopping the
+  launched client; the artifact reported client `official-probe`, Minecraft
+  `26.2`, loader `FABRIC`, loader version `0.19.3`, driver
+  `craftless-driver-fabric-official`, zero actions, and one runtime resource.
+- [x] The probe runner tolerates expected child output-stream closure during
+  shutdown without printing a reader-thread stack trace or writing a false
+  reader failure into `client-command.log`.
 - [x] Root and driver-local `AGENTS.md` files preserve the version-agnostic
   rule for future agents: shared Fabric attach/runtime/discovery/projection is
   the default, and per-version code is allowed only for documented
@@ -4273,6 +4283,16 @@ Verification:
   `mise exec -- gradle :driver-fabric-official:officialFabricAttachProbe`
   exited nonzero, wrote `TIMEOUT`, and captured the injected client/daemon
   environment in `client-command.log`.
+- Real enabled default probe:
+  `CRAFTLESS_OFFICIAL_FABRIC_ATTACH_PROBE=1`
+  `CRAFTLESS_OFFICIAL_ATTACH_PROBE_TIMEOUT_MS=120000`
+  `mise exec -- gradle :driver-fabric-official:officialFabricAttachProbe`
+  passed, wrote `ATTACHED`, captured `client.created` and `client.attached`,
+  and wrote a per-client OpenAPI artifact for official Minecraft `26.2`.
+- OpenAPI artifact summary:
+  `jq '{client:."x-craftless"."x-craftless-client-id", minecraft:."x-craftless"."x-craftless-minecraft-version", loader:."x-craftless"."x-craftless-loader", loaderVersion:."x-craftless"."x-craftless-loader-version", driver:."x-craftless"."x-craftless-driver", actions:(."x-craftless-actions"|length), resources:(."x-craftless-resources"|length)}' driver-fabric-official/build/craftless-official-attach-probe/client-openapi.json`
+  reported `official-probe`, `26.2`, `FABRIC`, `0.19.3`,
+  `craftless-driver-fabric-official`, `actions=0`, and `resources=1`.
 - Lint and whitespace:
   `mise exec -- gradle lint` and `git diff --check`.
 - Final local verification is recorded in

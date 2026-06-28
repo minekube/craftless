@@ -66,6 +66,12 @@ The runner should:
   `CRAFTLESS_DAEMON_URL`;
 - poll `/events` and `/clients/{id}/openapi.json` until `client.attached` is
   observed or timeout expires;
+- fetch daemon events and per-client OpenAPI before stopping the launched
+  client so `client-openapi.json` captures the attached driver instead of a
+  post-shutdown `MISSING_CLIENT` response;
+- tolerate expected child-process output stream closure during shutdown
+  without printing a reader-thread stack trace or recording a false probe
+  failure;
 - write `probe-result.json`, `daemon-events.json`, `client-openapi.json`, and
   `client-command.log` under
   `driver-fabric-official/build/craftless-official-attach-probe/`.
@@ -102,7 +108,21 @@ git diff --check
 
 Expected: all pass.
 
-- [x] **Step 3: Commit and push**
+- [x] **Step 3: Run real opt-in official attach probe**
+
+```sh
+CRAFTLESS_OFFICIAL_FABRIC_ATTACH_PROBE=1 \
+CRAFTLESS_OFFICIAL_ATTACH_PROBE_TIMEOUT_MS=120000 \
+mise exec -- gradle :driver-fabric-official:officialFabricAttachProbe
+```
+
+Expected: `probe-result.json` contains `ATTACHED`,
+`daemon-events.json` contains `client.attached`, and
+`client-openapi.json` contains `x-craftless-client-id=official-probe`,
+`x-craftless-minecraft-version=26.2`, and
+`x-craftless-driver=craftless-driver-fabric-official`.
+
+- [x] **Step 4: Commit and push**
 
 ```sh
 git add AGENTS.md README.md docs/project-completion-checklist.md docs/superpowers/specs/2026-06-28-149-official-fabric-launch-attach-probe-design.md docs/superpowers/plans/2026-06-28-149-official-fabric-launch-attach-probe-plan.md docs/superpowers/evidence/2026-06-28-official-fabric-launch-attach-probe.md driver-fabric-official/build.gradle.kts driver-fabric-official/src/test/kotlin/com/minekube/craftless/driver/fabric/official/probe/OfficialFabricAttachProbe.kt driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt

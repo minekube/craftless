@@ -434,6 +434,13 @@ class FabricDriverModuleTest {
         assertTrue(attachAgents.contains("lane adapter"))
         assertTrue(probeRunner.contains("builder.environment()[\"CRAFTLESS_CLIENT_ID\"]"))
         assertTrue(probeRunner.contains("builder.environment()[\"CRAFTLESS_DAEMON_URL\"]"))
+        assertTrue(probeRunner.contains("runCatching"))
+        assertTrue(probeRunner.contains("error !is IOException"))
+        assertTrue(
+            probeRunner.indexOf("val openApiText") <
+                probeRunner.indexOf("command.stopAndWriteLog"),
+            "official attach probe must fetch per-client OpenAPI before stopping the attached client",
+        )
         assertTrue(probeRunner.contains("exitProcess(1)"))
         manifestFiles.forEach { manifest ->
             assertFalse(

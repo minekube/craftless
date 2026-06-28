@@ -31,6 +31,7 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
@@ -77,27 +78,26 @@ private class OfficialFabricAttachProbe(
                 HttpClient(CIO).use { http ->
                     createClient(http, daemonUrl)
                     val command = startClientCommand(daemonUrl)
-                    val attached =
-                        try {
-                            awaitAttach(http, daemonUrl)
-                        } finally {
-                            command.stopAndWriteLog(config.artifactsDir.resolve("client-command.log"))
-                        }
-                    val eventsText = http.get("$daemonUrl/events").bodyAsText()
-                    val openApiText = http.get("$daemonUrl/clients/${config.clientId}/openapi.json").bodyAsText()
-                    config.artifactsDir.resolve("daemon-events.json").writeText(eventsText + "\n")
-                    config.artifactsDir.resolve("client-openapi.json").writeText(openApiText + "\n")
-                    return OfficialFabricAttachProbeResult(
-                        status = if (attached) OfficialFabricAttachProbeStatus.ATTACHED else OfficialFabricAttachProbeStatus.TIMEOUT,
-                        clientId = config.clientId,
-                        daemonUrl = daemonUrl,
-                        message =
-                            if (attached) {
-                                "official Fabric probe observed client attach for ${config.clientId}"
-                            } else {
-                                "official Fabric probe timed out waiting for client attach for ${config.clientId}"
-                            },
-                    )
+                    try {
+                        val attached = awaitAttach(http, daemonUrl)
+                        val eventsText = http.get("$daemonUrl/events").bodyAsText()
+                        val openApiText = http.get("$daemonUrl/clients/${config.clientId}/openapi.json").bodyAsText()
+                        config.artifactsDir.resolve("daemon-events.json").writeText(eventsText + "\n")
+                        config.artifactsDir.resolve("client-openapi.json").writeText(openApiText + "\n")
+                        return OfficialFabricAttachProbeResult(
+                            status = if (attached) OfficialFabricAttachProbeStatus.ATTACHED else OfficialFabricAttachProbeStatus.TIMEOUT,
+                            clientId = config.clientId,
+                            daemonUrl = daemonUrl,
+                            message =
+                                if (attached) {
+                                    "official Fabric probe observed client attach for ${config.clientId}"
+                                } else {
+                                    "official Fabric probe timed out waiting for client attach for ${config.clientId}"
+                                },
+                        )
+                    } finally {
+                        command.stopAndWriteLog(config.artifactsDir.resolve("client-command.log"))
+                    }
                 }
             }
     }
@@ -134,8 +134,16 @@ private class OfficialFabricAttachProbe(
                 .start()
         val reader =
             Thread {
-                process.inputStream.bufferedReader().useLines { lines ->
-                    lines.forEach { line -> synchronized(output) { output += line } }
+                runCatching {
+                    process.inputStream.bufferedReader().useLines { lines ->
+                        lines.forEach { line -> synchronized(output) { output += line } }
+                    }
+                }.onFailure { error ->
+                    if (error !is IOException) {
+                        synchronized(output) {
+                            output += "craftless official attach probe output reader failed: ${error.message}"
+                        }
+                    }
                 }
             }.also { thread ->
                 thread.name = "craftless-official-attach-probe-output"

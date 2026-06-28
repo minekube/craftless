@@ -20,6 +20,8 @@ Add an opt-in diagnostic launch/self-attach probe for
 - launch the official Fabric `runClient` task with `CRAFTLESS_CLIENT_ID` and
   `CRAFTLESS_DAEMON_URL`;
 - poll the daemon for `client.attached` and generated per-client OpenAPI;
+- fetch daemon events and per-client OpenAPI while the launched client is still
+  attached, before terminating the child process;
 - write machine-readable evidence under
   `driver-fabric-official/build/craftless-official-attach-probe/`;
 - fail with useful artifacts if attach is not observed before timeout.
@@ -64,6 +66,12 @@ swap in a controlled process when needed.
   `:driver-fabric-official:runClient`.
 - Unit tests prove the probe environment injects `CRAFTLESS_CLIENT_ID` and
   `CRAFTLESS_DAEMON_URL` into the launched process command.
+- Probe guards prove per-client OpenAPI is captured before stopping the
+  launched client, and expected output-stream closure during child shutdown
+  does not produce noisy stack traces or false reader failures.
 - Running the task without the opt-in environment skips safely.
+- Running the opt-in task with the default `runClient` command observes
+  `client.attached` and writes generated OpenAPI metadata for Minecraft `26.2`
+  without claiming gameplay support.
 - No public support claim, packaged manifest entry, or gameplay action is
   added.
