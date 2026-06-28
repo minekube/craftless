@@ -447,6 +447,12 @@ class FabricDriverModuleTest {
                     "driver-fabric-discovery/src/main/kotlin/com/minekube/craftless/driver/fabric/discovery/FabricEventGraph.kt",
                 ),
             )
+        val fabricClientStateGraph =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric-discovery/src/main/kotlin/com/minekube/craftless/driver/fabric/discovery/FabricClientStateGraphSnapshot.kt",
+                ),
+            )
         val officialSources =
             Files.walk(root.resolve("driver-fabric-official/src/main/kotlin")).use { paths ->
                 paths
@@ -511,6 +517,11 @@ class FabricDriverModuleTest {
         assertTrue(officialBackend.contains("fabricEventGraphFragment"))
         assertFalse(fabricCapabilityProbe.contains("RuntimeResourceNode(\n                        id = \"event\""))
         assertFalse(fabricCapabilityProbe.contains("RuntimeEventNode(\n                        id = \"event.\$id\""))
+        assertTrue(fabricClientStateGraph.contains("fabricClientStateGraphFragment"))
+        assertTrue(fabricClientStateGraph.contains("inventory.slot"))
+        assertTrue(officialBackend.contains("fabricClientStateGraphFragment"))
+        assertFalse(fabricCapabilityProbe.contains("RuntimeResourceNode(\"client\""))
+        assertFalse(fabricCapabilityProbe.contains("RuntimeHandleNode(\n                        id = \"inventory.slot\""))
         assertFalse(officialBackend.contains("import com.minekube.craftless.protocol.RuntimeResourceNode"))
         assertFalse(officialBackend.contains("import com.minekube.craftless.protocol.RuntimeCapabilityGraph"))
         assertFalse(officialBackend.contains("mods:official-lane-probe"))

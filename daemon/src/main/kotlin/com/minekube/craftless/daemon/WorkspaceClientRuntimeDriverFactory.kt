@@ -54,7 +54,7 @@ class WorkspaceClientRuntimeDriverFactory(
                     loaderVersion = loaderVersion,
                 ),
             )
-        driverModProvider.modFor(driverModRequest)
+        val driverMod = driverModProvider.modFor(driverModRequest)
         val cache =
             cachePreparationService
                 .prepare(
@@ -63,7 +63,7 @@ class WorkspaceClientRuntimeDriverFactory(
                         loader = request.loader,
                         loaderVersion = loaderVersion,
                     ),
-                ).withConfiguredDriverMod()
+                ).withConfiguredDriverMod(driverMod)
         val files = request.instanceFiles()
         val launch = launcher.launch(request, cache, files, root, attachEnvironment)
         return PreparedClientRuntime(
@@ -92,16 +92,8 @@ class WorkspaceClientRuntimeDriverFactory(
         return driverModProvider.preferredLoaderVersion(directRequest.copy(minecraftVersion = resolvedVersion))
     }
 
-    private fun CachePrepareResult.withConfiguredDriverMod(): CachePrepareResult {
-        val driverModRequest =
-            ClientRuntimeDriverModRequest(
-                loader = loader,
-                minecraftVersion = minecraftVersion,
-                loaderVersion = loaderVersion,
-                fabricApiVersion = fabricApiVersion(),
-                javaMajorVersion = javaSelection?.requirement?.majorVersion,
-            )
-        val source = driverModProvider.modFor(driverModRequest)?.toAbsolutePath()?.normalize() ?: return this
+    private fun CachePrepareResult.withConfiguredDriverMod(driverMod: Path?): CachePrepareResult {
+        val source = driverMod?.toAbsolutePath()?.normalize() ?: return this
         require(Files.isRegularFile(source)) { "configured Craftless driver mod does not exist: $source" }
         val handle = "cache/mods/craftless/${source.sha256Hex()}.jar"
         val target = root.resolveHandleOrPath(handle)

@@ -59,7 +59,11 @@ class FabricLoaderRuntimeMetadataReader(
         fallback: String,
     ): String = versionFor(driverId) ?: fallback
 
-    fun installedModsFingerprint(): String = fabricRuntimeFingerprint("mods", installedModCoordinates())
+    fun installedModsFingerprint(): String =
+        installedModCoordinates()
+            .takeIf { coordinates -> coordinates.isNotEmpty() }
+            ?.let { coordinates -> fabricRuntimeFingerprint("mods", coordinates) }
+            ?: "mods:not-discovered"
 
     fun installedModCoordinates(): List<String> =
         loader.allMods.map { container ->

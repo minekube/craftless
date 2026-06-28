@@ -15,6 +15,8 @@ driver lanes.
   lane-provided registry fingerprints.
 - Shared non-gameplay event resource and event projection from lane-provided
   Fabric event-source evidence.
+- Shared non-gameplay client-state resource and handle projection from
+  lane-provided client-state snapshots.
 
 ## Rules
 
@@ -40,6 +42,12 @@ driver lanes.
   and event nodes from lane-provided source evidence. It must not register
   Fabric API callbacks, define mixins, stream SSE by itself, or imply a
   supported gameplay lane.
+- Client-state projection in this module may expose Craftless-owned resources
+  and handles such as client, player, inventory, recipe, world, entity, screen,
+  inventory slots, recipe handles, world block handles, and entity handles from
+  lane-provided booleans. It must not inspect Minecraft client/game classes,
+  call Fabric APIs, define accessors, execute actions, or imply a supported
+  gameplay lane.
 - Keep graph composition version-agnostic. If current, older, latest/current,
   or future Fabric versions diverge, model the difference as lane-provided
   metadata, evidence, availability, or a narrow adapter before adding

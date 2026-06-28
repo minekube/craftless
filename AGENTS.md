@@ -276,6 +276,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 153. shared Fabric runtime graph composition.
 154. shared Fabric registry graph projection.
 155. shared Fabric event graph projection.
+156. shared Fabric client-state graph projection.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -445,6 +446,15 @@ through the generated runtime graph. Lane modules still own actual Fabric API
 callbacks, mixin hooks, and event source evidence when those diverge, but they
 must not copy event resource/event graph builders, add gameplay actions,
 package the 26.x official lane, or claim latest/current support.
+
+Phase 156 moves non-gameplay Fabric client-state resource/handle projection
+into `driver-fabric-discovery` so every Fabric lane can expose the same
+Craftless-owned client, player, inventory, recipe, world, entity, screen, and
+handle graph shape from lane-provided state snapshots. Lane modules still own
+actual Minecraft client-thread state inspection, accessors, mixins, and
+execution adapters when those diverge. They must not copy client-state graph
+builders, add gameplay actions, package the 26.x official lane, or claim
+latest/current support.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final

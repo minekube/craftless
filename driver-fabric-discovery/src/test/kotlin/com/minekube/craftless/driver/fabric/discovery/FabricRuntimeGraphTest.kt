@@ -150,4 +150,47 @@ class FabricRuntimeGraphTest {
                 .any { evidence -> evidence.kind == "event-source" && evidence.fingerprint == "events:not-discovered" },
         )
     }
+
+    @Test
+    fun `client state graph fragment exposes connected resources and handles`() {
+        val fragment =
+            fabricClientStateGraphFragment(
+                FabricClientStateGraphSnapshot(
+                    connected = true,
+                    player = true,
+                    inventory = true,
+                    camera = true,
+                    interactionManager = true,
+                    world = true,
+                    recipes = true,
+                    recipeCrafting = true,
+                ),
+            )
+
+        assertEquals(
+            listOf("client", "entity", "inventory", "player", "recipe", "screen", "world"),
+            fragment.resources.map { resource -> resource.id }.sorted(),
+        )
+        assertTrue(fragment.resources.all { resource -> resource.availability == RuntimeAvailability.available() })
+        assertEquals(
+            listOf("entity.handle", "inventory.slot", "recipe.handle", "world.block.handle"),
+            fragment.handles.map { handle -> handle.id }.sorted(),
+        )
+        assertTrue(fragment.handles.all { handle -> handle.availability == RuntimeAvailability.available() })
+    }
+
+    @Test
+    fun `client state graph fragment reports disconnected resources and handles`() {
+        val fragment = fabricClientStateGraphFragment(FabricClientStateGraphSnapshot.disconnected())
+        val unavailable = RuntimeAvailability.unavailable("client-not-connected")
+
+        assertEquals(RuntimeAvailability.available(), fragment.resources.single { resource -> resource.id == "screen" }.availability)
+        assertEquals(unavailable, fragment.resources.single { resource -> resource.id == "client" }.availability)
+        assertEquals(unavailable, fragment.resources.single { resource -> resource.id == "player" }.availability)
+        assertEquals(unavailable, fragment.resources.single { resource -> resource.id == "inventory" }.availability)
+        assertEquals(unavailable, fragment.resources.single { resource -> resource.id == "recipe" }.availability)
+        assertEquals(unavailable, fragment.resources.single { resource -> resource.id == "world" }.availability)
+        assertEquals(unavailable, fragment.resources.single { resource -> resource.id == "entity" }.availability)
+        assertTrue(fragment.handles.all { handle -> handle.availability == unavailable })
+    }
 }

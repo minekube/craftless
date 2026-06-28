@@ -5,10 +5,12 @@ import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
+import com.minekube.craftless.driver.fabric.discovery.FabricClientStateGraphSnapshot
 import com.minekube.craftless.driver.fabric.discovery.FabricLoaderRuntimeMetadataReader
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataProvider
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataSnapshot
 import com.minekube.craftless.driver.fabric.discovery.SnapshotFabricRuntimeMetadataProvider
+import com.minekube.craftless.driver.fabric.discovery.fabricClientStateGraphFragment
 import com.minekube.craftless.driver.fabric.discovery.fabricEventGraphFragment
 import com.minekube.craftless.driver.fabric.discovery.fabricRegistryGraphFragment
 import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeGraph
@@ -56,6 +58,7 @@ internal class OfficialFabricDriverBackend(
                             sourceEvidence = emptyList(),
                             available = false,
                         ),
+                        fabricClientStateGraphFragment(FabricClientStateGraphSnapshot.disconnected()),
                     ),
             )
         }

@@ -45,9 +45,11 @@ divergence that forced it.
   fingerprint helpers, runtime metadata projection, and protocol-level graph
   composition. Use it for shared non-gameplay registry resource/handle
   projection from official-lane registry fingerprints and event resource/event
-  projection from official-lane event-source evidence as well. Do not
-  reintroduce official-only copies of that metadata, registry graph, event
-  graph, or graph plumbing.
+  projection from official-lane event-source evidence as well. Use it for
+  shared non-gameplay client-state resource/handle projection from
+  official-lane state snapshots, including disconnected snapshots while this
+  lane is metadata-only. Do not reintroduce official-only copies of that
+  metadata, registry graph, event graph, client-state graph, or graph plumbing.
 - If latest/current support requires per-version code, isolate only the
   diverging adapter/accessor/provider behind the lane boundary and document the
   exact incompatibility that forced it.

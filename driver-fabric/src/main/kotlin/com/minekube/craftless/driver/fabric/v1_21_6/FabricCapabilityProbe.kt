@@ -1,7 +1,9 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
+import com.minekube.craftless.driver.fabric.discovery.FabricClientStateGraphSnapshot
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeGraphFragment
+import com.minekube.craftless.driver.fabric.discovery.fabricClientStateGraphFragment
 import com.minekube.craftless.driver.fabric.discovery.fabricEventGraphFragment
 import com.minekube.craftless.driver.fabric.discovery.fabricRegistryGraphFragment
 import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeGraph
@@ -9,9 +11,6 @@ import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeResourceNode
 import com.minekube.craftless.driver.fabric.runtime.FabricCompatibilityLane
 import com.minekube.craftless.protocol.RuntimeAvailability
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
-import com.minekube.craftless.protocol.RuntimeHandleNode
-import com.minekube.craftless.protocol.RuntimeResourceNode
-import com.minekube.craftless.protocol.RuntimeSchema
 import com.minekube.craftless.protocol.RuntimeSourceEvidence
 
 internal fun interface FabricCapabilityDiscovery {
@@ -137,13 +136,7 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
             } else {
                 gateway.queryOnClient { currentScreen != null }
             }
-        val playerAvailability = capabilities.playerAvailability()
-        val inventoryAvailability = capabilities.inventoryAvailability()
-        val cameraAvailability = capabilities.cameraAvailability()
-        val worldAvailability = capabilities.worldAvailability()
-        val recipeQueryAvailability = capabilities.recipeQueryAvailability()
-        val recipeCraftAvailability = capabilities.recipeCraftAvailability()
-        val blockQueryAvailability = capabilities.blockQueryAvailability()
+        val clientStateFragment = fabricClientStateGraphFragment(capabilities.toGraphSnapshot())
         val operations =
             fabricBootstrapOperationDefinitions().map { definition ->
                 definition.toRuntimeOperation(
@@ -155,51 +148,25 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
             }
 
         return FabricCapabilityGraphFragment(
-            resources =
-                listOf(
-                    RuntimeResourceNode("client", capabilities.connectedAvailability()),
-                    RuntimeResourceNode("player", playerAvailability),
-                    RuntimeResourceNode("inventory", inventoryAvailability),
-                    RuntimeResourceNode("recipe", recipeQueryAvailability),
-                    RuntimeResourceNode("world", worldAvailability),
-                    RuntimeResourceNode("entity", capabilities.entityAvailability()),
-                    RuntimeResourceNode("screen", RuntimeAvailability.available()),
-                ),
+            resources = clientStateFragment.resources,
             operations = operations,
-            handles =
-                listOf(
-                    RuntimeHandleNode(
-                        id = "inventory.slot",
-                        resource = "inventory",
-                        schema = RuntimeSchema.objectSchema(),
-                        availability = inventoryAvailability,
-                    ),
-                    RuntimeHandleNode(
-                        id = "recipe.handle",
-                        resource = "recipe",
-                        schema = RuntimeSchema.objectSchema(),
-                        availability = recipeQueryAvailability,
-                    ),
-                    RuntimeHandleNode(
-                        id = "world.block.handle",
-                        resource = "world",
-                        schema = RuntimeSchema.objectSchema(),
-                        availability = blockQueryAvailability,
-                    ),
-                    RuntimeHandleNode(
-                        id = "entity.handle",
-                        resource = "entity",
-                        schema = RuntimeSchema.objectSchema(),
-                        availability = capabilities.entityAvailability(),
-                    ),
-                ),
+            handles = clientStateFragment.handles,
             events = operations.map { operation -> operation.toFabricEventNode() },
         )
     }
 }
 
-private fun FabricClientCapabilitySnapshot.connectedAvailability(): RuntimeAvailability =
-    if (connected) RuntimeAvailability.available() else RuntimeAvailability.unavailable("client-not-connected")
+private fun FabricClientCapabilitySnapshot.toGraphSnapshot(): FabricClientStateGraphSnapshot =
+    FabricClientStateGraphSnapshot(
+        connected = connected,
+        player = player,
+        inventory = inventory,
+        camera = camera,
+        interactionManager = interactionManager,
+        world = world,
+        recipes = recipes,
+        recipeCrafting = recipeCrafting,
+    )
 
 private fun FabricClientCapabilitySnapshot.playerAvailability(): RuntimeAvailability = availability(playerReason())
 
