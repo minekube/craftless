@@ -1,10 +1,12 @@
 package com.minekube.craftless.driver.fabric.official
 
+import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.fabric.discovery.FabricClientStateGraphSnapshot
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataProvider
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataSnapshot
 import com.minekube.craftless.driver.fabric.discovery.SnapshotFabricRuntimeMetadataProvider
 import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeFingerprint
+import com.minekube.craftless.driver.runtime.DriverBackendAction
 import com.minekube.craftless.protocol.RuntimeAvailability
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -107,6 +109,52 @@ class OfficialFabricSharedRuntimeMetadataTest {
         assertEquals("craftless-driver-fabric-official", metadata.driver)
         assertTrue(metadata.installedModsFingerprint.startsWith("mods:"))
         assertNotEquals("mods:official-lane-probe", metadata.installedModsFingerprint)
+    }
+
+    @Test
+    fun `official backend connect delegates to lifecycle connector`() {
+        val target = ConnectionTarget(host = "127.0.0.1", port = 25565)
+        val observedTargets = mutableListOf<ConnectionTarget>()
+        val backend =
+            OfficialFabricDriverBackend(
+                runtimeMetadataProvider =
+                    FabricRuntimeMetadataProvider { clientId ->
+                        SnapshotFabricRuntimeMetadataProvider(
+                            FabricRuntimeMetadataSnapshot(
+                                loaderVersion = "0.19.3",
+                                driver = "craftless-driver-fabric-official",
+                                driverVersion = "0.1.0-SNAPSHOT",
+                                mappings = "craftless-official-bindings-26-2",
+                                installedModsFingerprint = fabricRuntimeFingerprint("mods", listOf("test-mod@1.0.0")),
+                                registryFingerprint = "registries:not-discovered",
+                                serverFeatureFingerprint = "server-features:not-connected",
+                                permissionsFingerprint = "permissions:local-client",
+                            ),
+                        ).runtimeMetadata(clientId)
+                    },
+                clientStateProvider = OfficialFabricClientStateProvider { FabricClientStateGraphSnapshot.disconnected() },
+                clientConnector =
+                    object : OfficialFabricClientConnector {
+                        override fun connect(target: ConnectionTarget): Boolean {
+                            observedTargets += target
+                            return true
+                        }
+                    },
+            )
+
+        val result = backend.connect("official-test", target)
+
+        assertEquals(listOf(target), observedTargets)
+        assertEquals(DriverBackendAction.CONNECT, result.action)
+        assertTrue(result.observed)
+        val message = result.message.orEmpty()
+        assertTrue(message.contains("official-test"))
+        assertTrue(message.contains("127.0.0.1:25565"))
+    }
+
+    @Test
+    fun `official lane has production minecraft client connector`() {
+        assertEquals("MinecraftOfficialFabricClientConnector", MinecraftOfficialFabricClientConnector::class.simpleName)
     }
 
     @Test

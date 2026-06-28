@@ -63,6 +63,7 @@ dependencies {
     include("io.ktor:ktor-network-jvm:3.5.0")
     include("io.ktor:ktor-network-tls-jvm:3.5.0")
     testImplementation(project(":daemon"))
+    testImplementation(project(":testkit"))
     testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
     testImplementation("io.ktor:ktor-client-core-jvm:3.5.0")
     testImplementation("io.ktor:ktor-client-cio-jvm:3.5.0")

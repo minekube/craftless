@@ -1,5 +1,6 @@
 package com.minekube.craftless.driver.fabric.official.probe
 
+import com.minekube.craftless.daemon.ConnectRequest
 import com.minekube.craftless.daemon.DriverSessionFactory
 import com.minekube.craftless.daemon.LocalSessionApiServer
 import com.minekube.craftless.daemon.SessionEvent
@@ -16,6 +17,9 @@ import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.Profile
+import com.minekube.craftless.testkit.LocalServerFixture
+import com.minekube.craftless.testkit.MinecraftServerJarProvisioner
+import com.minekube.craftless.testkit.provisionMinecraftServerJar
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
@@ -31,7 +35,11 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.io.IOException
+import java.net.ServerSocket
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
@@ -61,7 +69,7 @@ fun main() {
         }
     config.artifactsDir.resolve("probe-result.json").writeText(probeJson.encodeToString(result) + "\n")
     println(result.message)
-    if (config.enabled && result.status != OfficialFabricAttachProbeStatus.ATTACHED) {
+    if (config.enabled && result.status !in setOf(OfficialFabricAttachProbeStatus.ATTACHED, OfficialFabricAttachProbeStatus.CONNECTED)) {
         exitProcess(1)
     }
 }
@@ -77,25 +85,47 @@ private class OfficialFabricAttachProbe(
                 val daemonUrl = server.url("")
                 HttpClient(CIO).use { http ->
                     createClient(http, daemonUrl)
+                    val localServer = if (config.connectEnabled) startLocalServer(http) else null
                     val command = startClientCommand(daemonUrl)
                     try {
                         val attached = awaitAttach(http, daemonUrl)
+                        val connected =
+                            attached &&
+                                localServer != null &&
+                                connectAndAwaitClientState(
+                                    http = http,
+                                    daemonUrl = daemonUrl,
+                                    target = ConnectionTarget("127.0.0.1", config.connectPort),
+                                )
                         val eventsText = http.get("$daemonUrl/events").bodyAsText()
                         val openApiText = http.get("$daemonUrl/clients/${config.clientId}/openapi.json").bodyAsText()
                         config.artifactsDir.resolve("daemon-events.json").writeText(eventsText + "\n")
                         config.artifactsDir.resolve("client-openapi.json").writeText(openApiText + "\n")
+                        if (connected) {
+                            config.artifactsDir.resolve("client-openapi-connected.json").writeText(openApiText + "\n")
+                        }
                         return OfficialFabricAttachProbeResult(
-                            status = if (attached) OfficialFabricAttachProbeStatus.ATTACHED else OfficialFabricAttachProbeStatus.TIMEOUT,
+                            status =
+                                when {
+                                    connected -> OfficialFabricAttachProbeStatus.CONNECTED
+                                    attached && !config.connectEnabled -> OfficialFabricAttachProbeStatus.ATTACHED
+                                    else -> OfficialFabricAttachProbeStatus.TIMEOUT
+                                },
                             clientId = config.clientId,
                             daemonUrl = daemonUrl,
+                            connectTarget = if (config.connectEnabled) "127.0.0.1:${config.connectPort}" else null,
+                            connectedResources = connectedResourceIds(openApiText),
                             message =
-                                if (attached) {
+                                if (connected) {
+                                    "official Fabric probe observed connected client state for ${config.clientId}"
+                                } else if (attached && !config.connectEnabled) {
                                     "official Fabric probe observed client attach for ${config.clientId}"
                                 } else {
-                                    "official Fabric probe timed out waiting for client attach for ${config.clientId}"
+                                    "official Fabric probe timed out waiting for ${if (config.connectEnabled) "connected client state" else "client attach"} for ${config.clientId}"
                                 },
                         )
                     } finally {
+                        localServer?.stopAndCollect()
                         command.stopAndWriteLog(config.artifactsDir.resolve("client-command.log"))
                     }
                 }
@@ -121,6 +151,19 @@ private class OfficialFabricAttachProbe(
             )
         }
     }
+
+    private suspend fun startLocalServer(http: HttpClient) =
+        LocalServerFixture(
+            root = config.artifactsDir.resolve("minecraft-server"),
+            port = config.connectPort,
+        ).prepare().let { layout ->
+            val serverJar =
+                layout.provisionMinecraftServerJar(
+                    version = "26.2",
+                    provisioner = MinecraftServerJarProvisioner(http),
+                )
+            layout.startMinecraftServer(serverJar = serverJar)
+        }
 
     private fun startClientCommand(daemonUrl: String): RunningProbeCommand {
         val output = mutableListOf<String>()
@@ -171,6 +214,45 @@ private class OfficialFabricAttachProbe(
         }
         return false
     }
+
+    private suspend fun connectAndAwaitClientState(
+        http: HttpClient,
+        daemonUrl: String,
+        target: ConnectionTarget,
+    ): Boolean {
+        http.post("$daemonUrl/clients/${config.clientId}:connect") {
+            contentType(ContentType.Application.Json)
+            setBody(probeJson.encodeToString(ConnectRequest(host = target.host, port = target.port)))
+        }
+        val deadline = System.nanoTime() + config.timeoutMillis * 1_000_000
+        while (System.nanoTime() < deadline) {
+            val openApiText = http.get("$daemonUrl/clients/${config.clientId}/openapi.json").bodyAsText()
+            if (hasConnectedClientState(openApiText)) {
+                return true
+            }
+            delay(250)
+        }
+        return false
+    }
+
+    private fun hasConnectedClientState(openApiText: String): Boolean {
+        val available = connectedResourceIds(openApiText).toSet()
+        return CONNECTED_CLIENT_STATE_RESOURCES.all(available::contains)
+    }
+
+    private fun connectedResourceIds(openApiText: String): List<String> =
+        (probeJson.parseToJsonElement(openApiText).jsonObject["x-craftless-resources"] as? JsonArray)
+            .orEmpty()
+            .mapNotNull { element ->
+                val resource = element.jsonObject
+                val id = resource["id"]?.jsonPrimitive?.content
+                val availability = resource["availability"]?.jsonPrimitive?.content
+                id?.takeIf { availability == "available" }
+            }
+
+    private companion object {
+        val CONNECTED_CLIENT_STATE_RESOURCES = setOf("client", "player", "inventory", "world")
+    }
 }
 
 private data class OfficialFabricAttachProbeConfig(
@@ -179,6 +261,8 @@ private data class OfficialFabricAttachProbeConfig(
     val clientId: String,
     val clientCommand: List<String>,
     val timeoutMillis: Long,
+    val connectEnabled: Boolean,
+    val connectPort: Int,
 ) {
     companion object {
         fun fromEnvironment(env: Map<String, String> = System.getenv()): OfficialFabricAttachProbeConfig {
@@ -198,6 +282,8 @@ private data class OfficialFabricAttachProbeConfig(
                         probeJson.decodeFromString(ListSerializer(String.serializer()), commandJson)
                     },
                 timeoutMillis = env["CRAFTLESS_OFFICIAL_ATTACH_PROBE_TIMEOUT_MS"]?.toLongOrNull() ?: 120_000,
+                connectEnabled = env["CRAFTLESS_OFFICIAL_ATTACH_PROBE_CONNECT"].isEnabled(),
+                connectPort = env["CRAFTLESS_OFFICIAL_ATTACH_PROBE_SERVER_PORT"]?.toIntOrNull() ?: allocateLoopbackPort(),
             )
         }
     }
@@ -209,12 +295,15 @@ private data class OfficialFabricAttachProbeResult(
     val clientId: String,
     val daemonUrl: String?,
     val message: String,
+    val connectTarget: String? = null,
+    val connectedResources: List<String> = emptyList(),
 )
 
 @Serializable
 private enum class OfficialFabricAttachProbeStatus {
     SKIPPED,
     ATTACHED,
+    CONNECTED,
     TIMEOUT,
 }
 
@@ -254,5 +343,7 @@ private class ProbePreparedDriverSession(
 
     override fun events(): List<DriverEvent> = emptyList()
 }
+
+private fun allocateLoopbackPort(): Int = ServerSocket(0).use { socket -> socket.localPort }
 
 private fun String?.isEnabled(): Boolean = this == "1" || equals("true", ignoreCase = true)

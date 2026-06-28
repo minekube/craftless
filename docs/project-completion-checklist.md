@@ -4699,6 +4699,61 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-official-fabric-live-client-state-probe.md`.
 
+## Phase 158: Official Fabric Connected Client State Probe
+
+- [x] Spec written:
+  `docs/superpowers/specs/2026-06-28-158-official-fabric-connected-client-state-probe-design.md`.
+- [x] Plan written:
+  `docs/superpowers/plans/2026-06-28-158-official-fabric-connected-client-state-probe-plan.md`.
+- [x] `driver-fabric-official` owns a narrow
+  `OfficialFabricClientConnector` boundary plus
+  `MinecraftOfficialFabricClientConnector`.
+- [x] The production connector uses the official/Mojang-mapped lifecycle
+  connect API only: `ConnectScreen.startConnecting`,
+  `ServerAddress.parseString`, `ServerData`, `ServerData.Type.OTHER`, and
+  `TitleScreen`.
+- [x] `OfficialFabricDriverBackend.connect` delegates to the connector and
+  reports observed lifecycle scheduling through the shared driver session
+  contract.
+- [x] The opt-in official attach probe can start a real local Minecraft `26.2`
+  server, launch the official Fabric client, observe `client.attached`, call
+  `POST /clients/{id}:connect`, and poll generated per-client OpenAPI until
+  connected client-state resources become available.
+- [x] The connected official OpenAPI still reports `actions=0` and therefore
+  does not claim gameplay support.
+- [x] Architecture guards prove the official lane still does not depend on
+  `driver-fabric`, still does not package as a supported driver-mod manifest
+  entry, and still does not copy `FabricClientGateway` or
+  `FabricOperationAdapters`.
+- [x] This phase adds no packaged 26.x driver manifest entry, no public
+  gameplay API, no static gameplay catalog, no version-specific public route
+  family, no survival shortcut, no official-lane SSE completion claim, and no
+  final latest/current support claim.
+
+Verification:
+
+- Focused red checks:
+  `mise exec -- gradle :driver-fabric-official:test --tests '*OfficialFabricSharedRuntimeMetadataTest.official backend connect delegates to lifecycle connector*'`
+  failed before the connector seam existed with missing `clientConnector` and
+  `OfficialFabricClientConnector`.
+- Focused green checks:
+  `mise exec -- gradle :driver-fabric-official:test --tests '*OfficialFabricSharedRuntimeMetadataTest*'`,
+  `mise exec -- gradle :driver-fabric-official:compileKotlin`,
+  `mise exec -- gradle :driver-fabric-official:compileTestKotlin`, and
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.official lane has opt in launch attach probe task without packaging support claim*'`.
+- Real enabled connected official attach probe:
+  `CRAFTLESS_OFFICIAL_FABRIC_ATTACH_PROBE=1`
+  `CRAFTLESS_OFFICIAL_ATTACH_PROBE_CONNECT=1`
+  `CRAFTLESS_OFFICIAL_ATTACH_PROBE_TIMEOUT_MS=180000`
+  `mise exec -- gradle :driver-fabric-official:officialFabricAttachProbe`.
+  Observed `status=CONNECTED`, `client=official-probe`,
+  `connectTarget=127.0.0.1:65150`, `actions=0`, `resources=10`,
+  `handles=10`, `events=3`, and available connected resources
+  `runtime`, `client`, `player`, `inventory`, `recipe`, `world`, `entity`,
+  and `screen`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-official-fabric-connected-client-state-probe.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -4755,8 +4810,8 @@ Verification:
   projection, Phase 153 shared Fabric runtime graph composition, and Phase 154
   shared Fabric registry graph projection, and Phase 155 shared Fabric event
   graph projection, Phase 156 shared Fabric client-state graph projection, and
-  Phase 157 official Fabric live client-state probe. Phase 158 official Fabric
-  connected client-state probe is the next active implementation slice.
+  Phase 157 official Fabric live client-state probe, and Phase 158 official
+  Fabric connected client-state probe.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
@@ -4773,12 +4828,12 @@ Verification:
   evidence, and every generic-discovery, multi-version, transport, CLI, docs,
   and gameplay requirement is reverified after that exit work.
 - [x] `mise run lint` passes. Current 2026-06-28 evidence: `mise run ci`
-  completed lint successfully before this checklist update.
+  completed lint successfully after the Phase 158 update.
 - [x] `mise run architecture-check` passes. Current 2026-06-28 evidence:
   `mise run architecture-check` completed successfully before this checklist
   update.
 - [x] `mise run ci` passes. Current 2026-06-28 evidence: `mise run ci`
-  completed successfully after the Phase 156 update.
+  completed successfully after the Phase 158 update.
 - [x] CLI packaging succeeds. Current 2026-06-28 local evidence:
   `mise run package-cli` built `:cli:distZip`, `:cli:distTar`, refreshed
   `build/docker/craftless`, and the packaged binary returned

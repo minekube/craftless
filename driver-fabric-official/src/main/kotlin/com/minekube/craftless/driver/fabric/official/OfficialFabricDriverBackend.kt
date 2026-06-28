@@ -22,16 +22,25 @@ import com.minekube.craftless.protocol.RuntimeSourceEvidence
 internal class OfficialFabricDriverBackend(
     private val runtimeMetadataProvider: FabricRuntimeMetadataProvider = officialFabricRuntimeMetadataProvider(),
     private val clientStateProvider: OfficialFabricClientStateProvider = MinecraftOfficialFabricClientStateProvider(),
+    private val clientConnector: OfficialFabricClientConnector = MinecraftOfficialFabricClientConnector(),
 ) : DriverBackend {
     override fun connect(
         clientId: String,
         target: ConnectionTarget,
-    ): DriverBackendResult =
-        DriverBackendResult(
+    ): DriverBackendResult {
+        val observed = clientConnector.connect(target)
+        val outcome =
+            if (observed) {
+                "scheduled official lane probe connection"
+            } else {
+                "official lane probe backend could not connect"
+            }
+        return DriverBackendResult(
             action = DriverBackendAction.CONNECT,
-            message = "official lane probe backend cannot connect $clientId to ${target.host}:${target.port}",
-            observed = false,
+            message = "$outcome $clientId to ${target.host}:${target.port}",
+            observed = observed,
         )
+    }
 
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata = runtimeMetadataProvider.runtimeMetadata(clientId)
 
