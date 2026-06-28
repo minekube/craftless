@@ -195,6 +195,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 82. README public entrypoint overhaul.
 83. Fabric binding descriptor removal.
 84. bootstrap operation definition isolation.
+85. binding operation id source ownership.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -655,6 +656,12 @@ bootstrap `RuntimeOperationNode` construction. This phase still does not finish
 the broader binding exit while future gameplay breadth depends on
 hand-maintained bootstrap operation definitions instead of generic runtime
 discovery.
+Phase 85 makes the transitional bootstrap definition layer the source for
+operation id strings used by private Fabric execution bindings. Bindings may
+reference `FabricBootstrapOperationIds` constants, but they must not declare
+their own `operationId = "..."` literals. This phase still does not finish the
+broader binding exit while future gameplay breadth depends on hand-maintained
+bootstrap operation definitions instead of generic runtime discovery.
 
 ## Acceptance Scenarios Are Not Product APIs
 

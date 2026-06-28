@@ -79,7 +79,7 @@ internal fun defaultFabricActionBindings(): List<FabricActionBinding> =
     )
 
 internal object FabricPlayerQueryActionBinding : FabricActionBinding {
-    override val operationId: String = "player.query"
+    override val operationId: String = FabricBootstrapOperationIds.PLAYER_QUERY
 
     override fun invoke(
         clientId: String,
@@ -114,7 +114,7 @@ internal object FabricPlayerQueryActionBinding : FabricActionBinding {
 }
 
 internal object FabricPlayerLookActionBinding : FabricActionBinding {
-    override val operationId: String = "player.look"
+    override val operationId: String = FabricBootstrapOperationIds.PLAYER_LOOK
 
     override fun invoke(
         clientId: String,
@@ -165,7 +165,7 @@ internal object FabricPlayerLookActionBinding : FabricActionBinding {
 }
 
 internal object FabricInventoryQueryActionBinding : FabricActionBinding {
-    override val operationId: String = "inventory.query"
+    override val operationId: String = FabricBootstrapOperationIds.INVENTORY_QUERY
 
     override fun invoke(
         clientId: String,
@@ -187,7 +187,7 @@ internal object FabricInventoryQueryActionBinding : FabricActionBinding {
 }
 
 internal object FabricInventoryEquipActionBinding : FabricActionBinding {
-    override val operationId: String = "inventory.equip"
+    override val operationId: String = FabricBootstrapOperationIds.INVENTORY_EQUIP
 
     override fun invoke(
         clientId: String,
@@ -226,7 +226,7 @@ internal object FabricInventoryEquipActionBinding : FabricActionBinding {
 }
 
 internal object FabricWorldBlockBreakActionBinding : FabricActionBinding {
-    override val operationId: String = "world.block.break"
+    override val operationId: String = FabricBootstrapOperationIds.WORLD_BLOCK_BREAK
 
     override fun invoke(
         clientId: String,
@@ -306,7 +306,7 @@ internal object FabricWorldBlockBreakActionBinding : FabricActionBinding {
 }
 
 internal object FabricWorldBlockInteractActionBinding : FabricActionBinding {
-    override val operationId: String = "world.block.interact"
+    override val operationId: String = FabricBootstrapOperationIds.WORLD_BLOCK_INTERACT
 
     override fun invoke(
         clientId: String,
@@ -434,7 +434,7 @@ internal fun craftlessBlockInteractAccepted(
 ): Boolean = blockResult.isAccepted || itemResult.isAccepted
 
 internal object FabricWorldTimeQueryActionBinding : FabricActionBinding {
-    override val operationId: String = "world.time.query"
+    override val operationId: String = FabricBootstrapOperationIds.WORLD_TIME_QUERY
 
     override fun invoke(
         clientId: String,
@@ -459,7 +459,7 @@ internal object FabricWorldTimeQueryActionBinding : FabricActionBinding {
 }
 
 internal object FabricPlayerRaycastActionBinding : FabricActionBinding {
-    override val operationId: String = "player.raycast"
+    override val operationId: String = FabricBootstrapOperationIds.PLAYER_RAYCAST
 
     override fun invoke(
         clientId: String,
@@ -591,7 +591,7 @@ private fun blockInteractFailure(reason: String): JsonObject =
     }
 
 internal object FabricScreenQueryActionBinding : FabricActionBinding {
-    override val operationId: String = "screen.query"
+    override val operationId: String = FabricBootstrapOperationIds.SCREEN_QUERY
 
     override fun invoke(
         clientId: String,
@@ -612,7 +612,7 @@ internal object FabricScreenQueryActionBinding : FabricActionBinding {
 }
 
 internal object FabricScreenCloseActionBinding : FabricActionBinding {
-    override val operationId: String = "screen.close"
+    override val operationId: String = FabricBootstrapOperationIds.SCREEN_CLOSE
 
     override fun invoke(
         clientId: String,
@@ -631,7 +631,7 @@ internal object FabricScreenCloseActionBinding : FabricActionBinding {
 }
 
 private object FabricPlayerChatActionBinding : FabricActionBinding {
-    override val operationId: String = "player.chat"
+    override val operationId: String = FabricBootstrapOperationIds.PLAYER_CHAT
 
     override fun invoke(
         clientId: String,
@@ -677,7 +677,7 @@ private object FabricPlayerChatActionBinding : FabricActionBinding {
 }
 
 private object FabricPlayerMoveActionBinding : FabricActionBinding {
-    override val operationId: String = "player.move"
+    override val operationId: String = FabricBootstrapOperationIds.PLAYER_MOVE
 
     override fun invoke(
         clientId: String,

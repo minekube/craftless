@@ -374,19 +374,7 @@ class FabricDriverModuleTest {
     @Test
     fun `transitional fabric binding operation ids are represented as runtime graph operations`() {
         val root = repositoryRoot()
-        val source =
-            Files.readString(
-                root.resolve(
-                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricActionBindings.kt",
-                ),
-            )
-        val bindingIds =
-            Regex("""operationId(?:\s*:\s*String)?\s*=\s*"([a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)*)"""")
-                .findAll(source)
-                .map { match -> match.groupValues[1] }
-                .distinct()
-                .sorted()
-                .toList()
+        val bindingIds = defaultFabricActionBindings().map { binding -> binding.operationId }.sorted()
         val graphOperationIds =
             FabricDriverBackend
                 .metadataOnly()
@@ -401,6 +389,30 @@ class FabricDriverModuleTest {
             "Private Fabric bindings must expose operation ids only for the current transitional executable graph operations.",
         )
         assertEquals(bindingIds, graphOperationIds.filter { it in bindingIds })
+    }
+
+    @Test
+    fun `fabric action bindings do not own operation id literals`() {
+        val root = repositoryRoot()
+        val source =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricActionBindings.kt",
+                ),
+            )
+        val operationIdLiterals =
+            Regex("""operationId(?:\s*:\s*String)?\s*=\s*"([a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)*)"""")
+                .findAll(source)
+                .map { match -> match.groupValues[1] }
+                .distinct()
+                .sorted()
+                .toList()
+
+        assertEquals(
+            emptyList(),
+            operationIdLiterals,
+            "Private Fabric bindings must reference bootstrap operation ids instead of owning operation id literals.",
+        )
     }
 
     @Test
@@ -441,24 +453,7 @@ class FabricDriverModuleTest {
 
     @Test
     fun `bootstrap operation definitions still project into runtime graph`() {
-        val root = repositoryRoot()
-        val definitionPath =
-            root.resolve(
-                "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricBootstrapOperationDefinitions.kt",
-            )
-
-        assertTrue(
-            Files.exists(definitionPath),
-            "Bootstrap operation definitions must live in FabricBootstrapOperationDefinitions.kt.",
-        )
-
-        val definitionIds =
-            Regex("""id\s*=\s*"([a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)*)"""")
-                .findAll(Files.readString(definitionPath))
-                .map { match -> match.groupValues[1] }
-                .distinct()
-                .sorted()
-                .toList()
+        val definitionIds = fabricBootstrapOperationDefinitions().map { definition -> definition.id }.sorted()
         val graphOperationIds =
             FabricDriverBackend
                 .metadataOnly()

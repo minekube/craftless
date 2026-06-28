@@ -177,7 +177,7 @@ class NamespacePolicyTest {
     }
 
     @Test
-    fun `private fabric gameplay bindings are limited to transitional bootstrap operation allowlist`() {
+    fun `private fabric gameplay bindings are limited to bootstrap operation id references`() {
         val root = repositoryRoot()
         val allowlistPath = root.resolve("docs/architecture/transitional-fabric-action-allowlist.txt")
         val allowlist =
@@ -192,7 +192,13 @@ class NamespacePolicyTest {
                     "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricActionBindings.kt",
                 ),
             )
-        val bindingOperationIds =
+        val bootstrapDefinitions =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricBootstrapOperationDefinitions.kt",
+                ),
+            )
+        val bindingOperationIdLiterals =
             Regex("""operationId(?:\s*:\s*String)?\s*=\s*"([a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)*)"""")
                 .findAll(actionBindings)
                 .map { match -> match.groupValues[1] }
@@ -201,10 +207,18 @@ class NamespacePolicyTest {
                 .toList()
 
         assertTrue(
-            bindingOperationIds == allowlist,
-            "Private Fabric gameplay bindings are transitional execution adapters only.\n" +
-                "If a new public gameplay action is needed, add it through the runtime capability graph first.\n" +
-                "bindingOperationIds=$bindingOperationIds\nallowlist=$allowlist",
+            bindingOperationIdLiterals.isEmpty(),
+            "Private Fabric gameplay bindings must reference bootstrap operation ids instead of owning literals:\n" +
+                bindingOperationIdLiterals.joinToString("\n"),
+        )
+        assertTrue(
+            allowlist.all { operationId -> bootstrapDefinitions.contains("\"$operationId\"") },
+            "The transitional binding allowlist must be represented by bootstrap operation definitions.\n" +
+                "allowlist=$allowlist",
+        )
+        assertTrue(
+            actionBindings.contains("FabricBootstrapOperationIds."),
+            "Private Fabric gameplay bindings must reference FabricBootstrapOperationIds constants.",
         )
         assertTrue(
             "DriverActionDescriptor" !in actionBindings && "DriverActionArgument" !in actionBindings,
