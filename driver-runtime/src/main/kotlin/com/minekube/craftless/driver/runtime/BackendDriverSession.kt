@@ -11,6 +11,7 @@ import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverOperationAdapters
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.api.DriverSession
+import com.minekube.craftless.driver.api.toDriverActionDescriptor
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 
@@ -84,7 +85,11 @@ interface DriverBackend {
         target: ConnectionTarget,
     ): DriverBackendResult
 
-    fun actions(clientId: String): List<DriverActionDescriptor> = emptyList()
+    fun actions(clientId: String): List<DriverActionDescriptor> =
+        runtimeGraph(clientId)
+            .operations
+            .sortedBy { operation -> operation.id }
+            .map { operation -> operation.toDriverActionDescriptor() }
 
     fun runtimeMetadata(clientId: String): DriverRuntimeMetadata = DriverRuntimeMetadata.runtimeAdapter()
 

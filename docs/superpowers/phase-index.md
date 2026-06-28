@@ -49,6 +49,7 @@ not grow with every completed phase.
 - Phase 164: official Fabric JSON-RPC query evidence.
 - Phase 165: official Fabric JSON-RPC subscription SSE evidence.
 - Phase 166: runtime graph default action projection.
+- Phase 167: backend runtime graph action default.
 
 ## Current Direction
 
@@ -59,6 +60,9 @@ filter evidence.
 The shared JVM driver contract now derives `DriverSession.actions()` from
 runtime graph operations by default, so graph-backed sessions do not need a
 second hand-written action-list projection path.
+The shared backend contract now also defaults `DriverBackend.actions(clientId)`
+to runtime graph projection, which removes another empty-list fallback and
+lets Fabric use shared runtime behavior instead of a duplicate override.
 Continue by moving official 26.x support through shared Fabric
 discovery/projection/invocation, packaging, adaptive CLI/API smoke, and honest
 gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the

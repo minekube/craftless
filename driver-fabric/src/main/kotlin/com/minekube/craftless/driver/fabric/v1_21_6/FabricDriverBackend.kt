@@ -1,7 +1,6 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
 import com.minekube.craftless.driver.api.ConnectionTarget
-import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
@@ -9,7 +8,6 @@ import com.minekube.craftless.driver.api.DriverOperationAdapter
 import com.minekube.craftless.driver.api.DriverOperationAdapters
 import com.minekube.craftless.driver.api.DriverOperationInvocation
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
-import com.minekube.craftless.driver.api.toDriverActionDescriptor
 import com.minekube.craftless.driver.fabric.discovery.FabricLoaderRuntimeMetadataReader
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataProvider
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataSnapshot
@@ -88,9 +86,6 @@ class FabricDriverBackend private constructor(
             observed = gateway?.isConnected() ?: true,
         )
     }
-
-    override fun actions(clientId: String): List<DriverActionDescriptor> =
-        runtimeGraph(clientId).operations.sortedBy { operation -> operation.id }.map { operation -> operation.toDriverActionDescriptor() }
 
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata = runtimeMetadataProvider.runtimeMetadata(clientId)
 

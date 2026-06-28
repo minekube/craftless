@@ -3,9 +3,11 @@ package com.minekube.craftless.driver.runtime
 import com.minekube.craftless.bridge.hmc.HmcBridgeBackend
 import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.api.DriverActionArgument
+import com.minekube.craftless.driver.api.DriverActionAvailability
 import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
+import com.minekube.craftless.driver.api.DriverActionSource
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverOperationAdapter
@@ -232,6 +234,26 @@ class BackendDriverSessionTest {
     }
 
     @Test
+    fun `driver backend default actions derive from runtime graph operations`() {
+        val session =
+            BackendDriverSession(
+                clientId = "alice",
+                backend = GraphOnlyDriverBackend(),
+            )
+
+        val action = session.actions().single()
+
+        assertEquals("inventory.query", action.id)
+        assertEquals(DriverActionSource.RUNTIME_PROBE, action.source)
+        assertEquals(DriverActionAvailability.UNAVAILABLE, action.availability)
+        assertEquals("client-not-connected", action.availabilityReason)
+        val data = action.result.properties.getValue("data")
+
+        assertEquals("object", action.arguments.getValue("filter").type)
+        assertEquals("object", data.type)
+    }
+
+    @Test
     fun `hmc bridge backend is lifecycle only and exposes no gameplay actions`() {
         val backend = HmcBridgeDriverBackend(HmcBridgeBackend.dryRun())
 
@@ -319,6 +341,44 @@ class BackendDriverSessionTest {
         assertTrue(result.message?.contains("bridge", ignoreCase = true) == false)
         assertTrue(result.message?.contains("hmc", ignoreCase = true) == false)
     }
+}
+
+private class GraphOnlyDriverBackend : DriverBackend {
+    override fun connect(
+        clientId: String,
+        target: ConnectionTarget,
+    ): DriverBackendResult = DriverBackendResult(DriverBackendAction.CONNECT)
+
+    override fun runtimeGraph(clientId: String): RuntimeCapabilityGraph =
+        RuntimeCapabilityGraph(
+            clientId = clientId,
+            resources = listOf(RuntimeResourceNode("inventory", RuntimeAvailability.unavailable("client-not-connected"))),
+            operations =
+                listOf(
+                    RuntimeOperationNode(
+                        id = "inventory.query",
+                        resource = "inventory",
+                        adapter = "test.inventory-query",
+                        arguments =
+                            mapOf(
+                                "filter" to
+                                    RuntimeSchema(
+                                        type = "object",
+                                        required = true,
+                                        properties = mapOf("item" to RuntimeSchema("string")),
+                                    ),
+                            ),
+                        result =
+                            RuntimeSchema(
+                                type = "object",
+                                properties = mapOf("items" to RuntimeSchema(type = "array", items = RuntimeSchema("object"))),
+                            ),
+                        availability = RuntimeAvailability.unavailable("client-not-connected"),
+                    ),
+                ),
+        )
+
+    override fun stop(clientId: String): DriverBackendResult = DriverBackendResult(DriverBackendAction.STOP)
 }
 
 private class RecordingDriverBackend(

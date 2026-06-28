@@ -5136,6 +5136,38 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-runtime-graph-default-action-projection.md`.
 
+## Phase 167: Backend Runtime Graph Action Default
+
+- [x] Spec written:
+  `docs/superpowers/specs/2026-06-28-167-backend-runtime-graph-action-default-design.md`.
+- [x] Plan written:
+  `docs/superpowers/plans/2026-06-28-167-backend-runtime-graph-action-default-plan.md`.
+- [x] `DriverBackend.actions(clientId)` now defaults to sorted
+  `runtimeGraph(clientId).operations.map { it.toDriverActionDescriptor() }`.
+- [x] A graph-only backend test proves `BackendDriverSession.actions()` exposes
+  runtime graph operations without requiring a separate backend action-list
+  override.
+- [x] `FabricDriverBackend` no longer owns a duplicate
+  `actions(clientId)` graph-to-action override.
+- [x] This phase adds no gameplay operation, no public route, no CLI command,
+  no action adapter, no static action catalog, no scenario shortcut, no version
+  lane, and no support claim.
+
+Verification:
+
+- Red contract check:
+  `mise exec -- gradle :driver-runtime:test --tests '*BackendDriverSessionTest.driver backend default actions derive from runtime graph operations*'`
+  failed before implementation with `NoSuchElementException` because
+  `session.actions()` was empty.
+- Focused green contract check:
+  `mise exec -- gradle :driver-runtime:test --tests '*BackendDriverSessionTest.driver backend default actions derive from runtime graph operations*'`.
+- Affected module check:
+  `mise exec -- gradle :driver-runtime:test :driver-fabric:test`.
+- Local CI:
+  `mise run ci`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-backend-runtime-graph-action-default.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -5198,8 +5230,9 @@ Verification:
   Phase 161 official Fabric event-source metadata, and Phase 162 official
   Fabric connected SSE evidence, and Phase 163 official Fabric public
   projection endpoints, Phase 164 official Fabric JSON-RPC query evidence,
-  Phase 165 official Fabric JSON-RPC subscription SSE evidence, and Phase 166
-  runtime graph default action projection.
+  Phase 165 official Fabric JSON-RPC subscription SSE evidence, Phase 166
+  runtime graph default action projection, and Phase 167 backend runtime graph
+  action default.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
@@ -5209,8 +5242,9 @@ Verification:
   Phase 142, Phase 143, Phase 144, Phase 145, Phase 146, Phase 147, Phase
   148, Phase 149, Phase 150, Phase 151, Phase 152, Phase 153, Phase 154, and
   Phase 155, Phase 156, Phase 157, Phase 158, Phase 159, Phase 160, and Phase
-  161, Phase 162, Phase 163, Phase 164, Phase 165, and Phase 166 do not
-  satisfy the full runnable latest/older support requirement by themselves.
+  161, Phase 162, Phase 163, Phase 164, Phase 165, Phase 166, and Phase 167 do
+  not satisfy the full runnable latest/older support requirement by
+  themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support
