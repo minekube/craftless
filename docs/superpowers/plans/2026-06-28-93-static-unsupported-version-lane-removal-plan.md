@@ -125,7 +125,7 @@
 
   Expected: `rg` returns no active product/current-doc matches.
 
-- [ ] **Step 2: Commit and push**
+- [x] **Step 2: Commit and push**
 
   ```sh
   git add AGENTS.md README.md docs/roadmap.md docs/project-completion-checklist.md docs/superpowers/specs/2026-06-28-93-static-unsupported-version-lane-removal-design.md docs/superpowers/plans/2026-06-28-93-static-unsupported-version-lane-removal-plan.md docs/superpowers/evidence/2026-06-28-static-unsupported-version-lane-removal.md driver-fabric/build.gradle.kts driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/runtime/FabricCompatibilityMatrix.kt driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/runtime/FabricCompatibilityMatrixTest.kt driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt

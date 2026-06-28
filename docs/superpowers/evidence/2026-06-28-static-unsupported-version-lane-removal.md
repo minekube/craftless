@@ -33,6 +33,11 @@ unsupported-version handling for non-provider-backed versions.
 Not waited on during active development. Local forced CI is the working gate;
 remote CI may continue in the background after push.
 
+## Push Evidence
+
+- `ac6ad7b driver-fabric: remove static unsupported version lanes` pushed to
+  `origin/main`.
+
 ## Notes
 
 - This phase does not delete historical evidence files that recorded old probe
