@@ -37,8 +37,9 @@ material.
 - When adding a new phase, update `docs/superpowers/phase-index.md` and
   `docs/project-completion-checklist.md`; update this docs guardrail only if
   the durable completion story changes. Do not append phase history to root
-  `AGENTS.md`, and do not leave future agents to infer whether a phase was
-  foundation work, diagnostic evidence, or completion evidence.
+  `AGENTS.md` or grow any module-local `AGENTS.md` with per-phase status. Do
+  not leave future agents to infer whether a phase was foundation work,
+  diagnostic evidence, or completion evidence.
 
 ## Verification
 

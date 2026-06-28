@@ -9,6 +9,10 @@ Craftless uses `com.minekube.craftless` for JVM packages, Gradle coordinates,
 OpenAPI metadata, Fabric entrypoints, and implementation docs. The public
 domain is `minekube.com`.
 
+Keep this file stable. Do not add per-phase history, roadmap checkboxes,
+temporary tasks, or completion evidence here. Put changing work items in the
+checklist, phase index, specs, plans, and evidence files referenced below.
+
 ## Product Shape
 
 Craftless is Browserless-style automation infrastructure for real Minecraft
@@ -129,15 +133,10 @@ The active product-completion sequence is tracked outside this file. Use:
 
 When adding a new phase, do not append phase history to root `AGENTS.md`. Add
 or update the spec, plan, evidence, checklist, and `phase-index.md` instead.
+Do not copy the checklist or roadmap back into this file. Root `AGENTS.md`
+changes only when the durable repository-wide operating contract changes.
 Do not implement a later phase before its spec and plan are written and earlier
 phases are complete or explicitly carried as active blockers in the checklist.
-
-The next unfinished product work is to keep collapsing lane-specific
-implementation into shared system pieces while proving real runtime behavior.
-Work on discovery, projection, invocation, attach, transport, artifact
-resolution, Java/runtime selection, packaging, and verification. Do not fill
-gaps by adding one more hand-written gameplay action, one more static CLI
-command, or one more version-specific public API shape.
 
 ## Acceptance Scenarios Are Not Product APIs
 
@@ -247,18 +246,8 @@ Kotlin actions.
 ## Completion Source Of Truth
 
 Use `docs/project-completion-checklist.md` as the active project checklist.
-Update it when project status changes.
-
-Do not mark Craftless complete while the current Fabric driver is still a
-small hand-written binding list or while new gameplay breadth depends on adding
-more hand-written descriptor/binding pairs. Completion requires a generic
-runtime capability graph, reflection/mapping/registry/callback/screen/handler
-discovery, generated per-client OpenAPI from that graph, executable adapters or
-probe-backed availability for advertised actions/resources, SSE event
-streaming for live observations, honest survival gameplay evidence without
-server-provisioned items, current multi-version compatibility evidence, and
-Codex-verifiable public API/CLI final gameplay artifacts. Human Minecraft chat
-confirmation is optional diagnostic evidence, not a completion requirement.
+Update it when project status changes. Do not duplicate its completion gates,
+phase list, blockers, or evidence in this file.
 
 ## Documentation
 

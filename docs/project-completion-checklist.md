@@ -12,6 +12,25 @@ Legend:
 - `[x]` done with evidence
 - `[!]` blocked
 
+## Completion Gate Summary
+
+Do not mark Craftless complete while the Fabric driver is still a small
+hand-written binding list or while new gameplay breadth depends on adding more
+hand-written descriptor/binding pairs.
+
+Final completion requires all of the following to have current
+Codex-verifiable evidence:
+
+- Generic runtime capability graph.
+- Reflection/mapping/registry/callback/screen/handler discovery.
+- Generated per-client OpenAPI from that graph.
+- Executable adapters or probe-backed availability for advertised
+  actions/resources.
+- SSE event streaming for live observations.
+- Honest survival gameplay without server-provisioned items.
+- Current multi-version compatibility evidence.
+- Public API/CLI final gameplay artifacts.
+
 ## Current Baseline
 
 - [x] Repository is named Craftless and uses `com.minekube.craftless`.
