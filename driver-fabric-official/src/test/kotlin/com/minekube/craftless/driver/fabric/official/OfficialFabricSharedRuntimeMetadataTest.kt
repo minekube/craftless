@@ -128,6 +128,26 @@ class OfficialFabricSharedRuntimeMetadataTest {
     }
 
     @Test
+    fun `official runtime metadata uses lane registry provider`() {
+        val provider =
+            officialFabricRuntimeMetadataProvider(
+                registryProvider =
+                    OfficialFabricRegistryProvider {
+                        listOf("block:minecraft:stone", "item:minecraft:stick")
+                    },
+                serverFeatureProvider =
+                    OfficialFabricServerFeatureProvider {
+                        listOf("connection:connected", "server:remote", "feature-set:abc123")
+                    },
+            )
+
+        val metadata = provider.runtimeMetadata("official-probe")
+
+        assertTrue(metadata.registryFingerprint.startsWith("registries:"))
+        assertNotEquals("registries:not-discovered", metadata.registryFingerprint)
+    }
+
+    @Test
     fun `official backend connect delegates to lifecycle connector`() {
         val target = ConnectionTarget(host = "127.0.0.1", port = 25565)
         val observedTargets = mutableListOf<ConnectionTarget>()
@@ -177,6 +197,10 @@ class OfficialFabricSharedRuntimeMetadataTest {
     fun `official backend projects client state from lane provider without adding operations`() {
         val runtimeMetadataProvider =
             officialFabricRuntimeMetadataProvider(
+                registryProvider =
+                    OfficialFabricRegistryProvider {
+                        listOf("block:minecraft:stone", "item:minecraft:stick")
+                    },
                 serverFeatureProvider =
                     OfficialFabricServerFeatureProvider {
                         listOf("connection:connected", "server:remote", "feature-set:abc123")
@@ -214,6 +238,12 @@ class OfficialFabricSharedRuntimeMetadataTest {
         assertTrue(metadata.serverFeatureFingerprint.startsWith("server-features:"))
         assertNotEquals("server-features:not-connected", metadata.serverFeatureFingerprint)
         assertEquals(metadata.serverFeatureFingerprint, runtimeEvidence.getValue("server-features").fingerprint)
+        assertTrue(metadata.registryFingerprint.startsWith("registries:"))
+        assertNotEquals("registries:not-discovered", metadata.registryFingerprint)
+        assertEquals(metadata.registryFingerprint, runtimeEvidence.getValue("registry").fingerprint)
+        assertEquals(RuntimeAvailability.available(), resources.getValue("registry").availability)
+        assertEquals(RuntimeAvailability.available(), handles.getValue("registry.block").availability)
+        assertEquals(RuntimeAvailability.available(), handles.getValue("registry.item").availability)
         assertEquals(RuntimeAvailability.available(), resources.getValue("client").availability)
         assertEquals(RuntimeAvailability.available(), resources.getValue("player").availability)
         assertEquals(RuntimeAvailability.available(), resources.getValue("inventory").availability)

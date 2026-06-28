@@ -34,11 +34,11 @@ material.
   adaptive CLI/API use, multi-version launch/attach support, and honest
   gameplay through public surfaces. Human Minecraft co-play or chat
   confirmation may be documented only as optional diagnostic evidence.
-- When adding a new phase, update the root `AGENTS.md` phase list, this docs
-  guardrail if the completion story changes, and
-  `docs/project-completion-checklist.md`. Do not leave future agents to infer
-  whether a phase was foundation work, diagnostic evidence, or completion
-  evidence.
+- When adding a new phase, update `docs/superpowers/phase-index.md` and
+  `docs/project-completion-checklist.md`; update this docs guardrail only if
+  the durable completion story changes. Do not append phase history to root
+  `AGENTS.md`, and do not leave future agents to infer whether a phase was
+  foundation work, diagnostic evidence, or completion evidence.
 
 ## Verification
 

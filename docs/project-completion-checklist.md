@@ -3937,8 +3937,8 @@ Verification:
 
 ## Phase 139: Packaged Older Fabric Lane Selection Smoke
 
-- [x] `AGENTS.md` records Phase 139 as selection smoke only, not older runtime
-  support completion.
+- [x] The phase index and checklist record Phase 139 as selection smoke only,
+  not older runtime support completion.
 - [x] A daemon create-client smoke uses a packaged-style two-entry
   `driver-mods.json` containing current `1.21.6` and representative older
   `1.20.6` Fabric lanes.
@@ -3967,8 +3967,9 @@ Verification:
 
 ## Phase 140: Parameterized Fabric Smoke Client Command
 
-- [x] `AGENTS.md` records that older/future lane smoke evidence is invalid if
-  the inner client command silently launches the default current lane.
+- [x] The phase index and checklist record that older/future lane smoke
+  evidence is invalid if the inner client command silently launches the
+  default current lane.
 - [x] The default `fabricClientSmoke` action command preserves the active
   `craftless.fabric.*` lane properties when launching
   `:driver-fabric:runClient`.
@@ -4352,8 +4353,8 @@ Verification:
 - [x] The production official metadata provider reads Fabric Loader mod
   containers and uses their ids/versions as runtime metadata input.
 - [x] Root and driver-local `AGENTS.md` files keep future agents aligned on the
-  version-agnostic rule: shared runtime/attach/discovery/projection by default,
-  per-version code only for proven divergence behind a narrow lane boundary.
+  stable version-agnostic rule; per-phase history now belongs in
+  `docs/superpowers/phase-index.md` and the checklist.
 - [x] The real enabled official attach probe still observes `client.attached`.
 - [x] The generated per-client OpenAPI artifact reports installed mods as a
   hashed live fingerprint such as `mods:6d85fb9272c1d2f5`, not the old
@@ -4493,9 +4494,9 @@ Verification:
   fragment merging through the shared graph composer.
 - [x] The official backend uses the shared metadata graph helper and no longer
   imports `RuntimeCapabilityGraph` directly.
-- [x] Root and driver-local `AGENTS.md` files now state that protocol-level
-  graph composition is shared and per-version code is limited to proven
-  lane-specific divergence.
+- [x] Root and driver-local `AGENTS.md` files keep the stable shared-graph and
+  version-agnostic guardrails; per-phase graph-composition history now belongs
+  in `docs/superpowers/phase-index.md` and the checklist.
 - [x] This phase adds no packaged 26.x driver manifest entry, no public
   gameplay API, no static gameplay catalog, no version-specific public route
   family, no survival shortcut, and no final latest/current support claim.
@@ -4536,8 +4537,9 @@ Verification:
 - [x] The official backend composes runtime metadata plus registry graph
   fragments through shared graph composition and still imports no
   `RuntimeCapabilityGraph`.
-- [x] Root and driver-local `AGENTS.md` files now state that registry graph
-  projection is shared while registry inspection remains lane-provided.
+- [x] Root and driver-local `AGENTS.md` files keep stable shared projection
+  guardrails; per-phase registry graph history now belongs in
+  `docs/superpowers/phase-index.md` and the checklist.
 - [x] This phase adds no packaged 26.x driver manifest entry, no public
   gameplay API, no static gameplay catalog, no version-specific public route
   family, no survival shortcut, and no final latest/current support claim.
@@ -4579,8 +4581,9 @@ Verification:
 - [x] The official backend composes runtime metadata, registry, and event
   graph fragments through shared graph composition and still imports no
   `RuntimeCapabilityGraph`.
-- [x] Root and driver-local `AGENTS.md` files now state that event graph
-  projection is shared while callback/mixin evidence remains lane-provided.
+- [x] Root and driver-local `AGENTS.md` files keep stable shared projection
+  guardrails; per-phase event graph history now belongs in
+  `docs/superpowers/phase-index.md` and the checklist.
 - [x] This phase adds no packaged 26.x driver manifest entry, no public
   gameplay API, no static gameplay catalog, no version-specific public route
   family, no survival shortcut, no official-lane SSE completion claim, and no
@@ -4625,9 +4628,9 @@ Verification:
 - [x] The official backend composes runtime metadata, registry, event, and
   disconnected client-state graph fragments through shared graph composition
   and still imports no `RuntimeCapabilityGraph`.
-- [x] Root and driver-local `AGENTS.md` files now state that client-state graph
-  projection is shared while Minecraft client-thread state probing remains
-  lane-provided.
+- [x] Root and driver-local `AGENTS.md` files keep stable shared projection
+  guardrails; per-phase client-state graph history now belongs in
+  `docs/superpowers/phase-index.md` and the checklist.
 - [x] This phase adds no packaged 26.x driver manifest entry, no public
   gameplay API, no static gameplay catalog, no version-specific public route
   family, no survival shortcut, no official-lane SSE completion claim, and no
@@ -4800,6 +4803,59 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-official-fabric-connected-server-feature-metadata.md`.
 
+## Phase 160: Official Fabric Registry Metadata Probe
+
+- [x] Spec written:
+  `docs/superpowers/specs/2026-06-28-160-official-fabric-registry-metadata-probe-design.md`.
+- [x] Plan written:
+  `docs/superpowers/plans/2026-06-28-160-official-fabric-registry-metadata-probe-plan.md`.
+- [x] Phase history is maintained in `docs/superpowers/phase-index.md`, not
+  appended to root `AGENTS.md`.
+- [x] `driver-fabric-official` owns a narrow
+  `OfficialFabricRegistryProvider` boundary plus
+  `MinecraftOfficialFabricRegistryProvider`.
+- [x] The production provider reads official/Mojang-mapped registry keys from
+  `BuiltInRegistries` for block, item, entity type, screen/menu, status
+  effect, and game event metadata.
+- [x] `officialFabricRuntimeMetadataProvider(...)` accepts lane-provided
+  registry entries and feeds them into the shared
+  `FabricRuntimeMetadataSnapshot.registryFingerprint` path.
+- [x] `OfficialFabricDriverBackend.runtimeGraph(...)` marks the shared
+  `registry` resource and registry handles available when the metadata
+  fingerprint is discovered, while keeping `graph.operations` empty.
+- [x] The enabled connected official attach probe generated OpenAPI with
+  `x-craftless-registry-fingerprint=registries:6797dc89ef586485`,
+  `registry.availability=available`, `actions=0`, `resources=10`,
+  `handles=10`, and `events=3`.
+- [x] This phase adds no packaged 26.x driver manifest entry, no public
+  gameplay API, no static gameplay catalog, no version-specific public route
+  family, no action adapter, no survival shortcut, no official-lane SSE
+  completion claim, and no final latest/current support claim.
+
+Verification:
+
+- Focused red check:
+  `mise exec -- gradle :driver-fabric-official:test --tests '*OfficialFabricSharedRuntimeMetadataTest.official runtime metadata uses lane registry provider*'`
+  failed before the provider seam existed with missing `registryProvider` and
+  `OfficialFabricRegistryProvider`.
+- Focused graph red check:
+  `mise exec -- gradle :driver-fabric-official:test --tests '*OfficialFabricSharedRuntimeMetadataTest.official backend projects client state from lane provider without adding operations*'`
+  failed while the official backend still forced registry graph availability to
+  false.
+- Focused green check:
+  `mise exec -- gradle :driver-fabric-official:test --tests '*OfficialFabricSharedRuntimeMetadataTest*'`.
+- Real enabled connected official attach probe:
+  `CRAFTLESS_OFFICIAL_FABRIC_ATTACH_PROBE=1`
+  `CRAFTLESS_OFFICIAL_ATTACH_PROBE_CONNECT=1`
+  `CRAFTLESS_OFFICIAL_ATTACH_PROBE_TIMEOUT_MS=180000`
+  `mise exec -- gradle :driver-fabric-official:officialFabricAttachProbe`.
+  Observed `status=CONNECTED`, `client=official-probe`,
+  `connectTarget=127.0.0.1:51113`, `actions=0`, `resources=10`,
+  `handles=10`, `events=3`, `registryFingerprint=registries:6797dc89ef586485`,
+  and `registryAvailability=available`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-official-fabric-registry-metadata-probe.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -4857,8 +4913,9 @@ Verification:
   shared Fabric registry graph projection, and Phase 155 shared Fabric event
   graph projection, Phase 156 shared Fabric client-state graph projection, and
   Phase 157 official Fabric live client-state probe, Phase 158 official
-  Fabric connected client-state probe, and Phase 159 official Fabric connected
-  server-feature metadata.
+  Fabric connected client-state probe, Phase 159 official Fabric connected
+  server-feature metadata, and Phase 160 official Fabric registry metadata
+  probe.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
@@ -4867,8 +4924,8 @@ Verification:
   135, Phase 136, Phase 137, Phase 138, Phase 139, Phase 140, Phase 141,
   Phase 142, Phase 143, Phase 144, Phase 145, Phase 146, Phase 147, Phase
   148, Phase 149, Phase 150, Phase 151, Phase 152, Phase 153, Phase 154, and
-  Phase 155, Phase 156, Phase 157, Phase 158, and Phase 159 do not satisfy the
-  full runnable latest/older support requirement by themselves.
+  Phase 155, Phase 156, Phase 157, Phase 158, Phase 159, and Phase 160 do not
+  satisfy the full runnable latest/older support requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

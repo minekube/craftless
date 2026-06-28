@@ -62,7 +62,7 @@ internal class OfficialFabricDriverBackend(
                         ),
                         fabricRegistryGraphFragment(
                             metadata = metadata,
-                            available = false,
+                            available = metadata.registryFingerprint != REGISTRIES_NOT_DISCOVERED,
                         ),
                         fabricEventGraphFragment(
                             sourceEvidence = emptyList(),
@@ -91,6 +91,7 @@ internal class OfficialFabricDriverBackend(
 }
 
 internal fun officialFabricRuntimeMetadataProvider(
+    registryProvider: OfficialFabricRegistryProvider = MinecraftOfficialFabricRegistryProvider(),
     serverFeatureProvider: OfficialFabricServerFeatureProvider = MinecraftOfficialFabricServerFeatureProvider(),
 ): FabricRuntimeMetadataProvider {
     val reader = FabricLoaderRuntimeMetadataReader()
@@ -102,7 +103,7 @@ internal fun officialFabricRuntimeMetadataProvider(
                 driverVersion = reader.driverVersion(OFFICIAL_FABRIC_DRIVER_ID, OFFICIAL_FABRIC_DRIVER_VERSION),
                 mappings = OFFICIAL_FABRIC_MAPPINGS_FINGERPRINT,
                 installedModsFingerprint = reader.installedModsFingerprint(),
-                registryFingerprint = "registries:not-discovered",
+                registryFingerprint = fabricRuntimeFingerprint("registries", registryProvider.registryEntries()),
                 serverFeatureFingerprint =
                     fabricRuntimeFingerprint(
                         "server-features",
@@ -118,3 +119,4 @@ internal fun officialFabricRuntimeMetadataProvider(
 private const val OFFICIAL_FABRIC_DRIVER_ID = "craftless-driver-fabric-official"
 private const val OFFICIAL_FABRIC_DRIVER_VERSION = "0.1.0-SNAPSHOT"
 private const val OFFICIAL_FABRIC_MAPPINGS_FINGERPRINT = "craftless-official-bindings-26-2"
+private const val REGISTRIES_NOT_DISCOVERED = "registries:not-discovered"
