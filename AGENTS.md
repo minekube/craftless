@@ -219,6 +219,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 106. explicit unused and dead-code gates.
 107. version-aware driver mod selection.
 108. driver mod manifest provider.
+109. packaged driver mod manifest.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -812,6 +813,21 @@ Phase 106 makes practical unused/dead-code checks explicit in the existing
 pinned Detekt and mise quality gates. It must use existing pinned tooling, add
 no new dependency, and must not change gameplay APIs, version support,
 packaging, or release behavior.
+Phase 107 makes driver-mod selection version-aware by passing loader,
+Minecraft version, and resolved/requested loader version into the daemon-owned
+driver-mod provider. This is a runtime selection boundary only; it must not add
+compiled lanes, gameplay descriptors, static route families, scenario
+shortcuts, or version support claims.
+Phase 108 adds a manifest-backed configured driver-mod provider so local
+runtime configuration can select driver jars by loader, Minecraft version, and
+loader version. This is a provider mechanism only; it must not package new
+lanes, infer compatibility, add gameplay APIs, or claim latest/older support.
+Phase 109 packages and auto-discovers `driver-mods.json` in normal CLI
+distributions. Installed users should exercise the manifest path, with the
+single `CRAFTLESS_FABRIC_DRIVER_MOD` jar fallback retained for compatibility.
+This is distribution/runtime plumbing only; it must not add new compiled
+lanes, gameplay descriptors, static route families, scenario shortcuts, or
+version support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

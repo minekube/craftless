@@ -891,7 +891,7 @@ object CraftlessCli {
             return 2
         }
         val workspaceRoot = args.optionValue("--workspace")?.let(Path::of)
-        val serverEnvironment = env.withPackagedFabricDriverMod(distributionRoot)
+        val serverEnvironment = env.withPackagedDriverModConfiguration(distributionRoot)
 
         LocalSessionApiServer
             .inMemory(
@@ -919,10 +919,18 @@ object CraftlessCli {
         return 0
     }
 
-    private fun Map<String, String>.withPackagedFabricDriverMod(distributionRoot: Path?): Map<String, String> {
-        val key = ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_FABRIC_DRIVER_MOD
-        if (!get(key).isNullOrBlank()) {
+    private fun Map<String, String>.withPackagedDriverModConfiguration(distributionRoot: Path?): Map<String, String> {
+        val manifestKey = ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_DRIVER_MOD_MANIFEST
+        val fabricModKey = ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_FABRIC_DRIVER_MOD
+        if (!get(manifestKey).isNullOrBlank() || !get(fabricModKey).isNullOrBlank()) {
             return this
+        }
+        val packagedManifest =
+            distributionRoot
+                ?.resolve("driver-mods.json")
+                ?.takeIf(Files::isRegularFile)
+        if (packagedManifest != null) {
+            return this + (manifestKey to packagedManifest.toString())
         }
         val packagedDriverMod =
             distributionRoot
@@ -930,7 +938,7 @@ object CraftlessCli {
                 ?.resolve("craftless-driver-fabric.jar")
                 ?.takeIf(Files::isRegularFile)
                 ?: return this
-        return this + (key to packagedDriverMod.toString())
+        return this + (fabricModKey to packagedDriverMod.toString())
     }
 
     private fun installedDistributionRoot(): Path? =

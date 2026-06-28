@@ -3424,6 +3424,35 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-driver-mod-manifest-provider.md`.
 
+## Phase 109: Packaged Driver Mod Manifest
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-109-packaged-driver-mod-manifest-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-109-packaged-driver-mod-manifest-plan.md`.
+- [x] CLI distributions generate and include root-level `driver-mods.json`.
+- [x] `craftless server start` auto-discovers packaged `driver-mods.json`
+  before falling back to `mods/craftless-driver-fabric.jar`.
+- [x] `mise run package-cli` checks tar and zip distributions for both
+  `mods/craftless-driver-fabric.jar` and `driver-mods.json`.
+- [x] The legacy single-jar fallback remains available when no packaged
+  manifest exists.
+- [x] This phase adds no new compiled Fabric lane, public gameplay action,
+  generated route family, CLI gameplay catalog, Fabric gameplay binding,
+  scenario shortcut, public version-specific API, runnable latest/older lane,
+  or new Minecraft support claim.
+
+Verification:
+
+- Red/green CLI guard:
+  `mise exec -- gradle :cli:test --tests '*CraftlessCliTest.server start uses packaged driver mod manifest when env is absent*'`
+- Distribution guard:
+  `mise exec -- bun test playwright/src/distribution.test.ts`
+- Package smoke:
+  `mise run package-cli`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-packaged-driver-mod-manifest.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3447,9 +3476,9 @@ Verification:
   installed CLI driver mod distribution, Phase 104 v0.1.1 release install
   evidence, Phase 105 active unsupported lane fixture cleanup, and Phase 106
   explicit unused/dead-code gates, and Phase 107 version-aware driver mod
-  selection, and Phase 108 driver mod manifest provider. Phase 105, Phase 107,
-  and Phase 108 do not satisfy the runnable latest/older support requirement by
-  themselves.
+  selection, and Phase 108 driver mod manifest provider, and Phase 109
+  packaged driver mod manifest. Phase 105, Phase 107, Phase 108, and Phase 109
+  do not satisfy the runnable latest/older support requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

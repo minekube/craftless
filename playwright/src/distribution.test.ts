@@ -21,6 +21,17 @@ describe("distribution surface", () => {
     expect(exists("docker/entrypoint.sh")).toBe(true);
   });
 
+  test("CLI distribution packages driver mod manifest", () => {
+    const cliBuild = read("cli/build.gradle.kts");
+    const mise = read(".mise.toml");
+
+    expect(cliBuild).toContain("driver-mods.json");
+    expect(cliBuild).toContain("mods/craftless-driver-fabric.jar");
+    expect(mise).toContain("driver-mods.json");
+    expect(mise).toContain("tar -tf cli/build/distributions/craftless-*.tar | grep -q '/driver-mods.json$'");
+    expect(mise).toContain("jar tf cli/build/distributions/craftless-*.zip | grep -q '/driver-mods.json$'");
+  });
+
   test("Dockerfile copies a built CLI distribution instead of building Craftless", () => {
     const dockerfile = read("Dockerfile");
 

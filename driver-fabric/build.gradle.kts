@@ -17,6 +17,9 @@ val fabricCompiledMappingsFingerprint = "craftless-fabric-bindings"
 val generatedFabricLaneMetadataDir =
     layout.buildDirectory.dir("generated/sources/fabricCompiledLaneMetadata/kotlin")
 
+extensions.extraProperties["fabricCompiledMinecraftVersion"] = fabricCompiledMinecraftVersion
+extensions.extraProperties["fabricCompiledLoaderVersion"] = fabricCompiledLoaderVersion
+
 kotlin {
     sourceSets {
         named("main") {

@@ -24,12 +24,61 @@ application {
 
 val fabricDriverProject = project(":driver-fabric")
 
+fun jsonString(value: String): String =
+    buildString {
+        append('"')
+        value.forEach { char ->
+            when (char) {
+                '\\' -> append("\\\\")
+                '"' -> append("\\\"")
+                '\b' -> append("\\b")
+                '\u000C' -> append("\\f")
+                '\n' -> append("\\n")
+                '\r' -> append("\\r")
+                '\t' -> append("\\t")
+                else -> append(char)
+            }
+        }
+        append('"')
+    }
+
 gradle.projectsEvaluated {
     val fabricDriverRemapJar = fabricDriverProject.tasks.named("remapJar")
+    val fabricMinecraftVersion =
+        fabricDriverProject.extensions.extraProperties["fabricCompiledMinecraftVersion"].toString()
+    val fabricLoaderVersion =
+        fabricDriverProject.extensions.extraProperties["fabricCompiledLoaderVersion"].toString()
+    val driverModManifest =
+        tasks.register("writeDriverModManifest") {
+            val outputFile = layout.buildDirectory.file("generated/driver-mods/driver-mods.json")
+            inputs.property("fabricMinecraftVersion", fabricMinecraftVersion)
+            inputs.property("fabricLoaderVersion", fabricLoaderVersion)
+            outputs.file(outputFile)
+
+            doLast {
+                val output = outputFile.get().asFile
+                output.parentFile.mkdirs()
+                output.writeText(
+                    """
+                    {
+                      "entries": [
+                        {
+                          "loader": "FABRIC",
+                          "minecraftVersion": ${jsonString(fabricMinecraftVersion)},
+                          "loaderVersion": ${jsonString(fabricLoaderVersion)},
+                          "path": "mods/craftless-driver-fabric.jar"
+                        }
+                      ]
+                    }
+                    """.trimIndent() + "\n",
+                )
+            }
+        }
 
     distributions {
         main {
             contents {
+                from(driverModManifest)
                 into("mods") {
                     from(fabricDriverRemapJar) {
                         rename { "craftless-driver-fabric.jar" }
@@ -41,13 +90,16 @@ gradle.projectsEvaluated {
 
     tasks.named("distZip") {
         dependsOn(fabricDriverRemapJar)
+        dependsOn(driverModManifest)
     }
 
     tasks.named("distTar") {
         dependsOn(fabricDriverRemapJar)
+        dependsOn(driverModManifest)
     }
 
     tasks.named("installDist") {
         dependsOn(fabricDriverRemapJar)
+        dependsOn(driverModManifest)
     }
 }
