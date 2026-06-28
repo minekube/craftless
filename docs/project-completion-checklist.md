@@ -3161,6 +3161,35 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-launch-attach-environment.md`.
 
+## Phase 100: Fabric Driver Self-Attach
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-100-fabric-driver-self-attach-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-100-fabric-driver-self-attach-plan.md`.
+- [x] Fabric driver parses `CRAFTLESS_CLIENT_ID` and
+  `CRAFTLESS_DAEMON_URL` as optional lifecycle attach environment.
+- [x] Fabric driver starts a loopback-only DriverSession HTTP endpoint.
+- [x] Fabric driver posts its endpoint to `POST /clients/{id}:attach`.
+- [x] Current-lane Fabric bootstrap starts self-attach from the real backend
+  session after backend installation.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
+  lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Red guard:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverSelfAttachTest.attach environment*'`
+- Red guard:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverSelfAttachTest.loopback endpoint exposes driver session contract*'`
+- Red guard:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverSelfAttachTest.self attach posts loopback endpoint to daemon*'`
+- Red guard:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.current lane bootstrap starts self attach from backend session*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-fabric-driver-self-attach.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3178,7 +3207,8 @@ Verification:
   Phase 93 static unsupported version lane removal, and Phase 94 Fabric API
   cache resolution, Phase 95 launch mod materialization, Phase 96 Craftless
   driver mod launch artifact, Phase 97 packaged driver mod distribution, Phase
-  98 driver attach proxy, and Phase 99 launch attach environment.
+  98 driver attach proxy, Phase 99 launch attach environment, and Phase 100
+  Fabric driver self-attach.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

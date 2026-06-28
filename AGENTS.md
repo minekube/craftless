@@ -210,6 +210,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 97. packaged driver mod distribution.
 98. driver attach proxy.
 99. launch attach environment.
+100. Fabric driver self-attach.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -762,6 +763,11 @@ Phase 99 passes Craftless attach rendezvous environment into launched client
 processes. `CRAFTLESS_CLIENT_ID` and `CRAFTLESS_DAEMON_URL` are lifecycle
 configuration for the in-client driver; they must not become gameplay API
 surface or scenario logic.
+Phase 100 lets the Fabric in-client driver expose its existing `DriverSession`
+over a loopback Ktor endpoint and self-register with the supervisor attach
+route. This is transport plumbing only; it must not add gameplay descriptors,
+static route families, Fabric action bindings, scenario shortcuts, or version
+support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

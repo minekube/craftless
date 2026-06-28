@@ -177,6 +177,23 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `current lane bootstrap starts self attach from backend session`() {
+        val source =
+            Files.readString(
+                repositoryRoot().resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricCurrentLaneBootstrap.kt",
+                ),
+            )
+
+        assertTrue(source.contains("BackendDriverSession("))
+        assertTrue(source.contains("FabricDriverSelfAttach.startFromEnvironment"))
+        assertTrue(
+            source.indexOf("FabricDriverBackend.install(backend)") <
+                source.indexOf("FabricDriverSelfAttach.startFromEnvironment"),
+        )
+    }
+
+    @Test
     fun `stable fabric production package imports versioned implementations only through bootstrap selector`() {
         val stablePackage =
             repositoryRoot().resolve(
@@ -1302,8 +1319,10 @@ class FabricDriverModuleTest {
     @Test
     fun `completion gate does not accept unsupported version lanes as support`() {
         val checklist = Files.readString(repositoryRoot().resolve("docs/project-completion-checklist.md"))
-        val finalGate = checklist.substringAfter("## Final Completion Gate")
-            .replace(Regex("\\s+"), " ")
+        val finalGate =
+            checklist
+                .substringAfter("## Final Completion Gate")
+                .replace(Regex("\\s+"), " ")
 
         assertFalse(
             finalGate.contains("accepted support boundary", ignoreCase = true),
