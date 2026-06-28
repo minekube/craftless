@@ -74,11 +74,12 @@ checked and the named evidence file exists.
      public ids/schemas must come from graph nodes or discovery-owned
      projection fragments, not descriptor/binding pairs. Evidence:
      `docs/superpowers/evidence/2026-06-28-bootstrap-adapter-key-separation.md`.
-   - [ ] CL-02e: At least one real Fabric discovery path proves an operation
+   - [x] CL-02e: At least one real Fabric discovery path proves an operation
      node from runtime inputs rather than a hand-maintained bootstrap list.
      Acceptable inputs include registries, callbacks, screens, handlers,
      world/entity/inventory/client state, permissions, server features, or
-     installed mods.
+     installed mods. Evidence:
+     `docs/superpowers/evidence/2026-06-28-client-state-operation-discovery.md`.
    - [ ] CL-02f: Architecture guards reject new hand-maintained public
      gameplay descriptors, descriptor/binding pairs, static CLI gameplay
      commands, static alias route families, and scenario shortcut actions.

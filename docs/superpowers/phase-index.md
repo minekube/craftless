@@ -59,6 +59,7 @@ not grow with every completed phase.
 - Phase 174: Fabric execution adapter naming.
 - Phase 175: bootstrap resource derivation.
 - Phase 176: bootstrap adapter key separation.
+- Phase 177: client-state operation discovery.
 
 ## Current Direction
 
@@ -103,6 +104,9 @@ operation ids, and Fabric client-state discovery now emits the derived
 Private Fabric adapter keys are no longer stored inside bootstrap operation
 definitions. A separate private operation-id to adapter-key map now feeds both
 runtime graph projection and backend execution-adapter registration.
+`world.time.query` now comes from Fabric client-state discovery instead of the
+bootstrap operation definition list. The node carries `client-state` source
+evidence while the private execution adapter remains unchanged.
 Continue by moving official 26.x support through shared Fabric
 discovery/projection/invocation, packaging, adaptive CLI/API smoke, and honest
 gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the

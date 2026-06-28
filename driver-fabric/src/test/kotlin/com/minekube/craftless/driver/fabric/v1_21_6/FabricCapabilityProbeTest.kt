@@ -410,6 +410,46 @@ class FabricCapabilityProbeTest {
         assertEquals("object", handles.getValue("world.block.handle").schema.type)
         assertEquals("object", handles.getValue("entity.handle").schema.type)
     }
+
+    @Test
+    fun `world time operation is discovered from client state rather than bootstrap definitions`() {
+        val gateway =
+            RecordingCapabilityGateway(
+                connected = true,
+                queries =
+                    ArrayDeque(
+                        listOf(
+                            FabricClientCapabilitySnapshot(
+                                connected = true,
+                                player = true,
+                                inventory = true,
+                                camera = true,
+                                interactionManager = true,
+                                world = true,
+                            ),
+                            false,
+                        ),
+                    ),
+            )
+
+        val graph =
+            defaultFabricCapabilityDiscovery(probes = listOf(FabricClientStateCapabilityProbe))
+                .discover(
+                    FabricCapabilityProbeContext(
+                        clientId = "alice",
+                        modeId = "real-client",
+                        gateway = gateway,
+                    ),
+                )
+        val worldTime = graph.operations.single { operation -> operation.id == "world.time.query" }
+
+        assertTrue(fabricBootstrapOperationDefinitions().none { definition -> definition.id == "world.time.query" })
+        assertEquals("world.time", worldTime.resource)
+        assertEquals("fabric.world-time-query", worldTime.adapter)
+        assertEquals(RuntimeAvailabilityState.AVAILABLE, worldTime.availability.state)
+        assertEquals("object", worldTime.result.properties["data"]?.type)
+        assertEquals(listOf("client-state"), worldTime.sourceEvidence.map { evidence -> evidence.kind })
+    }
 }
 
 private class RecordingCapabilityGateway(

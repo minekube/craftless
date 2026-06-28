@@ -14,7 +14,6 @@ internal enum class FabricBootstrapOperationAvailabilityKind {
     ENTITY,
     ENTITY_ATTACK,
     BLOCK_QUERY,
-    WORLD,
     BLOCK_BREAK,
     BLOCK_INTERACT,
     SCREEN,
@@ -199,11 +198,6 @@ internal fun fabricBootstrapOperationDefinitions(): List<FabricBootstrapOperatio
                     "target" to RuntimeSchema("object"),
                 ),
             result = blockQueryResultSchema(),
-        ),
-        FabricBootstrapOperationDefinition(
-            id = FabricBootstrapOperationIds.WORLD_TIME_QUERY,
-            availability = FabricBootstrapOperationAvailabilityKind.WORLD,
-            result = actionEnvelopeResultSchema(data = RuntimeSchema.objectSchema()),
         ),
         FabricBootstrapOperationDefinition(
             id = FabricBootstrapOperationIds.WORLD_BLOCK_BREAK,

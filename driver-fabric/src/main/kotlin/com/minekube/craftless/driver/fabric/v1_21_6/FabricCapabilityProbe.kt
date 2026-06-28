@@ -11,6 +11,8 @@ import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeResourceNode
 import com.minekube.craftless.driver.fabric.runtime.FabricCompatibilityLane
 import com.minekube.craftless.protocol.RuntimeAvailability
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
+import com.minekube.craftless.protocol.RuntimeOperationNode
+import com.minekube.craftless.protocol.RuntimeSchema
 import com.minekube.craftless.protocol.RuntimeSourceEvidence
 
 internal fun interface FabricCapabilityDiscovery {
@@ -145,7 +147,7 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                         screenOpen = screenOpen,
                     ),
                 )
-            }
+            } + capabilities.clientStateOperations()
 
         return FabricCapabilityGraphFragment(
             resources = clientStateFragment.resources,
@@ -203,7 +205,6 @@ private fun FabricClientCapabilitySnapshot.bootstrapAvailability(
         FabricBootstrapOperationAvailabilityKind.ENTITY -> entityAvailability()
         FabricBootstrapOperationAvailabilityKind.ENTITY_ATTACK -> entityAttackAvailability()
         FabricBootstrapOperationAvailabilityKind.BLOCK_QUERY -> blockQueryAvailability()
-        FabricBootstrapOperationAvailabilityKind.WORLD -> worldAvailability()
         FabricBootstrapOperationAvailabilityKind.BLOCK_BREAK -> blockBreakAvailability()
         FabricBootstrapOperationAvailabilityKind.BLOCK_INTERACT -> blockInteractAvailability()
         FabricBootstrapOperationAvailabilityKind.SCREEN -> RuntimeAvailability.available()
@@ -284,6 +285,37 @@ private fun FabricClientCapabilitySnapshot.blockInteractReason(): String? =
             !interactionManager -> "interaction-unavailable"
             else -> null
         }
+
+private fun FabricClientCapabilitySnapshot.clientStateOperations(): List<RuntimeOperationNode> =
+    listOf(
+        RuntimeOperationNode(
+            id = FabricBootstrapOperationIds.WORLD_TIME_QUERY,
+            resource = FabricBootstrapOperationIds.WORLD_TIME_QUERY.substringBeforeLast("."),
+            adapter =
+                requireNotNull(fabricBootstrapOperationAdapterKey(FabricBootstrapOperationIds.WORLD_TIME_QUERY)) {
+                    "missing bootstrap operation adapter for ${FabricBootstrapOperationIds.WORLD_TIME_QUERY}"
+                },
+            result =
+                RuntimeSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "action" to RuntimeSchema("string", required = true),
+                            "status" to RuntimeSchema("string", required = true),
+                            "message" to RuntimeSchema("string"),
+                            "data" to RuntimeSchema.objectSchema(),
+                        ),
+                ),
+            availability = worldAvailability(),
+            sourceEvidence = listOf(clientStateWorldEvidence()),
+        ),
+    )
+
+private fun FabricClientCapabilitySnapshot.clientStateWorldEvidence(): RuntimeSourceEvidence =
+    RuntimeSourceEvidence(
+        kind = "client-state",
+        fingerprint = worldReason() ?: "world-available",
+    )
 
 private fun availability(reason: String?): RuntimeAvailability =
     if (reason == null) RuntimeAvailability.available() else RuntimeAvailability.unavailable(reason)

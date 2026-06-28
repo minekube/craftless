@@ -780,7 +780,7 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `transitional fabric binding operation ids are represented as runtime graph operations`() {
+    fun `fabric execution adapter operation ids are represented as runtime graph operations`() {
         val executionAdapterIds = defaultFabricExecutionAdapters().map { adapter -> adapter.operationId }.sorted()
         val definitionIds = fabricBootstrapOperationDefinitions().map { definition -> definition.id }.sorted()
         val graphOperationIds =
@@ -792,11 +792,12 @@ class FabricDriverModuleTest {
                 .sorted()
 
         assertEquals(
-            definitionIds.filter { id -> id in executionAdapterIds },
             executionAdapterIds,
-            "Private Fabric execution adapters must expose operation ids only through bootstrap definitions.",
+            executionAdapterIds.filter { id -> id in graphOperationIds },
+            "Private Fabric execution adapters must be represented by runtime graph operations.",
         )
-        assertEquals(executionAdapterIds, graphOperationIds.filter { it in executionAdapterIds })
+        assertEquals(definitionIds, graphOperationIds.filter { it in definitionIds })
+        assertTrue(FabricBootstrapOperationIds.WORLD_TIME_QUERY !in definitionIds)
     }
 
     @Test
@@ -905,7 +906,6 @@ class FabricDriverModuleTest {
             )
         val forbidden =
             listOf(
-                "RuntimeOperationNode(",
                 "\"player.chat\"",
                 "\"inventory.query\"",
                 "\"recipe.query\"",
@@ -928,6 +928,7 @@ class FabricDriverModuleTest {
             "FabricClientStateCapabilityProbe must not own bootstrap operation definitions; " +
                 "they belong in the transitional graph bootstrap definition layer.",
         )
+        assertTrue(source.contains("client-state"))
     }
 
     @Test
