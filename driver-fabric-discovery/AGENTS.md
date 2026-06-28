@@ -13,6 +13,8 @@ driver lanes.
 - Shared protocol-level Fabric runtime graph fragments and graph composition.
 - Shared non-gameplay registry resource and handle projection from
   lane-provided registry fingerprints.
+- Shared non-gameplay event resource and event projection from lane-provided
+  Fabric event-source evidence.
 
 ## Rules
 
@@ -33,6 +35,10 @@ driver lanes.
 - Registry projection in this module may expose Craftless-owned registry
   resources/handles and availability from lane-provided fingerprints. It must
   not inspect Minecraft registries itself, hard-code mod content, or imply a
+  supported gameplay lane.
+- Event projection in this module may expose Craftless-owned event resources
+  and event nodes from lane-provided source evidence. It must not register
+  Fabric API callbacks, define mixins, stream SSE by itself, or imply a
   supported gameplay lane.
 - Keep graph composition version-agnostic. If current, older, latest/current,
   or future Fabric versions diverge, model the difference as lane-provided

@@ -4,6 +4,7 @@ import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.protocol.RuntimeAvailability
 import com.minekube.craftless.protocol.RuntimeOperationNode
 import com.minekube.craftless.protocol.RuntimeResourceNode
+import com.minekube.craftless.protocol.RuntimeSourceEvidence
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -109,5 +110,44 @@ class FabricRuntimeGraphTest {
         assertEquals(unavailable, fragment.resources.single().availability)
         assertTrue(fragment.handles.isNotEmpty())
         assertTrue(fragment.handles.all { handle -> handle.availability == unavailable })
+    }
+
+    @Test
+    fun `event graph fragment exposes available event resource and events from source evidence`() {
+        val sourceEvidence = listOf(RuntimeSourceEvidence("event-source", "driver:test"))
+
+        val fragment =
+            fabricEventGraphFragment(
+                sourceEvidence = sourceEvidence,
+                available = true,
+            )
+
+        assertEquals(listOf("event"), fragment.resources.map { it.id })
+        assertEquals(RuntimeAvailability.available(), fragment.resources.single().availability)
+        assertEquals(
+            listOf("event.action", "event.capability", "event.lifecycle"),
+            fragment.events.map { it.id }.sorted(),
+        )
+        assertEquals(sourceEvidence, fragment.resources.single().sourceEvidence)
+    }
+
+    @Test
+    fun `event graph fragment reports unavailable event source with fallback evidence`() {
+        val fragment =
+            fabricEventGraphFragment(
+                sourceEvidence = emptyList(),
+                available = false,
+            )
+
+        val unavailable = RuntimeAvailability.unavailable("event-source-not-discovered")
+        assertEquals(unavailable, fragment.resources.single().availability)
+        assertTrue(fragment.events.isNotEmpty())
+        assertTrue(fragment.events.all { event -> event.availability == unavailable })
+        assertTrue(
+            fragment.resources
+                .single()
+                .sourceEvidence
+                .any { evidence -> evidence.kind == "event-source" && evidence.fingerprint == "events:not-discovered" },
+        )
     }
 }

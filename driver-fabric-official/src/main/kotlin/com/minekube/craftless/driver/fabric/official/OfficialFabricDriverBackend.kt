@@ -9,6 +9,7 @@ import com.minekube.craftless.driver.fabric.discovery.FabricLoaderRuntimeMetadat
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataProvider
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataSnapshot
 import com.minekube.craftless.driver.fabric.discovery.SnapshotFabricRuntimeMetadataProvider
+import com.minekube.craftless.driver.fabric.discovery.fabricEventGraphFragment
 import com.minekube.craftless.driver.fabric.discovery.fabricRegistryGraphFragment
 import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeGraph
 import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeMetadataGraphFragment
@@ -49,6 +50,10 @@ internal class OfficialFabricDriverBackend(
                         ),
                         fabricRegistryGraphFragment(
                             metadata = metadata,
+                            available = false,
+                        ),
+                        fabricEventGraphFragment(
+                            sourceEvidence = emptyList(),
                             available = false,
                         ),
                     ),

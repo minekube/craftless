@@ -2,13 +2,13 @@ package com.minekube.craftless.driver.fabric.v1_21_6
 
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeGraphFragment
+import com.minekube.craftless.driver.fabric.discovery.fabricEventGraphFragment
 import com.minekube.craftless.driver.fabric.discovery.fabricRegistryGraphFragment
 import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeGraph
 import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeResourceNode
 import com.minekube.craftless.driver.fabric.runtime.FabricCompatibilityLane
 import com.minekube.craftless.protocol.RuntimeAvailability
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
-import com.minekube.craftless.protocol.RuntimeEventNode
 import com.minekube.craftless.protocol.RuntimeHandleNode
 import com.minekube.craftless.protocol.RuntimeResourceNode
 import com.minekube.craftless.protocol.RuntimeSchema
@@ -103,25 +103,9 @@ internal object FabricEventSourceCapabilityProbe : FabricCapabilityProbe {
             listOf(RuntimeSourceEvidence("event-source", "driver:${context.runtimeMetadata.driverVersion}")) +
                 FabricEventHooks.sourceEvidence() +
                 FabricEventCallbacks.sourceEvidence()
-        return FabricCapabilityGraphFragment(
-            resources =
-                listOf(
-                    RuntimeResourceNode(
-                        id = "event",
-                        availability = RuntimeAvailability.available(),
-                        sourceEvidence = eventSourceEvidence,
-                    ),
-                ),
-            events =
-                eventSourceIds.map { id ->
-                    RuntimeEventNode(
-                        id = "event.$id",
-                        resource = "event",
-                        payload = RuntimeSchema.objectSchema(),
-                        availability = RuntimeAvailability.available(),
-                        sourceEvidence = eventSourceEvidence,
-                    )
-                },
+        return fabricEventGraphFragment(
+            sourceEvidence = eventSourceEvidence,
+            available = true,
         )
     }
 }
@@ -259,13 +243,6 @@ private fun FabricClientCapabilitySnapshot.bootstrapAvailability(
         FabricBootstrapOperationAvailabilityKind.SCREEN_CLOSE ->
             if (screenOpen) RuntimeAvailability.available() else RuntimeAvailability.unavailable("screen-not-open")
     }
-
-private val eventSourceIds =
-    listOf(
-        "lifecycle",
-        "action",
-        "capability",
-    )
 
 private fun FabricClientCapabilitySnapshot.playerReason(): String? =
     when {
