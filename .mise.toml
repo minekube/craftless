@@ -15,6 +15,10 @@ run = "mise exec -- gradle lint"
 description = "Auto-format Kotlin sources with ktlint"
 run = "mise exec -- gradle lintFormat"
 
+[tasks.unused-check]
+description = "Run explicit Kotlin unused and dead-code checks through Detekt"
+run = "mise exec -- gradle detekt"
+
 [tasks.playwright-test]
 description = "Run the Playwright integration helper tests"
 run = "mise exec -- bun test playwright"
@@ -53,6 +57,7 @@ run = [
 description = "Run all repository verification checks"
 run = [
     "mise exec -- gradle lint",
+    "mise run unused-check",
     "mise exec -- gradle test",
     "mise exec -- bun test playwright",
 ]

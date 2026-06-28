@@ -5,6 +5,14 @@ naming:
   PackageNaming:
     packagePattern: '[a-z]+(\.[a-z][A-Za-z0-9_]*)*'
 
+potential-bugs:
+  UnreachableCatchBlock:
+    active: true
+  UnreachableCode:
+    active: true
+  UnusedUnaryOperator:
+    active: true
+
 style:
   MagicNumber:
     active: false
@@ -14,3 +22,15 @@ style:
     active: false
   ThrowsCount:
     active: false
+  UnusedImport:
+    active: true
+  UnusedParameter:
+    active: true
+  UnusedPrivateClass:
+    active: true
+  UnusedPrivateFunction:
+    active: true
+  UnusedPrivateProperty:
+    active: true
+  UnusedVariable:
+    active: true

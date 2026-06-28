@@ -130,6 +130,30 @@ class NamespacePolicyTest {
     }
 
     @Test
+    fun `kotlin quality gates include explicit unused and dead code checks`() {
+        val root = repositoryRoot()
+        val detekt = Files.readString(root.resolve("config/detekt/detekt.yml"))
+        val mise = Files.readString(root.resolve(".mise.toml"))
+
+        listOf(
+            "UnusedImport",
+            "UnusedParameter",
+            "UnusedPrivateClass",
+            "UnusedPrivateFunction",
+            "UnusedPrivateProperty",
+            "UnusedVariable",
+            "UnreachableCatchBlock",
+            "UnreachableCode",
+            "UnusedUnaryOperator",
+        ).forEach { rule ->
+            assertTrue(detekt.contains("$rule:"), "detekt config must explicitly include $rule")
+        }
+        assertTrue(mise.contains("[tasks.unused-check]"), "mise must expose an explicit unused-check task")
+        assertTrue(mise.contains("mise exec -- gradle detekt"), "unused-check must run Detekt")
+        assertTrue(mise.contains("mise run unused-check"), "ci must include the explicit unused-check task")
+    }
+
+    @Test
     fun `public gameplay agent skill keeps generated workflow guidance`() {
         val skill =
             Files.readString(

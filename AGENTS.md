@@ -216,6 +216,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 103. installed CLI driver mod distribution.
 104. v0.1.1 release install evidence.
 105. active unsupported lane fixture cleanup.
+106. explicit unused and dead-code gates.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -805,6 +806,10 @@ fallback lanes such as `fabric-unsupported-26-2`. This is active-source
 alignment only; it must not add runnable version support, gameplay
 descriptors, static route families, Fabric action bindings, scenario
 shortcuts, or version support claims.
+Phase 106 makes practical unused/dead-code checks explicit in the existing
+pinned Detekt and mise quality gates. It must use existing pinned tooling, add
+no new dependency, and must not change gameplay APIs, version support,
+packaging, or release behavior.
 
 ## Acceptance Scenarios Are Not Product APIs
 

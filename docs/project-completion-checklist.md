@@ -3339,6 +3339,34 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-active-unsupported-lane-fixture-cleanup.md`.
 
+## Phase 106: Explicit Unused And Dead-Code Gates
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-106-explicit-unused-dead-code-gates-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-106-explicit-unused-dead-code-gates-plan.md`.
+- [x] Detekt config explicitly includes unused and dead-code rules:
+  `UnusedImport`, `UnusedParameter`, `UnusedPrivateClass`,
+  `UnusedPrivateFunction`, `UnusedPrivateProperty`, `UnusedVariable`,
+  `UnreachableCatchBlock`, `UnreachableCode`, and `UnusedUnaryOperator`.
+- [x] `mise run unused-check` runs Detekt explicitly.
+- [x] `mise run ci` includes `mise run unused-check`.
+- [x] This phase adds no new dependency, public gameplay action, generated
+  route family, CLI gameplay catalog, Fabric execution binding, scenario
+  shortcut, public version-specific API, runnable latest/older lane, or new
+  Minecraft support claim.
+
+Verification:
+
+- Red/green guard:
+  `mise exec -- gradle :protocol:test --tests '*NamespacePolicyTest.kotlin quality gates include explicit unused and dead code checks*'`
+- Explicit unused/dead-code gate:
+  `mise run unused-check`
+- Full local CI:
+  `mise run ci`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-explicit-unused-dead-code-gates.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3362,7 +3390,8 @@ Verification:
   installed CLI driver mod distribution. Phase 104 v0.1.1 release install
   evidence is currently being refreshed. Phase 105 active unsupported lane
   fixture cleanup is complete and does not satisfy the runnable latest/older
-  support requirement by itself.
+  support requirement by itself. Phase 106 explicit unused/dead-code gates are
+  complete.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support
