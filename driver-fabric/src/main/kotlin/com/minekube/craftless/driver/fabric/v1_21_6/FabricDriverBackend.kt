@@ -77,7 +77,7 @@ class FabricDriverBackend private constructor(
     private val taskExecutor: FabricTaskExecutor = UnavailableFabricTaskExecutor,
 ) : DriverBackend {
     private val events = mutableListOf<String>()
-    private val actionBindingsById = actionBindings.associateBy { it.descriptor.id }
+    private val actionBindingsById = actionBindings.associateBy { it.operationId }
 
     override fun connect(
         clientId: String,
@@ -120,7 +120,7 @@ class FabricDriverBackend private constructor(
             navigationTaskOperationAdapters() +
                 actionBindingsById.values
                     .map { binding ->
-                        binding.descriptor.id.fabricOperationAdapterKey() to
+                        binding.operationId.fabricOperationAdapterKey() to
                             DriverOperationAdapter { invocation ->
                                 binding.invoke(
                                     clientId = invocation.clientId,

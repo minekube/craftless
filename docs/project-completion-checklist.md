@@ -164,6 +164,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-82-readme-public-entrypoint-overhaul-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-82-readme-public-entrypoint-overhaul-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-83-fabric-binding-descriptor-removal-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-83-fabric-binding-descriptor-removal-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -2632,6 +2636,40 @@ Verification:
 - Final local and remote verification are recorded in
   `docs/superpowers/evidence/2026-06-28-readme-public-entrypoint-overhaul.md`.
 
+## Phase 83: Fabric Binding Descriptor Removal
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-83-fabric-binding-descriptor-removal-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-83-fabric-binding-descriptor-removal-plan.md`.
+- [x] `FabricActionBinding` is private execution metadata only and exposes
+  `operationId`, not `DriverActionDescriptor`.
+- [x] `FabricActionBindings.kt` no longer imports or uses
+  `DriverActionDescriptor`, `DriverActionArgument`,
+  `DriverActionResultDescriptor`, or `DriverActionResultProperty`.
+- [x] Descriptor helper functions are removed from `FabricActionBindings.kt`.
+- [x] `FabricDriverBackend.operationAdapters(...)` registers private adapters
+  from `operationId`, not `descriptor.id`.
+- [x] Existing graph-projected public action schemas and invocation behavior
+  remain covered by Fabric tests.
+- [~] The broader binding-exit blocker remains active until future gameplay
+  breadth is generated from generic runtime discovery instead of
+  hand-maintained bootstrap operation definitions.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric descriptor/binding pair, scenario shortcut, new
+  compiled lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Red guards:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric action bindings do not own public descriptors or schemas*' --tests '*FabricDriverModuleTest.fabric operation adapter registration does not use binding descriptors*' --tests '*FabricDriverModuleTest.transitional fabric binding operation ids are represented as runtime graph operations*'`
+- Green focused tests:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric action bindings do not own public descriptors or schemas*' --tests '*FabricDriverModuleTest.fabric operation adapter registration does not use binding descriptors*' --tests '*FabricDriverModuleTest.transitional fabric binding operation ids are represented as runtime graph operations*' --tests '*FabricDriverModuleTest.fabric backend exposes bootstrap bindings as graph operation adapters*'`
+- Full Fabric regression:
+  `mise exec -- gradle :driver-fabric:test`
+- Final local and remote verification are recorded in
+  `docs/superpowers/evidence/2026-06-28-fabric-binding-descriptor-removal.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -2639,7 +2677,7 @@ Verification:
   Phase 78 graph-native bootstrap operation schemas, Phase 79 graph-owned
   legacy invoke dispatch, Phase 80 deletion of standalone action discovery,
   Phase 81 HMC bridge gameplay removal, and Phase 82 README public entrypoint
-  overhaul.
+  overhaul, and Phase 83 Fabric binding descriptor removal.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest and representative older runtime lanes have the requested support or

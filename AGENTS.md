@@ -193,6 +193,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 80. action discovery deletion.
 81. HMC bridge gameplay removal.
 82. README public entrypoint overhaul.
+83. Fabric binding descriptor removal.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -636,6 +637,15 @@ status, explicit unsupported version lanes, and remaining completion gates. It
 must not present legacy TypeScript SDK, Homebrew, HMC gameplay, static gameplay
 catalogs, scenario tasks, or server-provisioned final gameplay as active
 product surfaces.
+Phase 83 removes public descriptor/schema ownership from private Fabric
+execution bindings. `FabricActionBinding` may identify the graph operation it
+executes with a private `operationId`, but it must not expose
+`DriverActionDescriptor`, `DriverActionArgument`, result descriptor metadata,
+or descriptor helper functions. Schemas, availability, resource ownership, and
+public descriptor projection stay graph-owned. This phase still does not finish
+the broader binding exit while future gameplay breadth depends on
+hand-maintained bootstrap operation definitions instead of generic runtime
+discovery.
 
 ## Acceptance Scenarios Are Not Product APIs
 

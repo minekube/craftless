@@ -372,8 +372,21 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `transitional fabric binding ids are represented as runtime graph operations`() {
-        val bindingIds = defaultFabricActionBindings().map { it.descriptor.id }.sorted()
+    fun `transitional fabric binding operation ids are represented as runtime graph operations`() {
+        val root = repositoryRoot()
+        val source =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricActionBindings.kt",
+                ),
+            )
+        val bindingIds =
+            Regex("""operationId(?:\s*:\s*String)?\s*=\s*"([a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)*)"""")
+                .findAll(source)
+                .map { match -> match.groupValues[1] }
+                .distinct()
+                .sorted()
+                .toList()
         val graphOperationIds =
             FabricDriverBackend
                 .metadataOnly()
@@ -382,6 +395,11 @@ class FabricDriverModuleTest {
                 .map { it.id }
                 .sorted()
 
+        assertEquals(
+            transitionalFabricActionAllowlist(root),
+            bindingIds,
+            "Private Fabric bindings must expose operation ids only for the current transitional executable graph operations.",
+        )
         assertEquals(bindingIds, graphOperationIds.filter { it in bindingIds })
     }
 
@@ -1018,39 +1036,46 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `hand written fabric gameplay bindings stay transitional and graph represented`() {
+    fun `fabric action bindings do not own public descriptors or schemas`() {
         val root = repositoryRoot()
-        val allowlist = transitionalFabricActionAllowlist(root)
         val source =
             Files.readString(
                 root.resolve(
                     "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricActionBindings.kt",
                 ),
             )
-        val descriptorIds =
-            Regex("""id = "([a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)*)"""")
-                .findAll(source)
-                .map { match -> match.groupValues[1] }
-                .distinct()
-                .sorted()
-                .toList()
-        val graphOperationIds =
-            FabricDriverBackend
-                .metadataOnly()
-                .runtimeGraph("alice")
-                .operations
-                .map { operation -> operation.id }
-                .toSet()
+        val forbidden =
+            listOf(
+                "DriverActionDescriptor",
+                "DriverActionArgument",
+                "DriverActionResultDescriptor",
+                "DriverActionResultProperty",
+                "fabricPlayerQueryDescriptor",
+                "fabricObjectDataResultDescriptor",
+                "descriptor.id",
+                "override val descriptor",
+            )
 
         assertEquals(
-            allowlist,
-            descriptorIds,
-            "Hand-written Fabric gameplay binding descriptors are transitional private adapter metadata only; " +
-                "new public gameplay breadth must be discovered through the runtime graph.",
+            emptyList(),
+            forbidden.filter { token -> source.contains(token) },
+            "Private Fabric bindings must not own public descriptors or schemas; graph discovery owns those.",
         )
+    }
+
+    @Test
+    fun `fabric operation adapter registration does not use binding descriptors`() {
+        val root = repositoryRoot()
+        val source =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverBackend.kt",
+                ),
+            )
+
         assertTrue(
-            graphOperationIds.containsAll(allowlist),
-            "Transitional descriptor ids must be represented by runtime graph operations.",
+            "binding.descriptor.id" !in source,
+            "Fabric operation adapter registration must use private operation ids, not binding descriptors.",
         )
     }
 

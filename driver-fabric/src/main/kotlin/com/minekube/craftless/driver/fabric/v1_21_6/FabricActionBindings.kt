@@ -1,11 +1,7 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
-import com.minekube.craftless.driver.api.DriverActionArgument
-import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
-import com.minekube.craftless.driver.api.DriverActionResultDescriptor
-import com.minekube.craftless.driver.api.DriverActionResultProperty
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.booleanArgument
@@ -42,7 +38,7 @@ import net.minecraft.util.math.Vec2f
 import net.minecraft.util.math.Vec3d
 
 internal interface FabricActionBinding {
-    val descriptor: DriverActionDescriptor
+    val operationId: String
 
     fun invoke(
         clientId: String,
@@ -83,7 +79,7 @@ internal fun defaultFabricActionBindings(): List<FabricActionBinding> =
     )
 
 internal object FabricPlayerQueryActionBinding : FabricActionBinding {
-    override val descriptor: DriverActionDescriptor = fabricPlayerQueryDescriptor()
+    override val operationId: String = "player.query"
 
     override fun invoke(
         clientId: String,
@@ -117,15 +113,8 @@ internal object FabricPlayerQueryActionBinding : FabricActionBinding {
     }
 }
 
-internal fun fabricPlayerQueryDescriptor(): DriverActionDescriptor =
-    DriverActionDescriptor(
-        id = "player.query",
-        schemaVersion = "1",
-        result = fabricObjectDataResultDescriptor(),
-    )
-
 internal object FabricPlayerLookActionBinding : FabricActionBinding {
-    override val descriptor: DriverActionDescriptor = fabricPlayerLookDescriptor()
+    override val operationId: String = "player.look"
 
     override fun invoke(
         clientId: String,
@@ -175,19 +164,8 @@ internal object FabricPlayerLookActionBinding : FabricActionBinding {
     private const val MAX_PITCH = 90.0
 }
 
-internal fun fabricPlayerLookDescriptor(): DriverActionDescriptor =
-    DriverActionDescriptor(
-        id = "player.look",
-        schemaVersion = "1",
-        arguments =
-            mapOf(
-                "yaw" to DriverActionArgument("number", required = true),
-                "pitch" to DriverActionArgument("number", required = true),
-            ),
-    )
-
 internal object FabricInventoryQueryActionBinding : FabricActionBinding {
-    override val descriptor: DriverActionDescriptor = fabricInventoryQueryDescriptor()
+    override val operationId: String = "inventory.query"
 
     override fun invoke(
         clientId: String,
@@ -208,15 +186,8 @@ internal object FabricInventoryQueryActionBinding : FabricActionBinding {
     }
 }
 
-internal fun fabricInventoryQueryDescriptor(): DriverActionDescriptor =
-    DriverActionDescriptor(
-        id = "inventory.query",
-        schemaVersion = "1",
-        result = fabricObjectDataResultDescriptor(),
-    )
-
 internal object FabricInventoryEquipActionBinding : FabricActionBinding {
-    override val descriptor: DriverActionDescriptor = fabricInventoryEquipDescriptor()
+    override val operationId: String = "inventory.equip"
 
     override fun invoke(
         clientId: String,
@@ -254,18 +225,8 @@ internal object FabricInventoryEquipActionBinding : FabricActionBinding {
     private val HOTBAR_SLOT_RANGE = 0..8
 }
 
-internal fun fabricInventoryEquipDescriptor(): DriverActionDescriptor =
-    DriverActionDescriptor(
-        id = "inventory.equip",
-        schemaVersion = "1",
-        arguments =
-            mapOf(
-                "slot" to DriverActionArgument("integer", required = true),
-            ),
-    )
-
 internal object FabricWorldBlockBreakActionBinding : FabricActionBinding {
-    override val descriptor: DriverActionDescriptor = fabricWorldBlockBreakDescriptor()
+    override val operationId: String = "world.block.break"
 
     override fun invoke(
         clientId: String,
@@ -344,23 +305,8 @@ internal object FabricWorldBlockBreakActionBinding : FabricActionBinding {
     }
 }
 
-internal fun fabricWorldBlockBreakDescriptor(): DriverActionDescriptor =
-    DriverActionDescriptor(
-        id = "world.block.break",
-        schemaVersion = "1",
-        arguments =
-            mapOf(
-                "max-distance" to DriverActionArgument("number"),
-                "include-fluids" to DriverActionArgument("boolean"),
-                "target" to DriverActionArgument("object"),
-                "ticks" to DriverActionArgument("integer"),
-            ),
-        result =
-            fabricObjectDataResultDescriptor(),
-    )
-
 internal object FabricWorldBlockInteractActionBinding : FabricActionBinding {
-    override val descriptor: DriverActionDescriptor = fabricWorldBlockInteractDescriptor()
+    override val operationId: String = "world.block.interact"
 
     override fun invoke(
         clientId: String,
@@ -472,21 +418,6 @@ internal object FabricWorldBlockInteractActionBinding : FabricActionBinding {
     }
 }
 
-internal fun fabricWorldBlockInteractDescriptor(): DriverActionDescriptor =
-    DriverActionDescriptor(
-        id = "world.block.interact",
-        schemaVersion = "1",
-        arguments =
-            mapOf(
-                "max-distance" to DriverActionArgument("number"),
-                "include-fluids" to DriverActionArgument("boolean"),
-                "target" to DriverActionArgument("object"),
-                "side" to DriverActionArgument("string"),
-            ),
-        result =
-            fabricObjectDataResultDescriptor(),
-    )
-
 internal fun craftlessBlockFaceHitPosition(
     position: BlockPos,
     side: Direction,
@@ -503,7 +434,7 @@ internal fun craftlessBlockInteractAccepted(
 ): Boolean = blockResult.isAccepted || itemResult.isAccepted
 
 internal object FabricWorldTimeQueryActionBinding : FabricActionBinding {
-    override val descriptor: DriverActionDescriptor = fabricWorldTimeQueryDescriptor()
+    override val operationId: String = "world.time.query"
 
     override fun invoke(
         clientId: String,
@@ -527,16 +458,8 @@ internal object FabricWorldTimeQueryActionBinding : FabricActionBinding {
     }
 }
 
-internal fun fabricWorldTimeQueryDescriptor(): DriverActionDescriptor =
-    DriverActionDescriptor(
-        id = "world.time.query",
-        schemaVersion = "1",
-        result =
-            fabricObjectDataResultDescriptor(),
-    )
-
 internal object FabricPlayerRaycastActionBinding : FabricActionBinding {
-    override val descriptor: DriverActionDescriptor = fabricRaycastDescriptor()
+    override val operationId: String = "player.raycast"
 
     override fun invoke(
         clientId: String,
@@ -667,21 +590,8 @@ private fun blockInteractFailure(reason: String): JsonObject =
         put("reason", reason)
     }
 
-internal fun fabricRaycastDescriptor(): DriverActionDescriptor =
-    DriverActionDescriptor(
-        id = "player.raycast",
-        schemaVersion = "1",
-        arguments =
-            mapOf(
-                "max-distance" to DriverActionArgument("number"),
-                "include-fluids" to DriverActionArgument("boolean"),
-            ),
-        result =
-            fabricObjectDataResultDescriptor(),
-    )
-
 internal object FabricScreenQueryActionBinding : FabricActionBinding {
-    override val descriptor: DriverActionDescriptor = fabricScreenQueryDescriptor()
+    override val operationId: String = "screen.query"
 
     override fun invoke(
         clientId: String,
@@ -701,15 +611,8 @@ internal object FabricScreenQueryActionBinding : FabricActionBinding {
     }
 }
 
-internal fun fabricScreenQueryDescriptor(): DriverActionDescriptor =
-    DriverActionDescriptor(
-        id = "screen.query",
-        schemaVersion = "1",
-        result = fabricObjectDataResultDescriptor(),
-    )
-
 internal object FabricScreenCloseActionBinding : FabricActionBinding {
-    override val descriptor: DriverActionDescriptor = fabricScreenCloseDescriptor()
+    override val operationId: String = "screen.close"
 
     override fun invoke(
         clientId: String,
@@ -727,34 +630,8 @@ internal object FabricScreenCloseActionBinding : FabricActionBinding {
     }
 }
 
-internal fun fabricScreenCloseDescriptor(): DriverActionDescriptor =
-    DriverActionDescriptor(
-        id = "screen.close",
-        schemaVersion = "1",
-    )
-
-private fun fabricObjectDataResultDescriptor(): DriverActionResultDescriptor =
-    DriverActionResultDescriptor(
-        properties =
-            mapOf(
-                "action" to DriverActionResultProperty("string"),
-                "status" to DriverActionResultProperty("string"),
-                "message" to DriverActionResultProperty("string"),
-                "data" to DriverActionResultProperty("object"),
-            ),
-        required = listOf("action", "status"),
-    )
-
 private object FabricPlayerChatActionBinding : FabricActionBinding {
-    override val descriptor: DriverActionDescriptor =
-        DriverActionDescriptor(
-            id = "player.chat",
-            schemaVersion = "1",
-            arguments =
-                mapOf(
-                    "message" to DriverActionArgument("string", required = true),
-                ),
-        )
+    override val operationId: String = "player.chat"
 
     override fun invoke(
         clientId: String,
@@ -800,23 +677,7 @@ private object FabricPlayerChatActionBinding : FabricActionBinding {
 }
 
 private object FabricPlayerMoveActionBinding : FabricActionBinding {
-    override val descriptor: DriverActionDescriptor =
-        DriverActionDescriptor(
-            id = "player.move",
-            schemaVersion = "1",
-            arguments =
-                mapOf(
-                    "forward" to DriverActionArgument("boolean"),
-                    "backward" to DriverActionArgument("boolean"),
-                    "left" to DriverActionArgument("boolean"),
-                    "right" to DriverActionArgument("boolean"),
-                    "jump" to DriverActionArgument("boolean"),
-                    "sneak" to DriverActionArgument("boolean"),
-                    "sprint" to DriverActionArgument("boolean"),
-                    "ticks" to DriverActionArgument("integer"),
-                ),
-            result = fabricObjectDataResultDescriptor(),
-        )
+    override val operationId: String = "player.move"
 
     override fun invoke(
         clientId: String,
