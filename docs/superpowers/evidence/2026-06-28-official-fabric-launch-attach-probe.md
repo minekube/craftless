@@ -12,7 +12,8 @@ still not added to the packaged driver manifest. The enabled probe now proves
 launch, self-attach, and generated OpenAPI metadata for the official 26.x lane,
 but generated gameplay actions are still empty and packaged distribution, SSE,
 generated gameplay resources/actions, and public API/CLI gameplay evidence
-remain open.
+remain open. Phase 150 updates this evidence with live Fabric Loader metadata
+fingerprinting for the official lane.
 
 ## Red Evidence
 
@@ -139,7 +140,7 @@ client.attached
 ```
 
 The per-client OpenAPI artifact was captured before the child process was
-stopped. Summary:
+stopped. Updated Phase 150 summary:
 
 ```json
 {
@@ -148,10 +149,16 @@ stopped. Summary:
   "loader": "FABRIC",
   "loaderVersion": "0.19.3",
   "driver": "craftless-driver-fabric-official",
+  "installedMods": "mods:33e126b07d85b4a4",
+  "registry": "registries:not-discovered",
+  "serverFeatures": "server-features:not-connected",
   "actions": 0,
   "resources": 1
 }
 ```
+
+The previous `mods:official-lane-probe` placeholder is gone from the generated
+OpenAPI evidence.
 
 Lint and whitespace:
 
@@ -174,6 +181,8 @@ BUILD SUCCESSFUL
 - The probe suppresses expected child output-stream `IOException` during
   shutdown and does not print a reader-thread stack trace for normal teardown.
 - No packaged 26.x driver manifest entry was added.
+- Official runtime metadata comes from Fabric Loader mod containers instead of
+  hard-coded installed-mod placeholders.
 - Root and driver-local `AGENTS.md` files keep version support as shared
   system work by default, with per-version code only for documented lane
   divergence.

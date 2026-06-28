@@ -5,6 +5,9 @@ loopback transport shared by all Fabric driver lanes.
 It is the common attach boundary for current, older, latest/current, and future
 Fabric lanes; version differences must arrive as stable session data or be
 handled in the lane adapter before the session is passed here.
+This module should get more generic over time, not more lane-specific: new
+versions should normally add metadata, resolver data, or lane adapters outside
+this module while reusing the same attach contract.
 
 ## Scope
 

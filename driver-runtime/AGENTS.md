@@ -1,6 +1,9 @@
 # Driver Runtime Module Instructions
 
 `driver-runtime/` adapts the stable `driver-api` contract to concrete backends.
+It must remain the shared runtime/session layer for current, latest/current,
+older, and future lanes unless the stable contract itself cannot represent a
+real divergence.
 
 ## Scope
 

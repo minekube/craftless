@@ -13,7 +13,10 @@ import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import com.minekube.craftless.protocol.RuntimeResourceNode
 import com.minekube.craftless.protocol.RuntimeSourceEvidence
 
-internal class OfficialFabricDriverBackend : DriverBackend {
+internal class OfficialFabricDriverBackend(
+    private val runtimeMetadataProvider: OfficialFabricRuntimeMetadataProvider =
+        FabricLoaderOfficialRuntimeMetadataProvider(),
+) : DriverBackend {
     override fun connect(
         clientId: String,
         target: ConnectionTarget,
@@ -24,17 +27,7 @@ internal class OfficialFabricDriverBackend : DriverBackend {
             observed = false,
         )
 
-    override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
-        DriverRuntimeMetadata(
-            loaderVersion = "0.19.3",
-            driver = "craftless-driver-fabric-official",
-            driverVersion = "0.1.0-SNAPSHOT",
-            mappings = "craftless-official-bindings-26-2",
-            installedModsFingerprint = "mods:official-lane-probe",
-            registryFingerprint = "registries:unavailable",
-            serverFeatureFingerprint = "server-features:unavailable",
-            permissionsFingerprint = "permissions:local-client",
-        )
+    override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata = runtimeMetadataProvider.runtimeMetadata(clientId)
 
     override fun runtimeGraph(clientId: String): RuntimeCapabilityGraph =
         RuntimeCapabilityGraph(

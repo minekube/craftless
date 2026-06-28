@@ -248,6 +248,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-146-latest-official-fabric-lane-boundary-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-146-latest-official-fabric-lane-boundary-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-150-official-fabric-runtime-metadata-discovery-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-150-official-fabric-runtime-metadata-discovery-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -4298,6 +4302,60 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-official-fabric-launch-attach-probe.md`.
 
+## Phase 150: Official Fabric Runtime Metadata Discovery
+
+- [x] Spec written:
+  `docs/superpowers/specs/2026-06-28-150-official-fabric-runtime-metadata-discovery-design.md`.
+- [x] Plan written:
+  `docs/superpowers/plans/2026-06-28-150-official-fabric-runtime-metadata-discovery-plan.md`.
+- [x] `OfficialFabricDriverBackend` no longer embeds
+  `mods:official-lane-probe`, `registries:unavailable`, or
+  `server-features:unavailable`.
+- [x] `OfficialFabricDriverBackend` delegates runtime metadata to
+  `OfficialFabricRuntimeMetadataProvider`.
+- [x] Snapshot provider tests prove installed-mod fingerprinting is
+  deterministic, order-independent, and changes when a mod version changes.
+- [x] The production official metadata provider reads Fabric Loader mod
+  containers and uses their ids/versions as runtime metadata input.
+- [x] Root and driver-local `AGENTS.md` files keep future agents aligned on the
+  version-agnostic rule: shared runtime/attach/discovery/projection by default,
+  per-version code only for proven divergence behind a narrow lane boundary.
+- [x] The real enabled official attach probe still observes `client.attached`.
+- [x] The generated per-client OpenAPI artifact reports installed mods as a
+  hashed live fingerprint such as `mods:33e126b07d85b4a4`, not the old
+  `mods:official-lane-probe` placeholder.
+- [x] Registry and server-feature metadata remain explicit non-gameplay
+  discovery gaps: `registries:not-discovered` and
+  `server-features:not-connected`.
+- [x] This phase adds no packaged 26.x driver manifest entry, no public
+  gameplay API, no static gameplay catalog, no version-specific public route
+  family, no survival shortcut, and no final latest/current support claim.
+
+Verification:
+
+- Red guard before implementation:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.official lane has opt in launch attach probe task without packaging support claim'`
+  failed while the official backend still embedded placeholder fingerprints.
+- Provider red test before implementation:
+  `mise exec -- gradle :driver-fabric-official:test --tests '*OfficialFabricRuntimeMetadataProviderTest*'`
+  failed before the provider types existed.
+- Green guard:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.official lane has opt in launch attach probe task without packaging support claim'`.
+- Provider tests:
+  `mise exec -- gradle :driver-fabric-official:test --tests '*OfficialFabricRuntimeMetadataProviderTest*'`.
+- Real enabled default probe:
+  `CRAFTLESS_OFFICIAL_FABRIC_ATTACH_PROBE=1`
+  `CRAFTLESS_OFFICIAL_ATTACH_PROBE_TIMEOUT_MS=120000`
+  `mise exec -- gradle :driver-fabric-official:officialFabricAttachProbe`
+  passed, wrote `ATTACHED`, captured `client.created` and `client.attached`,
+  and wrote a per-client OpenAPI artifact for official Minecraft `26.2`.
+- OpenAPI artifact summary:
+  `jq '{client:."x-craftless"."x-craftless-client-id", minecraft:."x-craftless"."x-craftless-minecraft-version", loader:."x-craftless"."x-craftless-loader", loaderVersion:."x-craftless"."x-craftless-loader-version", driver:."x-craftless"."x-craftless-driver", installedMods:."x-craftless"."x-craftless-installed-mods-fingerprint", registry:."x-craftless"."x-craftless-registry-fingerprint", serverFeatures:."x-craftless"."x-craftless-server-feature-fingerprint", actions:(."x-craftless-actions"|length), resources:(."x-craftless-resources"|length)}' driver-fabric-official/build/craftless-official-attach-probe/client-openapi.json`
+  reported `official-probe`, `26.2`, `FABRIC`, `0.19.3`,
+  `craftless-driver-fabric-official`, `mods:33e126b07d85b4a4`,
+  `registries:not-discovered`, `server-features:not-connected`, `actions=0`,
+  and `resources=1`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -4348,7 +4406,8 @@ Verification:
   probe, Phase 144 latest driver lane preflight, Phase 145 latest official
   mapping lane probe, Phase 146 latest official Fabric lane boundary, Phase
   147 shared Fabric attach boundary, Phase 148 official Fabric runtime
-  dependency packaging, and Phase 149 official Fabric launch attach probe.
+  dependency packaging, Phase 149 official Fabric launch attach probe, and
+  Phase 150 official Fabric runtime metadata discovery.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
@@ -4356,7 +4415,7 @@ Verification:
   Phase 129, Phase 130, Phase 131, Phase 132, Phase 133, Phase 134, Phase
   135, Phase 136, Phase 137, Phase 138, Phase 139, Phase 140, Phase 141,
   Phase 142, Phase 143, Phase 144, Phase 145, Phase 146, Phase 147, Phase
-  148, and Phase 149 do not satisfy the full runnable latest/older support
+  148, Phase 149, and Phase 150 do not satisfy the full runnable latest/older support
   requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,

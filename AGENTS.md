@@ -270,6 +270,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 147. shared Fabric attach boundary.
 148. official Fabric runtime dependency packaging.
 149. official Fabric launch attach probe.
+150. official Fabric runtime metadata discovery.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -393,6 +394,14 @@ not add the official lane to the packaged driver manifest, require gameplay
 actions, copy current-lane bindings, or claim latest/current support before
 generated gameplay actions/resources, SSE, packaging, and public API/CLI
 gameplay gates pass.
+
+Phase 150 replaces official-lane placeholder runtime metadata with live Fabric
+Loader-derived metadata. The latest/current official backend may fingerprint
+installed mod ids/versions and surface sanitized loader/runtime metadata
+through `DriverRuntimeMetadata`, runtime graph evidence, and generated
+OpenAPI. This is version-discovery plumbing only: it must not add gameplay
+actions, copy Yarn/remap bindings, add a packaged 26.x manifest entry, create
+per-version public APIs, or claim latest/current gameplay support.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final

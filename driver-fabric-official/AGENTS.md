@@ -9,6 +9,11 @@ implementation belongs in shared Fabric attach/runtime/discovery/projection
 modules by default; official-lane code should exist only for proven
 official-mapping, Fabric API, loader, Minecraft, or bytecode-signature
 divergence.
+When a latest/current detail is needed, first ask whether it is generic Fabric
+runtime discovery, metadata, artifact resolution, attach transport, invocation,
+or OpenAPI projection that belongs in a shared module. Keep only the smallest
+official-mapping adapter/accessor/provider here, and record the exact
+divergence that forced it.
 
 ## Scope
 
@@ -38,6 +43,9 @@ divergence.
 - If latest/current support requires per-version code, isolate only the
   diverging adapter/accessor/provider behind the lane boundary and document the
   exact incompatibility that forced it.
+- Runtime metadata must come from the running Fabric Loader/client where
+  possible. Do not replace unknown data with official-lane placeholder
+  fingerprints, static installed-mod lists, or hard-coded version claims.
 - Do not package this module as a supported driver lane or add it to
   `driver-mods.json` until launch, self-attach, generated OpenAPI/actions,
   resources, SSE, and public API/CLI gameplay evidence pass.

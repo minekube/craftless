@@ -2,6 +2,9 @@
 
 `driver-api/` owns the stable JVM contract between daemon/runtime code and any
 in-client automation implementation.
+It is the long-lived boundary for all supported Minecraft/Fabric versions; keep
+version selection and divergence as data, metadata, descriptors, availability,
+and backend adapter behavior rather than stable API forks.
 
 ## Scope
 

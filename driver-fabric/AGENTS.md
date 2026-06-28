@@ -5,6 +5,10 @@ design version-agnostic: shared discovery, projection, invocation, event, and
 transport code is the default. Add per-version code only where Minecraft,
 Fabric API, mappings, or bytecode signatures actually diverge and a shared
 reflection/compatibility shim is not practical.
+Version-specific package names, source sets, lanes, tests, and metadata files
+are allowed only as adapters around proven runtime divergence. They must not
+become copied public APIs, copied action catalogs, copied invocation dispatch,
+or a reason to fork the generated OpenAPI model.
 
 ## Scope
 

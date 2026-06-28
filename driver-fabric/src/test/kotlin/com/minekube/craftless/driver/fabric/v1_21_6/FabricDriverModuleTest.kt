@@ -402,6 +402,12 @@ class FabricDriverModuleTest {
         val rootAgents = Files.readString(root.resolve("AGENTS.md"))
         val officialAgents = Files.readString(root.resolve("driver-fabric-official/AGENTS.md"))
         val attachAgents = Files.readString(root.resolve("driver-fabric-attach/AGENTS.md"))
+        val officialBackend =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric-official/src/main/kotlin/com/minekube/craftless/driver/fabric/official/OfficialFabricDriverBackend.kt",
+                ),
+            )
         val probeRunner =
             Files.readString(
                 root.resolve(
@@ -432,6 +438,10 @@ class FabricDriverModuleTest {
         assertTrue(attachAgents.contains("common attach boundary for current, older, latest/current, and future"))
         assertTrue(attachAgents.contains("First model the difference as metadata, availability, or a narrow"))
         assertTrue(attachAgents.contains("lane adapter"))
+        assertTrue(officialBackend.contains("OfficialFabricRuntimeMetadataProvider"))
+        assertFalse(officialBackend.contains("mods:official-lane-probe"))
+        assertFalse(officialBackend.contains("registries:unavailable"))
+        assertFalse(officialBackend.contains("server-features:unavailable"))
         assertTrue(probeRunner.contains("builder.environment()[\"CRAFTLESS_CLIENT_ID\"]"))
         assertTrue(probeRunner.contains("builder.environment()[\"CRAFTLESS_DAEMON_URL\"]"))
         assertTrue(probeRunner.contains("runCatching"))
