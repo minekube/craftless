@@ -231,6 +231,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 118. action result event type removal.
 119. driver event type gameplay removal.
 120. invoke fallback naming removal.
+121. metadata fallback naming removal.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -912,6 +913,15 @@ compatibility/fallback wording. This is naming and guardrail cleanup only; it
 must not change dispatch behavior, add gameplay descriptors, static route
 families, CLI gameplay catalogs, Fabric bindings, scenario shortcuts, compiled
 lanes, public version-specific APIs, or support claims.
+Phase 121 removes broad old-path naming from daemon metadata fallback
+internals. Java runtime fallback code should describe versions that predate
+Mojang `javaVersion` metadata, and native-library fallback code should
+describe classifier metadata. The required Mojang launch literal
+`user_type=legacy` remains allowed. This is naming and guardrail cleanup only;
+it must not change Java selection, cache layout, launch arguments, manifest
+parsing, gameplay descriptors, static route families, CLI gameplay catalogs,
+Fabric bindings, scenario shortcuts, compiled lanes, public version-specific
+APIs, or support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

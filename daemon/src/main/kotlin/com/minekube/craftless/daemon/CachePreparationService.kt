@@ -970,7 +970,7 @@ private fun String.minecraftNativeLibraries(): List<MinecraftNativeLibraryArtifa
                     ?.get(currentNativeClassifierKey())
                     ?.jsonPrimitive
                     ?.content
-            val nativeFromLegacy =
+            val nativeFromClassifier =
                 classifier?.let {
                     item["downloads"]
                         ?.jsonObject
@@ -980,7 +980,7 @@ private fun String.minecraftNativeLibraries(): List<MinecraftNativeLibraryArtifa
                         ?.jsonObject
                         ?.downloadArtifactMetadata()
                 }
-            listOfNotNull(nativeFromArtifact, nativeFromLegacy).map { download ->
+            listOfNotNull(nativeFromArtifact, nativeFromClassifier).map { download ->
                 MinecraftNativeLibraryArtifact(
                     source = download.url,
                     sha1 = download.sha1,

@@ -21,7 +21,7 @@ class MinecraftJavaRuntimeRequirementResolver {
                 reason = "minecraft-version-metadata",
             )
         }
-        require(isLegacyMinecraftVersion(minecraftVersion)) {
+        require(isPreJavaRuntimeMetadataMinecraftVersion(minecraftVersion)) {
             "minecraft version $minecraftVersion is missing Java runtime metadata"
         }
         return JavaRuntimeRequirement(
@@ -30,7 +30,7 @@ class MinecraftJavaRuntimeRequirementResolver {
         )
     }
 
-    private fun isLegacyMinecraftVersion(minecraftVersion: String): Boolean {
+    private fun isPreJavaRuntimeMetadataMinecraftVersion(minecraftVersion: String): Boolean {
         val parts = minecraftVersion.split(".")
         if (parts.firstOrNull() != "1") return false
         val minor = parts.getOrNull(1)?.toIntOrNull() ?: return false

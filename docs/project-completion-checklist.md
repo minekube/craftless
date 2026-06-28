@@ -3740,6 +3740,29 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-invoke-fallback-naming-removal.md`.
 
+## Phase 121: Metadata Fallback Naming Removal
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-121-metadata-fallback-naming-removal-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-121-metadata-fallback-naming-removal-plan.md`.
+- [x] Daemon Java runtime fallback internals describe versions before Mojang
+  Java runtime metadata instead of using broad old-path naming.
+- [x] Daemon native library fallback internals describe classifier metadata
+  instead of using broad old-path naming.
+- [x] The required Mojang launch literal `user_type=legacy` remains unchanged.
+- [x] This phase adds no new public gameplay action, generated route family,
+  CLI gameplay catalog, Fabric gameplay binding, scenario shortcut, public
+  version-specific API, runnable latest/older lane, replacement gameplay event
+  enum, runtime behavior change, or new Minecraft support claim.
+
+Verification:
+
+- Red/green daemon source guard and resolver regression:
+  `mise exec -- gradle :daemon:test --tests '*JavaRuntimeRequirementResolverTest.*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-metadata-fallback-naming-removal.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3771,10 +3794,11 @@ Verification:
   server latest alias, and Phase 116 local smoke default latest alias, and
   Phase 117 live event action fallback removal, and Phase 118 action result
   event type removal, Phase 119 driver event type gameplay removal, and Phase
-  120 invoke fallback naming removal. Phase 105, Phase 107, Phase 108, Phase
-  109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase 115, Phase
-  116, Phase 117, Phase 118, Phase 119, and Phase 120 do not satisfy the
-  runnable latest/older support requirement by themselves.
+  120 invoke fallback naming removal, and Phase 121 metadata fallback naming
+  removal. Phase 105, Phase 107, Phase 108, Phase 109, Phase 110, Phase 111,
+  Phase 112, Phase 113, Phase 114, Phase 115, Phase 116, Phase 117, Phase 118,
+  Phase 119, Phase 120, and Phase 121 do not satisfy the runnable latest/older
+  support requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support
