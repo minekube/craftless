@@ -95,7 +95,7 @@
   mise exec -- bun test playwright
   ```
 
-- [ ] **Step 3: Commit and push**
+- [x] **Step 3: Commit and push**
 
   ```sh
   git add AGENTS.md docs/project-completion-checklist.md docs/superpowers/specs/2026-06-28-85-binding-operation-id-source-ownership-design.md docs/superpowers/plans/2026-06-28-85-binding-operation-id-source-ownership-plan.md docs/superpowers/evidence/2026-06-28-binding-operation-id-source-ownership.md driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricBootstrapOperationDefinitions.kt driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricActionBindings.kt driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt protocol/src/test/kotlin/com/minekube/craftless/protocol/NamespacePolicyTest.kt
