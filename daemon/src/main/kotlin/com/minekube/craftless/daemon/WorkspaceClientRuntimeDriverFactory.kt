@@ -23,6 +23,7 @@ import kotlinx.serialization.json.Json
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -97,6 +98,7 @@ class ProcessClientRuntimeLauncher : ClientRuntimeLauncher {
         files: InstanceFiles,
         workspaceRoot: Path,
     ): ClientRuntimeLaunch {
+        materializeLaunchMods(prepared.launch, files, workspaceRoot)
         val command = launchCommand(request, prepared.launch, files, workspaceRoot)
         val logs = workspaceRoot.resolve(files.logs).normalize()
         Files.createDirectories(logs)
@@ -114,6 +116,23 @@ class ProcessClientRuntimeLauncher : ClientRuntimeLauncher {
             message = "launched client ${request.id}",
             process = process,
         )
+    }
+
+    private fun materializeLaunchMods(
+        launch: CacheLaunchPlan,
+        files: InstanceFiles,
+        workspaceRoot: Path,
+    ) {
+        if (launch.mods.isEmpty()) return
+        val modsDirectory = workspaceRoot.resolveHandleOrPath(files.mods)
+        Files.createDirectories(modsDirectory)
+        launch.mods.forEach { handle ->
+            val source = workspaceRoot.resolveHandleOrPath(handle)
+            require(Files.isRegularFile(source)) { "prepared mod artifact does not exist: $handle" }
+            val target = modsDirectory.resolve(source.fileName.toString()).normalize()
+            require(target.startsWith(modsDirectory)) { "materialized mod target must stay under mods directory" }
+            Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING)
+        }
     }
 
     private fun launchCommand(

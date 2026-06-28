@@ -482,6 +482,9 @@ class LocalSessionApiServerTest {
             """.trimIndent(),
         )
         javaExecutable.toFile().setExecutable(true, true)
+        val fabricApiHandle = "cache/mods/fabric/fabric-api.jar"
+        Files.createDirectories(workspace.resolve("cache/mods/fabric"))
+        Files.writeString(workspace.resolve(fabricApiHandle), "fabric-api-jar")
         val arguments = workspace.resolve("cache/prepared/1.21.6-fabric-0.17.2.launch.json")
         Files.createDirectories(arguments.parent)
         Files.writeString(
@@ -536,6 +539,7 @@ class LocalSessionApiServerTest {
                         launch =
                             CacheLaunchPlan(
                                 classpath = listOf("cache/minecraft/versions/1.21.6/client.jar"),
+                                mods = listOf(fabricApiHandle),
                                 javaExecutable = "cache/runtimes/java-runtime-gamma/image/bin/java",
                                 arguments = "cache/prepared/1.21.6-fabric-0.17.2.launch.json",
                             ),
@@ -562,6 +566,9 @@ class LocalSessionApiServerTest {
         assertTrue(invoked.contains("--launcherName craftless"))
         assertTrue(invoked.contains("--launcherVersion 0"))
         assertTrue(invoked.contains("--quickPlayPath instances/alice-1.21.6-fabric/minecraft/quickplay"))
+        val materializedFabricApi =
+            workspace.resolve("instances/alice-1.21.6-fabric/minecraft/mods/fabric-api.jar")
+        assertEquals("fabric-api-jar", Files.readString(materializedFabricApi))
         assertFalse(invoked.contains("--quickPlaySingleplayer"))
         assertFalse(invoked.contains("--quickPlayMultiplayer"))
         assertFalse(invoked.contains("--quickPlayRealms"))

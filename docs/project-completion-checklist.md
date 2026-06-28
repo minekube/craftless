@@ -212,6 +212,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-94-fabric-api-cache-resolution-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-94-fabric-api-cache-resolution-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-95-launch-mod-materialization-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-95-launch-mod-materialization-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -3023,6 +3027,33 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-fabric-api-cache-resolution.md`.
 
+## Phase 95: Launch Mod Materialization
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-95-launch-mod-materialization-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-95-launch-mod-materialization-plan.md`.
+- [x] `ProcessClientRuntimeLauncher` copies every `CacheLaunchPlan.mods`
+  handle into the instance `mods` directory before launching the client
+  process.
+- [x] The process launcher test proves cached Fabric mod artifacts are
+  materialized into instance files before launch.
+- [~] Actual latest/current and representative older Fabric client runtime
+  support remains open until runnable lane support and generated API/CLI
+  gameplay verification land.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
+  lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Red guard:
+  `mise exec -- gradle :daemon:test --tests '*LocalSessionApiServerTest.process client runtime launcher starts prepared command*'`
+- Green focused test:
+  `mise exec -- gradle :daemon:test --tests '*LocalSessionApiServerTest.process client runtime launcher starts prepared command*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-launch-mod-materialization.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3038,7 +3069,7 @@ Verification:
   smoke bootstrap action id source ownership, and Phase 91 version support
   completion gate, and Phase 92 build-generated compiled lane metadata, and
   Phase 93 static unsupported version lane removal, and Phase 94 Fabric API
-  cache resolution.
+  cache resolution, and Phase 95 launch mod materialization.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

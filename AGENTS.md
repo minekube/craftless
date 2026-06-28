@@ -205,6 +205,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 92. build-generated compiled lane metadata.
 93. static unsupported version lane removal.
 94. Fabric API cache resolution.
+95. launch mod materialization.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -734,6 +735,11 @@ launch mod handle, not as a static compiled-lane constant or generic classpath
 library. This phase is still foundation work and must not claim latest/current
 or older-version support until runnable provider-backed lanes and generated
 API/CLI gameplay verification land.
+Phase 95 materializes cached Fabric mod handles into the instance `mods`
+directory before process launch. Resolved Fabric API and future driver/mod
+artifacts must be copied through the generic launch plan, not hard-coded into
+the launcher or a version-specific command path. This phase still must not
+claim new Minecraft version support.
 
 ## Acceptance Scenarios Are Not Product APIs
 
