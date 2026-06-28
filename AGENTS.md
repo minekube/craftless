@@ -182,6 +182,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 69. README and roadmap evidence alignment.
 70. public-agent operational workflow guidance.
 71. system Java PATH discovery.
+72. generated actions help.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -529,6 +530,13 @@ through `mise`, and this phase must not add public gameplay actions, generated
 route families, CLI gameplay catalogs, Fabric descriptor/binding pairs,
 scenario shortcuts, new compiled lanes, public version-specific APIs, or new
 Minecraft support claims.
+Phase 72 improves adaptive CLI usability by making `clients <id> actions
+--help` render action commands, argument flags, and route evidence from the
+live per-client OpenAPI document. It must preserve JSON output for
+`clients <id> actions`, must not add static gameplay command catalogs, and must
+not add public gameplay actions, generated route families, Fabric
+descriptor/binding pairs, scenario shortcuts, new compiled lanes, public
+version-specific APIs, or new Minecraft support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

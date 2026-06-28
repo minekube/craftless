@@ -2235,6 +2235,29 @@ Verification:
 - `mise run architecture-check`
 - `mise run ci`
 
+## Phase 72: Generated Actions Help
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-72-generated-actions-help-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-72-generated-actions-help-plan.md`.
+- [x] `craftless clients <id> actions --help` renders command aliases,
+  argument flags, and route evidence from the live per-client OpenAPI document.
+- [x] `craftless clients <id> actions` without `--help` still returns JSON
+  action metadata.
+- [x] This phase changes adaptive CLI rendering only. It adds no public
+  gameplay action, generated route family, static CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `mise exec -- gradle :cli:test --tests '*CraftlessCliTest.clients actions help is generated from live openapi actions'`
+- `mise exec -- gradle :cli:test`
+- `git diff --check`
+- `mise run architecture-check`
+- `mise run ci`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 68 evidence; the

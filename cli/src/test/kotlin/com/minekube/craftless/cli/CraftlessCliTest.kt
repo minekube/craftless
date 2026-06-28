@@ -1099,6 +1099,41 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `clients actions help is generated from live openapi actions`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "actions",
+                        "--help",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
+
+            assertEquals(0, exit)
+        }
+
+        assertEquals("", errors.toString())
+        val help = output.toString()
+        assertTrue(help.contains("Actions for client alice"))
+        assertTrue(help.contains("craftless clients alice player chat"))
+        assertTrue(help.contains("--message string required"))
+        assertTrue(help.contains("craftless clients alice player move"))
+        assertTrue(help.contains("--forward boolean"))
+        assertFalse(help.trimStart().startsWith("["))
+    }
+
+    @Test
     fun `clients actions revalidates durable live openapi cache by etag`() {
         val cacheDir = Files.createTempDirectory("craftless-cli-openapi-cache")
         val firstOutput = StringBuilder()

@@ -638,7 +638,11 @@ object CraftlessCli {
                         return@runBlocking 1
                     }
                     val openApi = json.decodeFromString<OpenApiDocument>(openApiBody)
-                    stdout(json.encodeToString(openApi.actions))
+                    if (args.contains("--help")) {
+                        stdout(openApi.generatedActionsHelp(clientId))
+                    } else {
+                        stdout(json.encodeToString(openApi.actions))
+                    }
                     0
                 }
             }
@@ -1078,6 +1082,24 @@ object CraftlessCli {
             OpenApiActionAvailability.AVAILABLE -> "available"
             OpenApiActionAvailability.UNAVAILABLE -> "unavailable"
         }
+
+    private fun OpenApiDocument.generatedActionsHelp(clientId: String): String =
+        buildString {
+            appendLine("Actions for client $clientId")
+            if (actions.isEmpty()) {
+                appendLine("  none")
+            } else {
+                actions.forEach { action ->
+                    append("  craftless clients $clientId ${action.id.replace('.', ' ')}")
+                    action.arguments.forEach { (name, argument) ->
+                        val required = if (argument.required) " required" else ""
+                        append(" --$name ${argument.type}$required")
+                    }
+                    val route = "POST ${action.toolRoute(clientId, this@generatedActionsHelp)}"
+                    appendLine("  [$route]")
+                }
+            }
+        }.trimEnd()
 
     private fun String.toJsonArgument(): JsonElement =
         when {
