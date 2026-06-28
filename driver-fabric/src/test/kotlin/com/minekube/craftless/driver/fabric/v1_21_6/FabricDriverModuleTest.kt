@@ -247,6 +247,18 @@ class FabricDriverModuleTest {
         assertTrue(buildScript.contains("artifactKey"))
         assertTrue(buildScript.contains("fabric-current-remap-jar"))
         assertTrue(buildScript.contains("distributionPath"))
+        assertTrue(buildScript.contains("mappingsFingerprint"))
+    }
+
+    @Test
+    fun `cli driver mod manifest projection carries runtime identity not build fields`() {
+        val buildScript = Files.readString(repositoryRoot().resolve("cli/build.gradle.kts"))
+
+        assertTrue(buildScript.contains("\"fabricApiVersion\" to requiredCatalogString(entry, \"fabricApiVersion\")"))
+        assertTrue(buildScript.contains("\"javaMajorVersion\" to requiredCatalogInt(entry, \"javaMajorVersion\")"))
+        assertTrue(buildScript.contains("\"mappingsFingerprint\" to requiredCatalogString(entry, \"mappingsFingerprint\")"))
+        assertFalse(buildScript.contains("\"artifactKey\" to"))
+        assertFalse(buildScript.contains("\"distributionPath\" to"))
     }
 
     @Test

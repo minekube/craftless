@@ -93,6 +93,102 @@ class ConfiguredClientRuntimeDriverModProviderTest {
     }
 
     @Test
+    fun `manifest fabric api mismatch rejects runtime identity`() {
+        val root = Files.createTempDirectory("craftless-driver-mod-manifest-fabric-api")
+        val manifestMod = root.resolve("mods/craftless-driver-fabric-1.21.6.jar")
+        Files.createDirectories(manifestMod.parent)
+        Files.writeString(manifestMod, "manifest-driver")
+        val manifest = root.resolve("driver-mods.json")
+        Files.writeString(
+            manifest,
+            """
+            {
+              "entries": [
+                {
+                  "loader": "FABRIC",
+                  "minecraftVersion": "1.21.6",
+                  "loaderVersion": "0.17.2",
+                  "fabricApiVersion": "0.127.0+1.21.6",
+                  "path": "mods/craftless-driver-fabric-1.21.6.jar"
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+        val provider =
+            ConfiguredClientRuntimeDriverModProvider(
+                environment =
+                    mapOf(
+                        ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_DRIVER_MOD_MANIFEST to manifest.toString(),
+                    ),
+            )
+
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                provider.modFor(
+                    ClientRuntimeDriverModRequest(
+                        loader = Loader.FABRIC,
+                        minecraftVersion = "1.21.6",
+                        loaderVersion = "0.17.2",
+                        fabricApiVersion = "0.128.2+1.21.6",
+                    ),
+                )
+            }
+
+        assertTrue(error.message?.contains("driver mod manifest") == true)
+        assertTrue(error.message?.contains("1.21.6") == true)
+        assertTrue(error.message?.contains("0.17.2") == true)
+        assertTrue(error.message?.contains("0.128.2+1.21.6") == true)
+    }
+
+    @Test
+    fun `manifest java major mismatch rejects runtime identity`() {
+        val root = Files.createTempDirectory("craftless-driver-mod-manifest-java")
+        val manifestMod = root.resolve("mods/craftless-driver-fabric-1.21.6.jar")
+        Files.createDirectories(manifestMod.parent)
+        Files.writeString(manifestMod, "manifest-driver")
+        val manifest = root.resolve("driver-mods.json")
+        Files.writeString(
+            manifest,
+            """
+            {
+              "entries": [
+                {
+                  "loader": "FABRIC",
+                  "minecraftVersion": "1.21.6",
+                  "loaderVersion": "0.17.2",
+                  "javaMajorVersion": 17,
+                  "path": "mods/craftless-driver-fabric-1.21.6.jar"
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+        val provider =
+            ConfiguredClientRuntimeDriverModProvider(
+                environment =
+                    mapOf(
+                        ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_DRIVER_MOD_MANIFEST to manifest.toString(),
+                    ),
+            )
+
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                provider.modFor(
+                    ClientRuntimeDriverModRequest(
+                        loader = Loader.FABRIC,
+                        minecraftVersion = "1.21.6",
+                        loaderVersion = "0.17.2",
+                        javaMajorVersion = 21,
+                    ),
+                )
+            }
+
+        assertTrue(error.message?.contains("driver mod manifest") == true)
+        assertTrue(error.message?.contains("javaMajorVersion=21") == true)
+    }
+
+    @Test
     fun `manifest misses reject single fabric driver mod fallback`() {
         val root = Files.createTempDirectory("craftless-driver-mod-manifest-fallback")
         val manifestMod = root.resolve("mods/craftless-driver-fabric-1.21.6.jar")

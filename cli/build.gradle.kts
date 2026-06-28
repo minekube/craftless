@@ -45,6 +45,15 @@ fun requiredCatalogString(
         ?.takeIf { value -> value.isNotBlank() }
         ?: error("Fabric driver lane entry requires $field")
 
+fun requiredCatalogInt(
+    entry: Map<*, *>,
+    field: String,
+): Int =
+    entry[field]
+        ?.toString()
+        ?.toIntOrNull()
+        ?: error("Fabric driver lane entry requires numeric $field")
+
 fun validatedDistributionPath(distributionPath: String): String {
     val relativePath = Path.of(distributionPath)
     require(!relativePath.isAbsolute && relativePath.normalize() == relativePath) {
@@ -60,6 +69,9 @@ fun renderDriverModManifest(catalog: Map<*, *>): String {
                 "loader" to requiredCatalogString(entry, "loader"),
                 "minecraftVersion" to requiredCatalogString(entry, "minecraftVersion"),
                 "loaderVersion" to requiredCatalogString(entry, "loaderVersion"),
+                "fabricApiVersion" to requiredCatalogString(entry, "fabricApiVersion"),
+                "javaMajorVersion" to requiredCatalogInt(entry, "javaMajorVersion"),
+                "mappingsFingerprint" to requiredCatalogString(entry, "mappingsFingerprint"),
                 "path" to validatedDistributionPath(requiredCatalogString(entry, "distributionPath")),
             )
         }

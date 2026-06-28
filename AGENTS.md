@@ -243,6 +243,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 130. projected driver mod manifest.
 131. transitional Fabric action allowlist deletion.
 132. strict Fabric API artifact resolution.
+133. driver mod manifest runtime identity.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -1009,6 +1010,16 @@ silently preparing a degraded Fabric launch plan. This is multi-version
 foundation work only; it must not add compiled lanes, change Fabric dependency
 versions, claim new Minecraft support, add gameplay APIs, route families, CLI
 gameplay catalogs, Fabric descriptor/binding pairs, or scenario shortcuts.
+Phase 133 makes packaged driver-mod manifests carry runtime identity fields
+from the generated private Fabric driver lane catalog and makes daemon driver
+selection honor known resolved identity fields such as Fabric API and Java
+major version. A manifest entry with a mismatched Fabric API or Java major must
+not satisfy a prepared runtime lane. Mappings fingerprints may be carried as
+driver artifact metadata until the prepared runtime can derive the comparable
+runtime value. This is runtime-artifact safety only; it must not add compiled
+lanes, change Fabric dependency versions, claim new Minecraft support, add
+gameplay APIs, route families, CLI gameplay catalogs, Fabric descriptor/binding
+pairs, or scenario shortcuts.
 
 ## Acceptance Scenarios Are Not Product APIs
 

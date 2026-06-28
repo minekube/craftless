@@ -89,6 +89,8 @@ class WorkspaceClientRuntimeDriverFactory(
                 loader = loader,
                 minecraftVersion = minecraftVersion,
                 loaderVersion = loaderVersion,
+                fabricApiVersion = fabricApiVersion(),
+                javaMajorVersion = javaSelection?.requirement?.majorVersion,
             )
         val source = driverModProvider.modFor(driverModRequest)?.toAbsolutePath()?.normalize() ?: return this
         require(Files.isRegularFile(source)) { "configured Craftless driver mod does not exist: $source" }
@@ -141,9 +143,15 @@ data class ClientRuntimeDriverModRequest(
     val loader: Loader,
     val minecraftVersion: String,
     val loaderVersion: String?,
+    val fabricApiVersion: String? = null,
+    val javaMajorVersion: Int? = null,
+    val mappingsFingerprint: String? = null,
 ) {
     init {
         require(minecraftVersion.isNotBlank()) { "driver mod Minecraft version is required" }
+        fabricApiVersion?.let { require(it.isNotBlank()) { "driver mod Fabric API version must not be blank" } }
+        javaMajorVersion?.let { require(it > 0) { "driver mod Java major version must be positive" } }
+        mappingsFingerprint?.let { require(it.isNotBlank()) { "driver mod mappings fingerprint must not be blank" } }
     }
 }
 
@@ -169,7 +177,7 @@ class ConfiguredClientRuntimeDriverModProvider(
                 ?: if (request.loader == Loader.FABRIC) {
                     throw IllegalArgumentException(
                         "driver mod manifest has no Fabric entry for " +
-                            "${request.minecraftVersion} ${request.loaderVersion ?: "default-loader"}",
+                            request.runtimeIdentityLabel(),
                     )
                 } else {
                     null
@@ -194,8 +202,11 @@ class ConfiguredClientRuntimeDriverModProvider(
     ): Path? {
         val entry =
             manifestEntriesFor(request, manifestPath)
-                .filter { entry -> entry.loaderVersion == request.loaderVersion || entry.loaderVersion == null }
-                .maxByOrNull { entry -> if (entry.loaderVersion == request.loaderVersion) 1 else 0 }
+                .filter { entry -> entry.matches(request) }
+                .maxWithOrNull(
+                    compareBy<ConfiguredDriverModManifestEntry> { entry -> if (entry.loaderVersion == request.loaderVersion) 1 else 0 }
+                        .thenBy { entry -> entry.runtimeIdentitySpecificity() },
+                )
                 ?: return null
         val path = Path.of(entry.path)
         return if (path.isAbsolute) path.normalize() else manifestPath.parent.resolve(path).normalize()
@@ -230,8 +241,47 @@ private data class ConfiguredDriverModManifestEntry(
     val loader: Loader,
     val minecraftVersion: String,
     val loaderVersion: String? = null,
+    val fabricApiVersion: String? = null,
+    val javaMajorVersion: Int? = null,
+    val mappingsFingerprint: String? = null,
     val path: String,
-)
+) {
+    fun matches(request: ClientRuntimeDriverModRequest): Boolean =
+        (loaderVersion == request.loaderVersion || loaderVersion == null) &&
+            optionalMatches(fabricApiVersion, request.fabricApiVersion) &&
+            optionalMatches(javaMajorVersion, request.javaMajorVersion) &&
+            optionalMatches(mappingsFingerprint, request.mappingsFingerprint)
+
+    fun runtimeIdentitySpecificity(): Int = listOfNotNull(loaderVersion, fabricApiVersion, javaMajorVersion, mappingsFingerprint).size
+}
+
+private fun <T> optionalMatches(
+    manifestValue: T?,
+    requestValue: T?,
+): Boolean = manifestValue == null || requestValue == null || manifestValue == requestValue
+
+private fun ClientRuntimeDriverModRequest.runtimeIdentityLabel(): String =
+    buildString {
+        append(minecraftVersion)
+        append(' ')
+        append(loaderVersion ?: "default-loader")
+        fabricApiVersion?.let { append(" fabricApiVersion=").append(it) }
+        javaMajorVersion?.let { append(" javaMajorVersion=").append(it) }
+        mappingsFingerprint?.let { append(" mappingsFingerprint=").append(it) }
+    }
+
+private val fabricApiArtifactVersionPattern = Regex("/fabric-api/([^/]+)/fabric-api-[^/]+\\.jar$")
+
+private fun CachePrepareResult.fabricApiVersion(): String? =
+    artifacts.firstNotNullOfOrNull { artifact ->
+        if (artifact.kind != CachePreparedArtifactKind.FABRIC_MOD) {
+            null
+        } else {
+            artifact.source?.let { source ->
+                fabricApiArtifactVersionPattern.find(source)?.groupValues?.get(1)
+            }
+        }
+    }
 
 interface ClientRuntimeLauncher {
     fun launch(

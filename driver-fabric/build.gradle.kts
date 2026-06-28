@@ -141,6 +141,7 @@ val writeFabricDriverLaneCatalog =
         inputs.property("fabricCompiledLoaderVersion", fabricCompiledLoaderVersion)
         inputs.property("fabricCompiledApiVersion", fabricCompiledApiVersion)
         inputs.property("fabricCompiledJavaMajorVersion", fabricCompiledJavaMajorVersion)
+        inputs.property("fabricCompiledMappingsFingerprint", fabricCompiledMappingsFingerprint)
         outputs.file(generatedFabricDriverLaneCatalog)
 
         doLast {
@@ -159,6 +160,7 @@ val writeFabricDriverLaneCatalog =
                       "artifactKey": ${jsonString(fabricCompiledArtifactKey)},
                       "fabricApiVersion": ${jsonString(fabricCompiledApiVersion)},
                       "javaMajorVersion": $fabricCompiledJavaMajorVersion,
+                      "mappingsFingerprint": ${jsonString(fabricCompiledMappingsFingerprint)},
                       "distributionPath": "mods/craftless-driver-fabric.jar"
                     }
                   ]
