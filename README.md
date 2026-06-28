@@ -201,6 +201,29 @@ Generated aliases such as `craftless clients alice player chat` are derived
 from the live OpenAPI document. They are not source-maintained gameplay
 commands.
 
+## Agent Usage
+
+Agents should behave like external Craftless users:
+
+1. Fetch the supervisor spec with `GET /openapi.json`.
+2. Create or select a client.
+3. Fetch `GET /clients/{id}/openapi.json`.
+4. Treat `x-craftless-actions`, `x-craftless-resources`, route metadata,
+   schemas, availability, and fingerprints in that document as the authority.
+5. Use `/clients/{id}/actions` and `/clients/{id}/resources` as projection
+   evidence, not as an independent catalog.
+6. Subscribe to `GET /clients/{id}/events:stream` before state-changing work.
+7. Invoke only advertised actions through `POST /clients/{id}:run`, generated
+   alias routes, or the adaptive CLI.
+
+The repo-local skill
+`.agents/skills/craftless-public-gameplay-agent/SKILL.md` captures this
+workflow for agents. Final gameplay evidence must include the connected
+OpenAPI document, action/resource projections, SSE or JSONL event capture,
+public action log, and public inventory/world/entity observations. Do not use
+server-provisioned inventory, driver internals, Fabric internals, or
+hard-coded scenario actions as product proof.
+
 ## Cache And Runtime Preparation
 
 Craftless can prepare repeatable launch/cache state before running clients:

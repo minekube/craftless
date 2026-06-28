@@ -24,24 +24,29 @@ or one-version-only driver behavior.
 
 ### 0. Current Slice
 
-- [~] Phase 169: public-agent action metadata authority.
-  The public-agent gameplay runner now treats generated per-client OpenAPI
-  `x-craftless-actions` as the action metadata authority. `/clients/{id}/actions`
-  is still fetched as a projection artifact, not as the source of truth.
-  Closure evidence: this checklist update is included in the Phase 169 commit
-  pushed to `main`.
+- [~] Phase 170: active docs and agent-onboarding alignment.
+  README now has an explicit external-agent workflow that treats generated
+  per-client OpenAPI as authority, uses `/actions` and `/resources` as
+  projection evidence, requires SSE/public-state evidence, and rejects
+  server-provisioned inventory, internals, and scenario actions as product
+  proof. Closure evidence: this checklist update is included in the Phase 170
+  commit pushed to `main`.
 
 ### 1. Governance And Docs Alignment
 
 - [x] Root and module `AGENTS.md` files are short routing files.
 - [x] Durable repository rules live in `docs/agent-operating-contract.md`.
 - [x] Durable module rules live in `docs/agent-module-contracts.md`.
-- [ ] README, roadmap/checklist, specs/plans, and repository agent skills all
+- [x] README, roadmap/checklist, specs/plans, and repository agent skills all
   state the same architecture:
   generated runtime graph and per-client OpenAPI are the public authority;
   Fabric/launcher/bridge/version code is internal evidence or adapter code.
+  Evidence: Phase 170 active-doc scan plus `git diff --check`; active matches
+  for TypeScript SDK, `task.survival.*`, `sendChat`, static catalogs, and
+  scenario shortcuts are negative guardrails or historical evidence, not
+  active product instructions.
 
-Evidence to close:
+Recorded evidence:
 
 - `rg` checks for stale `craftwright`, `.dev`, TypeScript SDK, static action
   catalog, scenario shortcut, and hand-written gameplay wording.
@@ -126,13 +131,18 @@ Evidence to close:
 - [x] CLI binary is `craftless`.
 - [x] Install script, Docker runtime image, release checks, and packaged CLI
   smoke have current evidence.
-- [ ] Reusable GitHub Action is current and documented for external repos.
-- [ ] Agent skill docs are current and verified against the generated
+- [x] Reusable GitHub Action is current and documented for external repos.
+  Evidence: Phase 170 README section plus existing Playwright distribution
+  tests for `.github/actions/setup-craftless/action.yml`.
+- [x] Agent skill docs are current and verified against the generated
   OpenAPI/CLI workflow.
-- [ ] README quickstart presents install, Docker, API, CLI, and agent usage
+  Evidence: `.agents/skills/craftless-public-gameplay-agent/SKILL.md` and
+  Phase 170 README agent workflow.
+- [x] README quickstart presents install, Docker, API, CLI, and agent usage
   without legacy TypeScript SDK or static gameplay catalog wording.
+  Evidence: Phase 170 active-doc scan and README agent usage section.
 
-Evidence to close:
+Recorded evidence:
 
 - Local CLI smoke.
 - Local Docker smoke.

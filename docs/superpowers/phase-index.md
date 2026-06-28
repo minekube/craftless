@@ -52,6 +52,7 @@ not grow with every completed phase.
 - Phase 167: backend runtime graph action default.
 - Phase 168: OpenAPI route authority.
 - Phase 169: public-agent OpenAPI action authority.
+- Phase 170: active docs and agent onboarding alignment.
 
 ## Current Direction
 
@@ -71,6 +72,11 @@ list merely to expose alias routes through `routesFor(clientId)`.
 The public-agent gameplay runner now uses generated per-client OpenAPI
 `x-craftless-actions` as its action metadata authority, with `/actions`
 remaining a projection artifact instead of the agent workflow source of truth.
+Active README, roadmap/checklist, and repo-local public gameplay agent skill
+docs now describe the same external-agent workflow: generated per-client
+OpenAPI is authority; `/actions` and `/resources` are projection evidence;
+SSE/public state proves results; scenario actions, internals, and
+server-provisioned inventory do not count as product proof.
 Continue by moving official 26.x support through shared Fabric
 discovery/projection/invocation, packaging, adaptive CLI/API smoke, and honest
 gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the
