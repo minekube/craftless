@@ -211,6 +211,61 @@ class NamespacePolicyTest {
     }
 
     @Test
+    fun `fabric driver mod declares nested runtime dependencies`() {
+        val root = repositoryRoot()
+        val build = Files.readString(root.resolve("driver-fabric/build.gradle.kts"))
+        val mise = Files.readString(root.resolve(".mise.toml"))
+        val requiredIncludes =
+            listOf(
+                "include(project(\":protocol\"))",
+                "include(project(\":driver-api\"))",
+                "include(project(\":driver-runtime\"))",
+                "include(project(\":daemon\"))",
+                "include(project(\":bridge-hmc\"))",
+                "include(\"io.ktor:ktor-client-core-jvm:3.5.0\")",
+                "include(\"io.ktor:ktor-client-cio-jvm:3.5.0\")",
+                "include(\"io.ktor:ktor-server-core-jvm:3.5.0\")",
+                "include(\"io.ktor:ktor-server-cio-jvm:3.5.0\")",
+                "include(\"org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0\")",
+                "include(\"org.jetbrains.kotlin:kotlin-stdlib:2.4.0\")",
+                "include(\"org.jetbrains.kotlin:kotlin-reflect:2.4.0\")",
+                "include(\"org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.11.0\")",
+                "include(\"org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:1.11.0\")",
+                "include(\"org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.11.0\")",
+                "include(\"io.ktor:ktor-http-jvm:3.5.0\")",
+                "include(\"io.ktor:ktor-http-cio-jvm:3.5.0\")",
+                "include(\"io.ktor:ktor-utils-jvm:3.5.0\")",
+                "include(\"io.ktor:ktor-io-jvm:3.5.0\")",
+                "include(\"io.ktor:ktor-network-jvm:3.5.0\")",
+                "include(\"io.ktor:ktor-network-tls-jvm:3.5.0\")",
+                "include(\"com.typesafe:config:1.4.8\")",
+            )
+
+        val missing = requiredIncludes.filterNot(build::contains)
+
+        assertTrue(
+            missing.isEmpty(),
+            "Fabric driver mod must nest runtime dependencies for real client classloading:\n${missing.joinToString("\n")}",
+        )
+        assertTrue(
+            mise.contains("grep -q '^META-INF/jars/.\\\\+\\\\.jar$'"),
+            "package-cli must verify the staged Fabric driver mod contains nested runtime jars",
+        )
+        assertTrue(
+            mise.contains("grep -q '^META-INF/jars/kotlin-stdlib-"),
+            "package-cli must verify the staged Fabric driver mod contains Kotlin stdlib",
+        )
+        assertTrue(
+            mise.contains("grep -q '^META-INF/jars/kotlinx-coroutines-core-jvm-"),
+            "package-cli must verify the staged Fabric driver mod contains coroutines",
+        )
+        assertTrue(
+            mise.contains("grep -q '^META-INF/jars/ktor-http-jvm-"),
+            "package-cli must verify the staged Fabric driver mod contains Ktor transitive HTTP runtime",
+        )
+    }
+
+    @Test
     fun `private fabric gameplay bindings are limited to bootstrap operation id references`() {
         val root = repositoryRoot()
         val allowlistPath = root.resolve("docs/architecture/transitional-fabric-action-allowlist.txt")

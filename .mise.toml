@@ -41,6 +41,10 @@ run = [
     "find driver-fabric/build/libs -maxdepth 1 -type f -name 'driver-fabric-*.jar' ! -name '*-sources.jar' ! -name 'driver-fabric-*_*' -exec cp {} build/docker/craftless/mods/craftless-driver-fabric.jar \\; -quit",
     "test -f build/docker/craftless/mods/craftless-driver-fabric.jar",
     "jar tf build/docker/craftless/mods/craftless-driver-fabric.jar | grep -q '^fabric.mod.json$'",
+    "jar tf build/docker/craftless/mods/craftless-driver-fabric.jar | grep -q '^META-INF/jars/.\\+\\.jar$'",
+    "jar tf build/docker/craftless/mods/craftless-driver-fabric.jar | grep -q '^META-INF/jars/kotlin-stdlib-'",
+    "jar tf build/docker/craftless/mods/craftless-driver-fabric.jar | grep -q '^META-INF/jars/kotlinx-coroutines-core-jvm-'",
+    "jar tf build/docker/craftless/mods/craftless-driver-fabric.jar | grep -q '^META-INF/jars/ktor-http-jvm-'",
 ]
 
 [tasks.ci]

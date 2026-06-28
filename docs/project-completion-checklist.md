@@ -3122,7 +3122,11 @@ Verification:
   the attached driver, not the prepared placeholder.
 - [x] `POST /clients/{id}:run` can invoke through the attached HTTP driver
   endpoint.
-- [~] Fabric in-client endpoint startup remains open for the next phase.
+- [x] Fabric in-client endpoint startup is resolved by Phase 100 unit-level
+  loopback endpoint evidence.
+- [~] Actual live packaged in-client attach and generated API execution remain
+  open until public API/CLI gameplay verification uses the launched-driver
+  self-attach path.
 - [x] This phase adds no public gameplay action, generated route family, CLI
   gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
   lane, public version-specific API, or new Minecraft support claim.
@@ -3146,8 +3150,11 @@ Verification:
   `CRAFTLESS_DAEMON_URL` attach environment into launchers.
 - [x] Process launches set those environment variables on the Minecraft client
   process.
-- [~] Fabric in-client endpoint startup and self-attach remain open for the
-  next phase.
+- [x] Fabric in-client endpoint startup and self-attach are resolved by Phase
+  100 unit-level transport evidence.
+- [~] Actual live packaged in-client attach and generated API execution remain
+  open until public API/CLI gameplay verification uses the launched-driver
+  self-attach path.
 - [x] This phase adds no public gameplay action, generated route family, CLI
   gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
   lane, public version-specific API, or new Minecraft support claim.
@@ -3190,6 +3197,33 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-fabric-driver-self-attach.md`.
 
+## Phase 101: Packaged Driver Runtime Dependencies
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-101-packaged-driver-runtime-dependencies-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-101-packaged-driver-runtime-dependencies-plan.md`.
+- [x] Fabric driver mod declares nested runtime dependencies for Craftless
+  modules, Kotlin, kotlinx, Ktor, and config runtime jars.
+- [x] `package-cli` verifies the staged driver mod contains nested jars,
+  Kotlin stdlib, coroutines, and Ktor HTTP runtime jars.
+- [x] `mise run package-cli` succeeds after the stricter staged-mod checks.
+- [~] Actual live packaged in-client attach and generated API execution remain
+  open until public API/CLI gameplay verification uses the launched-driver
+  self-attach path.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
+  lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Red guard:
+  `mise exec -- gradle :protocol:test --tests '*NamespacePolicyTest.fabric driver mod declares nested runtime dependencies*'`
+- Package smoke:
+  `mise run package-cli`
+- Final local verification will be recorded in
+  `docs/superpowers/evidence/2026-06-28-packaged-driver-runtime-dependencies.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3208,7 +3242,8 @@ Verification:
   cache resolution, Phase 95 launch mod materialization, Phase 96 Craftless
   driver mod launch artifact, Phase 97 packaged driver mod distribution, Phase
   98 driver attach proxy, Phase 99 launch attach environment, and Phase 100
-  Fabric driver self-attach.
+  Fabric driver self-attach, and Phase 101 packaged driver runtime
+  dependencies.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support
