@@ -111,7 +111,7 @@
 
   Expected: all exit `0`.
 
-- [ ] **Step 3: Commit and push**
+- [x] **Step 3: Commit and push**
 
   ```sh
   git add AGENTS.md docs/project-completion-checklist.md docs/superpowers/specs/2026-06-28-84-bootstrap-operation-definition-isolation-design.md docs/superpowers/plans/2026-06-28-84-bootstrap-operation-definition-isolation-plan.md docs/superpowers/evidence/2026-06-28-bootstrap-operation-definition-isolation.md driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricBootstrapOperationDefinitions.kt driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricCapabilityProbe.kt driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt
