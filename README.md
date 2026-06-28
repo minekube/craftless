@@ -26,8 +26,8 @@ gameplay SDK.
 | Gameplay surface | Runtime capability graph projection, not a static catalog |
 | Events | SSE streams plus JSON-RPC-style HTTP control/query calls |
 | Current Fabric lane | Verified for the compiled lane |
-| Latest and older lanes | Representative older `1.20.6` packaged attach is verified; `latest-release` resolves to `26.2`, fails early without a packaged 26.x driver lane, and the latest official module now launches, self-attaches, captures generated OpenAPI metadata, fingerprints live Fabric Loader mods, and probes official/Mojang-mapped client state at the title screen through shared Fabric discovery, with gameplay actions still empty |
-| Final gameplay evidence | Historical public API/CLI survival evidence exists; final completion still requires a refreshed run after latest/current compatibility work |
+| Latest and older lanes | Latest/current `26.2` and representative older `1.20.6` packaged lanes are verified through create, attach, connect, generated OpenAPI, projections, SSE, JSON-RPC query/subscription, JSON-RPC invocation, and adaptive CLI invocation |
+| Final gameplay evidence | Historical public API/CLI survival evidence exists; final completion still requires a refreshed run after usability and release gates close |
 | Completion | Still active; see `docs/project-completion-checklist.md` |
 
 ## Quickstart
@@ -51,10 +51,12 @@ The installer writes the launcher symlink to `$HOME/.local/bin` by default.
 Set `CRAFTLESS_INSTALL_DIR` to use another directory.
 
 The installed CLI distribution carries
-`mods/craftless-driver-fabric.jar`. `craftless server start` auto-discovers
-that packaged driver mod unless `CRAFTLESS_FABRIC_DRIVER_MOD` is set
-explicitly, so daemon-managed Fabric clients do not need extra driver-mod
-configuration.
+`mods/craftless-driver-fabric.jar`, the representative older
+`mods/fabric-1.20.6/craftless-driver-fabric.jar`, and the latest/current
+`mods/fabric-26.2/craftless-driver-fabric-official.jar` lane. `craftless server
+start` auto-discovers the packaged driver manifest unless
+`CRAFTLESS_FABRIC_DRIVER_MOD` is set explicitly, so daemon-managed Fabric
+clients do not need extra driver-mod configuration.
 
 Check the CLI:
 
@@ -195,6 +197,8 @@ Use the adaptive CLI against the same generated metadata:
 craftless clients alice actions --api "$CRAFTLESS"
 craftless clients alice resources --api "$CRAFTLESS"
 craftless clients alice run player.chat --api "$CRAFTLESS" --arg message="hello from Craftless"
+craftless clients alice actions --help --api "$CRAFTLESS"
+craftless clients alice player chat --help --api "$CRAFTLESS"
 ```
 
 Generated aliases such as `craftless clients alice player chat` are derived
@@ -263,6 +267,9 @@ Verified surfaces:
   layout;
 - release workflow, install script, Docker runtime image, packaged CLI
   distribution with the Fabric driver mod, and reusable GitHub Action;
+- packaged latest/current `26.2` and representative older `1.20.6` product
+  lanes with generated OpenAPI/projection/SSE/JSON-RPC/CLI invocation
+  evidence;
 - bridge lifecycle-only behavior after removal of bridge-owned gameplay
   descriptors and helpers.
 
@@ -273,7 +280,8 @@ consumed SSE evidence, collected materials, crafted and equipped a
 `entity.attack`, and observed `Raw Beef`, `Leather`, and the Cow with
 `alive:false`. That run completed without server-provisioned inventory or
 static survival macro evidence. Final completion still requires a refreshed
-public API/CLI gameplay run after the latest/current compatibility work.
+public API/CLI gameplay run after external-user usability and final local
+release gates close.
 
 Still open before the broader project can be called complete:
 
@@ -284,12 +292,14 @@ Still open before the broader project can be called complete:
   transitional bootstrap bindings;
 - strengthen navigation/pathfinding and building evidence through generated
   public API/CLI/SSE only;
-- land real additional Fabric client lanes only when cache preparation,
+- keep the verified latest/current and representative older lanes current while
+  adding additional Fabric client lanes only when cache preparation,
   Java/runtime selection, loader/API resolution, launch metadata, compatibility
   matrix, packaged driver manifests, attach evidence, and generated API/CLI
   smoke evidence prove them;
-- keep the completion audit current across CI, release, Docker, installer,
-  compatibility, docs, and public gameplay gates.
+- close the active external-user usability gate with fresh install, Docker,
+  adaptive CLI, GitHub Action, agent-skill, and docs evidence before final
+  release and gameplay gates.
 
 Craftless is not considered complete until the active checklist proves every
 remaining generic-discovery, multi-version, transport, CLI, docs, and gameplay
@@ -322,17 +332,12 @@ The source of truth is:
 
 Next work focuses on:
 
-- completing the generic runtime capability graph so new public gameplay
-  breadth comes from discovery/projection, not descriptor/binding catalog
-  growth;
-- landing real multi-version support with verified cache, Java, Fabric
-  Loader/API, launch metadata, compatibility probes, and smoke evidence;
-- improving pathfinding, block placement/building, longer gameplay, and
-  failure recovery through public OpenAPI/CLI/SSE only;
-- keeping install, Docker, GitHub Actions, release checks, and agent skill docs
-  easy for external users;
-- running the final completion audit only after current generic-discovery,
-  multi-version, transport, CLI, docs, and gameplay gates are reverified.
+- closing CL-05 with fresh install, Docker runtime, adaptive CLI, GitHub
+  Action, README, and agent skill evidence;
+- running final local release gates after CL-05 closes;
+- replaying final honest survival gameplay through public OpenAPI/CLI/SSE only;
+- keeping future gameplay breadth generated from discovery/projection rather
+  than descriptor/binding catalog growth.
 
 ## Development
 

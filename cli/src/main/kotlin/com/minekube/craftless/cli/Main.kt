@@ -128,6 +128,10 @@ object CraftlessCli {
             stdout(rootHelp())
             return 0
         }
+        groupHelp(args)?.let { help ->
+            stdout(help)
+            return 0
+        }
         if (args.take(2) == listOf("server", "start")) {
             return runServerStart(args.drop(2), stdout, stderr, afterStart, env, cacheMetadataFetcher, distributionRoot)
         }
@@ -198,6 +202,20 @@ object CraftlessCli {
             this == listOf("-h") ||
             this == listOf("help")
 
+    private fun groupHelp(args: List<String>): String? =
+        when {
+            args.isGroupHelp("clients") -> clientsHelp()
+            args.isGroupHelp("cache") -> cacheHelp()
+            args.isGroupHelp("runtimes") -> runtimesHelp()
+            args.isGroupHelp("server") -> serverHelp()
+            else -> null
+        }
+
+    private fun List<String>.isGroupHelp(group: String): Boolean =
+        this == listOf(group, "--help") ||
+            this == listOf(group, "-h") ||
+            this == listOf("help", group)
+
     private fun rootHelp(): String =
         buildString {
             appendLine("Usage: craftless <command> [args]")
@@ -211,6 +229,60 @@ object CraftlessCli {
             appendLine()
             appendLine("Generated gameplay commands are loaded from each live client's OpenAPI document.")
             append("Use `craftless clients <id> <resource...> <action> --help` after client discovery for action help.")
+        }
+
+    private fun clientsHelp(): String =
+        buildString {
+            appendLine("Usage: craftless clients <command> [args]")
+            appendLine()
+            appendLine("Stable commands:")
+            listOf(
+                "clients create",
+                "clients list",
+                "clients <id> get",
+                "clients <id> connect",
+                "clients <id> stop",
+                "clients <id> openapi",
+                "clients <id> actions",
+                "clients <id> resources",
+                "clients <id> query <target>",
+                "clients <id> events",
+                "clients <id> tools",
+                "clients <id> run <action>",
+                "clients <id> <resource...> <action>",
+            ).forEach { command ->
+                appendLine("  $command")
+            }
+            appendLine()
+            appendLine("Generated gameplay commands are loaded from each live client's OpenAPI document.")
+            append("Use `craftless clients <id> actions --help --api <url>` or `craftless clients <id> <resource...> <action> --help --api <url>` after client discovery for generated action help.")
+        }
+
+    private fun cacheHelp(): String =
+        buildString {
+            appendLine("Usage: craftless cache <command> [args]")
+            appendLine()
+            appendLine("Commands:")
+            appendLine("  cache prepare")
+            appendLine("  cache export")
+            append("  cache cleanup")
+        }
+
+    private fun runtimesHelp(): String =
+        buildString {
+            appendLine("Usage: craftless runtimes <command> [args]")
+            appendLine()
+            appendLine("Commands:")
+            appendLine("  runtimes java list")
+            append("  runtimes java resolve")
+        }
+
+    private fun serverHelp(): String =
+        buildString {
+            appendLine("Usage: craftless server <command> [args]")
+            appendLine()
+            appendLine("Commands:")
+            append("  server start")
         }
 
     private fun prepareCache(

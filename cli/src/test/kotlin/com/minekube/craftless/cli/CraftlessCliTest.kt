@@ -136,6 +136,29 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `clients help prints stable and adaptive command guidance`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        val exit =
+            CraftlessCli.run(
+                listOf("clients", "--help"),
+                stdout = { output.appendLine(it) },
+                stderr = { errors.appendLine(it) },
+            )
+
+        assertEquals(0, exit)
+        assertEquals("", errors.toString())
+        val help = output.toString()
+        assertTrue(help.contains("Usage: craftless clients <command> [args]"))
+        assertTrue(help.contains("clients create"))
+        assertTrue(help.contains("clients <id> run <action>"))
+        assertTrue(help.contains("Generated gameplay commands are loaded from each live client's OpenAPI document."))
+        assertFalse(help.contains("player chat"))
+        assertFalse(help.contains("world block break"))
+    }
+
+    @Test
     fun `inactive static commands return explicit usage errors`() {
         val output = StringBuilder()
         val errors = StringBuilder()

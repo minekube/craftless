@@ -67,6 +67,7 @@ not grow with every completed phase.
 - Phase 182: packaged latest-current attach artifacts.
 - Phase 183: latest-current generated primitive smoke.
 - Phase 184: representative older product lane.
+- Phase 185: user-facing usability docs.
 
 ## Current Direction
 
@@ -148,7 +149,11 @@ path, captures generated OpenAPI, projections, SSE, JSON-RPC query and
 subscription artifacts, then selects generated non-`task.*` `entity.query`
 from live `x-craftless-actions` and invokes it through both JSON-RPC and the
 adaptive packaged CLI with `ACCEPTED` results.
-Continue with CL-05: external-user usability and docs must prove install,
-Docker runtime, reusable GitHub Action, adaptive CLI, generated OpenAPI/SSE/
-JSON-RPC examples, and agent onboarding without static gameplay SDK wording or
-scenario shortcuts.
+CL-05 is now closed. External-user usability evidence proves install script
+smoke, Docker runtime smoke, adaptive CLI group help, README/roadmap freshness,
+stale wording guards, reusable GitHub Action documentation, and agent onboarding
+without static gameplay SDK wording or scenario shortcuts.
+Continue with CL-06: final local release-quality gates must rerun lint,
+architecture checks, CI, packaging, Docker/install smokes, latest/current
+packaged lane probe, representative older packaged lane probe, and
+`git diff --check` from the current worktree before any final gameplay claim.

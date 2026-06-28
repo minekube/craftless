@@ -181,6 +181,9 @@ describe("distribution surface", () => {
     expect(readme).toContain("minekube/craftless/.github/actions/setup-craftless@v0.1.1");
     expect(readme).not.toContain("setup-craftless@v0.1.0");
     expect(readme).toContain("Minecraft artifacts are downloaded into the workspace at runtime");
+    expect(readme).toContain("Latest/current `26.2` and representative older `1.20.6` packaged lanes are verified");
+    expect(readme).not.toContain("gameplay actions still empty");
+    expect(readme).not.toContain("final completion still requires a refreshed run after latest/current compatibility work");
     expect(readme.toLowerCase()).not.toContain("homebrew");
     expect(readme.toLowerCase()).not.toContain("brew install");
   });
