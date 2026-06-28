@@ -70,6 +70,16 @@ descriptor and binding pair directly. First add or improve the generic
 discovery/projection system that would discover that affordance from the live
 runtime, then let the generated per-client OpenAPI expose the projected result.
 
+Version breadth is a system property, not a set of copied driver trees. Shared
+runtime discovery, projection, invocation, attach transport, OpenAPI generation,
+artifact resolution, Java selection, and cache layout are the default for every
+Minecraft/Fabric version. Add per-version code only after proving an actual
+Minecraft, Fabric API, mapping, loader, or bytecode-signature divergence, and
+then isolate only the diverging adapter/accessor/provider behind a lane
+boundary. Do not turn 1.20.x, 1.21.x, latest-release, 26.x, or any future
+version into separate public APIs, route families, CLI command trees, session
+types, action catalogs, or copied gameplay implementations.
+
 ## API Layers
 
 Keep these layers separate. Do not flatten them into one static API:
@@ -259,6 +269,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 146. latest official Fabric lane boundary.
 147. shared Fabric attach boundary.
 148. official Fabric runtime dependency packaging.
+149. official Fabric launch attach probe.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -370,6 +381,16 @@ Kotlin, coroutines, serialization, and required transport libraries as needed
 for self-attach. It must not add the official jar to `driver-mods.json`, claim
 26.x support, copy gameplay bindings, add public actions, or create a
 version-specific public API.
+
+Phase 149 adds an opt-in latest/current official Fabric launch/self-attach
+probe harness. The harness may start a local Craftless daemon/client record
+and launch `:driver-fabric-official:runClient` with `CRAFTLESS_CLIENT_ID` and
+`CRAFTLESS_DAEMON_URL`, then record whether the in-client official driver
+replaces the prepared session through `/clients/{id}:attach`. This phase is
+diagnostic launch/attach evidence only. It must not add the official lane to
+the packaged driver manifest, require gameplay actions, copy current-lane
+bindings, or claim latest/current support before generated OpenAPI/resources,
+SSE, packaging, and public API/CLI gameplay gates pass.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final

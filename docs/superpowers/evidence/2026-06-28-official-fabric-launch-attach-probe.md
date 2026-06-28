@@ -1,0 +1,129 @@
+# Official Fabric Launch Attach Probe Evidence
+
+Date: 2026-06-28
+
+## Scope
+
+Phase 149 adds an opt-in diagnostic launch/self-attach probe harness for the
+latest/current official Fabric lane.
+
+This phase does not claim Minecraft 26.x/latest support. The official lane is
+still not added to the packaged driver manifest and still needs a real enabled
+launch that observes `client.attached`, generated OpenAPI/actions/resources,
+SSE, packaging, and public API/CLI gameplay evidence.
+
+## Red Evidence
+
+Before implementation, the architecture guard failed:
+
+```sh
+mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.official lane has opt in launch attach probe task without packaging support claim'
+```
+
+Observed:
+
+```text
+FabricDriverModuleTest > official lane has opt in launch attach probe task without packaging support claim() FAILED
+```
+
+## Green Evidence
+
+Architecture guard:
+
+```sh
+mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.official lane has opt in launch attach probe task without packaging support claim'
+```
+
+Observed:
+
+```text
+BUILD SUCCESSFUL
+```
+
+Probe runner compile:
+
+```sh
+mise exec -- gradle :driver-fabric-official:compileTestKotlin
+```
+
+Observed:
+
+```text
+BUILD SUCCESSFUL
+```
+
+Default skipped probe:
+
+```sh
+mise exec -- gradle :driver-fabric-official:officialFabricAttachProbe
+cat driver-fabric-official/build/craftless-official-attach-probe/probe-result.json
+```
+
+Observed:
+
+```json
+{
+    "status": "SKIPPED",
+    "clientId": "official-probe",
+    "daemonUrl": null,
+    "message": "set CRAFTLESS_OFFICIAL_FABRIC_ATTACH_PROBE=1 to run the official Fabric attach probe"
+}
+```
+
+Controlled enabled failure:
+
+```sh
+CRAFTLESS_OFFICIAL_FABRIC_ATTACH_PROBE=1 \
+CRAFTLESS_OFFICIAL_ATTACH_PROBE_TIMEOUT_MS=1000 \
+CRAFTLESS_OFFICIAL_ATTACH_PROBE_CLIENT_COMMAND_JSON='["sh","-c","echo client=$CRAFTLESS_CLIENT_ID daemon=$CRAFTLESS_DAEMON_URL"]' \
+mise exec -- gradle :driver-fabric-official:officialFabricAttachProbe
+```
+
+Observed:
+
+```text
+status=1
+official Fabric probe timed out waiting for client attach for official-probe
+```
+
+The probe wrote:
+
+```json
+{
+    "status": "TIMEOUT",
+    "clientId": "official-probe",
+    "daemonUrl": "http://127.0.0.1:<ephemeral>",
+    "message": "official Fabric probe timed out waiting for client attach for official-probe"
+}
+```
+
+The controlled child command log proved attach environment injection:
+
+```text
+client=official-probe daemon=http://127.0.0.1:<ephemeral>
+```
+
+Lint and whitespace:
+
+```sh
+mise exec -- gradle lint
+git diff --check
+```
+
+Observed:
+
+```text
+BUILD SUCCESSFUL
+```
+
+## Guardrails
+
+- The probe runner lives under `driver-fabric-official/src/test`.
+- No packaged 26.x driver manifest entry was added.
+- Root and driver-local `AGENTS.md` files keep version support as shared
+  system work by default, with per-version code only for documented lane
+  divergence.
+- No public gameplay action descriptor/catalog was added.
+- No version-specific public route family was added.
+- No survival shortcut was added.
+- No final latest/current support claim was added.

@@ -4228,6 +4228,56 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-official-fabric-runtime-dependency-packaging.md`.
 
+## Phase 149: Official Fabric Launch Attach Probe
+
+- [x] Spec written:
+  `docs/superpowers/specs/2026-06-28-149-official-fabric-launch-attach-probe-design.md`.
+- [x] Plan written:
+  `docs/superpowers/plans/2026-06-28-149-official-fabric-launch-attach-probe-plan.md`.
+- [x] `driver-fabric-official` has an opt-in `officialFabricAttachProbe`
+  Gradle task.
+- [x] The probe runner lives under `driver-fabric-official/src/test` and does
+  not enter the production official mod jar.
+- [x] The probe launches `:driver-fabric-official:runClient` through
+  mise-managed Java 25 by default.
+- [x] The probe injects `CRAFTLESS_CLIENT_ID` and `CRAFTLESS_DAEMON_URL` into
+  the launched process.
+- [x] Running the task without `CRAFTLESS_OFFICIAL_FABRIC_ATTACH_PROBE` skips
+  safely.
+- [x] Enabled probes fail when no attach is observed, and write timeout
+  artifacts instead of producing false green evidence.
+- [x] Root and driver-local `AGENTS.md` files preserve the version-agnostic
+  rule for future agents: shared Fabric attach/runtime/discovery/projection is
+  the default, and per-version code is allowed only for documented
+  Minecraft/Fabric/mapping/loader/bytecode divergence behind lane boundaries.
+- [x] This phase adds no packaged 26.x driver manifest entry, no public
+  gameplay API, no static gameplay catalog, no version-specific public route
+  family, no survival shortcut, and no final latest/current support claim.
+
+Verification:
+
+- Red guard before implementation:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.official lane has opt in launch attach probe task without packaging support claim'`
+  failed before the task existed.
+- Green guard:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.official lane has opt in launch attach probe task without packaging support claim'`.
+- Probe runner compile:
+  `mise exec -- gradle :driver-fabric-official:compileTestKotlin`.
+- Default skip task:
+  `mise exec -- gradle :driver-fabric-official:officialFabricAttachProbe`,
+  with `probe-result.json` containing `SKIPPED`.
+- Controlled enabled failure:
+  `CRAFTLESS_OFFICIAL_FABRIC_ATTACH_PROBE=1`
+  `CRAFTLESS_OFFICIAL_ATTACH_PROBE_TIMEOUT_MS=1000`
+  `CRAFTLESS_OFFICIAL_ATTACH_PROBE_CLIENT_COMMAND_JSON='["sh","-c","echo client=$CRAFTLESS_CLIENT_ID daemon=$CRAFTLESS_DAEMON_URL"]'`
+  `mise exec -- gradle :driver-fabric-official:officialFabricAttachProbe`
+  exited nonzero, wrote `TIMEOUT`, and captured the injected client/daemon
+  environment in `client-command.log`.
+- Lint and whitespace:
+  `mise exec -- gradle lint` and `git diff --check`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-official-fabric-launch-attach-probe.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -4277,16 +4327,16 @@ Verification:
   Fabric live attach, Phase 143 installed latest-release alias compatibility
   probe, Phase 144 latest driver lane preflight, Phase 145 latest official
   mapping lane probe, Phase 146 latest official Fabric lane boundary, Phase
-  147 shared Fabric attach boundary, and Phase 148 official Fabric runtime
-  dependency packaging.
+  147 shared Fabric attach boundary, Phase 148 official Fabric runtime
+  dependency packaging, and Phase 149 official Fabric launch attach probe.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
   122, Phase 123, Phase 124, Phase 125, Phase 126, Phase 127, Phase 128,
   Phase 129, Phase 130, Phase 131, Phase 132, Phase 133, Phase 134, Phase
   135, Phase 136, Phase 137, Phase 138, Phase 139, Phase 140, Phase 141,
-  Phase 142, Phase 143, Phase 144, Phase 145, Phase 146, Phase 147, and Phase
-  148 do not satisfy the full runnable latest/older support
+  Phase 142, Phase 143, Phase 144, Phase 145, Phase 146, Phase 147, Phase
+  148, and Phase 149 do not satisfy the full runnable latest/older support
   requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,

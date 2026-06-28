@@ -4,6 +4,11 @@
 boundary for Minecraft 26.x official/unobfuscated mappings. Its job is to make
 the current/latest lane real through shared Craftless runtime infrastructure,
 not through a second hand-written driver.
+Treat this module as a compatibility lane and probe boundary. The durable
+implementation belongs in shared Fabric attach/runtime/discovery/projection
+modules by default; official-lane code should exist only for proven
+official-mapping, Fabric API, loader, Minecraft, or bytecode-signature
+divergence.
 
 ## Scope
 
@@ -23,6 +28,10 @@ not through a second hand-written driver.
   bytecode signatures actually diverge.
 - Do not make this module depend on the Yarn/remap `driver-fabric` module.
   Shared code belongs in a neutral module consumed by both lanes.
+- Do not introduce official-lane `DriverSession` forks, public protocol DTOs,
+  public routes, CLI commands, action IDs, or duplicated gameplay
+  implementations. If a 26.x/latest behavior differs, expose the difference as
+  runtime metadata, graph evidence, availability, or a narrow internal adapter.
 - Keep Ktor loopback, attach environment parsing, session replacement,
   JSON-RPC-style invocation transport, SSE/lifecycle event plumbing, action
   projection, and OpenAPI generation shared by default.

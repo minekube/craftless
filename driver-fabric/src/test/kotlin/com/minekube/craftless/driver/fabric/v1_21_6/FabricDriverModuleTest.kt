@@ -396,6 +396,54 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `official lane has opt in launch attach probe task without packaging support claim`() {
+        val root = repositoryRoot()
+        val officialBuild = Files.readString(root.resolve("driver-fabric-official/build.gradle.kts"))
+        val rootAgents = Files.readString(root.resolve("AGENTS.md"))
+        val officialAgents = Files.readString(root.resolve("driver-fabric-official/AGENTS.md"))
+        val attachAgents = Files.readString(root.resolve("driver-fabric-attach/AGENTS.md"))
+        val probeRunner =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric-official/src/test/kotlin/com/minekube/craftless/driver/fabric/official/probe/OfficialFabricAttachProbe.kt",
+                ),
+            )
+        val manifestFiles =
+            listOf(
+                root.resolve("cli/src/main/resources/driver-mods.json"),
+                root.resolve("build/docker/craftless/driver-mods.json"),
+            ).filter(Files::isRegularFile)
+
+        assertTrue(officialBuild.contains("officialFabricAttachProbe"))
+        assertTrue(officialBuild.contains("sourceSets.test.get().runtimeClasspath"))
+        assertTrue(
+            officialBuild.contains(
+                "com.minekube.craftless.driver.fabric.official.probe.OfficialFabricAttachProbeKt",
+            ),
+        )
+        assertTrue(officialBuild.contains("CRAFTLESS_OFFICIAL_FABRIC_ATTACH_PROBE"))
+        assertTrue(officialBuild.contains("java@temurin-25.0.3+9.0.LTS"))
+        assertTrue(officialBuild.contains("gradle@9.6.0"))
+        assertTrue(officialBuild.contains(":driver-fabric-official:runClient"))
+        assertTrue(rootAgents.contains("Version breadth is a system property"))
+        assertTrue(rootAgents.contains("Add per-version code only after proving an actual"))
+        assertTrue(officialAgents.contains("Treat this module as a compatibility lane and probe boundary"))
+        assertTrue(officialAgents.contains("only for proven"))
+        assertTrue(attachAgents.contains("common attach boundary for current, older, latest/current, and future"))
+        assertTrue(attachAgents.contains("First model the difference as metadata, availability, or a narrow"))
+        assertTrue(attachAgents.contains("lane adapter"))
+        assertTrue(probeRunner.contains("builder.environment()[\"CRAFTLESS_CLIENT_ID\"]"))
+        assertTrue(probeRunner.contains("builder.environment()[\"CRAFTLESS_DAEMON_URL\"]"))
+        assertTrue(probeRunner.contains("exitProcess(1)"))
+        manifestFiles.forEach { manifest ->
+            assertFalse(
+                Files.readString(manifest).contains("driver-fabric-official"),
+                "${root.relativize(manifest)} must not package the official probe lane as supported",
+            )
+        }
+    }
+
+    @Test
     fun `cli driver mod manifest projection carries runtime identity not build fields`() {
         val buildScript = Files.readString(repositoryRoot().resolve("cli/build.gradle.kts"))
 
