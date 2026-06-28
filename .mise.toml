@@ -33,6 +33,36 @@ run = [
     "mise exec -- bun test playwright",
 ]
 
+[tasks.fabric-lane-check-older]
+description = "Compile-probe the representative older Fabric driver lane and record source-compatibility blockers"
+run = """
+mkdir -p build/reports
+set +e
+mise exec -- gradle :driver-fabric:compileKotlin :driver-fabric:processResources :driver-fabric:writeFabricDriverLaneCatalog \
+  -Pcraftless.fabric.minecraftVersion=1.20.6 \
+  -Pcraftless.fabric.yarnMappings=1.20.6+build.3 \
+  -Pcraftless.fabric.loaderVersion=0.19.3 \
+  -Pcraftless.fabric.apiVersion=0.100.8+1.20.6 \
+  -Pcraftless.fabric.javaMajorVersion=21 \
+  -Pcraftless.fabric.laneId=fabric-1-20-6-lane \
+  -Pcraftless.fabric.providerId=fabric-1-20-6-lane \
+  -Pcraftless.fabric.artifactKey=fabric-1-20-6-remap-jar \
+  -Pcraftless.fabric.mappingsFingerprint=craftless-fabric-bindings-1-20-6 \
+  > build/reports/fabric-lane-check-older.log 2>&1
+status=$?
+set -e
+cat build/reports/fabric-lane-check-older.log
+if [ "$status" -eq 0 ]; then
+  printf 'status=compiled\\n' > build/reports/fabric-lane-check-older.status
+  exit 0
+fi
+grep -q "Unresolved reference 'PlayerInput'" build/reports/fabric-lane-check-older.log
+grep -q "Unresolved reference 'RecipeDisplayEntry'" build/reports/fabric-lane-check-older.log
+grep -q "Unresolved reference 'ClientWorldEvents'" build/reports/fabric-lane-check-older.log
+printf 'status=source-compatibility-blocked\\nblockers=PlayerInput,RecipeDisplayEntry,ClientWorldEvents\\n' > build/reports/fabric-lane-check-older.status
+cat build/reports/fabric-lane-check-older.status
+"""
+
 [tasks.package-cli]
 description = "Build Craftless CLI release archives and Docker context"
 run = [

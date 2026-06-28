@@ -6,15 +6,26 @@ plugins {
     id("net.fabricmc.fabric-loom-remap")
 }
 
-val fabricCompiledMinecraftVersion = "1.21.6"
-val fabricCompiledYarnMappings = "1.21.6+build.1"
-val fabricCompiledLoaderVersion = "0.19.3"
-val fabricCompiledApiVersion = "0.128.2+1.21.6"
-val fabricCompiledJavaMajorVersion = 21
-val fabricCompiledLaneId = "fabric-current-lane"
-val fabricCompiledProviderId = "fabric-current-lane"
-val fabricCompiledArtifactKey = "fabric-current-remap-jar"
-val fabricCompiledMappingsFingerprint = "craftless-fabric-bindings"
+fun fabricLaneProperty(
+    name: String,
+    defaultValue: String,
+): String = providers.gradleProperty(name).orElse(defaultValue).get()
+
+fun fabricLaneIntProperty(
+    name: String,
+    defaultValue: Int,
+): Int = fabricLaneProperty(name, defaultValue.toString()).toInt()
+
+val fabricCompiledMinecraftVersion = fabricLaneProperty("craftless.fabric.minecraftVersion", "1.21.6")
+val fabricCompiledYarnMappings = fabricLaneProperty("craftless.fabric.yarnMappings", "1.21.6+build.1")
+val fabricCompiledLoaderVersion = fabricLaneProperty("craftless.fabric.loaderVersion", "0.19.3")
+val fabricCompiledApiVersion = fabricLaneProperty("craftless.fabric.apiVersion", "0.128.2+1.21.6")
+val fabricCompiledJavaMajorVersion = fabricLaneIntProperty("craftless.fabric.javaMajorVersion", 21)
+val fabricCompiledLaneId = fabricLaneProperty("craftless.fabric.laneId", "fabric-current-lane")
+val fabricCompiledProviderId = fabricLaneProperty("craftless.fabric.providerId", "fabric-current-lane")
+val fabricCompiledArtifactKey = fabricLaneProperty("craftless.fabric.artifactKey", "fabric-current-remap-jar")
+val fabricCompiledMappingsFingerprint =
+    fabricLaneProperty("craftless.fabric.mappingsFingerprint", "craftless-fabric-bindings")
 val generatedFabricLaneMetadataDir =
     layout.buildDirectory.dir("generated/sources/fabricCompiledLaneMetadata/kotlin")
 val generatedFabricDriverLaneCatalog = layout.buildDirectory.file("generated/driver-lanes/fabric-driver-lanes.json")

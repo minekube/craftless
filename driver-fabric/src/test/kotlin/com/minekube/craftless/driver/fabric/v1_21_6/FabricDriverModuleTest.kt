@@ -251,6 +251,21 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric compiled lane build is parameterized for compatibility probes`() {
+        val buildScript = Files.readString(repositoryRoot().resolve("driver-fabric/build.gradle.kts"))
+
+        assertTrue(buildScript.contains("craftless.fabric.minecraftVersion"))
+        assertTrue(buildScript.contains("craftless.fabric.yarnMappings"))
+        assertTrue(buildScript.contains("craftless.fabric.loaderVersion"))
+        assertTrue(buildScript.contains("craftless.fabric.apiVersion"))
+        assertTrue(buildScript.contains("craftless.fabric.javaMajorVersion"))
+        assertTrue(buildScript.contains("craftless.fabric.laneId"))
+        assertTrue(buildScript.contains("craftless.fabric.providerId"))
+        assertTrue(buildScript.contains("craftless.fabric.artifactKey"))
+        assertTrue(buildScript.contains("craftless.fabric.mappingsFingerprint"))
+    }
+
+    @Test
     fun `cli driver mod manifest projection carries runtime identity not build fields`() {
         val buildScript = Files.readString(repositoryRoot().resolve("cli/build.gradle.kts"))
 

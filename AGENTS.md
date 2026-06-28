@@ -244,6 +244,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 131. transitional Fabric action allowlist deletion.
 132. strict Fabric API artifact resolution.
 133. driver mod manifest runtime identity.
+134. parameterized Fabric compiled lane build.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -1020,6 +1021,16 @@ runtime value. This is runtime-artifact safety only; it must not add compiled
 lanes, change Fabric dependency versions, claim new Minecraft support, add
 gameplay APIs, route families, CLI gameplay catalogs, Fabric descriptor/binding
 pairs, or scenario shortcuts.
+Phase 134 makes the single compiled Fabric driver lane build parameterized by
+Gradle properties so compatibility probes can compile the same driver source
+against real runtime lane metadata such as a representative older Minecraft
+version without editing source constants. Defaults must preserve the packaged
+current lane. Passing a probe compile is evidence for source compatibility only
+until the lane is packaged, selected by manifest, launched, attached, and smoke
+tested. This is build/probe infrastructure only; it must not fake additional
+packaged lanes, claim latest/older support, add public gameplay APIs, route
+families, CLI gameplay catalogs, Fabric descriptor/binding pairs, or scenario
+shortcuts.
 
 ## Acceptance Scenarios Are Not Product APIs
 
