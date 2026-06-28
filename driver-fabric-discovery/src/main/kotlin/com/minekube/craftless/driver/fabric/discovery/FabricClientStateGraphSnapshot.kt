@@ -42,6 +42,8 @@ fun fabricClientStateGraphFragment(snapshot: FabricClientStateGraphSnapshot): Fa
                 RuntimeResourceNode("inventory", inventoryAvailability),
                 RuntimeResourceNode("recipe", recipeQueryAvailability),
                 RuntimeResourceNode("world", worldAvailability),
+                RuntimeResourceNode("world.block", snapshot.blockQueryAvailability()),
+                RuntimeResourceNode("world.time", worldAvailability),
                 RuntimeResourceNode("entity", entityAvailability),
                 RuntimeResourceNode("screen", RuntimeAvailability.available()),
             ),
@@ -61,7 +63,7 @@ fun fabricClientStateGraphFragment(snapshot: FabricClientStateGraphSnapshot): Fa
                 ),
                 RuntimeHandleNode(
                     id = "world.block.handle",
-                    resource = "world",
+                    resource = "world.block",
                     schema = RuntimeSchema.objectSchema(),
                     availability = snapshot.blockQueryAvailability(),
                 ),

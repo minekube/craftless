@@ -63,11 +63,12 @@ checked and the named evidence file exists.
    - [x] CL-02b: Private Fabric execution code no longer uses stale
      `ActionBinding` names. Evidence:
      `docs/superpowers/evidence/2026-06-28-fabric-execution-adapter-naming.md`.
-   - [ ] CL-02c: Bootstrap operation definitions stop duplicating public
+   - [x] CL-02c: Bootstrap operation definitions stop duplicating public
      resource ownership by hand. Resource ids must be derived from operation
      graph/discovery metadata or a shared projection helper, with a guard that
      rejects new `resource = "..."`
-     gameplay catalog entries in bootstrap definitions.
+     gameplay catalog entries in bootstrap definitions. Evidence:
+     `docs/superpowers/evidence/2026-06-28-bootstrap-resource-derivation.md`.
    - [ ] CL-02d: Bootstrap operation ids and adapter keys are separated from
      public descriptor shape. Execution adapters may keep private adapter ids;
      public ids/schemas must come from graph nodes or discovery-owned

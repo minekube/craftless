@@ -846,6 +846,33 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `bootstrap operation definitions do not hand maintain public resource ownership`() {
+        val source =
+            Files.readString(
+                repositoryRoot().resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricBootstrapOperationDefinitions.kt",
+                ),
+            )
+        val forbidden =
+            listOf(
+                "val resource: String",
+                "resource = \"player\"",
+                "resource = \"inventory\"",
+                "resource = \"recipe\"",
+                "resource = \"entity\"",
+                "resource = \"world\"",
+                "resource = \"screen\"",
+            )
+
+        assertEquals(
+            emptyList(),
+            forbidden.filter { token -> source.contains(token) },
+            "Transitional bootstrap operation definitions must not duplicate public resource ownership. " +
+                "Resource ids should be derived from operation graph metadata instead of hand-maintained catalog fields.",
+        )
+    }
+
+    @Test
     fun `fabric client state probe does not own bootstrap operation definitions`() {
         val root = repositoryRoot()
         val source =

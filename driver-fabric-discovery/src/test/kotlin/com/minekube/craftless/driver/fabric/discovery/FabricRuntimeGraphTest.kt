@@ -168,7 +168,7 @@ class FabricRuntimeGraphTest {
             )
 
         assertEquals(
-            listOf("client", "entity", "inventory", "player", "recipe", "screen", "world"),
+            listOf("client", "entity", "inventory", "player", "recipe", "screen", "world", "world.block", "world.time"),
             fragment.resources.map { resource -> resource.id }.sorted(),
         )
         assertTrue(fragment.resources.all { resource -> resource.availability == RuntimeAvailability.available() })
@@ -176,6 +176,7 @@ class FabricRuntimeGraphTest {
             listOf("entity.handle", "inventory.slot", "recipe.handle", "world.block.handle"),
             fragment.handles.map { handle -> handle.id }.sorted(),
         )
+        assertEquals("world.block", fragment.handles.single { handle -> handle.id == "world.block.handle" }.resource)
         assertTrue(fragment.handles.all { handle -> handle.availability == RuntimeAvailability.available() })
     }
 
@@ -190,6 +191,8 @@ class FabricRuntimeGraphTest {
         assertEquals(unavailable, fragment.resources.single { resource -> resource.id == "inventory" }.availability)
         assertEquals(unavailable, fragment.resources.single { resource -> resource.id == "recipe" }.availability)
         assertEquals(unavailable, fragment.resources.single { resource -> resource.id == "world" }.availability)
+        assertEquals(unavailable, fragment.resources.single { resource -> resource.id == "world.block" }.availability)
+        assertEquals(unavailable, fragment.resources.single { resource -> resource.id == "world.time" }.availability)
         assertEquals(unavailable, fragment.resources.single { resource -> resource.id == "entity" }.availability)
         assertTrue(fragment.handles.all { handle -> handle.availability == unavailable })
     }

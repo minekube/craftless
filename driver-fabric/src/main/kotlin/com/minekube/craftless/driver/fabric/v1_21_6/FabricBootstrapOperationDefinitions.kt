@@ -23,7 +23,6 @@ internal enum class FabricBootstrapOperationAvailabilityKind {
 
 internal data class FabricBootstrapOperationDefinition(
     val id: String,
-    val resource: String,
     val adapter: String,
     val availability: FabricBootstrapOperationAvailabilityKind,
     val arguments: Map<String, RuntimeSchema> = emptyMap(),
@@ -74,21 +73,18 @@ internal fun fabricBootstrapOperationDefinitions(): List<FabricBootstrapOperatio
     listOf(
         FabricBootstrapOperationDefinition(
             id = FabricBootstrapOperationIds.PLAYER_QUERY,
-            resource = "player",
             adapter = FabricBootstrapOperationAdapters.PLAYER_QUERY,
             availability = FabricBootstrapOperationAvailabilityKind.PLAYER,
             result = actionEnvelopeResultSchema(data = RuntimeSchema.objectSchema()),
         ),
         FabricBootstrapOperationDefinition(
             id = FabricBootstrapOperationIds.PLAYER_CHAT,
-            resource = "player",
             adapter = FabricBootstrapOperationAdapters.PLAYER_CHAT,
             availability = FabricBootstrapOperationAvailabilityKind.PLAYER,
             arguments = mapOf("message" to RuntimeSchema("string", required = true)),
         ),
         FabricBootstrapOperationDefinition(
             id = FabricBootstrapOperationIds.PLAYER_LOOK,
-            resource = "player",
             adapter = FabricBootstrapOperationAdapters.PLAYER_LOOK,
             availability = FabricBootstrapOperationAvailabilityKind.PLAYER,
             arguments =
@@ -99,7 +95,6 @@ internal fun fabricBootstrapOperationDefinitions(): List<FabricBootstrapOperatio
         ),
         FabricBootstrapOperationDefinition(
             id = FabricBootstrapOperationIds.PLAYER_MOVE,
-            resource = "player",
             adapter = FabricBootstrapOperationAdapters.PLAYER_MOVE,
             availability = FabricBootstrapOperationAvailabilityKind.PLAYER,
             arguments =
@@ -117,7 +112,6 @@ internal fun fabricBootstrapOperationDefinitions(): List<FabricBootstrapOperatio
         ),
         FabricBootstrapOperationDefinition(
             id = FabricBootstrapOperationIds.PLAYER_RAYCAST,
-            resource = "player",
             adapter = FabricBootstrapOperationAdapters.PLAYER_RAYCAST,
             availability = FabricBootstrapOperationAvailabilityKind.CAMERA,
             arguments = raycastArgumentsSchema(),
@@ -125,21 +119,18 @@ internal fun fabricBootstrapOperationDefinitions(): List<FabricBootstrapOperatio
         ),
         FabricBootstrapOperationDefinition(
             id = FabricBootstrapOperationIds.INVENTORY_QUERY,
-            resource = "inventory",
             adapter = FabricBootstrapOperationAdapters.INVENTORY_QUERY,
             availability = FabricBootstrapOperationAvailabilityKind.INVENTORY,
             result = actionEnvelopeResultSchema(data = RuntimeSchema.objectSchema()),
         ),
         FabricBootstrapOperationDefinition(
             id = FabricBootstrapOperationIds.INVENTORY_EQUIP,
-            resource = "inventory",
             adapter = FabricBootstrapOperationAdapters.INVENTORY_EQUIP,
             availability = FabricBootstrapOperationAvailabilityKind.INVENTORY,
             arguments = mapOf("slot" to RuntimeSchema("integer", required = true)),
         ),
         FabricBootstrapOperationDefinition(
             id = FabricBootstrapOperationIds.RECIPE_QUERY,
-            resource = "recipe",
             adapter = FabricBootstrapOperationAdapters.RECIPE_QUERY,
             availability = FabricBootstrapOperationAvailabilityKind.RECIPE_QUERY,
             arguments =
@@ -153,7 +144,6 @@ internal fun fabricBootstrapOperationDefinitions(): List<FabricBootstrapOperatio
         ),
         FabricBootstrapOperationDefinition(
             id = FabricBootstrapOperationIds.RECIPE_CRAFT,
-            resource = "recipe",
             adapter = FabricBootstrapOperationAdapters.RECIPE_CRAFT,
             availability = FabricBootstrapOperationAvailabilityKind.RECIPE_CRAFT,
             arguments =
@@ -165,7 +155,6 @@ internal fun fabricBootstrapOperationDefinitions(): List<FabricBootstrapOperatio
         ),
         FabricBootstrapOperationDefinition(
             id = FabricBootstrapOperationIds.ENTITY_QUERY,
-            resource = "entity",
             adapter = FabricBootstrapOperationAdapters.ENTITY_QUERY,
             availability = FabricBootstrapOperationAvailabilityKind.ENTITY,
             arguments =
@@ -177,7 +166,6 @@ internal fun fabricBootstrapOperationDefinitions(): List<FabricBootstrapOperatio
         ),
         FabricBootstrapOperationDefinition(
             id = FabricBootstrapOperationIds.ENTITY_ATTACK,
-            resource = "entity",
             adapter = FabricBootstrapOperationAdapters.ENTITY_ATTACK,
             availability = FabricBootstrapOperationAvailabilityKind.ENTITY_ATTACK,
             arguments =
@@ -189,7 +177,6 @@ internal fun fabricBootstrapOperationDefinitions(): List<FabricBootstrapOperatio
         ),
         FabricBootstrapOperationDefinition(
             id = FabricBootstrapOperationIds.WORLD_BLOCK_QUERY,
-            resource = "world",
             adapter = FabricBootstrapOperationAdapters.WORLD_BLOCK_QUERY,
             availability = FabricBootstrapOperationAvailabilityKind.BLOCK_QUERY,
             arguments =
@@ -203,14 +190,12 @@ internal fun fabricBootstrapOperationDefinitions(): List<FabricBootstrapOperatio
         ),
         FabricBootstrapOperationDefinition(
             id = FabricBootstrapOperationIds.WORLD_TIME_QUERY,
-            resource = "world",
             adapter = FabricBootstrapOperationAdapters.WORLD_TIME_QUERY,
             availability = FabricBootstrapOperationAvailabilityKind.WORLD,
             result = actionEnvelopeResultSchema(data = RuntimeSchema.objectSchema()),
         ),
         FabricBootstrapOperationDefinition(
             id = FabricBootstrapOperationIds.WORLD_BLOCK_BREAK,
-            resource = "world",
             adapter = FabricBootstrapOperationAdapters.WORLD_BLOCK_BREAK,
             availability = FabricBootstrapOperationAvailabilityKind.BLOCK_BREAK,
             arguments = blockTargetArgumentsSchema() + mapOf("ticks" to RuntimeSchema("integer")),
@@ -218,7 +203,6 @@ internal fun fabricBootstrapOperationDefinitions(): List<FabricBootstrapOperatio
         ),
         FabricBootstrapOperationDefinition(
             id = FabricBootstrapOperationIds.WORLD_BLOCK_INTERACT,
-            resource = "world",
             adapter = FabricBootstrapOperationAdapters.WORLD_BLOCK_INTERACT,
             availability = FabricBootstrapOperationAvailabilityKind.BLOCK_INTERACT,
             arguments = blockTargetArgumentsSchema() + mapOf("side" to RuntimeSchema("string")),
@@ -226,14 +210,12 @@ internal fun fabricBootstrapOperationDefinitions(): List<FabricBootstrapOperatio
         ),
         FabricBootstrapOperationDefinition(
             id = FabricBootstrapOperationIds.SCREEN_QUERY,
-            resource = "screen",
             adapter = FabricBootstrapOperationAdapters.SCREEN_QUERY,
             availability = FabricBootstrapOperationAvailabilityKind.SCREEN,
             result = actionEnvelopeResultSchema(data = RuntimeSchema.objectSchema()),
         ),
         FabricBootstrapOperationDefinition(
             id = FabricBootstrapOperationIds.SCREEN_CLOSE,
-            resource = "screen",
             adapter = FabricBootstrapOperationAdapters.SCREEN_CLOSE,
             availability = FabricBootstrapOperationAvailabilityKind.SCREEN_CLOSE,
         ),
@@ -242,7 +224,7 @@ internal fun fabricBootstrapOperationDefinitions(): List<FabricBootstrapOperatio
 internal fun FabricBootstrapOperationDefinition.toRuntimeOperation(availability: RuntimeAvailability): RuntimeOperationNode =
     RuntimeOperationNode(
         id = id,
-        resource = resource,
+        resource = id.substringBeforeLast("."),
         adapter = adapter,
         arguments = arguments,
         result = result,

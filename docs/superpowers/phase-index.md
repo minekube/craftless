@@ -57,6 +57,7 @@ not grow with every completed phase.
 - Phase 172: remote driver action graph authority.
 - Phase 173: public-agent actions projection optional.
 - Phase 174: Fabric execution adapter naming.
+- Phase 175: bootstrap resource derivation.
 
 ## Current Direction
 
@@ -94,6 +95,10 @@ gameplay authority even when the projection endpoint is absent.
 The private Fabric execution layer no longer uses stale `FabricActionBinding`
 naming; these classes are execution adapters, while CL-02 remains open for the
 real bootstrap operation-definition exit.
+Transitional Fabric bootstrap operation definitions no longer hand-maintain
+public resource ownership. Runtime operation resources are derived from
+operation ids, and Fabric client-state discovery now emits the derived
+`world.block` and `world.time` resources needed by graph validation.
 Continue by moving official 26.x support through shared Fabric
 discovery/projection/invocation, packaging, adaptive CLI/API smoke, and honest
 gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the
