@@ -78,6 +78,8 @@ class FabricDriverBackend private constructor(
 ) : DriverBackend {
     private val events = mutableListOf<String>()
     private val actionBindingsById = actionBindings.associateBy { it.operationId }
+    private val bootstrapAdapterKeysByOperationId =
+        fabricBootstrapOperationDefinitions().associate { definition -> definition.id to definition.adapter }
 
     override fun connect(
         clientId: String,
@@ -120,7 +122,11 @@ class FabricDriverBackend private constructor(
             navigationTaskOperationAdapters() +
                 actionBindingsById.values
                     .map { binding ->
-                        binding.operationId.fabricOperationAdapterKey() to
+                        val adapterKey =
+                            requireNotNull(bootstrapAdapterKeysByOperationId[binding.operationId]) {
+                                "missing bootstrap operation adapter for ${binding.operationId}"
+                            }
+                        adapterKey to
                             DriverOperationAdapter { invocation ->
                                 binding.invoke(
                                     clientId = invocation.clientId,
@@ -1287,8 +1293,6 @@ private fun String.recipeHandleIndex(): Int? =
     removePrefix("recipe.handle:")
         .takeIf { it != this }
         ?.toIntOrNull()
-
-private fun String.fabricOperationAdapterKey(): String = "fabric.${replace(".", "-")}"
 
 private fun RuntimeOperationNode.toDriverActionDescriptor(): DriverActionDescriptor =
     DriverActionDescriptor(

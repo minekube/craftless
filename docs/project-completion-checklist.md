@@ -184,6 +184,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-87-backend-operation-id-source-ownership-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-87-backend-operation-id-source-ownership-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-88-binding-adapter-key-derivation-removal-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-88-binding-adapter-key-derivation-removal-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -2805,6 +2809,33 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-backend-operation-id-source-ownership.md`.
 
+## Phase 88: Binding Adapter Key Derivation Removal
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-88-binding-adapter-key-derivation-removal-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-88-binding-adapter-key-derivation-removal-plan.md`.
+- [x] `FabricDriverBackend.kt` registers private binding adapters from
+  bootstrap operation definitions instead of deriving adapter keys from
+  operation ids.
+- [x] Existing graph-owned invocation tests still cover private adapter
+  dispatch.
+- [~] The broader binding-exit blocker remains active until future gameplay
+  breadth is generated from generic runtime discovery instead of
+  hand-maintained bootstrap operation definitions.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
+  lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Red guard:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend does not derive binding adapter keys from operation ids*'`
+- Green focused tests:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend does not derive binding adapter keys from operation ids*' --tests '*FabricDriverModuleTest.fabric backend exposes bootstrap bindings as graph operation adapters*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-binding-adapter-key-derivation-removal.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -2815,7 +2846,8 @@ Verification:
   overhaul, Phase 83 Fabric binding descriptor removal, and Phase 84 bootstrap
   operation definition isolation, and Phase 85 binding operation id source
   ownership, Phase 86 Fabric adapter key source ownership, and Phase 87 backend
-  operation id source ownership.
+  operation id source ownership, and Phase 88 binding adapter key derivation
+  removal.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest and representative older runtime lanes have the requested support or

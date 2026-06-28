@@ -198,6 +198,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 85. binding operation id source ownership.
 86. Fabric adapter key source ownership.
 87. backend operation id source ownership.
+88. binding adapter key derivation removal.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -680,6 +681,13 @@ operation id literals such as `entity.query`, `world.block.query`, or
 `recipe.craft`. This phase still does not finish the broader binding exit
 while future gameplay breadth depends on hand-maintained bootstrap operation
 definitions instead of generic runtime discovery.
+Phase 88 removes backend derivation of private Fabric adapter keys from
+operation ids. `FabricDriverBackend` must register transitional binding
+adapters by consuming bootstrap operation definitions, not by transforming ids
+with conventions such as `fabric.${operationId.replace(".", "-")}`. This phase
+still does not finish the broader binding exit while future gameplay breadth
+depends on hand-maintained bootstrap operation definitions instead of generic
+runtime discovery.
 
 ## Acceptance Scenarios Are Not Product APIs
 

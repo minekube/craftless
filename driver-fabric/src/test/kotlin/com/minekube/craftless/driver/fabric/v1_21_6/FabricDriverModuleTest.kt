@@ -1197,6 +1197,28 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric backend does not derive binding adapter keys from operation ids`() {
+        val root = repositoryRoot()
+        val source =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverBackend.kt",
+                ),
+            )
+        val forbidden =
+            listOf(
+                "fabricOperationAdapterKey",
+                """replace(".", "-")""",
+            )
+
+        assertEquals(
+            emptyList(),
+            forbidden.filter { token -> source.contains(token) },
+            "Private Fabric backend adapter registration must use bootstrap adapter definitions, not derive keys from operation ids.",
+        )
+    }
+
+    @Test
     fun `fabric backend can expose unavailable actions only from runtime discovery probes`() {
         val backend = FabricDriverBackend.metadataOnly()
 
