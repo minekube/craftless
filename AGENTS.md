@@ -246,10 +246,17 @@ The active product-completion sequence is the numbered spec/plan pairs under
 133. driver mod manifest runtime identity.
 134. parameterized Fabric compiled lane build.
 135. reflective Fabric world-change callback.
+136. reflective movement input shim.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
 `docs/project-completion-checklist.md`.
+
+Phase 136 removes the direct compile-time dependency on the newer
+`PlayerInput` record from Fabric movement bindings. Movement remains a
+transitional bootstrap binding; the phase is version compatibility plumbing for
+the existing generic invocation path, not a new gameplay action, route family,
+or support claim.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final

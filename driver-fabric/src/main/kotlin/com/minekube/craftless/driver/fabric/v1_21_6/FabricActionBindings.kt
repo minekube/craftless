@@ -18,7 +18,6 @@ import kotlinx.serialization.json.put
 import net.minecraft.block.BlockState
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.screen.Screen
-import net.minecraft.client.input.Input
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.ClientPlayerInteractionManager
 import net.minecraft.client.world.ClientWorld
@@ -27,13 +26,11 @@ import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
 import net.minecraft.registry.tag.BlockTags
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
-import net.minecraft.util.PlayerInput
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
-import net.minecraft.util.math.Vec2f
 import net.minecraft.util.math.Vec3d
 
 internal interface FabricActionBinding {
@@ -708,10 +705,16 @@ private object FabricPlayerMoveActionBinding : FabricActionBinding {
                 val originalInput = player.input
                 player.input =
                     CraftlessMovementInput(
-                        delegate = originalInput,
-                        movementInput = intent.toPlayerInput(),
-                        ticks = intent.ticks,
-                        restore = {
+                        originalInput,
+                        intent.forward,
+                        intent.backward,
+                        intent.left,
+                        intent.right,
+                        intent.jump,
+                        intent.sneak,
+                        intent.sprint,
+                        intent.ticks,
+                        {
                             if (player.input is CraftlessMovementInput) {
                                 player.input = originalInput
                             }
@@ -747,8 +750,6 @@ private data class FabricMovementIntent(
     val sprint: Boolean = false,
     val ticks: Int = 1,
 ) {
-    fun toPlayerInput(): PlayerInput = PlayerInput(forward, backward, left, right, jump, sneak, sprint)
-
     fun toCraftlessMovementData(
         positionBefore: Vec3d,
         yaw: Float,
@@ -780,43 +781,6 @@ private data class FabricMovementIntent(
             put("on-ground-before", onGround)
         }
 }
-
-private class CraftlessMovementInput(
-    private val delegate: Input,
-    private val movementInput: PlayerInput,
-    private var ticks: Int,
-    private val restore: () -> Unit,
-) : Input() {
-    override fun tick() {
-        if (ticks <= 0) {
-            restore()
-            delegate.tick()
-            playerInput = delegate.playerInput
-            movementVector = delegate.getMovementInput()
-            return
-        }
-
-        playerInput = movementInput
-        movementVector = movementInput.toMovementVector()
-        ticks -= 1
-    }
-}
-
-private fun PlayerInput.toMovementVector(): Vec2f =
-    Vec2f(
-        movementMultiplier(left, right),
-        movementMultiplier(forward, backward),
-    ).normalize()
-
-private fun movementMultiplier(
-    positive: Boolean,
-    negative: Boolean,
-): Float =
-    when {
-        positive == negative -> 0f
-        positive -> 1f
-        else -> -1f
-    }
 
 private fun net.minecraft.entity.player.PlayerInventory.toCraftlessInventoryData(): JsonObject =
     buildJsonObject {

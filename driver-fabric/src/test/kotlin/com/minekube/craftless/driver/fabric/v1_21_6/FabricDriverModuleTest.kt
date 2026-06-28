@@ -340,6 +340,17 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric movement bindings do not compile against player input record`() {
+        val source =
+            Files.readString(
+                repositoryRoot()
+                    .resolve("driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricActionBindings.kt"),
+            )
+
+        assertFalse(source.contains("PlayerInput"))
+    }
+
+    @Test
     fun `fabric backend exposes driver runtime actions without changing daemon contract`() {
         val backend = FabricDriverBackend.metadataOnly()
 

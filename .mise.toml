@@ -56,13 +56,16 @@ if [ "$status" -eq 0 ]; then
   printf 'status=compiled\\n' > build/reports/fabric-lane-check-older.status
   exit 0
 fi
-grep -q "Unresolved reference 'PlayerInput'" build/reports/fabric-lane-check-older.log
-grep -q "Unresolved reference 'RecipeDisplayEntry'" build/reports/fabric-lane-check-older.log
+grep -Eq "Unresolved reference '(RecipeDisplayEntry|NetworkRecipeId|RecipeFinder|AbstractCraftingScreenHandler|SlotDisplay)'" build/reports/fabric-lane-check-older.log
+if grep -q "Unresolved reference 'PlayerInput'" build/reports/fabric-lane-check-older.log; then
+  echo "unexpected PlayerInput compile blocker remained after reflective movement input shim" >&2
+  exit 1
+fi
 if grep -q "Unresolved reference 'ClientWorldEvents'" build/reports/fabric-lane-check-older.log; then
   echo "unexpected ClientWorldEvents compile blocker remained after reflective callback registration" >&2
   exit 1
 fi
-printf 'status=source-compatibility-blocked\\nblockers=PlayerInput,RecipeDisplayEntry\\n' > build/reports/fabric-lane-check-older.status
+printf 'status=source-compatibility-blocked\\nblockers=RecipeDisplayApi\\n' > build/reports/fabric-lane-check-older.status
 cat build/reports/fabric-lane-check-older.status
 """
 
