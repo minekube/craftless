@@ -3208,9 +3208,8 @@ Verification:
 - [x] `package-cli` verifies the staged driver mod contains nested jars,
   Kotlin stdlib, coroutines, and Ktor HTTP runtime jars.
 - [x] `mise run package-cli` succeeds after the stricter staged-mod checks.
-- [~] Actual live packaged in-client attach and generated API execution remain
-  open until public API/CLI gameplay verification uses the launched-driver
-  self-attach path.
+- [x] Actual live packaged in-client attach and generated API projection is
+  now covered by Phase 102.
 - [x] This phase adds no public gameplay action, generated route family, CLI
   gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
   lane, public version-specific API, or new Minecraft support claim.
@@ -3221,8 +3220,45 @@ Verification:
   `mise exec -- gradle :protocol:test --tests '*NamespacePolicyTest.fabric driver mod declares nested runtime dependencies*'`
 - Package smoke:
   `mise run package-cli`
-- Final local verification will be recorded in
+- Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-packaged-driver-runtime-dependencies.md`.
+
+## Phase 102: Packaged Live Attach And Cold-Cache Usability
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-102-packaged-live-attach-cold-cache-usability-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-102-packaged-live-attach-cold-cache-usability-plan.md`.
+- [x] Packaged CLI API calls use a Ktor `HttpTimeout` with a 15-minute default
+  and `CRAFTLESS_HTTP_REQUEST_TIMEOUT_MS` override for local supervisor calls.
+- [x] Cache preparation downloads independent Minecraft asset objects with
+  bounded parallelism while preserving existing checksum/resume behavior.
+- [x] Packaged `craftless server start` plus packaged `craftless clients create`
+  launches a real Fabric client with the staged driver mod.
+- [x] The real Fabric driver self-attaches back to the packaged supervisor and
+  emits `client.attached`.
+- [x] Packaged CLI can read generated `/clients/{id}/actions`,
+  `/clients/{id}/resources`, and SSE event stream from that attached client.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
+  lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Red/green guard:
+  `mise exec -- gradle :daemon:test --tests 'com.minekube.craftless.daemon.CachePreparationServiceTest.cache preparation fetches independent asset objects concurrently'`
+- Red/green guard:
+  `mise exec -- gradle :cli:test --tests 'com.minekube.craftless.cli.CraftlessCliTest.client create uses configured api request timeout'`
+- Package smoke:
+  `mise run package-cli`
+- Live packaged smoke:
+  packaged `craftless server start --port 18081 --workspace /tmp/...` with
+  `CRAFTLESS_FABRIC_DRIVER_MOD=build/docker/craftless/mods/craftless-driver-fabric.jar`,
+  packaged `craftless clients create attach-smoke --version 1.21.6 --loader fabric --offline-name AttachSmoke`,
+  `client.attached`, packaged `clients attach-smoke actions`, packaged
+  `clients attach-smoke resources`, and `GET /clients/attach-smoke/events:stream`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-packaged-live-attach-cold-cache-usability.md`.
 
 ## Final Completion Gate
 
@@ -3242,8 +3278,8 @@ Verification:
   cache resolution, Phase 95 launch mod materialization, Phase 96 Craftless
   driver mod launch artifact, Phase 97 packaged driver mod distribution, Phase
   98 driver attach proxy, Phase 99 launch attach environment, and Phase 100
-  Fabric driver self-attach, and Phase 101 packaged driver runtime
-  dependencies.
+  Fabric driver self-attach, Phase 101 packaged driver runtime dependencies,
+  and Phase 102 packaged live attach and cold-cache usability.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

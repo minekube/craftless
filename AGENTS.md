@@ -212,6 +212,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 99. launch attach environment.
 100. Fabric driver self-attach.
 101. packaged driver runtime dependencies.
+102. packaged live attach and cold-cache usability.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -772,6 +773,13 @@ support claims.
 Phase 101 makes the packaged Fabric driver mod carry its runtime dependency
 jars for real client classloading. This is packaging/runtime closure only; live
 generated API and gameplay verification must still use the public API/CLI path.
+Phase 102 proves the packaged CLI/server/client path with a real Fabric client
+and fixes cold-cache usability exposed by that smoke. `clients create` may take
+minutes while preparing a first-run Minecraft cache, so CLI HTTP timeouts must
+cover real launch work and asset downloads should be bounded-parallel. This is
+distribution/runtime plumbing only; it must not add gameplay descriptors,
+static route families, Fabric action bindings, scenario shortcuts, or version
+support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

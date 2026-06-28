@@ -26,6 +26,7 @@ import com.minekube.craftless.protocol.OpenApiResource
 import com.minekube.craftless.protocol.Profile
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
@@ -58,6 +59,8 @@ fun main(args: Array<String>) {
 }
 
 object CraftlessCli {
+    private const val CRAFTLESS_HTTP_REQUEST_TIMEOUT_MS = "CRAFTLESS_HTTP_REQUEST_TIMEOUT_MS"
+    private const val DEFAULT_HTTP_REQUEST_TIMEOUT_MS = 900_000L
     private const val GENERATED_ACTION_USAGE =
         "error: usage is clients <id> <resource...> <action> [--api <url>] [--openapi-cache <dir>] [--arg key=value] [--<arg> value]"
 
@@ -306,7 +309,7 @@ object CraftlessCli {
         val api = args.apiBaseUrl(env)
         return runCatching {
             kotlinx.coroutines.runBlocking {
-                HttpClient(CIO).use { http ->
+                apiHttpClient(env).use { http ->
                     http.get("${api.trimEnd('/')}/runtimes/java").forwardBody(stdout, stderr)
                 }
             }
@@ -330,7 +333,7 @@ object CraftlessCli {
         val api = args.apiBaseUrl(env)
         return runCatching {
             kotlinx.coroutines.runBlocking {
-                HttpClient(CIO).use { http ->
+                apiHttpClient(env).use { http ->
                     http
                         .post("${api.trimEnd('/')}/runtimes/java:resolve") {
                             contentType(ContentType.Application.Json)
@@ -372,7 +375,7 @@ object CraftlessCli {
 
         return runCatching {
             kotlinx.coroutines.runBlocking {
-                HttpClient(CIO).use { http ->
+                apiHttpClient(env).use { http ->
                     val response =
                         http.post("${api.trimEnd('/')}/clients") {
                             contentType(ContentType.Application.Json)
@@ -396,7 +399,7 @@ object CraftlessCli {
         val api = args.apiBaseUrl(env)
         return runCatching {
             kotlinx.coroutines.runBlocking {
-                HttpClient(CIO).use { http ->
+                apiHttpClient(env).use { http ->
                     val response = http.get("${api.trimEnd('/')}/clients")
                     if (args.contains("--jsonl")) {
                         response.forwardJsonLines(stdout, stderr)
@@ -429,7 +432,7 @@ object CraftlessCli {
 
         return runCatching {
             kotlinx.coroutines.runBlocking {
-                HttpClient(CIO).use { http ->
+                apiHttpClient(env).use { http ->
                     val response =
                         http.post("${api.trimEnd('/')}/clients/$clientId:connect") {
                             contentType(ContentType.Application.Json)
@@ -458,7 +461,7 @@ object CraftlessCli {
         val api = args.apiBaseUrl(env)
         return runCatching {
             kotlinx.coroutines.runBlocking {
-                HttpClient(CIO).use { http ->
+                apiHttpClient(env).use { http ->
                     http.get("${api.trimEnd('/')}/clients/$clientId").forwardBody(stdout, stderr)
                 }
             }
@@ -482,7 +485,7 @@ object CraftlessCli {
         val api = args.apiBaseUrl(env)
         return runCatching {
             kotlinx.coroutines.runBlocking {
-                HttpClient(CIO).use { http ->
+                apiHttpClient(env).use { http ->
                     http.post("${api.trimEnd('/')}/clients/$clientId:stop").forwardBody(stdout, stderr)
                 }
             }
@@ -509,7 +512,7 @@ object CraftlessCli {
 
         return runCatching {
             kotlinx.coroutines.runBlocking {
-                HttpClient(CIO).use { http ->
+                apiHttpClient(env).use { http ->
                     var openApiFetchError: String? = null
                     val openApiBody =
                         http.getClientOpenApiBody(
@@ -564,7 +567,7 @@ object CraftlessCli {
 
         return runCatching {
             kotlinx.coroutines.runBlocking {
-                HttpClient(CIO).use { http ->
+                apiHttpClient(env).use { http ->
                     var openApiFetchError: String? = null
                     val openApiBody =
                         http.getClientOpenApiBody(
@@ -632,7 +635,7 @@ object CraftlessCli {
         val openApiCache = args.optionValue("--openapi-cache")?.let(Path::of)
         return runCatching {
             kotlinx.coroutines.runBlocking {
-                HttpClient(CIO).use { http ->
+                apiHttpClient(env).use { http ->
                     val openApiBody = http.getClientOpenApiBody(api = api, clientId = clientId, cacheRoot = openApiCache)
                     if (openApiBody == null) {
                         stderr("error: live OpenAPI cache could not be revalidated for client $clientId")
@@ -668,7 +671,7 @@ object CraftlessCli {
         val api = args.apiBaseUrl(env)
         return runCatching {
             kotlinx.coroutines.runBlocking {
-                HttpClient(CIO).use { http ->
+                apiHttpClient(env).use { http ->
                     val response =
                         http.post("${api.trimEnd('/')}/clients/$clientId:rpc") {
                             contentType(ContentType.Application.Json)
@@ -750,7 +753,7 @@ object CraftlessCli {
         val openApiCache = args.optionValue("--openapi-cache")?.let(Path::of)
         return runCatching {
             kotlinx.coroutines.runBlocking {
-                HttpClient(CIO).use { http ->
+                apiHttpClient(env).use { http ->
                     val openApiBody = http.getClientOpenApiBody(api = api, clientId = clientId, cacheRoot = openApiCache)
                     if (openApiBody == null) {
                         stderr("error: live OpenAPI cache could not be revalidated for client $clientId")
@@ -782,7 +785,7 @@ object CraftlessCli {
         val type = args.optionValue("--type")
         return runCatching {
             kotlinx.coroutines.runBlocking {
-                HttpClient(CIO).use { http ->
+                apiHttpClient(env).use { http ->
                     val query = type?.let { "?type=$it" }.orEmpty()
                     val response = http.get("${api.trimEnd('/')}/clients/$clientId/events:stream$query")
                     val body = response.bodyAsText()
@@ -815,7 +818,7 @@ object CraftlessCli {
         val openApiCache = args.optionValue("--openapi-cache")?.let(Path::of)
         return runCatching {
             kotlinx.coroutines.runBlocking {
-                HttpClient(CIO).use { http ->
+                apiHttpClient(env).use { http ->
                     val openApiBody = http.getClientOpenApiBody(api = api, clientId = clientId, cacheRoot = openApiCache)
                     if (openApiBody == null) {
                         stderr("error: live OpenAPI cache could not be revalidated for client $clientId")
@@ -847,7 +850,7 @@ object CraftlessCli {
         val openApiCache = args.optionValue("--openapi-cache")?.let(Path::of)
         return runCatching {
             kotlinx.coroutines.runBlocking {
-                HttpClient(CIO).use { http ->
+                apiHttpClient(env).use { http ->
                     var openApiFetchError: String? = null
                     val openApiBody =
                         http.getClientOpenApiBody(
@@ -922,6 +925,20 @@ object CraftlessCli {
         optionValue("--api")
             ?: env["CRAFTLESS"]
             ?: "http://127.0.0.1:8080"
+
+    private fun apiHttpClient(env: Map<String, String>): HttpClient =
+        HttpClient(CIO) {
+            install(HttpTimeout) {
+                requestTimeoutMillis = env.apiRequestTimeoutMillis()
+            }
+        }
+
+    private fun Map<String, String>.apiRequestTimeoutMillis(): Long =
+        get(CRAFTLESS_HTTP_REQUEST_TIMEOUT_MS)
+            ?.takeIf { it.isNotBlank() }
+            ?.toLongOrNull()
+            ?.takeIf { it > 0 }
+            ?: DEFAULT_HTTP_REQUEST_TIMEOUT_MS
 
     private fun List<String>.optionValues(name: String): List<String> =
         mapIndexedNotNull { index, value ->

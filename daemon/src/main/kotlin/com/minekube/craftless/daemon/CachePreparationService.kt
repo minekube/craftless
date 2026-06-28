@@ -25,6 +25,11 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsBytes
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -149,9 +154,10 @@ class CachePreparationService(
                 metadata.profile,
             )
         }
-        assetObjects.forEach { asset ->
-            writeFetchedBytesArtifact(asset.artifact, asset.source)
-        }
+        writeFetchedBytesArtifacts(
+            assetObjects.map { asset -> asset.artifact to asset.source },
+            concurrency = ASSET_DOWNLOAD_CONCURRENCY,
+        )
         loggingConfig?.let { logging ->
             writeFetchedBytesArtifact(logging.artifact, logging.source)
         }
@@ -418,6 +424,21 @@ class CachePreparationService(
             }
         }
         return writeBytesArtifact(artifact, bytes)
+    }
+
+    private suspend fun writeFetchedBytesArtifacts(
+        artifacts: List<Pair<CachePreparedArtifact, String>>,
+        concurrency: Int,
+    ) = coroutineScope {
+        val semaphore = Semaphore(concurrency)
+        artifacts
+            .map { (artifact, source) ->
+                async {
+                    semaphore.withPermit {
+                        writeFetchedBytesArtifact(artifact, source)
+                    }
+                }
+            }.awaitAll()
     }
 
     private fun writeTextArtifact(
@@ -1058,6 +1079,7 @@ private data class MinecraftAssetObject(
 }
 
 private const val MINECRAFT_ASSET_BASE_URL = "https://resources.download.minecraft.net"
+private const val ASSET_DOWNLOAD_CONCURRENCY = 32
 
 private val MINECRAFT_ASSET_HASH_PATTERN = Regex("[a-fA-F0-9]{40}")
 

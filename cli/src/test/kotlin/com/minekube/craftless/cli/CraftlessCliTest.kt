@@ -278,6 +278,63 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `client create uses configured api request timeout`() {
+        SlowCreateApiServer(delayMillis = 250).use { server ->
+            val timeoutOutput = StringBuilder()
+            val timeoutErrors = StringBuilder()
+            val timeoutExit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "create",
+                        "alice",
+                        "--version",
+                        "1.21.6",
+                        "--loader",
+                        "fabric",
+                        "--offline-name",
+                        "Alice",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { timeoutOutput.appendLine(it) },
+                    stderr = { timeoutErrors.appendLine(it) },
+                    env = mapOf("CRAFTLESS_HTTP_REQUEST_TIMEOUT_MS" to "50"),
+                )
+
+            assertEquals(2, timeoutExit)
+            assertEquals("", timeoutOutput.toString())
+            assertTrue(timeoutErrors.toString().contains("timeout", ignoreCase = true))
+
+            val output = StringBuilder()
+            val errors = StringBuilder()
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "create",
+                        "alice",
+                        "--version",
+                        "1.21.6",
+                        "--loader",
+                        "fabric",
+                        "--offline-name",
+                        "Alice",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                    env = mapOf("CRAFTLESS_HTTP_REQUEST_TIMEOUT_MS" to "2000"),
+                )
+
+            assertEquals(0, exit, errors.toString())
+            assertEquals("", errors.toString())
+            assertTrue(output.toString().contains("\"id\":\"alice\""))
+        }
+    }
+
+    @Test
     fun `cache prepare creates cache handles in workspace`() {
         val output = StringBuilder()
         val workspace = Files.createTempDirectory("craftless-cli-cache")
@@ -2105,6 +2162,40 @@ class CraftlessCliTest {
         override fun close() {
             server.close()
         }
+    }
+
+    private class SlowCreateApiServer(
+        private val delayMillis: Long,
+    ) : AutoCloseable {
+        private val port = allocateLoopbackPort()
+        private val server =
+            embeddedServer(ServerCIO, host = "127.0.0.1", port = port) {
+                routing {
+                    post("/clients") {
+                        Thread.sleep(delayMillis)
+                        call.respondText(
+                            """{"id":"alice","version":"1.21.6","loader":"FABRIC","state":"RUNNING","profile":{"kind":"OFFLINE","name":"Alice"}}""",
+                            ContentType.Application.Json,
+                            HttpStatusCode.Created,
+                        )
+                    }
+                }
+            }
+        val url = "http://127.0.0.1:$port"
+
+        init {
+            server.start()
+        }
+
+        override fun close() {
+            server.stop(gracePeriodMillis = 250, timeoutMillis = 1_000)
+        }
+
+        private fun allocateLoopbackPort(): Int =
+            ServerSocket(0).use { socket ->
+                socket.reuseAddress = true
+                socket.localPort
+            }
     }
 
     private class FailingActionDriver(

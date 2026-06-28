@@ -10,10 +10,12 @@ import com.minekube.craftless.protocol.JavaRuntimeSelectionStatus
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.MINECRAFT_JAVA_RUNTIME_INDEX_URL
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.file.Files
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
@@ -953,6 +955,71 @@ class CachePreparationServiceTest {
         }
 
     @Test
+    fun `cache preparation fetches independent asset objects concurrently`() =
+        runBlocking {
+            val workspace = Files.createTempDirectory("craftless-cache-parallel-assets")
+            val versionUrl = "https://metadata.test/1.21.6.json"
+            val clientJarUrl = "https://metadata.test/client.jar"
+            val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
+            val assetBytes =
+                listOf("asset-one", "asset-two", "asset-three", "asset-four")
+                    .associateBy { bytes -> bytes.sha1HexForTest() }
+            val assetUrls =
+                assetBytes.keys.associateWith { hash ->
+                    "https://resources.download.minecraft.net/${hash.take(2)}/$hash"
+                }
+            val fetcher =
+                ConcurrentCountingCacheMetadataFetcher(
+                    responses =
+                        mapOf(
+                            MINECRAFT_VERSION_INDEX_URL to
+                                """{ "versions": [{ "id": "1.21.6", "url": "$versionUrl" }] }""",
+                            versionUrl to
+                                """
+                                {
+                                  "id": "1.21.6",
+                                  "assetIndex": {
+                                    "id": "26",
+                                    "url": "$assetIndexUrl"
+                                  },
+                                  "downloads": {
+                                    "client": { "url": "$clientJarUrl" }
+                                  }
+                                }
+                                """.trimIndent(),
+                            assetIndexUrl to
+                                """
+                                {
+                                  "objects": {
+                                    "one": { "hash": "${assetBytes.keys.elementAt(0)}" },
+                                    "two": { "hash": "${assetBytes.keys.elementAt(1)}" },
+                                    "three": { "hash": "${assetBytes.keys.elementAt(2)}" },
+                                    "four": { "hash": "${assetBytes.keys.elementAt(3)}" }
+                                  }
+                                }
+                                """.trimIndent(),
+                        ),
+                    binaryResponses =
+                        mapOf(clientJarUrl to "client-jar".encodeToByteArray()) +
+                            assetBytes
+                                .mapKeys { (hash, _) -> requireNotNull(assetUrls[hash]) }
+                                .mapValues { (_, bytes) -> bytes.encodeToByteArray() },
+                    delayedUrls = assetUrls.values.toSet(),
+                    delayMillis = 100,
+                )
+            val service = CachePreparationService(workspaceRoot = workspace, metadataFetcher = fetcher)
+
+            val result = service.prepare(CachePrepareRequest("1.21.6", Loader.VANILLA))
+
+            assertTrue(fetcher.maxConcurrentFetches() > 1, "asset object downloads should overlap")
+            val assetArtifacts = result.artifacts.filter { it.kind == CachePreparedArtifactKind.MINECRAFT_ASSET_OBJECT }
+            assertEquals(4, assetArtifacts.size)
+            assetArtifacts.forEach { artifact ->
+                assertTrue(Files.isRegularFile(workspace.resolve(artifact.handle)))
+            }
+        }
+
+    @Test
     fun `cache preparation refetches corrupt metadata checksum binaries`() =
         runBlocking {
             val workspace = Files.createTempDirectory("craftless-cache-corrupt-metadata-resume")
@@ -1416,4 +1483,32 @@ private class CountingCacheMetadataFetcher(
     }
 
     fun binaryFetchCount(url: String): Int = binaryFetches[url] ?: 0
+}
+
+private class ConcurrentCountingCacheMetadataFetcher(
+    private val responses: Map<String, String>,
+    private val binaryResponses: Map<String, ByteArray>,
+    private val delayedUrls: Set<String>,
+    private val delayMillis: Long,
+) : CacheMetadataFetcher {
+    private val inFlight = AtomicInteger()
+    private val maxInFlight = AtomicInteger()
+
+    override suspend fun fetchText(url: String): String = requireNotNull(responses[url]) { "missing test response for $url" }
+
+    override suspend fun fetchBytes(url: String): ByteArray {
+        if (url !in delayedUrls) {
+            return requireNotNull(binaryResponses[url]) { "missing test binary response for $url" }
+        }
+        val current = inFlight.incrementAndGet()
+        maxInFlight.updateAndGet { previous -> maxOf(previous, current) }
+        return try {
+            delay(delayMillis)
+            requireNotNull(binaryResponses[url]) { "missing test binary response for $url" }
+        } finally {
+            inFlight.decrementAndGet()
+        }
+    }
+
+    fun maxConcurrentFetches(): Int = maxInFlight.get()
 }
