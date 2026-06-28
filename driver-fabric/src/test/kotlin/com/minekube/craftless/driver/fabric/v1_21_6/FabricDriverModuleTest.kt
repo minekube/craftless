@@ -404,6 +404,78 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric client state probe does not own bootstrap operation definitions`() {
+        val root = repositoryRoot()
+        val source =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricCapabilityProbe.kt",
+                ),
+            )
+        val forbidden =
+            listOf(
+                "RuntimeOperationNode(",
+                "\"player.chat\"",
+                "\"inventory.query\"",
+                "\"recipe.query\"",
+                "\"entity.attack\"",
+                "\"world.block.query\"",
+                "\"world.block.break\"",
+                "\"screen.close\"",
+                "\"fabric.player-chat\"",
+                "\"fabric.inventory-query\"",
+                "\"fabric.recipe-query\"",
+                "\"fabric.entity-attack\"",
+                "\"fabric.world-block-query\"",
+                "\"fabric.world-block-break\"",
+                "\"fabric.screen-close\"",
+            )
+
+        assertEquals(
+            emptyList(),
+            forbidden.filter { token -> source.contains(token) },
+            "FabricClientStateCapabilityProbe must not own bootstrap operation definitions; " +
+                "they belong in the transitional graph bootstrap definition layer.",
+        )
+    }
+
+    @Test
+    fun `bootstrap operation definitions still project into runtime graph`() {
+        val root = repositoryRoot()
+        val definitionPath =
+            root.resolve(
+                "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricBootstrapOperationDefinitions.kt",
+            )
+
+        assertTrue(
+            Files.exists(definitionPath),
+            "Bootstrap operation definitions must live in FabricBootstrapOperationDefinitions.kt.",
+        )
+
+        val definitionIds =
+            Regex("""id\s*=\s*"([a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)*)"""")
+                .findAll(Files.readString(definitionPath))
+                .map { match -> match.groupValues[1] }
+                .distinct()
+                .sorted()
+                .toList()
+        val graphOperationIds =
+            FabricDriverBackend
+                .metadataOnly()
+                .runtimeGraph("alice")
+                .operations
+                .map { operation -> operation.id }
+                .toSet()
+
+        assertTrue(definitionIds.isNotEmpty(), "Bootstrap operation definition ids must be discoverable.")
+        assertEquals(
+            definitionIds,
+            definitionIds.filter { id -> id in graphOperationIds },
+            "Every transitional bootstrap definition must project into the runtime graph.",
+        )
+    }
+
+    @Test
     fun `fabric runtime metadata fingerprints runtime registry entries`() {
         val provider =
             SnapshotFabricRuntimeMetadataProvider(

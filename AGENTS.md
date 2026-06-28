@@ -194,6 +194,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 81. HMC bridge gameplay removal.
 82. README public entrypoint overhaul.
 83. Fabric binding descriptor removal.
+84. bootstrap operation definition isolation.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -643,6 +644,14 @@ executes with a private `operationId`, but it must not expose
 `DriverActionDescriptor`, `DriverActionArgument`, result descriptor metadata,
 or descriptor helper functions. Schemas, availability, resource ownership, and
 public descriptor projection stay graph-owned. This phase still does not finish
+the broader binding exit while future gameplay breadth depends on
+hand-maintained bootstrap operation definitions instead of generic runtime
+discovery.
+Phase 84 isolates the remaining hand-maintained bootstrap operation
+definitions behind an explicit transitional graph definition layer. The live
+client-state probe may select availability from runtime state, but it must not
+own operation ids, Fabric adapter ids, argument/result schemas, or direct
+bootstrap `RuntimeOperationNode` construction. This phase still does not finish
 the broader binding exit while future gameplay breadth depends on
 hand-maintained bootstrap operation definitions instead of generic runtime
 discovery.

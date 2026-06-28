@@ -191,89 +191,15 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
         val recipeQueryAvailability = capabilities.recipeQueryAvailability()
         val recipeCraftAvailability = capabilities.recipeCraftAvailability()
         val blockQueryAvailability = capabilities.blockQueryAvailability()
-        val blockBreakAvailability = capabilities.blockBreakAvailability()
-        val blockInteractAvailability = capabilities.blockInteractAvailability()
-        val screenCloseAvailability =
-            if (screenOpen) RuntimeAvailability.available() else RuntimeAvailability.unavailable("screen-not-open")
         val operations =
-            listOf(
-                context.operation("player.query", "player", "fabric.player-query", playerAvailability),
-                context.operation("player.chat", "player", "fabric.player-chat", playerAvailability),
-                context.operation("player.look", "player", "fabric.player-look", playerAvailability),
-                context.operation("player.move", "player", "fabric.player-move", playerAvailability),
-                context.operation("player.raycast", "player", "fabric.player-raycast", cameraAvailability),
-                context.operation("inventory.query", "inventory", "fabric.inventory-query", inventoryAvailability),
-                context.operation("inventory.equip", "inventory", "fabric.inventory-equip", inventoryAvailability),
-                RuntimeOperationNode(
-                    id = "recipe.query",
-                    resource = "recipe",
-                    adapter = "fabric.recipe-query",
-                    arguments =
-                        mapOf(
-                            "category" to RuntimeSchema("string"),
-                            "output" to RuntimeSchema("string"),
-                            "craftable" to RuntimeSchema("boolean"),
-                            "limit" to RuntimeSchema("integer"),
-                        ),
-                    result = recipeQueryResultSchema(),
-                    availability = recipeQueryAvailability,
-                ),
-                RuntimeOperationNode(
-                    id = "recipe.craft",
-                    resource = "recipe",
-                    adapter = "fabric.recipe-craft",
-                    arguments =
-                        mapOf(
-                            "target" to recipeCraftTargetSchema(),
-                            "count" to RuntimeSchema("integer"),
-                        ),
-                    result = recipeCraftResultSchema(),
-                    availability = recipeCraftAvailability,
-                ),
-                RuntimeOperationNode(
-                    id = "entity.query",
-                    resource = "entity",
-                    adapter = "fabric.entity-query",
-                    arguments =
-                        mapOf(
-                            "radius" to RuntimeSchema("number"),
-                            "limit" to RuntimeSchema("integer"),
-                        ),
-                    result = entityQueryResultSchema(),
-                    availability = capabilities.entityAvailability(),
-                ),
-                RuntimeOperationNode(
-                    id = "entity.attack",
-                    resource = "entity",
-                    adapter = "fabric.entity-attack",
-                    arguments =
-                        mapOf(
-                            "target" to RuntimeSchema("object", required = true),
-                            "max-distance" to RuntimeSchema("number"),
-                        ),
-                    result = entityAttackResultSchema(),
-                    availability = capabilities.entityAttackAvailability(),
-                ),
-                RuntimeOperationNode(
-                    id = "world.block.query",
-                    resource = "world",
-                    adapter = "fabric.world-block-query",
-                    arguments =
-                        mapOf(
-                            "radius" to RuntimeSchema("number"),
-                            "limit" to RuntimeSchema("integer"),
-                            "category" to RuntimeSchema("string"),
-                            "target" to RuntimeSchema("object"),
-                        ),
-                    result = blockQueryResultSchema(),
-                    availability = blockQueryAvailability,
-                ),
-                context.operation("world.time.query", "world", "fabric.world-time-query", worldAvailability),
-                context.operation("world.block.break", "world", "fabric.world-block-break", blockBreakAvailability),
-                context.operation("world.block.interact", "world", "fabric.world-block-interact", blockInteractAvailability),
-                context.operation("screen.query", "screen", "fabric.screen-query", RuntimeAvailability.available()),
-                context.operation("screen.close", "screen", "fabric.screen-close", screenCloseAvailability),
-            )
+            fabricBootstrapOperationDefinitions().map { definition ->
+                definition.toRuntimeOperation(
+                    capabilities.bootstrapAvailability(
+                        kind = definition.availability,
+                        screenOpen = screenOpen,
+                    ),
+                )
+            }
 
         return FabricCapabilityGraphFragment(
             resources =
@@ -314,258 +240,10 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                         availability = capabilities.entityAvailability(),
                     ),
                 ),
-            events = operations.map { operation -> operation.toEventNode() },
+            events = operations.map { operation -> operation.toFabricEventNode() },
         )
     }
 }
-
-private fun FabricCapabilityProbeContext.operation(
-    id: String,
-    resource: String,
-    adapter: String,
-    availability: RuntimeAvailability,
-): RuntimeOperationNode {
-    val schema = fabricRuntimeOperationSchema(id)
-    return RuntimeOperationNode(
-        id = id,
-        resource = resource,
-        adapter = adapter,
-        arguments = schema.arguments,
-        result = schema.result,
-        availability = availability,
-    )
-}
-
-private data class FabricRuntimeOperationSchema(
-    val arguments: Map<String, RuntimeSchema> = emptyMap(),
-    val result: RuntimeSchema = RuntimeSchema.objectSchema(),
-)
-
-private fun fabricRuntimeOperationSchema(id: String): FabricRuntimeOperationSchema =
-    when (id) {
-        "player.query",
-        "inventory.query",
-        "world.time.query",
-        "screen.query",
-        ->
-            FabricRuntimeOperationSchema(
-                result = actionEnvelopeResultSchema(data = RuntimeSchema.objectSchema()),
-            )
-
-        "player.chat" ->
-            FabricRuntimeOperationSchema(
-                arguments =
-                    mapOf(
-                        "message" to RuntimeSchema("string", required = true),
-                    ),
-            )
-
-        "player.look" ->
-            FabricRuntimeOperationSchema(
-                arguments =
-                    mapOf(
-                        "yaw" to RuntimeSchema("number", required = true),
-                        "pitch" to RuntimeSchema("number", required = true),
-                    ),
-            )
-
-        "player.move" ->
-            FabricRuntimeOperationSchema(
-                arguments =
-                    mapOf(
-                        "forward" to RuntimeSchema("boolean"),
-                        "backward" to RuntimeSchema("boolean"),
-                        "left" to RuntimeSchema("boolean"),
-                        "right" to RuntimeSchema("boolean"),
-                        "jump" to RuntimeSchema("boolean"),
-                        "sneak" to RuntimeSchema("boolean"),
-                        "sprint" to RuntimeSchema("boolean"),
-                        "ticks" to RuntimeSchema("integer"),
-                    ),
-                result = actionEnvelopeResultSchema(data = RuntimeSchema.objectSchema()),
-            )
-
-        "player.raycast" ->
-            FabricRuntimeOperationSchema(
-                arguments = raycastArgumentsSchema(),
-                result = actionEnvelopeResultSchema(data = RuntimeSchema.objectSchema()),
-            )
-
-        "inventory.equip" ->
-            FabricRuntimeOperationSchema(
-                arguments =
-                    mapOf(
-                        "slot" to RuntimeSchema("integer", required = true),
-                    ),
-            )
-
-        "world.block.break" ->
-            FabricRuntimeOperationSchema(
-                arguments = blockTargetArgumentsSchema() + mapOf("ticks" to RuntimeSchema("integer")),
-                result = actionEnvelopeResultSchema(data = RuntimeSchema.objectSchema()),
-            )
-
-        "world.block.interact" ->
-            FabricRuntimeOperationSchema(
-                arguments = blockTargetArgumentsSchema() + mapOf("side" to RuntimeSchema("string")),
-                result = actionEnvelopeResultSchema(data = RuntimeSchema.objectSchema()),
-            )
-
-        "screen.close" -> FabricRuntimeOperationSchema()
-        else -> FabricRuntimeOperationSchema()
-    }
-
-private fun raycastArgumentsSchema(): Map<String, RuntimeSchema> =
-    mapOf(
-        "max-distance" to RuntimeSchema("number"),
-        "include-fluids" to RuntimeSchema("boolean"),
-    )
-
-private fun blockTargetArgumentsSchema(): Map<String, RuntimeSchema> =
-    raycastArgumentsSchema() +
-        mapOf(
-            "target" to RuntimeSchema("object"),
-        )
-
-private fun actionEnvelopeResultSchema(data: RuntimeSchema? = null): RuntimeSchema {
-    val properties =
-        mutableMapOf(
-            "action" to RuntimeSchema("string", required = true),
-            "status" to RuntimeSchema("string", required = true),
-            "message" to RuntimeSchema("string"),
-        )
-    if (data != null) {
-        properties["data"] = data
-    }
-    return RuntimeSchema(
-        type = "object",
-        properties = properties,
-    )
-}
-
-private fun RuntimeOperationNode.toEventNode(): RuntimeEventNode =
-    RuntimeEventNode(
-        id = id,
-        resource = resource,
-        payload = RuntimeSchema.objectSchema(),
-        availability = availability,
-        sourceEvidence = sourceEvidence,
-    )
-
-private fun recipeQueryResultSchema(): RuntimeSchema =
-    RuntimeSchema(
-        type = "object",
-        properties =
-            mapOf(
-                "count" to RuntimeSchema("integer"),
-                "recipes" to RuntimeSchema("array", items = recipeRecordSchema()),
-                "reason" to RuntimeSchema("string"),
-            ),
-    )
-
-private fun entityQueryResultSchema(): RuntimeSchema =
-    RuntimeSchema(
-        type = "object",
-        properties =
-            mapOf(
-                "origin" to RuntimeSchema.objectSchema(),
-                "radius" to RuntimeSchema("number"),
-                "count" to RuntimeSchema("integer"),
-                "entities" to RuntimeSchema("array", items = RuntimeSchema.objectSchema()),
-                "reason" to RuntimeSchema("string"),
-            ),
-    )
-
-private fun blockQueryResultSchema(): RuntimeSchema =
-    RuntimeSchema(
-        type = "object",
-        properties =
-            mapOf(
-                "origin" to RuntimeSchema.objectSchema(),
-                "radius" to RuntimeSchema("number"),
-                "count" to RuntimeSchema("integer"),
-                "blocks" to RuntimeSchema("array", items = RuntimeSchema.objectSchema()),
-                "reason" to RuntimeSchema("string"),
-            ),
-    )
-
-private fun entityAttackResultSchema(): RuntimeSchema =
-    RuntimeSchema(
-        type = "object",
-        properties =
-            mapOf(
-                "handle" to RuntimeSchema("string"),
-                "label" to RuntimeSchema("string"),
-                "category" to RuntimeSchema("string"),
-                "distance" to RuntimeSchema("number"),
-                "position" to RuntimeSchema.objectSchema(),
-                "hit" to RuntimeSchema("boolean"),
-                "alive" to RuntimeSchema("boolean"),
-                "origin" to RuntimeSchema.objectSchema(),
-                "reason" to RuntimeSchema("string"),
-            ),
-    )
-
-private fun recipeRecordSchema(): RuntimeSchema =
-    RuntimeSchema(
-        type = "object",
-        properties =
-            mapOf(
-                "handle" to RuntimeSchema("string"),
-                "kind" to RuntimeSchema("string"),
-                "craftable" to RuntimeSchema("boolean"),
-                "outputs" to RuntimeSchema("array", items = recipeItemSchema()),
-                "ingredients" to RuntimeSchema("array", items = recipeItemSchema()),
-                "produces" to RuntimeSchema("array", items = recipeItemSchema()),
-                "requires" to RuntimeSchema("array", items = recipeItemSchema()),
-                "station" to recipeItemSchema(),
-                "reason" to RuntimeSchema("string"),
-            ),
-    )
-
-private fun recipeItemSchema(): RuntimeSchema =
-    RuntimeSchema(
-        type = "object",
-        properties =
-            mapOf(
-                "label" to RuntimeSchema("string"),
-                "count" to RuntimeSchema("integer"),
-                "category" to RuntimeSchema("string"),
-            ),
-    )
-
-private fun recipeCraftTargetSchema(): RuntimeSchema =
-    RuntimeSchema(
-        type = "object",
-        required = true,
-        properties =
-            mapOf(
-                "handle" to RuntimeSchema("string"),
-            ),
-    )
-
-private fun recipeCraftResultSchema(): RuntimeSchema =
-    RuntimeSchema(
-        type = "object",
-        properties =
-            mapOf(
-                "handle" to RuntimeSchema("string"),
-                "accepted" to RuntimeSchema("boolean"),
-                "changed" to RuntimeSchema("boolean"),
-                "requested-count" to RuntimeSchema("integer"),
-                "crafted-count" to RuntimeSchema("integer"),
-                "inventory-before" to RuntimeSchema("string"),
-                "inventory-after" to RuntimeSchema("string"),
-                "sync-id" to RuntimeSchema("integer"),
-                "output-slot" to RuntimeSchema("integer"),
-                "attempt" to RuntimeSchema("integer"),
-                "confirmation-attempt" to RuntimeSchema("integer"),
-                "phase" to RuntimeSchema("string"),
-                "reason" to RuntimeSchema("string"),
-                "expected-output" to recipeItemSchema(),
-                "actual-output" to recipeItemSchema(),
-            ),
-    )
 
 private fun FabricClientCapabilitySnapshot.connectedAvailability(): RuntimeAvailability =
     if (connected) RuntimeAvailability.available() else RuntimeAvailability.unavailable("client-not-connected")
@@ -591,6 +269,27 @@ private fun FabricClientCapabilitySnapshot.blockQueryAvailability(): RuntimeAvai
 private fun FabricClientCapabilitySnapshot.blockBreakAvailability(): RuntimeAvailability = availability(blockBreakReason())
 
 private fun FabricClientCapabilitySnapshot.blockInteractAvailability(): RuntimeAvailability = availability(blockInteractReason())
+
+private fun FabricClientCapabilitySnapshot.bootstrapAvailability(
+    kind: FabricBootstrapOperationAvailabilityKind,
+    screenOpen: Boolean,
+): RuntimeAvailability =
+    when (kind) {
+        FabricBootstrapOperationAvailabilityKind.PLAYER -> playerAvailability()
+        FabricBootstrapOperationAvailabilityKind.CAMERA -> cameraAvailability()
+        FabricBootstrapOperationAvailabilityKind.INVENTORY -> inventoryAvailability()
+        FabricBootstrapOperationAvailabilityKind.RECIPE_QUERY -> recipeQueryAvailability()
+        FabricBootstrapOperationAvailabilityKind.RECIPE_CRAFT -> recipeCraftAvailability()
+        FabricBootstrapOperationAvailabilityKind.ENTITY -> entityAvailability()
+        FabricBootstrapOperationAvailabilityKind.ENTITY_ATTACK -> entityAttackAvailability()
+        FabricBootstrapOperationAvailabilityKind.BLOCK_QUERY -> blockQueryAvailability()
+        FabricBootstrapOperationAvailabilityKind.WORLD -> worldAvailability()
+        FabricBootstrapOperationAvailabilityKind.BLOCK_BREAK -> blockBreakAvailability()
+        FabricBootstrapOperationAvailabilityKind.BLOCK_INTERACT -> blockInteractAvailability()
+        FabricBootstrapOperationAvailabilityKind.SCREEN -> RuntimeAvailability.available()
+        FabricBootstrapOperationAvailabilityKind.SCREEN_CLOSE ->
+            if (screenOpen) RuntimeAvailability.available() else RuntimeAvailability.unavailable("screen-not-open")
+    }
 
 private val registrySummaryHandles =
     listOf(

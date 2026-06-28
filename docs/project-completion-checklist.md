@@ -168,6 +168,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-83-fabric-binding-descriptor-removal-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-83-fabric-binding-descriptor-removal-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-84-bootstrap-operation-definition-isolation-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-84-bootstrap-operation-definition-isolation-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -2670,6 +2674,37 @@ Verification:
 - Final local and remote verification are recorded in
   `docs/superpowers/evidence/2026-06-28-fabric-binding-descriptor-removal.md`.
 
+## Phase 84: Bootstrap Operation Definition Isolation
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-84-bootstrap-operation-definition-isolation-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-84-bootstrap-operation-definition-isolation-plan.md`.
+- [x] Transitional bootstrap operation ids, adapter ids, and schemas are
+  isolated in
+  `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricBootstrapOperationDefinitions.kt`.
+- [x] `FabricClientStateCapabilityProbe` computes live client state,
+  resources, handles, and availability, but does not own bootstrap operation
+  ids, Fabric adapter ids, operation schemas, or direct bootstrap
+  `RuntimeOperationNode` construction.
+- [x] Bootstrap operation definitions still project into the runtime graph and
+  private executable bindings still attach to graph operation adapters.
+- [~] The broader binding-exit blocker remains active until future gameplay
+  breadth is generated from generic runtime discovery instead of
+  hand-maintained bootstrap operation definitions.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
+  lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Red guards:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric client state probe does not own bootstrap operation definitions*' --tests '*FabricDriverModuleTest.bootstrap operation definitions still project into runtime graph*'`
+- Green focused tests:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric client state probe does not own bootstrap operation definitions*' --tests '*FabricDriverModuleTest.bootstrap operation definitions still project into runtime graph*' --tests '*FabricDriverModuleTest.fabric backend exposes bootstrap bindings as graph operation adapters*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-bootstrap-operation-definition-isolation.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -2677,7 +2712,8 @@ Verification:
   Phase 78 graph-native bootstrap operation schemas, Phase 79 graph-owned
   legacy invoke dispatch, Phase 80 deletion of standalone action discovery,
   Phase 81 HMC bridge gameplay removal, and Phase 82 README public entrypoint
-  overhaul, and Phase 83 Fabric binding descriptor removal.
+  overhaul, Phase 83 Fabric binding descriptor removal, and Phase 84 bootstrap
+  operation definition isolation.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest and representative older runtime lanes have the requested support or
