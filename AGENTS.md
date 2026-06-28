@@ -196,6 +196,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 83. Fabric binding descriptor removal.
 84. bootstrap operation definition isolation.
 85. binding operation id source ownership.
+86. Fabric adapter key source ownership.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -662,6 +663,14 @@ reference `FabricBootstrapOperationIds` constants, but they must not declare
 their own `operationId = "..."` literals. This phase still does not finish the
 broader binding exit while future gameplay breadth depends on hand-maintained
 bootstrap operation definitions instead of generic runtime discovery.
+Phase 86 makes the transitional bootstrap definition layer the source for
+private Fabric adapter key strings used by backend adapter registration.
+`FabricDriverBackend` may register adapters with
+`FabricBootstrapOperationAdapters` constants, but it must not repeat
+bootstrap gameplay adapter literals such as `fabric.entity-query` or
+`fabric.recipe-craft`. This phase still does not finish the broader binding
+exit while future gameplay breadth depends on hand-maintained bootstrap
+operation definitions instead of generic runtime discovery.
 
 ## Acceptance Scenarios Are Not Product APIs
 

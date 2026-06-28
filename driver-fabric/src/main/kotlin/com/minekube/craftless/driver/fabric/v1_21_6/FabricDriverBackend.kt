@@ -196,11 +196,11 @@ class FabricDriverBackend private constructor(
         mapOf(
             "navigation.default" to navigationOperationAdapter(),
             "task.executor" to taskOperationAdapter(),
-            "fabric.entity-query" to entityQueryOperationAdapter(),
-            "fabric.entity-attack" to entityAttackOperationAdapter(),
-            "fabric.world-block-query" to blockQueryOperationAdapter(),
-            "fabric.recipe-query" to recipeQueryOperationAdapter(),
-            "fabric.recipe-craft" to recipeCraftOperationAdapter(),
+            FabricBootstrapOperationAdapters.ENTITY_QUERY to entityQueryOperationAdapter(),
+            FabricBootstrapOperationAdapters.ENTITY_ATTACK to entityAttackOperationAdapter(),
+            FabricBootstrapOperationAdapters.WORLD_BLOCK_QUERY to blockQueryOperationAdapter(),
+            FabricBootstrapOperationAdapters.RECIPE_QUERY to recipeQueryOperationAdapter(),
+            FabricBootstrapOperationAdapters.RECIPE_CRAFT to recipeCraftOperationAdapter(),
         )
 
     private fun navigationOperationAdapter(): DriverOperationAdapter =
