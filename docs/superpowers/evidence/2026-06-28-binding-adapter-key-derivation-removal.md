@@ -43,6 +43,11 @@ full forced Gradle gate passed on the next run without code changes.
 Not waited on during active development. Local forced CI is the working gate;
 remote CI may continue in the background after push.
 
+## Push Evidence
+
+- Implementation commit pushed to `main`:
+  `936b032 driver-fabric: remove binding adapter key derivation`
+
 ## Notes
 
 - No new public gameplay action, generated route family, CLI gameplay catalog,
