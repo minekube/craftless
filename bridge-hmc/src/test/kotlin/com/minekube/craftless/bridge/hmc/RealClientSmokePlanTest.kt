@@ -6,7 +6,7 @@ import kotlin.test.assertTrue
 
 class RealClientSmokePlanTest {
     @Test
-    fun `smoke plan contains required bridge backed proof steps`() {
+    fun `smoke plan contains required bridge lifecycle proof steps`() {
         val plan = RealClientSmokePlan.default()
 
         assertEquals("CRAFTLESS_REAL_CLIENT_SMOKE", plan.environmentGate)
@@ -14,11 +14,10 @@ class RealClientSmokePlanTest {
         assertTrue(plan.steps.any { it.kind == SmokeStepKind.LAUNCH_CLIENT })
         assertTrue(plan.steps.any { it.kind == SmokeStepKind.START_API })
         assertTrue(plan.steps.any { it.kind == SmokeStepKind.CONNECT_CLIENT })
-        assertTrue(plan.steps.any { it.kind == SmokeStepKind.INVOKE_CHAT_ACTION })
-        assertTrue(plan.steps.any { it.kind == SmokeStepKind.MOVE_FORWARD })
         assertTrue(plan.steps.any { it.kind == SmokeStepKind.ASSERT_SERVER_JOIN })
-        assertTrue(plan.steps.any { it.kind == SmokeStepKind.ASSERT_CHAT_LOG })
-        assertTrue(plan.steps.any { it.kind == SmokeStepKind.ASSERT_POSITION_CHANGED })
+        assertTrue(plan.steps.none { it.kind.name.contains("CHAT") })
+        assertTrue(plan.steps.none { it.kind.name.contains("MOVE") })
+        assertTrue(plan.steps.none { it.kind.name.contains("POSITION") })
         assertTrue(plan.artifacts.contains("openapi.json"))
         assertTrue(plan.artifacts.contains("events.jsonl"))
         assertTrue(plan.artifacts.contains("version.json"))

@@ -12,6 +12,9 @@ material.
 - Use `minekube.com` and `com.minekube.craftless` for public domain/package
   references.
 - Describe the bridge as evidence infrastructure only.
+- Do not describe the bridge as a gameplay action adapter. Gameplay examples
+  must use the generated Fabric runtime graph/OpenAPI path, not HMC bridge
+  helpers.
 - Describe the durable driver direction as Fabric with generated per-client
   OpenAPI/action descriptors, adaptive CLI dispatch/help, and consolidated
   version-aware bindings where practical.

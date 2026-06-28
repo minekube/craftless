@@ -2,20 +2,8 @@ package com.minekube.craftless.driver.runtime
 
 import com.minekube.craftless.bridge.hmc.ClientAction
 import com.minekube.craftless.bridge.hmc.HmcBridgeBackend
-import com.minekube.craftless.bridge.hmc.MoveIntent
 import com.minekube.craftless.driver.api.ConnectionTarget
-import com.minekube.craftless.driver.api.DriverActionArgument
-import com.minekube.craftless.driver.api.DriverActionDescriptor
-import com.minekube.craftless.driver.api.DriverActionInvocation
-import com.minekube.craftless.driver.api.DriverActionResult
-import com.minekube.craftless.driver.api.DriverActionStatus
-import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
-import com.minekube.craftless.driver.api.booleanArgument
-import com.minekube.craftless.driver.api.intArgument
-import com.minekube.craftless.driver.api.stringArgument
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 
 class HmcBridgeDriverBackend(
     private val bridge: HmcBridgeBackend,
@@ -35,111 +23,9 @@ class HmcBridgeDriverBackend(
         return DriverBackendResult(DriverBackendAction.STOP, result.publicDescription)
     }
 
-    override fun actions(clientId: String): List<DriverActionDescriptor> =
-        listOf(
-            bridgePlayerMoveActionDescriptor(),
-            bridgePlayerChatActionDescriptor(),
-        )
-
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
         DriverRuntimeMetadata(
             driver = "craftless-driver-bridge",
             permissionsFingerprint = "bridge-evidence",
         )
-
-    override fun invoke(
-        clientId: String,
-        invocation: DriverActionInvocation,
-    ): DriverActionResult {
-        if (invocation.action == "player.chat") {
-            val message =
-                invocation.arguments.stringArgument("message")
-                    ?: return chatInputFailure(invocation.action, "missing-message")
-            if (message.isBlank()) {
-                return chatInputFailure(invocation.action, "blank-message")
-            }
-            if (message.startsWith("/")) {
-                return chatInputFailure(invocation.action, "minecraft-command-rejected")
-            }
-            val result = bridge.chat(clientId, message)
-            require(result.action == ClientAction.CHAT) { "driver backend returned ${result.action} for chat" }
-            return DriverActionResult(
-                action = invocation.action,
-                status = DriverActionStatus.ACCEPTED,
-                message = message,
-                eventType = DriverEventType.CHAT,
-            )
-        }
-        if (invocation.action != "player.move") {
-            return DriverActionResult(
-                action = invocation.action,
-                status = DriverActionStatus.UNSUPPORTED,
-                message = "unsupported action ${invocation.action}",
-            )
-        }
-        val intent =
-            when {
-                invocation.arguments.booleanArgument("backward") -> MoveIntent.BACKWARD
-                invocation.arguments.booleanArgument("left") -> MoveIntent.LEFT
-                invocation.arguments.booleanArgument("right") -> MoveIntent.RIGHT
-                else -> MoveIntent.FORWARD
-            }
-        val ticks = invocation.arguments.intArgument("ticks") ?: 20
-        if (ticks <= 0) {
-            return actionFailure(invocation.action, "invalid-ticks", "moved")
-        }
-        val result = bridge.move(clientId, intent, ticks)
-        require(result.action == ClientAction.MOVE) { "driver backend returned ${result.action} for move" }
-        return DriverActionResult(
-            action = invocation.action,
-            status = DriverActionStatus.ACCEPTED,
-            message = result.publicDescription,
-            eventType = DriverEventType.MOVEMENT,
-        )
-    }
 }
-
-private fun chatInputFailure(
-    action: String,
-    reason: String,
-): DriverActionResult = actionFailure(action, reason, "sent")
-
-private fun actionFailure(
-    action: String,
-    reason: String,
-    flag: String,
-): DriverActionResult =
-    DriverActionResult(
-        action = action,
-        status = DriverActionStatus.FAILED,
-        message = reason,
-        data =
-            buildJsonObject {
-                put(flag, false)
-                put("reason", reason)
-            },
-    )
-
-private fun bridgePlayerMoveActionDescriptor(): DriverActionDescriptor =
-    DriverActionDescriptor(
-        id = "player.move",
-        schemaVersion = "1",
-        arguments =
-            mapOf(
-                "forward" to DriverActionArgument("boolean"),
-                "backward" to DriverActionArgument("boolean"),
-                "left" to DriverActionArgument("boolean"),
-                "right" to DriverActionArgument("boolean"),
-                "ticks" to DriverActionArgument("integer"),
-            ),
-    )
-
-private fun bridgePlayerChatActionDescriptor(): DriverActionDescriptor =
-    DriverActionDescriptor(
-        id = "player.chat",
-        schemaVersion = "1",
-        arguments =
-            mapOf(
-                "message" to DriverActionArgument("string", required = true),
-            ),
-    )

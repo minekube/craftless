@@ -1,8 +1,9 @@
 # HeadlessMC/HMC-Specifics Bridge Limitations
 
 Craftless's Phase 1 bridge backend is temporary evidence infrastructure. It
-may launch and drive a real Minecraft Java client through HeadlessMC and
-HMC-Specifics, but public routes and CLI output must remain Craftless-owned.
+may launch and connect a real Minecraft Java client through HeadlessMC and
+HMC-Specifics, but public routes, CLI output, and gameplay contracts must
+remain Craftless-owned.
 
 The bridge must not expose HeadlessMC or HMC-Specifics command strings as public
 API names, JSON fields, CLI verbs, or SDK methods. Those command strings are an
@@ -24,14 +25,12 @@ Known limitations:
 - Nearby blocks, nearby entities, raycasts, inventory, screen state, and clicks
   need a Craftless Fabric driver with direct Minecraft client API access.
 
-The Fabric backend now has a client-thread gateway for connection, chat, stop,
-and generated action invocation. It accepts `player.move` and
-`player.chat` through generic action invocation and maps them to client movement
-intent and Craftless-owned chat action execution. The daemon exposes
-`/clients/{id}/openapi.json` with client metadata plus discovered action
-schemas, `GET /clients/{id}/actions` for discovery, `POST /clients/{id}:run` as
-the stable generic invocation path, and generated aliases such as
-`POST /clients/{id}/player:move` and `POST /clients/{id}/player:chat` from
-those action descriptors. The next durable milestone is proving movement in a
-real-client smoke and adding player state, look direction, raycasts, and
-perception as generated resources/actions inside the client.
+The HMC bridge is now lifecycle evidence only. It does not publish or execute
+Craftless gameplay actions such as chat, movement, look, raycast, inventory,
+entity, block, or screen operations. Gameplay actions and resources must come
+from the Fabric runtime capability graph and generated per-client OpenAPI. The
+daemon exposes `/clients/{id}/openapi.json` with client metadata plus
+graph-projected action/resource schemas, `GET /clients/{id}/actions` and
+`GET /clients/{id}/resources` for discovery, `POST /clients/{id}:run` as the
+stable generic invocation path, and generated aliases derived from those live
+action descriptors.

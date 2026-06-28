@@ -156,6 +156,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-80-action-discovery-deletion-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-80-action-discovery-deletion-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-81-hmc-bridge-gameplay-removal-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-81-hmc-bridge-gameplay-removal-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -236,9 +240,9 @@ Verification:
 - [x] Generated-action public input failures avoid raw Kotlin exceptions before
   client scheduling. Current evidence covers `player.chat` failures for
   missing messages, blank messages, and rejected Minecraft command strings with
-  machine-readable reasons across the Fabric backend, the reusable fake driver
-  session, and the temporary HMC bridge backend. The old shared
-  exception-only chat validator has been removed from `driver-api`.
+  machine-readable reasons across the Fabric backend and the reusable fake
+  driver session. The old shared exception-only chat validator has been removed
+  from `driver-api`. Phase 81 removed HMC bridge gameplay adaptation entirely.
 - [x] Invocation results validate against graph-projected result schemas and
   publish correlated SSE events for generic graph invocations. Current evidence
   covers schema validation, session events, JSON-RPC correlation ids, and
@@ -248,7 +252,7 @@ Verification:
 
 - `mise exec -- gradle :driver-api:test :driver-fabric:test :daemon:test`
 - `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric backend reports missing player chat message as action failure' --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric backend reports blank player chat message as action failure' --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric backend rejects raw minecraft command strings as chat action input'`
-- `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.FakeDriverSessionTest' :driver-runtime:test --tests 'com.minekube.craftless.driver.runtime.BackendDriverSessionTest.hmc bridge backend adapts the temporary bridge to runtime backend actions'`
+- `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.FakeDriverSessionTest'`
 
 ## Phase 6: SSE, JSON-RPC, And Adaptive Consumers
 
@@ -530,14 +534,14 @@ Verification:
 - [x] Invalid generated `player.move` tick budgets now return
   machine-readable `invalid-ticks` failures before scheduling client work.
   Current evidence covers the Fabric backend and the reusable fake driver
-  session used by daemon/CLI/testkit consumers, plus the temporary HMC bridge
-  backend before bridge commands are invoked.
+  session used by daemon/CLI/testkit consumers. Phase 81 removed the temporary
+  HMC bridge gameplay adapter, so HMC no longer participates in movement
+  validation evidence.
 
 Verification:
 
 - `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric backend returns machine readable movement failure before scheduling gateway'`
 - `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.FakeDriverSessionTest'`
-- `mise exec -- gradle :driver-runtime:test --tests 'com.minekube.craftless.driver.runtime.BackendDriverSessionTest.hmc bridge backend adapts the temporary bridge to runtime backend actions'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 
@@ -2558,12 +2562,45 @@ Verification:
 - Final local and remote verification are recorded in
   `docs/superpowers/evidence/2026-06-28-action-discovery-deletion.md`.
 
+## Phase 81: HMC Bridge Gameplay Removal
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-81-hmc-bridge-gameplay-removal-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-81-hmc-bridge-gameplay-removal-plan.md`.
+- [x] `HmcBridgeDriverBackend` is lifecycle-only and no longer exposes HMC
+  bridge-owned gameplay descriptors.
+- [x] Invoking `player.chat` or `player.move` against `HmcBridgeDriverBackend`
+  returns Craftless-owned `UNSUPPORTED` responses.
+- [x] `HmcBridgeBackend` no longer contains chat, move, jump, look, or
+  `MoveIntent` helpers, and `ClientAction` is lifecycle-only.
+- [x] `RealClientSmokePlan` is launch/lifecycle evidence only and no longer
+  lists chat, movement, chat-log, or position-change proof steps.
+- [x] Bridge docs no longer say the HMC bridge accepts gameplay actions.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric descriptor/binding pair, scenario shortcut, new
+  compiled lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Red bridge guard:
+  `mise exec -- gradle :bridge-hmc:test --tests '*HmcBridgeBackendTest.bridge backend source has no gameplay helpers*'`
+- Red runtime guards:
+  `mise exec -- gradle :driver-runtime:test --tests '*BackendDriverSessionTest.hmc bridge backend is lifecycle only and exposes no gameplay actions*' --tests '*BackendDriverSessionTest.hmc bridge backend has no static gameplay action catalog*'`
+- Green bridge regression:
+  `mise exec -- gradle :bridge-hmc:test`
+- Green runtime regression:
+  `mise exec -- gradle :driver-runtime:test`
+- Final local and remote verification are recorded in
+  `docs/superpowers/evidence/2026-06-28-hmc-bridge-gameplay-removal.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
   76 completion audit, Phase 77 graph-owned public Fabric action descriptors,
   Phase 78 graph-native bootstrap operation schemas, Phase 79 graph-owned
-  legacy invoke dispatch, and Phase 80 deletion of standalone action discovery.
+  legacy invoke dispatch, Phase 80 deletion of standalone action discovery,
+  and Phase 81 HMC bridge gameplay removal.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest and representative older runtime lanes have the requested support or

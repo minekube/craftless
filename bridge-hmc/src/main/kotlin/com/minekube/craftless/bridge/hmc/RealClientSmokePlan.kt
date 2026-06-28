@@ -15,11 +15,7 @@ data class RealClientSmokePlan(
                         SmokeStep(SmokeStepKind.LAUNCH_CLIENT, "Launch one offline real Minecraft Java client"),
                         SmokeStep(SmokeStepKind.START_API, "Start Craftless local API wrapper"),
                         SmokeStep(SmokeStepKind.CONNECT_CLIENT, "Connect client through Craftless API"),
-                        SmokeStep(SmokeStepKind.INVOKE_CHAT_ACTION, "Invoke player.chat through Craftless API"),
-                        SmokeStep(SmokeStepKind.MOVE_FORWARD, "Move forward through Craftless API"),
                         SmokeStep(SmokeStepKind.ASSERT_SERVER_JOIN, "Assert server saw player join"),
-                        SmokeStep(SmokeStepKind.ASSERT_CHAT_LOG, "Assert server saw chat"),
-                        SmokeStep(SmokeStepKind.ASSERT_POSITION_CHANGED, "Assert server position changed"),
                         SmokeStep(SmokeStepKind.COLLECT_ARTIFACTS, "Collect logs, events, OpenAPI, and metadata"),
                     ),
                 artifacts =
@@ -46,10 +42,6 @@ enum class SmokeStepKind {
     LAUNCH_CLIENT,
     START_API,
     CONNECT_CLIENT,
-    INVOKE_CHAT_ACTION,
-    MOVE_FORWARD,
     ASSERT_SERVER_JOIN,
-    ASSERT_CHAT_LOG,
-    ASSERT_POSITION_CHANGED,
     COLLECT_ARTIFACTS,
 }
