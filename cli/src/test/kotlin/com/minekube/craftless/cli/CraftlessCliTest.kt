@@ -474,6 +474,77 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `server start resolves aliases before packaged driver mod manifest defaults`() {
+        val output = StringBuilder()
+        val workspace = Files.createTempDirectory("craftless-cli-packaged-driver-mod-manifest-alias")
+        val distribution = Files.createTempDirectory("craftless-cli-manifest-alias-distribution")
+        val manifestDriverMod = distribution.resolve("mods/manifest-driver.jar")
+        val fallbackDriverMod = distribution.resolve("mods/craftless-driver-fabric.jar")
+        Files.createDirectories(manifestDriverMod.parent)
+        Files.writeString(manifestDriverMod, "manifest-driver-mod")
+        Files.writeString(fallbackDriverMod, "fallback-driver-mod")
+        Files.writeString(
+            distribution.resolve("driver-mods.json"),
+            """
+            {
+              "entries": [
+                {
+                  "loader": "FABRIC",
+                  "minecraftVersion": "1.21.6",
+                  "loaderVersion": "0.16.14",
+                  "path": "mods/manifest-driver.jar"
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+        var createStatus = 0
+        var createBody = ""
+
+        val exit =
+            CraftlessCli.run(
+                listOf("server", "start", "--once", "--workspace", workspace.toString()),
+                stdout = { output.appendLine(it) },
+                env = emptyMap(),
+                cacheMetadataFetcher = preparedRuntimeMetadataFetcher(),
+                distributionRoot = distribution,
+                afterStart = { metadata ->
+                    kotlinx.coroutines.runBlocking {
+                        HttpClient(CIO).use { http ->
+                            val response =
+                                http.post("${metadata.url}/clients") {
+                                    contentType(ContentType.Application.Json)
+                                    setBody(
+                                        """
+                                        {
+                                          "id": "alice",
+                                          "version": "latest-release",
+                                          "loader": "FABRIC",
+                                          "profile": { "kind": "OFFLINE", "name": "Alice" }
+                                        }
+                                        """.trimIndent(),
+                                    )
+                                }
+                            createStatus = response.status.value
+                            createBody = response.bodyAsText()
+                        }
+                    }
+                },
+            )
+
+        assertEquals(0, exit)
+        assertEquals(201, createStatus, createBody)
+        assertTrue(Files.exists(workspace.resolve("cache/prepared/1.21.6-fabric-0.16.14.json")))
+        val modCache = workspace.resolve("cache/mods/craftless")
+        assertTrue(Files.isDirectory(modCache))
+        Files.list(modCache).use { cachedMods ->
+            val cachedContents = cachedMods.map { cached -> Files.readString(cached) }.toList()
+            assertTrue("manifest-driver-mod" in cachedContents)
+            assertTrue("fallback-driver-mod" !in cachedContents)
+        }
+    }
+
+    @Test
     fun `server start rejects packaged driver mod manifest misses`() {
         val output = StringBuilder()
         val workspace = Files.createTempDirectory("craftless-cli-packaged-driver-mod-manifest-miss")
@@ -3196,6 +3267,10 @@ private fun preparedRuntimeMetadataFetcher(): CacheMetadataFetcher {
             MINECRAFT_VERSION_INDEX_URL to
                 """
                 {
+                  "latest": {
+                    "release": "1.21.6",
+                    "snapshot": "26.3-snapshot-1"
+                  },
                   "versions": [
                     { "id": "1.21.6", "url": "$versionUrl" }
                   ]

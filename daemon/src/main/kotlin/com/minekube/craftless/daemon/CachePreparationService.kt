@@ -59,8 +59,13 @@ class CachePreparationService(
     private val root: Path = workspaceRoot.toAbsolutePath().normalize()
     private val json = Json { encodeDefaults = true }
 
+    suspend fun resolveMinecraftVersionAlias(minecraftVersion: String): String {
+        val versionIndex = fetchMinecraftVersionIndex()
+        return versionIndex.resolveMinecraftVersion(minecraftVersion)
+    }
+
     suspend fun prepare(request: CachePrepareRequest): CachePrepareResult {
-        val versionIndex = metadataFetcher.fetchText(MINECRAFT_VERSION_INDEX_URL)
+        val versionIndex = fetchMinecraftVersionIndex()
         val resolvedRequest =
             request.copy(minecraftVersion = versionIndex.resolveMinecraftVersion(request.minecraftVersion))
         val versionManifestUrl = versionIndex.versionManifestUrl(resolvedRequest.minecraftVersion)
@@ -212,6 +217,8 @@ class CachePreparationService(
         Files.writeString(manifest, json.encodeToString(finalResult) + "\n")
         return finalResult
     }
+
+    private suspend fun fetchMinecraftVersionIndex(): String = metadataFetcher.fetchText(MINECRAFT_VERSION_INDEX_URL)
 
     fun export(request: CacheExportRequest): CacheExportResult {
         val prepared = readPreparedManifest(request.manifest)

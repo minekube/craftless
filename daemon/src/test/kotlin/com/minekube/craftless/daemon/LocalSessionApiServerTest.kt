@@ -719,6 +719,74 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `prepared runtime resolves aliases before driver mod provider preference`() =
+        withHttpClient { http ->
+            val workspace = Files.createTempDirectory("craftless-driver-mod-preferred-alias-lane")
+            val distribution = Files.createTempDirectory("craftless-driver-mod-preferred-alias-distribution")
+            val driverMod = distribution.resolve("mods/manifest-driver.jar")
+            Files.createDirectories(driverMod.parent)
+            Files.writeString(driverMod, "manifest-driver-mod")
+            val manifest = distribution.resolve("driver-mods.json")
+            Files.writeString(
+                manifest,
+                """
+                {
+                  "entries": [
+                    {
+                      "loader": "FABRIC",
+                      "minecraftVersion": "1.21.6",
+                      "loaderVersion": "0.16.14",
+                      "path": "mods/manifest-driver.jar"
+                    }
+                  ]
+                }
+                """.trimIndent(),
+            )
+            val launcher = RecordingClientRuntimeLauncher()
+
+            LocalSessionApiServer
+                .inMemory(
+                    workspaceRoot = workspace,
+                    cacheMetadataFetcher = preparedRuntimeMetadataFetcher(),
+                    clientRuntimeLauncher = launcher,
+                    clientRuntimeDriverModProvider =
+                        ConfiguredClientRuntimeDriverModProvider(
+                            environment =
+                                mapOf(
+                                    ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_DRIVER_MOD_MANIFEST to
+                                        manifest.toString(),
+                                ),
+                        ),
+                ).use { server ->
+                    server.start()
+
+                    val response =
+                        http.post(server.url("/clients")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "id": "alice",
+                                  "version": "latest-release",
+                                  "loader": "FABRIC",
+                                  "profile": { "kind": "OFFLINE", "name": "Alice" }
+                                }
+                                """.trimIndent(),
+                            )
+                        }
+
+                    assertEquals(HttpStatusCode.Created, response.status)
+                    assertEquals(
+                        "cache/prepared/1.21.6-fabric-0.16.14.json",
+                        launcher.launches
+                            .single()
+                            .prepared
+                            .manifest,
+                    )
+                }
+        }
+
+    @Test
     fun `prepared runtime asks driver mod provider for resolved runtime lane`() =
         withHttpClient { http ->
             val workspace = Files.createTempDirectory("craftless-driver-mod-resolved-lane")
