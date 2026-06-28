@@ -6,6 +6,7 @@ import net.fabricmc.api.ClientModInitializer
 
 class CraftlessFabricOfficialEntrypoint : ClientModInitializer {
     override fun onInitializeClient() {
+        MinecraftOfficialFabricEventSources.register()
         val backend = OfficialFabricDriverBackend()
         FabricDriverSelfAttach.startFromEnvironment(
             sessionFactory = { clientId ->

@@ -43,12 +43,13 @@ not grow with every completed phase.
 - Phase 158: official Fabric connected client-state probe.
 - Phase 159: official Fabric connected server-feature metadata.
 - Phase 160: official Fabric registry metadata probe.
+- Phase 161: official Fabric event-source metadata.
 
 ## Current Direction
 
 The latest/current official lane has launch, attach, connected client-state,
-and connected server-feature metadata evidence. Continue by moving official
-26.x support through shared Fabric discovery/projection/invocation, packaging,
-SSE, adaptive CLI/API smoke, and honest gameplay evidence. Do not copy the
-Yarn/remap gameplay gateway into the official module and do not add static
-gameplay catalogs.
+connected server-feature, registry, and event-source metadata evidence.
+Continue by moving official 26.x support through shared Fabric
+discovery/projection/invocation, packaging, SSE, adaptive CLI/API smoke, and
+honest gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the
+official module and do not add static gameplay catalogs.

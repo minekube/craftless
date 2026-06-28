@@ -23,6 +23,7 @@ import com.minekube.craftless.protocol.RuntimeSourceEvidence
 internal class OfficialFabricDriverBackend(
     private val runtimeMetadataProvider: FabricRuntimeMetadataProvider = officialFabricRuntimeMetadataProvider(),
     private val clientStateProvider: OfficialFabricClientStateProvider = MinecraftOfficialFabricClientStateProvider(),
+    private val eventSourceProvider: OfficialFabricEventSourceProvider = MinecraftOfficialFabricEventSources,
     private val clientConnector: OfficialFabricClientConnector = MinecraftOfficialFabricClientConnector(),
 ) : DriverBackend {
     override fun connect(
@@ -47,6 +48,7 @@ internal class OfficialFabricDriverBackend(
 
     override fun runtimeGraph(clientId: String) =
         runtimeMetadata(clientId).let { metadata ->
+            val eventSourceEvidence = eventSourceProvider.sourceEvidence()
             fabricRuntimeGraph(
                 clientId = clientId,
                 fragments =
@@ -65,8 +67,8 @@ internal class OfficialFabricDriverBackend(
                             available = metadata.registryFingerprint != REGISTRIES_NOT_DISCOVERED,
                         ),
                         fabricEventGraphFragment(
-                            sourceEvidence = emptyList(),
-                            available = false,
+                            sourceEvidence = eventSourceEvidence,
+                            available = eventSourceEvidence.isNotEmpty(),
                         ),
                         fabricClientStateGraphFragment(clientStateProvider.snapshot()),
                     ),

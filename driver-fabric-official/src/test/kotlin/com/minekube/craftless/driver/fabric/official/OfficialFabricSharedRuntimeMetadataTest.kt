@@ -8,6 +8,7 @@ import com.minekube.craftless.driver.fabric.discovery.SnapshotFabricRuntimeMetad
 import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeFingerprint
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import com.minekube.craftless.protocol.RuntimeAvailability
+import com.minekube.craftless.protocol.RuntimeSourceEvidence
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -222,12 +223,20 @@ class OfficialFabricSharedRuntimeMetadataTest {
                             recipeCrafting = false,
                         )
                     },
+                eventSourceProvider =
+                    OfficialFabricEventSourceProvider {
+                        listOf(
+                            RuntimeSourceEvidence("event-source", "driver:0.1.0-SNAPSHOT"),
+                            RuntimeSourceEvidence("callback", "craftless-official-callback-play-join"),
+                        )
+                    },
             )
 
         val metadata = runtimeMetadataProvider.runtimeMetadata("official-probe")
         val graph = backend.runtimeGraph("official-probe")
         val resources = graph.resources.associateBy { resource -> resource.id }
         val handles = graph.handles.associateBy { handle -> handle.id }
+        val events = graph.events.associateBy { event -> event.id }
         val runtimeEvidence =
             resources
                 .getValue("runtime")
@@ -250,6 +259,17 @@ class OfficialFabricSharedRuntimeMetadataTest {
         assertEquals(RuntimeAvailability.available(), resources.getValue("world").availability)
         assertEquals(RuntimeAvailability.available(), resources.getValue("entity").availability)
         assertEquals(RuntimeAvailability.unavailable("recipe-discovery-unavailable"), resources.getValue("recipe").availability)
+        assertEquals(RuntimeAvailability.available(), resources.getValue("event").availability)
+        assertEquals(RuntimeAvailability.available(), events.getValue("event.lifecycle").availability)
+        assertEquals(RuntimeAvailability.available(), events.getValue("event.action").availability)
+        assertEquals(RuntimeAvailability.available(), events.getValue("event.capability").availability)
+        val eventSourceKinds =
+            resources
+                .getValue("event")
+                .sourceEvidence
+                .map { evidence -> evidence.kind }
+                .toSet()
+        assertEquals(setOf("event-source", "callback"), eventSourceKinds)
         assertEquals(RuntimeAvailability.available(), handles.getValue("inventory.slot").availability)
         assertEquals(RuntimeAvailability.available(), handles.getValue("world.block.handle").availability)
         assertEquals(RuntimeAvailability.available(), handles.getValue("entity.handle").availability)
