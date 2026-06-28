@@ -251,6 +251,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 138. packaged representative older Fabric lane.
 139. packaged older Fabric lane selection smoke.
 140. parameterized Fabric smoke client command.
+141. representative older Fabric real-client smoke.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -289,6 +290,14 @@ when it launches the inner `runClient` command. If a smoke is invoked with
 action command must pass those same properties to `:driver-fabric:runClient`.
 Do not use a smoke that silently launches the default current lane as evidence
 for another Minecraft version.
+
+Phase 141 records a real representative older Fabric client smoke for
+Minecraft `1.20.6` using the parameterized driver lane. This proves diagnostic
+launch, attach, generated OpenAPI/actions/resources, SSE events, generated
+action invocation, server join/chat/disconnect, and runtime metadata for that
+older lane. It still is not final completion evidence because the diagnostic
+smoke may provision an item and does not prove installed packaged CLI older
+lane operation or honest survival gameplay without shortcuts.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final

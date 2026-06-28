@@ -224,6 +224,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-140-parameterized-fabric-smoke-client-command-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-140-parameterized-fabric-smoke-client-command-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-141-representative-older-fabric-real-client-smoke-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-141-representative-older-fabric-real-client-smoke-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -3932,6 +3936,37 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-parameterized-fabric-smoke-client-command.md`.
 
+## Phase 141: Representative Older Fabric Real-Client Smoke
+
+- [x] The representative older Fabric lane ran as a real client against a real
+  local Minecraft `1.20.6` server.
+- [x] The smoke used Fabric Loader `0.19.3`, Fabric API `0.100.8+1.20.6`,
+  Java major version 21, lane/provider id `fabric-1-20-6-lane`, and mappings
+  fingerprint `craftless-fabric-bindings-1-20-6`.
+- [x] Runtime metadata, generated OpenAPI, generated actions, generated
+  resources, SSE events, JSON event artifacts, generated action results, and
+  server join/chat/disconnect evidence were written under
+  `/tmp/craftless-fabric-smoke-older-lane/artifacts/`.
+- [x] The smoke invoked generated actions for chat, move, screen query, world
+  time query, player query, entity query, inventory query/equip, look,
+  block break, and block interact.
+- [x] This phase adds no public gameplay API, static gameplay catalog,
+  version-specific public route family, survival shortcut, installed packaged
+  CLI older-lane proof, or final honest survival completion claim.
+- [x] This phase remains diagnostic because the smoke provisioned an iron
+  sword. Final survival completion still requires honest gameplay without
+  server-provisioned inventory or hard-coded scenario shortcuts.
+
+Verification:
+
+- Real smoke:
+  `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 CRAFTLESS_SMOKE_MINECRAFT_VERSION=1.20.6 CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT=/tmp/craftless-fabric-smoke-older-lane CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=420000 mise exec -- gradle :driver-fabric:fabricClientSmoke ...`
+  passed with `BUILD SUCCESSFUL in 1m 28s`.
+- Artifact root:
+  `/tmp/craftless-fabric-smoke-older-lane/artifacts/`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-representative-older-fabric-real-client-smoke.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3976,14 +4011,15 @@ Verification:
   Fabric world-change callback, Phase 136 reflective movement input shim, Phase
   137 reflective recipe bridge, and Phase 138 packaged representative older
   Fabric lane, Phase 139 packaged older Fabric lane selection smoke, and Phase
-  140 parameterized Fabric smoke client command.
+  140 parameterized Fabric smoke client command, and Phase 141 representative
+  older Fabric real-client smoke.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
   122, Phase 123, Phase 124, Phase 125, Phase 126, Phase 127, Phase 128,
   Phase 129, Phase 130, Phase 131, Phase 132, Phase 133, Phase 134, Phase
-  135, Phase 136, Phase 137, Phase 138, Phase 139, and Phase 140 do not satisfy the
-  runnable latest/older support
+  135, Phase 136, Phase 137, Phase 138, Phase 139, Phase 140, and Phase 141 do not
+  satisfy the full runnable latest/older support
   requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
@@ -4021,8 +4057,12 @@ Verification:
 - [x] Latest and representative older-version compatibility probes have current
   historical evidence. Latest `26.2` and older `1.20.6` probe records remain
   diagnostics. Phase 137 makes the representative older Fabric source lane
-  compile, and Phase 138 packages that lane as a selectable artifact. Runnable
-  older-client support still requires runtime launch, attach, API, and gameplay
-  evidence.
+  compile, Phase 138 packages that lane as a selectable artifact, Phase 139
+  proves supervisor selection, Phase 140 prevents false smoke evidence, and
+  Phase 141 proves real Gradle-harness launch, attach, generated API, SSE, and
+  diagnostic generated-action smoke for Minecraft `1.20.6`. Full product
+  support still requires installed packaged CLI proof, latest/current-version
+  evidence refresh, and honest final survival gameplay without server-provisioned
+  inventory.
 - [x] Changes are committed and pushed to `main`. This entry is current only
   after the checklist update that changes it is also pushed.
