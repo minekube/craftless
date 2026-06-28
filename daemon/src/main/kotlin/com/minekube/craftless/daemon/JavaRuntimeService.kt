@@ -2,13 +2,10 @@ package com.minekube.craftless.daemon
 
 import com.minekube.craftless.protocol.JavaRuntimeDescriptor
 import com.minekube.craftless.protocol.JavaRuntimeListResult
+import com.minekube.craftless.protocol.JavaRuntimeRequirement
 import com.minekube.craftless.protocol.JavaRuntimeResolveRequest
 import com.minekube.craftless.protocol.JavaRuntimeSelection
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import java.nio.file.Path
 
 class JavaRuntimeService(
@@ -23,10 +20,7 @@ class JavaRuntimeService(
     suspend fun resolve(request: JavaRuntimeResolveRequest): JavaRuntimeSelection {
         val requirement =
             request.requirement
-                ?: MinecraftJavaRuntimeRequirementResolver().derive(
-                    versionManifest = versionManifest(requireNotNull(request.minecraftVersion)),
-                    minecraftVersion = requireNotNull(request.minecraftVersion),
-                )
+                ?: javaRuntimeRequirement(requireNotNull(request.minecraftVersion))
         return resolver.resolve(requirement, discoveryContext()).withWorkspaceHandles()
     }
 
@@ -35,10 +29,14 @@ class JavaRuntimeService(
             managedRuntimeRoot = root.resolve("cache/runtimes"),
         )
 
-    private suspend fun versionManifest(minecraftVersion: String): String {
+    private suspend fun javaRuntimeRequirement(minecraftVersion: String): JavaRuntimeRequirement {
         val versionIndex = metadataFetcher.fetchText(MINECRAFT_VERSION_INDEX_URL)
-        val versionManifestUrl = versionIndex.versionManifestUrl(minecraftVersion)
-        return metadataFetcher.fetchText(versionManifestUrl)
+        val resolvedMinecraftVersion = versionIndex.resolveMinecraftVersion(minecraftVersion)
+        val versionManifestUrl = versionIndex.versionManifestUrl(resolvedMinecraftVersion)
+        return MinecraftJavaRuntimeRequirementResolver().derive(
+            versionManifest = metadataFetcher.fetchText(versionManifestUrl),
+            minecraftVersion = resolvedMinecraftVersion,
+        )
     }
 
     private fun JavaRuntimeListResult.withWorkspaceHandles(): JavaRuntimeListResult =
@@ -67,18 +65,4 @@ class JavaRuntimeService(
             value
         }
     }
-}
-
-private fun String.versionManifestUrl(minecraftVersion: String): String {
-    val versions =
-        Json
-            .parseToJsonElement(this)
-            .jsonObject["versions"]
-            ?.jsonArray
-            .orEmpty()
-    val version =
-        versions.firstOrNull { version ->
-            version.jsonObject["id"]?.jsonPrimitive?.content == minecraftVersion
-        } ?: error("minecraft version $minecraftVersion was not found in version index")
-    return version.jsonObject["url"]?.jsonPrimitive?.content ?: error("minecraft version $minecraftVersion is missing metadata url")
 }

@@ -223,6 +223,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 110. strict Fabric runtime lane identity.
 111. latest version alias resolution.
 112. resolved driver mod lane request.
+113. shared version index resolution.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -852,6 +853,13 @@ loader version, not an unresolved user alias such as `latest-release`. This is
 runtime artifact selection only; it must not add compiled lanes, gameplay
 descriptors, static route families, scenario shortcuts, public
 version-specific APIs, or latest/older runnable support claims.
+Phase 113 keeps Mojang version-index parsing shared across supervisor runtime
+metadata paths. Cache preparation and Java runtime resolution must resolve
+`latest-release` and `latest-snapshot` through the same daemon helper before
+fetching concrete version metadata. This is metadata plumbing only; it must
+not add compiled lanes, gameplay descriptors, static route families, scenario
+shortcuts, public version-specific APIs, or latest/older runnable support
+claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

@@ -667,6 +667,73 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `runtimes java resolve resolves latest release alias through supervisor api`() {
+        val output = StringBuilder()
+        val workspace = Files.createTempDirectory("craftless-cli-java-resolve-latest")
+        val java = workspace.resolve("cache/runtimes/mac-os-arm64/java-runtime-gamma/image/bin/java")
+        writeFakeJava(java, "25.0.3")
+
+        LocalTestApiServer(
+            workspaceRoot = workspace,
+            cacheMetadataFetcher =
+                StaticCacheMetadataFetcher(
+                    mapOf(
+                        MINECRAFT_VERSION_INDEX_URL to
+                            """
+                            {
+                              "latest": {
+                                "release": "26.2",
+                                "snapshot": "26.3-snapshot-1"
+                              },
+                              "versions": [
+                                { "id": "26.2", "url": "https://metadata.test/26.2.json" }
+                              ]
+                            }
+                            """.trimIndent(),
+                        "https://metadata.test/26.2.json" to
+                            """
+                            {
+                              "id": "26.2",
+                              "javaVersion": {
+                                "component": "java-runtime-gamma",
+                                "majorVersion": 25
+                              }
+                            }
+                            """.trimIndent(),
+                    ),
+                ),
+        ).use { server ->
+            val exit =
+                CraftlessCli.run(
+                    listOf("runtimes", "java", "resolve", "--mc", "latest-release", "--api", server.url),
+                    stdout = { output.appendLine(it) },
+                )
+
+            assertEquals(0, exit)
+        }
+
+        val selection = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        assertEquals("SELECTED", selection["status"]?.jsonPrimitive?.content)
+        assertEquals(
+            25,
+            selection["requirement"]
+                ?.jsonObject
+                ?.get("majorVersion")
+                ?.jsonPrimitive
+                ?.content
+                ?.toInt(),
+        )
+        assertEquals(
+            "cache/runtimes/mac-os-arm64/java-runtime-gamma/image/bin/java",
+            selection["selected"]
+                ?.jsonObject
+                ?.get("executable")
+                ?.jsonPrimitive
+                ?.content,
+        )
+    }
+
+    @Test
     fun `cache export and cleanup operate on a prepared manifest`() {
         val prepareOutput = StringBuilder()
         val exportOutput = StringBuilder()
