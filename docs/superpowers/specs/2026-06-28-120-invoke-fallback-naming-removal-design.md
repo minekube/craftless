@@ -30,7 +30,8 @@ surface.
 ## Acceptance Criteria
 
 - A protocol policy test fails before implementation when active code/docs
-  contain stale old-invoke spellings.
+  contain stale old-invoke spellings, including variants hidden by markdown
+  markup or hyphenated filenames.
 - After implementation, the policy test passes for active Kotlin source,
   AGENTS/checklist text, and active specs/plans.
 - Focused daemon and Fabric tests that cover graph-owned dispatch continue to

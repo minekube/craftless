@@ -38,6 +38,25 @@ rg -in "legacy invoke|legacyinvoke|fabric legacy invoke" AGENTS.md docs/project-
 
 Result: exited `1`, meaning no matches in active scanned surfaces.
 
+Follow-up guard tightening:
+
+- The protocol guard now rejects old-invoke wording even when markdown markup
+  or hyphenated filenames separate the words.
+- Red command:
+  `mise exec -- gradle :protocol:test --tests '*NamespacePolicyTest.active code and governance avoid stale invoke wording*'`
+- Result before cleanup: failed because active AGENTS/spec/plan text still
+  contained marked-up or hyphenated stale wording.
+- Green command:
+  `mise exec -- gradle :protocol:test --tests '*NamespacePolicyTest.active code and governance avoid stale invoke wording*'`
+- Result after cleanup: passed.
+- Stricter active scan:
+
+  ```sh
+  perl -ne 'print "$ARGV:$.:$_" if /(legacy|fabric legacy)[\s`_.\/:-]*invoke/i' AGENTS.md docs/project-completion-checklist.md docs/superpowers/specs/*.md docs/superpowers/plans/*.md protocol/src/test/kotlin/com/minekube/craftless/protocol/NamespacePolicyTest.kt daemon/src/test/kotlin/com/minekube/craftless/daemon/LocalSessionApiServerTest.kt driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt
+  ```
+
+- Result after cleanup: no output.
+
 ## Local Gates
 
 Commands:

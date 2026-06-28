@@ -635,12 +635,12 @@ hand-maintained bootstrap code instead of generic runtime discovery. It must
 not add public gameplay actions, generated route families, CLI gameplay
 catalogs, Fabric descriptor/binding pairs, scenario shortcuts, new compiled
 lanes, public version-specific APIs, or new Minecraft support claims.
-Phase 79 makes Fabric's legacy `invoke(...)` compatibility path graph-owned by
-looking up `RuntimeCapabilityGraph.operations`, enforcing graph availability,
-and dispatching through private `DriverOperationAdapters`. The Fabric backend
-must not accept or call `FabricActionDiscovery` for public-compatible
-dispatch. Transitional Fabric bindings may remain as private adapter
-implementations. Phase 80 deletes the old standalone discovery code. This
+Phase 79 makes Fabric's generic `invoke(...)` compatibility path graph-owned
+by looking up `RuntimeCapabilityGraph.operations`, enforcing graph
+availability, and dispatching through private `DriverOperationAdapters`. The
+Fabric backend must not accept or call `FabricActionDiscovery` for
+public-compatible dispatch. Transitional Fabric bindings may remain as private
+adapter implementations. Phase 80 deletes the old standalone discovery code. This
 phase still does not complete the broader binding exit while
 future gameplay breadth depends on hand-maintained bootstrap code instead of
 generic runtime discovery. It must not add public gameplay actions, generated

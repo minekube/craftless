@@ -11,7 +11,7 @@ Phase 76 proved the remaining completion blocker: Fabric still exposes public
 gameplay breadth from a hand-written binding allowlist. The generated
 per-client OpenAPI already prefers `RuntimeCapabilityGraph`, and the daemon
 already invokes generated operations through `DriverOperationAdapters` before
-falling back to legacy `invoke(...)`. The next aligned slice is to make the
+falling back to generic `invoke(...)` compatibility. The next aligned slice is to make the
 Fabric driver API's `actions()` projection graph-owned as well.
 
 This phase does not remove the transitional execution bindings. It demotes

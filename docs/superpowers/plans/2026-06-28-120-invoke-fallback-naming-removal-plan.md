@@ -55,7 +55,7 @@
 - Modify: `docs/project-completion-checklist.md`
 - Modify: `docs/superpowers/specs/2026-06-28-79-graph-owned-fabric-invoke-design.md`
 - Modify: `docs/superpowers/plans/2026-06-28-79-graph-owned-fabric-invoke-plan.md`
-- Create: `docs/superpowers/evidence/2026-06-28-legacy-invoke-naming-removal.md`
+- Create: `docs/superpowers/evidence/2026-06-28-invoke-fallback-naming-removal.md`
 
 - [x] **Step 1: Update Phase 79 wording**
 

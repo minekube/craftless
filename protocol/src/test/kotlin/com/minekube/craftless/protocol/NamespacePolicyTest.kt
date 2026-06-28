@@ -384,11 +384,10 @@ class NamespacePolicyTest {
 
     @Test
     fun `active code and governance avoid stale invoke wording`() {
-        val staleTerms =
-            listOf(
-                "legacy " + "invoke",
-                "legacy" + "Invoke",
-                "fabric legacy " + "invoke",
+        val staleInvokePattern =
+            Regex(
+                pattern = "(legacy|fabric legacy)[\\s`_./:-]*invoke",
+                option = RegexOption.IGNORE_CASE,
             )
         val root = repositoryRoot()
         val violations =
@@ -405,7 +404,7 @@ class NamespacePolicyTest {
                     }
                 },
             ) { contents ->
-                staleTerms.any { staleTerm -> contents.contains(staleTerm, ignoreCase = true) }
+                staleInvokePattern.containsMatchIn(contents)
             }
 
         assertTrue(
