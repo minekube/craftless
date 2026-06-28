@@ -234,6 +234,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 121. metadata fallback naming removal.
 122. removed survival namespace wording.
 123. create-client loader version.
+124. CLI create-client loader version.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -937,6 +938,11 @@ runtime-lane selection plumbing for version-aware launches; it must not add
 compiled lanes, relax strict driver-mod manifest matching, add gameplay
 descriptors, static route families, CLI gameplay catalogs, Fabric bindings,
 scenario shortcuts, public version-specific APIs, or support claims.
+Phase 124 exposes the same optional loader-version selection in the stable
+`craftless clients create` CLI command. This is CLI parity for supervisor
+runtime-lane selection; it must not add generated gameplay commands, static
+gameplay catalogs, Fabric bindings, scenario shortcuts, compiled lanes, public
+version-specific APIs, or support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

@@ -33,6 +33,7 @@ import io.ktor.http.contentType
 import io.ktor.server.application.call
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.request.header
+import io.ktor.server.request.receiveText
 import io.ktor.server.response.header
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
@@ -841,6 +842,64 @@ class CraftlessCliTest {
         val client = Json.parseToJsonElement(output.toString().trim()).jsonObject
         assertEquals("alice", client["id"]?.jsonPrimitive?.content)
         assertEquals("RUNNING", client["state"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `clients create sends requested loader version lane`() {
+        RecordingCreateApiServer().use { server ->
+            val output = StringBuilder()
+            val errors = StringBuilder()
+
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "create",
+                        "alice",
+                        "--api",
+                        server.url,
+                        "--version",
+                        "1.21.6",
+                        "--loader",
+                        "FABRIC",
+                        "--loader-version",
+                        "0.16.14",
+                        "--offline-name",
+                        "Alice",
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
+
+            assertEquals(0, exit, errors.toString())
+            val request = Json.parseToJsonElement(server.createBodies.single()).jsonObject
+            assertEquals("0.16.14", request["loaderVersion"]?.jsonPrimitive?.content)
+        }
+    }
+
+    @Test
+    fun `clients create usage includes loader version option`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        val exit =
+            CraftlessCli.run(
+                listOf(
+                    "clients",
+                    "create",
+                    "alice",
+                    "--version",
+                    "1.21.6",
+                    "--loader",
+                    "FABRIC",
+                ),
+                stdout = { output.appendLine(it) },
+                stderr = { errors.appendLine(it) },
+            )
+
+        assertEquals(2, exit)
+        assertEquals("", output.toString())
+        assertTrue(errors.toString().contains("[--loader-version <version>]"))
     }
 
     @Test
@@ -2364,6 +2423,39 @@ class CraftlessCliTest {
                 routing {
                     post("/clients") {
                         Thread.sleep(delayMillis)
+                        call.respondText(
+                            """{"id":"alice","version":"1.21.6","loader":"FABRIC","state":"RUNNING","profile":{"kind":"OFFLINE","name":"Alice"}}""",
+                            ContentType.Application.Json,
+                            HttpStatusCode.Created,
+                        )
+                    }
+                }
+            }
+        val url = "http://127.0.0.1:$port"
+
+        init {
+            server.start()
+        }
+
+        override fun close() {
+            server.stop(gracePeriodMillis = 250, timeoutMillis = 1_000)
+        }
+
+        private fun allocateLoopbackPort(): Int =
+            ServerSocket(0).use { socket ->
+                socket.reuseAddress = true
+                socket.localPort
+            }
+    }
+
+    private class RecordingCreateApiServer : AutoCloseable {
+        val createBodies = mutableListOf<String>()
+        private val port = allocateLoopbackPort()
+        private val server =
+            embeddedServer(ServerCIO, host = "127.0.0.1", port = port) {
+                routing {
+                    post("/clients") {
+                        createBodies += call.receiveText()
                         call.respondText(
                             """{"id":"alice","version":"1.21.6","loader":"FABRIC","state":"RUNNING","profile":{"kind":"OFFLINE","name":"Alice"}}""",
                             ContentType.Application.Json,

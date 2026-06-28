@@ -3815,6 +3815,28 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-create-client-loader-version.md`.
 
+## Phase 124: CLI Create Client Loader Version
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-124-cli-create-client-loader-version-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-124-cli-create-client-loader-version-plan.md`.
+- [x] `craftless clients create` accepts `--loader-version <version>`.
+- [x] The CLI create-client request includes `loaderVersion` only when the
+  user provides the flag.
+- [x] `clients create` usage mentions `[--loader-version <version>]`.
+- [x] This phase adds no compiled Fabric lane, public gameplay action,
+  generated route family, CLI gameplay catalog, Fabric gameplay binding,
+  scenario shortcut, public version-specific API, runnable latest/older lane,
+  runtime behavior support claim, or new Minecraft support claim.
+
+Verification:
+
+- Red/green CLI loader-version request and usage tests:
+  `mise exec -- gradle :cli:test --tests '*CraftlessCliTest.*loader version*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-cli-create-client-loader-version.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3848,10 +3870,11 @@ Verification:
   event type removal, Phase 119 driver event type gameplay removal, and Phase
   120 invoke fallback naming removal, and Phase 121 metadata fallback naming
   removal, Phase 122 removed survival namespace wording, and Phase 123
-  create-client loader version. Phase 105, Phase 107, Phase 108, Phase 109,
-  Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase 115, Phase 116,
-  Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase 122, and Phase
-  123 do not satisfy the runnable latest/older support
+  create-client loader version, and Phase 124 CLI create-client loader
+  version. Phase 105, Phase 107, Phase 108, Phase 109, Phase 110, Phase 111,
+  Phase 112, Phase 113, Phase 114, Phase 115, Phase 116, Phase 117, Phase 118,
+  Phase 119, Phase 120, Phase 121, Phase 122, Phase 123, and Phase 124 do not
+  satisfy the runnable latest/older support
   requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,

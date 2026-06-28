@@ -360,9 +360,13 @@ object CraftlessCli {
             args.optionValue("--loader")?.let { value ->
                 runCatching { Loader.valueOf(value.uppercase()) }.getOrNull()
             }
+        val loaderVersion = args.optionValue("--loader-version")
         val profileName = args.optionValue("--offline-name")
         if (clientId.isBlank() || version.isNullOrBlank() || loader == null || profileName.isNullOrBlank()) {
-            stderr("error: usage is clients create <id> --version <version> --loader <loader> --offline-name <name> [--api <url>]")
+            stderr(
+                "error: usage is clients create <id> --version <version> --loader <loader> " +
+                    "[--loader-version <version>] --offline-name <name> [--api <url>]",
+            )
             return 2
         }
         val api = args.apiBaseUrl(env)
@@ -372,6 +376,7 @@ object CraftlessCli {
                 version = version,
                 loader = loader,
                 profile = Profile.offline(profileName),
+                loaderVersion = loaderVersion,
             )
 
         return runCatching {
