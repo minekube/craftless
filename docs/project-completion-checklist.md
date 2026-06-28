@@ -3371,6 +3371,32 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-explicit-unused-dead-code-gates.md`.
 
+## Phase 107: Version-Aware Driver Mod Selection
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-107-version-aware-driver-mod-selection-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-107-version-aware-driver-mod-selection-plan.md`.
+- [x] `ClientRuntimeDriverModProvider` receives a
+  `ClientRuntimeDriverModRequest` containing loader, requested Minecraft
+  version, and resolved/requested loader version.
+- [x] `WorkspaceClientRuntimeDriverFactory.prepare` builds the driver-mod
+  request after cache preparation so Fabric loader metadata can participate in
+  future lane selection.
+- [x] The existing `CRAFTLESS_FABRIC_DRIVER_MOD` fallback remains the current
+  single packaged-driver path for Fabric launches.
+- [x] This phase adds no new compiled Fabric lane, public gameplay action,
+  generated route family, CLI gameplay catalog, Fabric gameplay binding,
+  scenario shortcut, public version-specific API, runnable latest/older lane,
+  or new Minecraft support claim.
+
+Verification:
+
+- Red/green guard:
+  `mise exec -- gradle :daemon:test --tests '*LocalSessionApiServerTest.prepared runtime asks driver mod provider for requested runtime lane*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-version-aware-driver-mod-selection.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3393,8 +3419,9 @@ Verification:
   Phase 102 packaged live attach and cold-cache usability, and Phase 103
   installed CLI driver mod distribution, Phase 104 v0.1.1 release install
   evidence, Phase 105 active unsupported lane fixture cleanup, and Phase 106
-  explicit unused/dead-code gates. Phase 105 does not satisfy the runnable
-  latest/older support requirement by itself.
+  explicit unused/dead-code gates, and Phase 107 version-aware driver mod
+  selection. Phase 105 and Phase 107 do not satisfy the runnable latest/older
+  support requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

@@ -52,7 +52,7 @@ class WorkspaceClientRuntimeDriverFactory(
                         minecraftVersion = request.version,
                         loader = request.loader,
                     ),
-                ).withConfiguredDriverMod(request.loader)
+                ).withConfiguredDriverMod(request)
         val files = request.instanceFiles()
         val launch = launcher.launch(request, cache, files, root, attachEnvironment)
         return PreparedClientRuntime(
@@ -65,8 +65,14 @@ class WorkspaceClientRuntimeDriverFactory(
         }
     }
 
-    private fun CachePrepareResult.withConfiguredDriverMod(loader: Loader): CachePrepareResult {
-        val source = driverModProvider.modFor(loader)?.toAbsolutePath()?.normalize() ?: return this
+    private fun CachePrepareResult.withConfiguredDriverMod(request: CreateClientRequest): CachePrepareResult {
+        val driverModRequest =
+            ClientRuntimeDriverModRequest(
+                loader = request.loader,
+                minecraftVersion = request.version,
+                loaderVersion = loaderVersion,
+            )
+        val source = driverModProvider.modFor(driverModRequest)?.toAbsolutePath()?.normalize() ?: return this
         require(Files.isRegularFile(source)) { "configured Craftless driver mod does not exist: $source" }
         val handle = "cache/mods/craftless/${source.sha256Hex()}.jar"
         val target = root.resolveHandleOrPath(handle)
@@ -108,18 +114,28 @@ data class ClientDriverAttachEnvironment(
 }
 
 fun interface ClientRuntimeDriverModProvider {
-    fun modFor(loader: Loader): Path?
+    fun modFor(request: ClientRuntimeDriverModRequest): Path?
+}
+
+data class ClientRuntimeDriverModRequest(
+    val loader: Loader,
+    val minecraftVersion: String,
+    val loaderVersion: String?,
+) {
+    init {
+        require(minecraftVersion.isNotBlank()) { "driver mod Minecraft version is required" }
+    }
 }
 
 object NoClientRuntimeDriverModProvider : ClientRuntimeDriverModProvider {
-    override fun modFor(loader: Loader): Path? = null
+    override fun modFor(request: ClientRuntimeDriverModRequest): Path? = null
 }
 
 class ConfiguredClientRuntimeDriverModProvider(
     private val environment: Map<String, String> = System.getenv(),
 ) : ClientRuntimeDriverModProvider {
-    override fun modFor(loader: Loader): Path? =
-        when (loader) {
+    override fun modFor(request: ClientRuntimeDriverModRequest): Path? =
+        when (request.loader) {
             Loader.FABRIC -> environment[CRAFTLESS_FABRIC_DRIVER_MOD]?.takeIf { it.isNotBlank() }?.let(Path::of)
             else -> null
         }

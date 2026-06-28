@@ -534,6 +534,58 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `prepared runtime asks driver mod provider for requested runtime lane`() =
+        withHttpClient { http ->
+            val workspace = Files.createTempDirectory("craftless-driver-mod-lane")
+            val driverMod = Files.createTempFile("craftless-driver-fabric", ".jar")
+            Files.writeString(driverMod, "craftless-driver-mod")
+            val launcher = RecordingClientRuntimeLauncher()
+            val requests = mutableListOf<ClientRuntimeDriverModRequest>()
+
+            LocalSessionApiServer
+                .inMemory(
+                    workspaceRoot = workspace,
+                    cacheMetadataFetcher = preparedRuntimeMetadataFetcher(),
+                    clientRuntimeLauncher = launcher,
+                    clientRuntimeDriverModProvider =
+                        ClientRuntimeDriverModProvider { request ->
+                            requests += request
+                            driverMod
+                        },
+                ).use { server ->
+                    server.start()
+
+                    val response =
+                        http.post(server.url("/clients")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "id": "alice",
+                                  "version": "1.21.6",
+                                  "loader": "FABRIC",
+                                  "profile": { "kind": "OFFLINE", "name": "Alice" }
+                                }
+                                """.trimIndent(),
+                            )
+                        }
+
+                    assertEquals(HttpStatusCode.Created, response.status)
+                    assertEquals(
+                        listOf(
+                            ClientRuntimeDriverModRequest(
+                                loader = Loader.FABRIC,
+                                minecraftVersion = "1.21.6",
+                                loaderVersion = "0.17.2",
+                            ),
+                        ),
+                        requests,
+                    )
+                    assertEquals(listOf("alice"), launcher.launches.map { it.clientId })
+                }
+        }
+
+    @Test
     fun `process client runtime launcher starts prepared command`() {
         val workspace = Files.createTempDirectory("craftless-process-client-runtime")
         val marker = workspace.resolve("launched.txt")
