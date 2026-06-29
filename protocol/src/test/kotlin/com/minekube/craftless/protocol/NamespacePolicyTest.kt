@@ -154,6 +154,51 @@ class NamespacePolicyTest {
     }
 
     @Test
+    fun `ci executes craftless daemon smoke through packaged cli`() {
+        val root = repositoryRoot()
+        val mise = Files.readString(root.resolve(".mise.toml"))
+        val workflow = Files.readString(root.resolve(".github/workflows/ci.yml"))
+        val smokeScript = root.resolve("scripts/ci-craftless-smoke.sh")
+        val smokeScriptText = if (Files.isRegularFile(smokeScript)) Files.readString(smokeScript) else ""
+
+        assertTrue(
+            mise.contains("[tasks.ci-craftless-smoke]"),
+            "mise must expose a CI Craftless daemon smoke task",
+        )
+        assertTrue(
+            mise.contains("mise exec -- gradle :cli:installDist"),
+            "CI Craftless smoke must build the installed CLI distribution",
+        )
+        assertTrue(
+            mise.contains("scripts/ci-craftless-smoke.sh"),
+            "CI Craftless smoke must run the daemon smoke script",
+        )
+        assertTrue(
+            mise.contains("mise run ci-craftless-smoke"),
+            "mise run ci must include the Craftless daemon smoke task",
+        )
+        assertTrue(
+            workflow.contains("mise run ci"),
+            "GitHub Actions CI must execute the mise ci task that includes Craftless smoke",
+        )
+        assertTrue(
+            Files.isRegularFile(smokeScript),
+            "CI Craftless daemon smoke script must exist",
+        )
+        listOf(
+            "server start",
+            "/openapi.json",
+            "/version",
+            "cli/build/install/craftless/bin/craftless",
+        ).forEach { required ->
+            assertTrue(
+                smokeScriptText.contains(required),
+                "CI Craftless daemon smoke script must contain $required",
+            )
+        }
+    }
+
+    @Test
     fun `public gameplay agent skill keeps generated workflow guidance`() {
         val skill =
             Files.readString(
@@ -790,7 +835,7 @@ class NamespacePolicyTest {
 
     private fun Path.isScannable(): Boolean {
         if (isDirectory()) return false
-        val ignoredDirectories = setOf("build", ".gradle", ".git", ".kotlin", ".vscode")
+        val ignoredDirectories = setOf("build", ".craftless", ".gradle", ".git", ".kotlin", ".vscode")
         if (iterator().asSequence().any { it.name in ignoredDirectories }) return false
         if (pathString.contains("driver-fabric/run/")) return false
         if (pathString.contains("driver-fabric/logs/")) return false

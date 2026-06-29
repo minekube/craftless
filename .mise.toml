@@ -23,6 +23,13 @@ run = "mise exec -- gradle detekt"
 description = "Run the Playwright integration helper tests"
 run = "mise exec -- bun test playwright"
 
+[tasks.ci-craftless-smoke]
+description = "Run the installed Craftless CLI daemon and probe the live API"
+run = [
+    "mise exec -- gradle :cli:installDist",
+    "scripts/ci-craftless-smoke.sh",
+]
+
 [tasks.architecture-check]
 description = "Run focused checks for live OpenAPI/action architecture"
 run = [
@@ -213,5 +220,6 @@ run = [
     "mise exec -- gradle lint",
     "mise run unused-check",
     "mise exec -- gradle test",
+    "mise run ci-craftless-smoke",
     "mise exec -- bun test playwright",
 ]

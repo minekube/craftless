@@ -1,5 +1,7 @@
 .gradle/
 .kotlin/
+.craftless/
+.craftless-server.log
 build/
 */build/
 driver-fabric/run/

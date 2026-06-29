@@ -356,6 +356,7 @@ Focused commands:
 mise exec -- gradle test
 mise exec -- bun test playwright
 mise run package-cli
+mise run ci-craftless-smoke
 ```
 
 Docs-only edits must at least pass:
