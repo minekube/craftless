@@ -18,8 +18,8 @@ The gate keeps the core design invariant intact:
 - `/clients/{id}/actions` and `/clients/{id}/resources` remain projection
   evidence, not the source of truth;
 - CLI gameplay help remains adaptive;
-- no static gameplay SDK, scenario shortcut, server-provisioned inventory, old
-  `craftwright` brand, `.dev` domain, Homebrew path, or active TypeScript SDK
+- no static gameplay SDK, scenario shortcut, server-provisioned inventory,
+  previous product brand, `.dev` domain, Homebrew path, or active TypeScript SDK
   is presented as the user path.
 
 ## Red And Green Checks
@@ -175,7 +175,7 @@ non-network static gameplay catalog.
 Command:
 
 ```sh
-rg -n "gameplay actions still empty|latest/current compatibility work|setup-craftless@v0.1.0|minekube\\.dev|craftwright|Craftwright|brew install|Homebrew" \
+rg -n "gameplay actions still empty|latest/current compatibility work|setup-craftless@v0.1.0|minekube\\.dev|previous-product-brand|brew install|Homebrew" \
   README.md docs/roadmap.md docs/agent-skills.md \
   .agents/skills/craftless-public-gameplay-agent/SKILL.md .github/actions/setup-craftless/action.yml \
   install.sh Dockerfile docker/entrypoint.sh -S

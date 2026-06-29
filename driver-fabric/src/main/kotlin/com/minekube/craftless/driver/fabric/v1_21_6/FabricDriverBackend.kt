@@ -44,8 +44,8 @@ import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.mob.HostileEntity
 import net.minecraft.entity.passive.PassiveEntity
 import net.minecraft.entity.player.PlayerInventory
-import net.minecraft.item.Items
 import net.minecraft.item.ItemStack
+import net.minecraft.item.Items
 import net.minecraft.registry.Registries
 import net.minecraft.registry.Registry
 import net.minecraft.registry.tag.BlockTags
@@ -960,9 +960,7 @@ class FabricDriverBackend private constructor(
                 pathfinderBackend = UnavailableFabricPathfinderBackend,
             )
 
-        internal fun metadataOnly(
-            pathfinderBackend: FabricPathfinderBackend = UnavailableFabricPathfinderBackend,
-        ): FabricDriverBackend =
+        internal fun metadataOnly(pathfinderBackend: FabricPathfinderBackend = UnavailableFabricPathfinderBackend): FabricDriverBackend =
             FabricDriverBackend(
                 mode = Mode.METADATA_ONLY,
                 gateway = null,
@@ -1269,8 +1267,7 @@ private fun ClientRecipeBook.craftlessRecipeEntries(
                 handleKey = entry.craftlessRecipeHandleKey(),
                 craftable = entry.craftlessIsCraftableFromInventory(inventory),
             )
-        }
-        .filter { candidate ->
+        }.filter { candidate ->
             candidate.handleKey.isNotBlank() &&
                 candidate.entry.craftlessDisplayObject().craftlessIsEnabled(features)
         }.distinctBy { candidate -> candidate.handleKey }
@@ -1299,8 +1296,7 @@ private fun ClientRecipeBook.craftlessRecipeBookEntries(): List<Any> =
             } finally {
                 field.isAccessible = accessible
             }
-        }
-        .filterNotNull()
+        }.filterNotNull()
         .filter { value -> value.craftlessLooksLikeRecipeDisplayEntry() }
         .toList()
 
@@ -1335,8 +1331,7 @@ private fun Any.craftlessIsCraftableFromInventory(inventory: PlayerInventory): B
     }
 }
 
-private fun PlayerInventory.craftlessInventoryStacks(): List<ItemStack> =
-    (0 until size()).map { slot -> getStack(slot) }
+private fun PlayerInventory.craftlessInventoryStacks(): List<ItemStack> = (0 until size()).map { slot -> getStack(slot) }
 
 private fun Any.craftlessCraftingRequirements(): List<Any> =
     (

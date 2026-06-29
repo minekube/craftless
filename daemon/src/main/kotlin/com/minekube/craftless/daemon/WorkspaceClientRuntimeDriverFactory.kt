@@ -188,9 +188,7 @@ class ConfiguredClientRuntimeDriverModProvider(
             ?.loaderVersion
     }
 
-    override fun modFor(request: ClientRuntimeDriverModRequest): Path? {
-        return modsFor(request).primary
-    }
+    override fun modFor(request: ClientRuntimeDriverModRequest): Path? = modsFor(request).primary
 
     override fun modsFor(request: ClientRuntimeDriverModRequest): ClientRuntimeDriverMods {
         val manifestPath = configuredManifestPath()

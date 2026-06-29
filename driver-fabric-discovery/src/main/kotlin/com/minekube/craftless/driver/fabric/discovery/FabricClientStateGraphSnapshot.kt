@@ -81,11 +81,12 @@ fun fabricClientStateGraphFragment(snapshot: FabricClientStateGraphSnapshot): Fa
 }
 
 fun fabricClientStateWorldTimeQueryOperation(
+    id: String = CLIENT_STATE_WORLD_TIME_QUERY_OPERATION_ID,
     snapshot: FabricClientStateGraphSnapshot,
     adapter: String,
 ): RuntimeOperationNode =
     RuntimeOperationNode(
-        id = CLIENT_STATE_WORLD_TIME_QUERY_OPERATION_ID,
+        id = id,
         resource = CLIENT_STATE_WORLD_TIME_QUERY_OPERATION_RESOURCE,
         adapter = adapter,
         result =

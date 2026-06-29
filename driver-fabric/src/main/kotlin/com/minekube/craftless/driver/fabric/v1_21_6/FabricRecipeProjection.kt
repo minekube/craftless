@@ -216,12 +216,10 @@ private fun Any.toCraftlessRecipeItems(
             } catch (_: InvocationTargetException) {
                 null
             }
-        }
-        .flatMap { value ->
+        }.flatMap { value ->
             value.asIterable()?.flatMap { element -> element.toCraftlessRecipeItems(world, depth + 1) }
                 ?: value.toCraftlessRecipeItems(world, depth + 1)
-        }
-        .filterNot { item -> item.label.isBlank() }
+        }.filterNot { item -> item.label.isBlank() }
 }
 
 internal data class CraftlessRecipeItem(
@@ -252,7 +250,10 @@ internal fun Any?.asIterable(): Iterable<Any>? =
 
 internal fun Any.recordValue(index: Int): Any? =
     try {
-        javaClass.recordComponents?.getOrNull(index)?.accessor?.invoke(this)
+        javaClass.recordComponents
+            ?.getOrNull(index)
+            ?.accessor
+            ?.invoke(this)
     } catch (_: IllegalAccessException) {
         null
     } catch (_: InvocationTargetException) {
@@ -286,8 +287,7 @@ private fun Any.noArgItemStackResults(): List<ItemStack> =
             } catch (_: InvocationTargetException) {
                 null
             }
-        }
-        .toList()
+        }.toList()
 
 internal fun Any.invokeNoArg(name: String): Any? =
     try {

@@ -289,6 +289,7 @@ private fun FabricClientCapabilitySnapshot.blockInteractReason(): String? =
 private fun FabricClientCapabilitySnapshot.clientStateOperations(): List<RuntimeOperationNode> =
     listOf(
         fabricClientStateWorldTimeQueryOperation(
+            id = FabricBootstrapOperationIds.WORLD_TIME_QUERY,
             snapshot = toGraphSnapshot(),
             adapter =
                 requireNotNull(fabricBootstrapOperationAdapterKey(FabricBootstrapOperationIds.WORLD_TIME_QUERY)) {
