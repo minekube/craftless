@@ -43,8 +43,9 @@ describe("distribution surface", () => {
     expect(cliBuild).not.toContain('into("mods")');
     expect(mise).toContain("driver-mods.json");
     expect(mise).toContain("tar -tf cli/build/distributions/craftless-*.tar | grep -q '/driver-mods.json$'");
-    expect(mise).toContain("! tar -xOf cli/build/distributions/craftless-*.tar '*/driver-mods.json' | grep -q 'artifactKey'");
-    expect(mise).toContain("! tar -xOf cli/build/distributions/craftless-*.tar '*/driver-mods.json' | grep -q 'distributionPath'");
+    expect(mise).toContain("build/driver-mods-from-tar.json");
+    expect(mise).toContain("! grep -q 'artifactKey' build/driver-mods-from-tar.json");
+    expect(mise).toContain("! grep -q 'distributionPath' build/driver-mods-from-tar.json");
     expect(mise).toContain("jar tf cli/build/distributions/craftless-*.zip | grep -q '/driver-mods.json$'");
     expect(mise).toContain("! unzip -p cli/build/distributions/craftless-*.zip '*/driver-mods.json' | grep -q 'artifactKey'");
     expect(mise).toContain("! unzip -p cli/build/distributions/craftless-*.zip '*/driver-mods.json' | grep -q 'distributionPath'");
@@ -69,7 +70,7 @@ describe("distribution surface", () => {
     expect(mise).toContain("baritone-api-fabric-");
     expect(mise).toContain("nether-pathfinder-");
     expect(mise).toContain("tar -tf cli/build/distributions/craftless-*.tar | grep -q '/mods/fabric-1.21.6/runtime/baritone-api-fabric-");
-    expect(mise).toContain("tar -xOf cli/build/distributions/craftless-*.tar '*/driver-mods.json' | grep -q 'runtimeMods'");
+    expect(mise).toContain("grep -q 'runtimeMods' build/driver-mods-from-tar.json");
     expect(mise).toContain("jar tf cli/build/distributions/craftless-*.zip | grep -q '/mods/fabric-1.21.6/runtime/baritone-api-fabric-");
     expect(mise).toContain("unzip -p cli/build/distributions/craftless-*.zip '*/driver-mods.json' | grep -q 'runtimeMods'");
     expect(mise).toContain("minecraftVersion");
