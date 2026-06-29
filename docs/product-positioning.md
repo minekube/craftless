@@ -43,8 +43,8 @@ Craftless keeps public API layers separate:
 - Stable supervisor API: `/openapi.json`, client lifecycle, events, setup,
   files, and per-client spec discovery.
 - Live per-client API: `/clients/{id}/openapi.json`, generated from one
-  running client and owning gameplay actions, aliases, schemas, availability,
-  and runtime fingerprints.
+  running client and owning gameplay actions, generated routes, schemas,
+  availability, and runtime fingerprints.
 - Descriptor projections: `/clients/{id}/actions` is a convenience view of the
   per-client action metadata, not another source of truth.
 - Adaptive consumers: the `craftless` CLI, exported agent-tool manifests, and

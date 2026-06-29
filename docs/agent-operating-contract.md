@@ -67,7 +67,7 @@ availability, and events that agents can use through OpenAPI.
 Use `actions` for user-facing discovery. Internal code may use `capability`
 only when it describes runtime support precisely.
 
-Generated aliases such as `POST /clients/{id}/player:move` are derived from
+Generated routes such as `POST /clients/{id}/player:move` are derived from
 the running client's OpenAPI/action descriptors. Do not create static gameplay
 route families in Kotlin, CLI source, README examples, or tests.
 
@@ -97,7 +97,7 @@ Keep these layers separate. Do not flatten them into one static API:
    per-client spec discovery. This layer owns versions, loaders, profiles,
    instances, mods, Java runtimes, caches, and files.
 2. Live per-client generated API: generated from one running client. Gameplay
-   actions, resources, aliases, handles, schemas, availability, and runtime
+   actions, resources, routes, handles, schemas, availability, and runtime
    fingerprints belong here.
 3. Descriptor projections: `/clients/{id}/actions` and resource indexes are
    convenience projections of the per-client OpenAPI, not an independent source
@@ -131,7 +131,7 @@ requirements sections.
 Survival gameplay such as "collect wood, craft a weapon, find a cow, kill it,
 and show loot" is an acceptance scenario. It is useful only when it proves that
 an external agent can succeed through the live generated OpenAPI, generic
-actions, handles, SSE/JSON-RPC events, adaptive CLI, and agent documentation.
+actions, handles, SSE/JSON-RPC events, `craftless api`, and agent documentation.
 
 Do not grow `task.survival.*` or similar hard-coded scenario logic into the
 durable public API. If a scenario needs a missing primitive, improve the

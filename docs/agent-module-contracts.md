@@ -52,8 +52,8 @@ Java `HttpClient`, `com.sun.net.httpserver`, or hand-rolled HTTP clients.
 
 Keep the stable supervisor API separate from generated per-client API. Do not
 add public static route families such as `/clients/{id}/player/sendChat`; use
-action descriptors plus `POST /clients/{id}:run`, with generated aliases only
-when described by OpenAPI.
+action descriptors plus `POST /clients/{id}:run`, with optional generated
+routes only when they are described by OpenAPI.
 
 Keep version-specific knowledge in resolver data and services: Mojang
 manifests, Fabric loader/API resolution, Java runtime selection, driver mod
@@ -71,8 +71,8 @@ Verification: `mise exec -- gradle :daemon:test`.
 `protocol/` owns Craftless's machine-readable API metadata and serializable
 protocol DTOs.
 
-Keep OpenAPI and action descriptors authoritative for agents, SDKs, adaptive
-CLI dispatch/help, and tests. Keep HTTP verbs as protocol data strings such as
+Keep OpenAPI and action descriptors authoritative for agents, SDKs,
+`craftless api` route invocation/help, and tests. Keep HTTP verbs as protocol data strings such as
 `"GET"` and `"POST"`; do not introduce a Craftless-owned HTTP method enum.
 
 Public protocol names must be Craftless-owned. Do not expose Fabric, Yarn,
@@ -221,10 +221,10 @@ Verification: `mise exec -- gradle :driver-fabric-attach:test`.
 Use Clikt for the JVM CLI, Mordant for terminal output, and Ktor Client for
 daemon/API calls.
 
-Keep action commands adaptive. Static commands may cover daemon startup,
-config, auth, lifecycle, discovery, output modes, and generic action
-invocation. Gameplay commands/help/aliases must come from
-`/openapi.json`, `/clients/{id}/openapi.json`, and `/clients/{id}/actions`.
+Keep action invocation adaptive. Static commands may cover daemon startup,
+config, auth, lifecycle, discovery, output modes, and generic API invocation.
+Gameplay routes/help must come from `/openapi.json`,
+`/clients/{id}/openapi.json`, and `/clients/{id}/actions`.
 
 Do not add static CLI command trees for Minecraft versions, loaders, Fabric
 lanes, survival scenarios, material recipes, combat flows, or
@@ -249,7 +249,7 @@ gameplay catalogs or bypassing generated OpenAPI/action/resource discovery.
 
 Test helpers may compose public gameplay scenarios for verification, but they
 must do it as an outside user or agent through OpenAPI/actions/resources,
-JSON-RPC/SSE, and adaptive CLI/API calls.
+JSON-RPC/SSE, and `craftless api` calls.
 
 Verification: `mise exec -- gradle :testkit:test`.
 

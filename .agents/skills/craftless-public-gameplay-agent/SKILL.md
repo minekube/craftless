@@ -1,6 +1,6 @@
 ---
 name: craftless-public-gameplay-agent
-description: Use when an agent must control a Craftless Minecraft client through the public generated API, adaptive CLI, or SSE/JSON-RPC streams to perform gameplay without hard-coded scenario shortcuts.
+description: Use when an agent must control a Craftless Minecraft client through the public generated API, craftless api CLI, or SSE/JSON-RPC streams to perform gameplay without hard-coded scenario shortcuts.
 ---
 
 # Craftless Public Gameplay Agent
@@ -34,18 +34,18 @@ Forbidden as final gameplay proof:
 
 ## Client Lifecycle Discipline
 
-`craftless clients create` launches a new daemon-managed real Minecraft Java
-client process, and `POST /clients` has the same lifecycle effect. They are
-not a selector, retry, or reuse operation. Before creating in an existing
-daemon or workspace, list clients with `GET /clients` or
-`craftless clients list --api "$CRAFTLESS"`, then inspect likely matches with
+`POST /clients` launches a new daemon-managed real Minecraft Java client
+process. Through the CLI, that is `craftless api /clients ...` with request
+fields. It is not a selector, retry, or reuse operation. Before creating in an
+existing daemon or workspace, list clients with `GET /clients` or
+`craftless api /clients --api "$CRAFTLESS"`, then inspect likely matches with
 `GET /clients/{id}` or
-`craftless clients <id> get --api "$CRAFTLESS"`.
+`craftless api /clients/<id> --api "$CRAFTLESS"`.
 
 Reuse a suitable existing client when possible. If a previous attempt is yours
 or clearly abandoned, stop it first with `POST /clients/{id}:stop` or
-`craftless clients <id> stop --api "$CRAFTLESS"`. Creating fresh timestamped
-ids for retries leaves multiple Minecraft clients running. Use fresh unique
+`craftless api /clients/<id>:stop --api "$CRAFTLESS" -X POST`. Creating fresh
+timestamped ids for retries leaves multiple Minecraft clients running. Use fresh unique
 ids only for deliberate independent clients, such as a two-client co-play test.
 
 ## Tiny-Agent Bootstrap
@@ -56,18 +56,23 @@ derives one from the client id. The default presentation requests no visible
 window and materializes muted Minecraft sound options.
 
 ```sh
-craftless clients create bot --version latest-release --loader fabric --api "$CRAFTLESS"
-craftless clients bot connect --host localhost --port 25565 --api "$CRAFTLESS"
-craftless clients bot openapi --api "$CRAFTLESS" > bot-openapi.json
+craftless api /clients --api "$CRAFTLESS" \
+  -F id=bot -F version=latest-release -F loader=FABRIC
+craftless api /clients/bot:connect --api "$CRAFTLESS" \
+  -F host=localhost -F port=25565
+craftless api /clients/bot/openapi.json --api "$CRAFTLESS" > bot-openapi.json
 ```
 
 For co-play, only ask Craftless to manage the human-facing client when a
 visible Craftless-launched window is desired:
 
 ```sh
-craftless clients create robin --version latest-release --loader fabric \
-  --offline-name Robin --visible --audio default --api "$CRAFTLESS"
-craftless clients robin connect --host localhost --port 25565 --api "$CRAFTLESS"
+craftless api /clients --api "$CRAFTLESS" \
+  -F id=robin -F version=latest-release -F loader=FABRIC \
+  -F profile[kind]=OFFLINE -F profile[name]=Robin \
+  -F presentation[window]=VISIBLE -F presentation[audio]=DEFAULT
+craftless api /clients/robin:connect --api "$CRAFTLESS" \
+  -F host=localhost -F port=25565
 ```
 
 If the human joins with their own launcher, skip the visible Craftless client.
@@ -95,33 +100,35 @@ Check at least:
 
 Use fresh unique client ids only for deliberate independent clients. If old
 test clients are still running, stop them through `POST /clients/{id}:stop` or
-`craftless clients <id> stop --api "$CRAFTLESS"` when they are yours or clearly
-abandoned. Report stale clients by exact id and current observed state. Do not
+`craftless api /clients/<id>:stop --api "$CRAFTLESS" -X POST` when they are
+yours or clearly abandoned. Report stale clients by exact id and current observed state. Do not
 say a client is still joining, connected, or opening a window unless the fresh
 API/process check proves it.
 
 ## Adaptive CLI Sequence
 
-The CLI is an adaptive consumer of the same live metadata. Use it when shelling
-out is easier than writing HTTP calls, but do not treat CLI aliases as a static
-catalog.
+The CLI is an OpenAPI-aligned consumer of the same live metadata. Use
+`craftless api <endpoint>` when shelling out is easier than writing HTTP calls;
+do not treat generated routes as CLI subcommands.
 
 Discover live actions and resources:
 
 ```sh
-craftless clients <id> actions --api "$CRAFTLESS"
-craftless clients <id> resources --api "$CRAFTLESS"
+craftless api /clients/<id>/actions --api "$CRAFTLESS"
+craftless api /clients/<id>/resources --api "$CRAFTLESS"
 ```
 
 Invoke through the generic generated-action path:
 
 ```sh
-craftless clients <id> run <action> --api "$CRAFTLESS" --arg key=value
+craftless api /clients/<id>:run --api "$CRAFTLESS" \
+  -F action=<action> -F args[key]=value
 ```
 
-Generated alias help may be used only after fetching the live OpenAPI. If a
-CLI alias is unavailable, fall back to `craftless clients <id> run <action>`
-rather than inventing a new static command.
+Generated route help is available through `craftless api <endpoint> --help`
+after fetching the live OpenAPI. If a generated route is unavailable, fall
+back to `craftless api /clients/<id>:run` rather than inventing a new static
+command.
 
 ## Invocation Sequence
 

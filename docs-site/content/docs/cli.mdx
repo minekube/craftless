@@ -1,0 +1,172 @@
+---
+title: CLI
+description: Use the craftless command line as an OpenAPI-aligned route invoker.
+---
+
+The `craftless` binary has a small static core:
+
+- `craftless daemon start` starts the local supervisor.
+- `craftless api <endpoint>` invokes supervisor and per-client HTTP API routes.
+
+Gameplay and client-specific behavior are not exposed as per-action shortcut
+subcommands. Discover routes from OpenAPI, then invoke those routes through
+`craftless api`.
+
+## Start The Daemon
+
+```sh
+craftless daemon start --port 8080 --workspace .craftless
+export CRAFTLESS=http://127.0.0.1:8080
+```
+
+Use the daemon OpenAPI document as the stable supervisor contract:
+
+```sh
+craftless api /openapi.json --api "$CRAFTLESS"
+```
+
+## Invoke Routes
+
+`craftless api` accepts an API endpoint path and forwards the response body.
+It loads `/openapi.json` first, and for `/clients/<id>/...` routes it can load
+that client's generated `/clients/<id>/openapi.json` for route help and request
+schema inference.
+
+```sh
+craftless api /version --api "$CRAFTLESS"
+craftless api /clients --api "$CRAFTLESS"
+craftless api /clients/bot/openapi.json --api "$CRAFTLESS"
+```
+
+Flags:
+
+- `--api <url>` selects the daemon URL. `CRAFTLESS` is used when the flag is
+  omitted.
+- `-X, --method <GET|POST>` overrides the HTTP method. Without fields or
+  `--input`, the default is `GET`; with fields or `--input`, the default is
+  `POST`.
+- `-F, --field key=value` adds a typed JSON field. Booleans, numbers, `null`,
+  and OpenAPI enum values are typed when a schema is available.
+- `-f, --raw-field key=value` adds a string JSON field.
+- `-H, --header key:value` adds a request header.
+- `--input <path>` reads a JSON object request body from a file.
+- `--help` prints OpenAPI-derived route help, including summaries,
+  descriptions, required fields, defaults, and enums when available.
+
+Nested object fields use bracket paths:
+
+```sh
+craftless api /clients/bot:run --api "$CRAFTLESS" \
+  -F action=player.chat \
+  -F "args[message]=hello from Craftless"
+```
+
+## Create And Connect A Client
+
+`POST /clients` launches a new daemon-managed real Minecraft Java client
+process. It is not a selector, retry, or reuse operation. Before creating a
+new client in a long-running workspace, list clients and reuse or stop old
+test clients when appropriate.
+
+Create a default headless, muted automation client:
+
+```sh
+craftless api /clients --api "$CRAFTLESS" \
+  -F id=bot \
+  -F version=latest-release \
+  -F loader=FABRIC
+```
+
+Connect it to a Minecraft server:
+
+```sh
+craftless api /clients/bot:connect --api "$CRAFTLESS" \
+  -F host=127.0.0.1 \
+  -F port=25565
+```
+
+Create a visible client only when a Craftless-launched human-facing window is
+intentional:
+
+```sh
+craftless api /clients --api "$CRAFTLESS" \
+  -F id=robin \
+  -F version=latest-release \
+  -F loader=FABRIC \
+  -F "profile[kind]=OFFLINE" \
+  -F "profile[name]=Robin" \
+  -F "presentation[window]=VISIBLE" \
+  -F "presentation[audio]=DEFAULT"
+```
+
+Stop a client:
+
+```sh
+craftless api /clients/bot:stop --api "$CRAFTLESS" -X POST
+```
+
+## Discover Runtime Capabilities
+
+After the in-client driver attaches, fetch the generated client contract and
+descriptor projections:
+
+```sh
+craftless api /clients/bot/openapi.json --api "$CRAFTLESS" > bot-openapi.json
+craftless api /clients/bot/actions --api "$CRAFTLESS"
+craftless api /clients/bot/resources --api "$CRAFTLESS"
+```
+
+The per-client OpenAPI document is the authority for generated gameplay
+routes, action schemas, handles, availability, and runtime fingerprints.
+`/actions` and `/resources` are convenience projections for discovery.
+
+## Invoke Gameplay
+
+The stable generic invocation route is `POST /clients/{id}:run`:
+
+```sh
+craftless api /clients/bot:run --api "$CRAFTLESS" \
+  -F action=player.chat \
+  -F "args[message]=hello from Craftless"
+```
+
+Generated per-client routes can also be invoked through `craftless api` when
+they appear in that client's OpenAPI document:
+
+```sh
+craftless api /clients/bot/player:chat --api "$CRAFTLESS" \
+  -F message="hello from a generated route"
+```
+
+Ask for route help after discovery:
+
+```sh
+craftless api /clients/bot/player:chat --api "$CRAFTLESS" --help
+craftless api /clients/bot:run --api "$CRAFTLESS" --help
+```
+
+## Events And JSON-RPC
+
+Use SSE streams for observations:
+
+```sh
+craftless api /clients/bot/events:stream --api "$CRAFTLESS"
+```
+
+Use the JSON-RPC-style route for query, subscribe, unsubscribe, and invoke
+operations. Keep `jsonrpc` as a raw string field:
+
+```sh
+craftless api /clients/bot:rpc --api "$CRAFTLESS" \
+  -f jsonrpc=2.0 \
+  -F id=query-actions \
+  -F method=query \
+  -F "params[target]=actions"
+```
+
+## Removed Shortcut Commands
+
+Older shortcut command trees are no longer the product CLI shape.
+
+Use `craftless api <endpoint>` for supervisor routes, per-client generated
+routes, generic invocation, events, and OpenAPI-derived help.

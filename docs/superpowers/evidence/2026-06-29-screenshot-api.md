@@ -6,7 +6,7 @@ PR-ready screenshot API slice:
 
 - generated runtime graph resource `media.screenshot`
 - generated operation `media.screenshot.capture`
-- generated alias route `/clients/{id}/media/screenshot:capture`
+- generated route `/clients/{id}/media/screenshot:capture`
 - generic invocation through `/clients/{id}:run`
 - generic artifact serving through `/clients/{id}/artifacts/{artifact-id}`
 - deterministic fake-driver path for offline tests
@@ -21,7 +21,7 @@ Fabric screenshot capture remains explicit follow-up adapter work.
 - Protocol projection:
   `mise exec -- gradle :protocol:test --tests 'com.minekube.craftless.protocol.OpenApiGenerationTest' --rerun-tasks`
   passed. The screenshot projection test proved resource
-  `media.screenshot`, operation `media.screenshot.capture`, generated alias
+  `media.screenshot`, operation `media.screenshot.capture`, generated route
   `/clients/{id}/media/screenshot:capture`, and the artifact result schema.
 - Fake driver red:
   `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.FakeDriverSessionTest' --rerun-tasks`

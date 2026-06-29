@@ -9,13 +9,13 @@ serve the produced bytes through generic client artifact infrastructure.
 
 - Runtime resource: `media.screenshot`
 - Runtime operation: `media.screenshot.capture`
-- Generated alias: `POST /clients/{id}/media/screenshot:capture`
+- Generated route: `POST /clients/{id}/media/screenshot:capture`
 - Generic fallback: `POST /clients/{id}:run` with
   `action=media.screenshot.capture`
 - Artifact download: `GET /clients/{id}/artifacts/{artifact-id}`
 
 `media.screenshot.capture` is not a stable handwritten gameplay route family.
-It is a runtime graph operation whose alias route is generated from the
+It is a runtime graph operation whose route is generated from the
 per-client OpenAPI document.
 
 ## Result Contract
@@ -45,7 +45,7 @@ thread.
 
 ## Verification
 
-- Protocol OpenAPI projection proves the generated alias, resource, and result
+- Protocol OpenAPI projection proves the generated route, resource, and result
   schema.
 - Testkit fake driver proves external callers can discover and invoke
   `media.screenshot.capture` through the runtime graph.

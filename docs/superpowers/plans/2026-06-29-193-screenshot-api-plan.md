@@ -4,7 +4,7 @@
 
 **Goal:** Add a PR-ready screenshot API slice backed by generated per-client OpenAPI/action metadata and generic artifact serving.
 
-**Architecture:** Keep screenshot capture in the runtime graph as `media.screenshot.capture`, so `POST /clients/{id}/media/screenshot:capture` remains a generated alias and `POST /clients/{id}:run` remains the generic fallback. Store returned media bytes under each client's Craftless-owned runtime artifacts directory and serve them through a generic guarded artifact route.
+**Architecture:** Keep screenshot capture in the runtime graph as `media.screenshot.capture`, so `POST /clients/{id}/media/screenshot:capture` remains a generated route and `POST /clients/{id}:run` remains the generic fallback. Store returned media bytes under each client's Craftless-owned runtime artifacts directory and serve them through a generic guarded artifact route.
 
 **Tech Stack:** Kotlin/JVM, Ktor Server/Client, kotlinx.serialization, JUnit 5/kotlin.test, Gradle through mise.
 

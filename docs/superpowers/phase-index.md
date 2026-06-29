@@ -206,9 +206,19 @@ description for discovery/version, events, cache, Java runtime resolution,
 client lifecycle, per-client OpenAPI, action/resource projections, generic
 invocation, JSON-RPC, and streams. The coverage test prevents future stable
 routes from appearing without agent-readable OpenAPI guidance.
-Phase 193 adds the screenshot API product slice. Screenshot capture is exposed
+Phase 193 replaces generated CLI route subcommands with the single
+`craftless api <endpoint>` route invoker. Supervisor and per-client routes are
+matched from OpenAPI paths and request schemas; `x-craftless-cli` is no longer
+serialized, and `GeneratedRouteCli` is removed.
+Phase 194 adds a static Fumadocs Cloudflare Workers documentation site. The
+site is built with Bun through mise, exports a compact supervisor OpenAPI
+snapshot from the protocol route catalog, renders a stable `/docs/api-reference`
+entrypoint plus generated operation pages, and deploys `docs-site/out` with
+Workers Static Assets and preview URLs. A FumaPress spike found it useful as
+preview tooling but less suitable than Fumadocs Next static export for this PR.
+Phase 195 adds the screenshot API product slice. Screenshot capture is exposed
 as generated runtime graph resource `media.screenshot` and operation
-`media.screenshot.capture`, with the generated alias
+`media.screenshot.capture`, with the generated route
 `POST /clients/{id}/media/screenshot:capture` and generic fallback
 `POST /clients/{id}:run`. The daemon now serves generic client artifacts from
 `GET /clients/{id}/artifacts/{artifact-id}` with traversal guards. This phase

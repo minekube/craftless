@@ -100,7 +100,7 @@ describe("distribution surface", () => {
     expect(mise).toContain("$PWD/scripts/packaged-latest-current-probe.sh");
     expect(mise).toContain("mise run package-cli");
     expect(script).toContain("build/docker/craftless/bin/craftless");
-    expect(script).toContain("--version latest-release");
+    expect(script).toContain("-F version=latest-release");
     expect(script).toContain("supervisor-openapi.json");
     expect(script).toContain("clients-create-latest-release.log");
     expect(script).toContain("client-openapi-connected.json");
@@ -111,7 +111,8 @@ describe("distribution surface", () => {
     expect(script).toContain("x-craftless-actions");
     expect(script).toContain('!action.id.startsWith("task.")');
     expect(script).toContain('method: "invoke"');
-    expect(script).toContain('clients "$CLIENT_ID" run "$GENERATED_ACTION_ID"');
+    expect(script).toContain('api "/clients/$CLIENT_ID:run"');
+    expect(script).toContain('-F "action=$GENERATED_ACTION_ID"');
     expect(script).toContain("mise exec -- bun");
     expect(script).not.toContain("task.survival");
   });
@@ -125,8 +126,8 @@ describe("distribution surface", () => {
     expect(mise).toContain("$PWD/scripts/packaged-representative-older-probe.sh");
     expect(mise).toContain("mise run package-cli");
     expect(script).toContain("build/docker/craftless/bin/craftless");
-    expect(script).toContain("--version 1.20.6");
-    expect(script).toContain("--loader-version 0.19.3");
+    expect(script).toContain("-F version=1.20.6");
+    expect(script).toContain("-F loaderVersion=0.19.3");
     expect(script).toContain("clients-create-representative-older.log");
     expect(script).toContain("client-openapi-connected.json");
     expect(script).toContain("client-rpc-subscribe.json");
@@ -136,7 +137,8 @@ describe("distribution surface", () => {
     expect(script).toContain("x-craftless-actions");
     expect(script).toContain('!action.id.startsWith("task.")');
     expect(script).toContain('method: "invoke"');
-    expect(script).toContain('clients "$CLIENT_ID" run "$GENERATED_ACTION_ID"');
+    expect(script).toContain('api "/clients/$CLIENT_ID:run"');
+    expect(script).toContain('-F "action=$GENERATED_ACTION_ID"');
     expect(script).toContain("mise exec -- bun");
     expect(script).not.toContain("task.survival");
     expect(script).not.toContain(":driver-fabric:runClient");
@@ -186,7 +188,7 @@ describe("distribution surface", () => {
       expect(surface).toContain("launches a new daemon-managed real Minecraft Java client process");
       expect(surface).toContain("not a selector, retry, or reuse operation");
       expect(surface).toContain("Creating fresh timestamped ids for retries leaves multiple Minecraft clients running");
-      expect(surface).toContain("craftless clients <id> stop --api \"$CRAFTLESS\"");
+      expect(surface).toContain("craftless api /clients/<id>:stop --api \"$CRAFTLESS\" -X POST");
     }
   });
 
@@ -232,6 +234,60 @@ describe("distribution surface", () => {
     expect(config.packages["."]["include-component-in-tag"]).toBe(false);
     expect(manifest["."]).toBe("0.1.2");
     expect(changelog).toContain("Release Please");
+  });
+
+  test("Fumadocs site is a Cloudflare Workers product surface with previews", () => {
+    const mise = read(".mise.toml");
+    const packageJson = JSON.parse(read("docs-site/package.json"));
+    const wrangler = read("docs-site/wrangler.jsonc");
+    const nextConfig = read("docs-site/next.config.mjs");
+    const openapi = read("docs-site/lib/openapi.ts");
+    const source = read("docs-site/lib/source.ts");
+    const apiPage = read("docs-site/components/api-page.tsx");
+    const page = read("docs-site/app/docs/[[...slug]]/page.tsx");
+    const apiReference = read("docs-site/content/docs/api-reference.mdx");
+    const cliDocs = read("docs-site/content/docs/cli.mdx");
+    const meta = JSON.parse(read("docs-site/content/docs/meta.json"));
+    const schema = JSON.parse(read("docs-site/openapi/craftless-supervisor.json"));
+
+    expect(packageJson.scripts.build).toBe("next build");
+    expect(packageJson.scripts.deploy).toBe("wrangler deploy");
+    expect(packageJson.scripts["preview:upload"]).toContain("wrangler versions upload");
+    expect(packageJson.scripts["openapi:generate"]).toContain("mise run docs-site-openapi");
+    expect(packageJson.dependencies["fumadocs-openapi"]).toBeDefined();
+    expect(packageJson.dependencies["fumadocs-ui"]).toBeDefined();
+    expect(packageJson.dependencies.next).toBeDefined();
+    expect(packageJson.devDependencies.wrangler).toBeDefined();
+    expect(nextConfig).toContain("output: 'export'");
+    expect(nextConfig).toContain("trailingSlash: true");
+    expect(openapi).toContain("createOpenAPI");
+    expect(openapi).toContain("./openapi/craftless-supervisor.json");
+    expect(source).toContain("openapi.staticSource");
+    expect(source).toContain("openapi.loaderPlugin()");
+    expect(apiPage).toContain("createOpenAPIPage");
+    expect(page).toContain("getOpenAPIPageProps()");
+    expect(schema.openapi).toBe("3.1.0");
+    expect(JSON.stringify(schema)).not.toContain("x-craftless-cli");
+    expect(schema.paths["/openapi.json"].get.description).toContain("stable supervisor API");
+    expect(schema.tags.find((tag: { name: string }) => tag.name === "clients")?.description).toContain(
+      "Daemon-managed real Minecraft Java clients",
+    );
+    expect(apiReference).toContain("Generated operation pages are grouped by Craftless API pillar");
+    expect(meta.pages).toContain("cli");
+    expect(cliDocs).toContain("craftless daemon start");
+    expect(cliDocs).toContain("craftless api <endpoint>");
+    expect(cliDocs).toContain("OpenAPI-derived route help");
+    expect(cliDocs).toContain("-f jsonrpc=2.0");
+    expect(cliDocs).not.toContain("craftless clients create");
+    expect(mise).toContain("[tasks.docs-site-openapi]");
+    expect(mise).toContain("[tasks.docs-site-build]");
+    expect(mise).toContain("mise exec -- bun install");
+    expect(mise).toContain("mise exec -- bun run build");
+    expect(wrangler).toContain('"name": "craftless-docs"');
+    expect(wrangler).toContain('"preview_urls": true');
+    expect(wrangler).toContain('"directory": "./out"');
+    expect(wrangler).toContain('"not_found_handling": "404-page"');
+    expect(exists(".github/workflows/docs-pages.yml")).toBe(false);
   });
 
   test("install script installs from minekube/craftless GitHub releases", () => {

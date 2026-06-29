@@ -26,7 +26,7 @@ gameplay SDK.
 | Gameplay surface | Runtime capability graph projection, not a static catalog |
 | Events | SSE streams plus JSON-RPC-style HTTP control/query calls |
 | Current Fabric lane | Verified for the compiled lane |
-| Latest and older lanes | Latest/current `26.2` and representative older `1.20.6` packaged lanes are verified through create, attach, connect, generated OpenAPI, projections, SSE, JSON-RPC query/subscription, JSON-RPC invocation, and adaptive CLI invocation |
+| Latest and older lanes | Latest/current `26.2` and representative older `1.20.6` packaged lanes are verified through create, attach, connect, generated OpenAPI, projections, SSE, JSON-RPC query/subscription, JSON-RPC invocation, and `craftless api` invocation |
 | Final gameplay evidence | Public API/CLI survival evidence passed with server provisioning disabled |
 | Completion | All CL gates are closed; see `docs/project-completion-checklist.md` |
 
@@ -64,23 +64,25 @@ Check the CLI:
 craftless --help
 ```
 
-The CLI has a small stable core for daemon lifecycle, client lifecycle, cache,
-runtime, discovery, output, and generic invocation. Gameplay commands and help
-come from each live client's generated OpenAPI document.
+The CLI has a small stable core for daemon lifecycle plus one OpenAPI-backed
+route invoker. Use `craftless api <endpoint>` for supervisor and per-client
+routes; help is inferred from the daemon's OpenAPI schemas.
 
 Create an API-first automation client with lifecycle defaults:
 
 ```sh
-craftless clients create bot --version latest-release --loader fabric --api "$CRAFTLESS"
+craftless api /clients --api "$CRAFTLESS" \
+  -F id=bot -F version=latest-release -F loader=FABRIC
 ```
 
-`craftless clients create` launches a new daemon-managed real Minecraft Java
-client process. It is not a selector, retry, or reuse operation. In an existing
-daemon or workspace, run `craftless clients list --api "$CRAFTLESS"` and
-`craftless clients <id> get --api "$CRAFTLESS"` first, then reuse a suitable
+`craftless api /clients` with fields posts `POST /clients`, which launches a
+new daemon-managed real Minecraft Java client process. It is not a selector,
+retry, or reuse operation. In an existing daemon or workspace, run
+`craftless api /clients --api "$CRAFTLESS"` and
+`craftless api /clients/<id> --api "$CRAFTLESS"` first, then reuse a suitable
 client or stop an abandoned one with
-`craftless clients <id> stop --api "$CRAFTLESS"`. Creating fresh timestamped
-ids for retries leaves multiple Minecraft clients running.
+`craftless api /clients/<id>:stop --api "$CRAFTLESS" -X POST`. Creating fresh
+timestamped ids for retries leaves multiple Minecraft clients running.
 
 When `--offline-name` is omitted, Craftless derives a safe offline profile
 from the client id. The default presentation requests no visible window and
@@ -89,8 +91,10 @@ a visible, normal-audio client when Craftless should manage a human-facing
 window:
 
 ```sh
-craftless clients create robin --version latest-release --loader fabric \
-  --offline-name Robin --visible --audio default --api "$CRAFTLESS"
+craftless api /clients --api "$CRAFTLESS" \
+  -F id=robin -F version=latest-release -F loader=FABRIC \
+  -F profile[kind]=OFFLINE -F profile[name]=Robin \
+  -F presentation[window]=VISIBLE -F presentation[audio]=DEFAULT
 ```
 
 ## Docker
@@ -229,19 +233,20 @@ Stream live events:
 curl -N "$CRAFTLESS/clients/alice/events:stream"
 ```
 
-Use the adaptive CLI against the same generated metadata:
+Use the API-aligned CLI against the same generated metadata:
 
 ```sh
-craftless clients alice actions --api "$CRAFTLESS"
-craftless clients alice resources --api "$CRAFTLESS"
-craftless clients alice run player.chat --api "$CRAFTLESS" --arg message="hello from Craftless"
-craftless clients alice actions --help --api "$CRAFTLESS"
-craftless clients alice player chat --help --api "$CRAFTLESS"
+craftless api /clients/alice/actions --api "$CRAFTLESS"
+craftless api /clients/alice/resources --api "$CRAFTLESS"
+craftless api /clients/alice:run --api "$CRAFTLESS" \
+  -F action=player.chat -F args[message]="hello from Craftless"
+craftless api /clients/alice/actions --help --api "$CRAFTLESS"
+craftless api /clients/alice/player:chat --method POST --help --api "$CRAFTLESS"
 ```
 
-Generated aliases such as `craftless clients alice player chat` are derived
-from the live OpenAPI document. They are not source-maintained gameplay
-commands.
+Per-client generated routes such as `POST /clients/alice/player:chat` come
+from the live OpenAPI document. They are invoked through `craftless api`, not
+through `craftless api` route invocations.
 
 ## Two-Client Co-Play Bootstrap
 
@@ -251,17 +256,22 @@ For a simple "let's play" setup, keep lifecycle and gameplay separate:
 craftless daemon start --port 8080 --workspace .craftless
 export CRAFTLESS=http://127.0.0.1:8080
 
-craftless clients create bot --version latest-release --loader fabric --api "$CRAFTLESS"
-craftless clients bot connect --host localhost --port 25565 --api "$CRAFTLESS"
+craftless api /clients --api "$CRAFTLESS" \
+  -F id=bot -F version=latest-release -F loader=FABRIC
+craftless api /clients/bot:connect --api "$CRAFTLESS" \
+  -F host=localhost -F port=25565
 ```
 
 If Craftless should also manage the human-facing client window, create it
 explicitly as visible and normal-audio:
 
 ```sh
-craftless clients create robin --version latest-release --loader fabric \
-  --offline-name Robin --visible --audio default --api "$CRAFTLESS"
-craftless clients robin connect --host localhost --port 25565 --api "$CRAFTLESS"
+craftless api /clients --api "$CRAFTLESS" \
+  -F id=robin -F version=latest-release -F loader=FABRIC \
+  -F profile[kind]=OFFLINE -F profile[name]=Robin \
+  -F presentation[window]=VISIBLE -F presentation[audio]=DEFAULT
+craftless api /clients/robin:connect --api "$CRAFTLESS" \
+  -F host=localhost -F port=25565
 ```
 
 If the human is joining with their own launcher, skip the `robin` client and
@@ -284,7 +294,7 @@ Agents should behave like external Craftless users:
    evidence, not as an independent catalog.
 6. Subscribe to `GET /clients/{id}/events:stream` before state-changing work.
 7. Invoke only advertised actions through `POST /clients/{id}:run`, generated
-   alias routes, or the adaptive CLI.
+   generated routes, or the API-aligned CLI.
 
 The repo-local skill
 `.agents/skills/craftless-public-gameplay-agent/SKILL.md` captures this
@@ -323,11 +333,11 @@ Verified surfaces:
 - stable supervisor OpenAPI at `GET /openapi.json`;
 - generated per-client OpenAPI at `GET /clients/{id}/openapi.json`;
 - graph-projected actions, resources, handles, schemas, availability,
-  fingerprints, generated aliases, and event metadata;
+  fingerprints, generated routes, and event metadata;
 - generic action invocation through `POST /clients/{id}:run`;
 - SSE event streams plus JSON-RPC-style HTTP control/query calls;
-- adaptive CLI discovery, generated help, generated aliases, action
-  invocation, event watching, tools export, and OpenAPI cache revalidation;
+- API-aligned CLI discovery, OpenAPI-derived route help, action invocation,
+  event streaming, and route invocation;
 - cache preparation for Minecraft/Fabric metadata, libraries, assets, natives,
   Java runtime files, launch arguments, classpaths, logging, and instance file
   layout;
