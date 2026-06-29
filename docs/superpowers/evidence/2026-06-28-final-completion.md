@@ -45,7 +45,48 @@ docs/superpowers/phase-index.md
 
 ## Final Post-Push Check
 
-After committing this evidence file and checklist closure, run:
+Final correction commit:
+
+```text
+2eb73033 chore: close final checklist corrections
+```
+
+That commit includes:
+
+- the final checklist rewrite;
+- ktlint formatting corrections found by `mise run ci`;
+- removal of the remaining previous-brand literal from CL-05 evidence;
+- the shared `world.time.query` operation id flow from capability probe into
+  client-state discovery.
+
+Verification after those corrections:
+
+```text
+mise run ci
+BUILD SUCCESSFUL
+23 pass
+0 fail
+198 expect() calls
+```
+
+```text
+git diff --check
+```
+
+Result: exit `0`, no output.
+
+```text
+mise exec -- gradle :driver-fabric:test --tests '*completion gate does not accept unsupported version lanes as support'
+BUILD SUCCESSFUL in 1s
+```
+
+Post-push status after `2eb73033`:
+
+```text
+## main...origin/main
+```
+
+After committing this final evidence/checklist index update, run:
 
 ```sh
 git push origin main

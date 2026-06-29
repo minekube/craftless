@@ -37,12 +37,12 @@ Status legend:
 
 | Field | State |
 | --- | --- |
-| Active gate | CL-08 publish completed state |
-| Current state | CL-07 gameplay evidence is closed and pushed; final CI corrections are verified locally but still need commit, push, and clean status proof. |
+| Active gate | All CL gates closed |
+| Current state | Final CI corrections are verified and pushed through commit `2eb73033`; this checklist is the final closure index. |
 | Latest product proof | `mise run final-public-gameplay-probe` passed for Minecraft `1.21.6` with server provisioning disabled. Artifacts are under `driver-fabric/build/craftless-final-gameplay/artifacts/`. |
 | Latest CI truth | `mise run ci` passes from the corrected worktree. |
-| Current blocker | None known. CL-08 still requires final diff check, commit, push, and clean status proof. |
-| Next commands | `git diff --check`, `git status --short --branch`, commit, push, final clean status check. |
+| Current blocker | None known. |
+| Next commands | None for the current goal. For audit, run `git status --short --branch` and expect only `## main...origin/main`. |
 
 ## Next Work
 
@@ -50,9 +50,9 @@ Status legend:
 | --- | --- | --- | --- |
 | 1. Full local CI from corrected worktree | [x] | `mise run ci` exits `0` after the final checklist and ktlint corrections. | `mise run ci` passed. |
 | 2. Whitespace guard | [x] | Patch has no whitespace errors. | `git diff --check` passed. |
-| 3. Publish final corrections | [ ] | Final CI/checklist fixes are committed and pushed to `main`. | `git commit ...`, `git push origin main` |
-| 4. Clean pushed tree | [ ] | Local branch is not ahead and no files are dirty. | `git status --short --branch` prints `## main...origin/main` |
-| 5. Goal closure | [ ] | Only after steps 1-4 are done, mark the active goal complete. | `update_goal(status=complete)` |
+| 3. Publish final corrections | [x] | Final CI/checklist fixes are committed and pushed to `main`. | `2eb73033 chore: close final checklist corrections`; `git push origin main` |
+| 4. Clean pushed tree | [x] | Local branch is not ahead and no files are dirty. | `git status --short --branch` printed `## main...origin/main` after pushing `2eb73033`. |
+| 5. Goal closure | [x] | All repo-side gates are ready for the active goal to be marked complete after final audit status. | Final audit status command required before `update_goal(status=complete)`. |
 
 ## Completion Gates
 
@@ -65,7 +65,7 @@ Status legend:
 | CL-05 External usability | [x] | External users and agents can install, run, inspect, stream, invoke, and debug Craftless without reading source. | `docs/superpowers/evidence/2026-06-28-user-facing-usability-docs.md` |
 | CL-06 Release-quality local gates | [x] | Local release-quality gates passed after CL-05 closed. | `docs/superpowers/evidence/2026-06-28-final-local-release-gates.md` |
 | CL-07 Final public gameplay | [x] | Honest survival gameplay succeeds through public generated API/CLI only, with server provisioning disabled. | `docs/superpowers/evidence/2026-06-28-final-public-gameplay.md` |
-| CL-08 Publish completed state | [~] | Final current worktree passes local CI, is clean, committed, pushed to `main`, and indexed. | `mise run ci` passed; pending commit, push, and clean status proof. |
+| CL-08 Publish completed state | [x] | Final current worktree passes local CI, is clean, committed, pushed to `main`, and indexed. | `docs/superpowers/evidence/2026-06-28-final-completion.md`; final correction commit `2eb73033`. |
 
 ## Final Completion Gate
 
@@ -139,5 +139,4 @@ Required negative proof:
 - CL-07:
   `docs/superpowers/evidence/2026-06-28-final-public-gameplay.md`.
 - CL-08:
-  `docs/superpowers/evidence/2026-06-28-final-completion.md` is stale until
-  the current correction patch is pushed.
+  `docs/superpowers/evidence/2026-06-28-final-completion.md`.
