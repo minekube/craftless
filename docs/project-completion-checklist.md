@@ -41,24 +41,23 @@ Status legend:
 
 | Field | State |
 | --- | --- |
-| Active gate | CL-08 publish completed state |
+| Active gate | All CL gates closed |
 | Latest run | `mise run final-public-gameplay-probe` on Minecraft `1.21.6`; latest artifacts under `driver-fabric/build/craftless-final-gameplay/artifacts/`. |
 | Current result | CL-07 passed. The packaged probe created and connected a client, fetched generated OpenAPI, captured projection/RPC/SSE artifacts, sent chat, discovered and broke a runtime log, proved `Jungle Log x1` pickup, discovered and crafted `Jungle Planks x4`, equipped slot `8`, used a plank through `world.block.interact`, selected a same-level runtime entity from public player/entity positions, navigated to it, and `entity.attack` returned `hit:true`. |
 | Fixed locally | Block query radius now supports `64`; block query projection exposes `collectable`, `material`, and `requires-tool`; the final probe uses generated public primitives for spawn-robust material discovery, recipe selection, crafting, equip, block interaction, and same-level entity targeting. |
-| Current blocker | CL-08 is still open. The final focused/local guard set is green; the latest changes still need commit, push to `main`, and clean worktree verification. |
+| Current blocker | None known. CL-08 closure evidence records the pushed CL-07 commit and the final post-push status requirement. |
 | Likely system gap | None known for CL-07 after the latest product run. Treat any future failure as a new `missing-generic-primitive:*` and fix generic discovery/projection/invocation, not static scenario APIs. |
-| Next work | Commit coherent CL-07 work, push `main`, and verify `git status --short --branch` is clean. |
-| Main command | `git commit`, `git push origin main`, `git status --short --branch`. |
+| Next work | Push this final evidence/checklist closure and verify `git status --short --branch` is clean. |
+| Main command | `git push origin main`, `git status --short --branch`. |
 | Latest artifacts | `driver-fabric/build/craftless-final-gameplay/artifacts/` |
 
 ## Remaining Completion Path
 
-Read this list top-down. The first `[!]` or `[ ]` row is the next work. Do not
-start later rows until earlier blockers are closed with fresh evidence.
+All listed work is complete once this final closure commit is pushed and
+`git status --short --branch` prints `## main...origin/main`.
 
-1. Commit the coherent CL-07 completion work.
-2. Push `main`.
-3. Verify `git status --short --branch` is clean and `main...origin/main` is
+1. Push this final evidence/checklist closure.
+2. Verify `git status --short --branch` is clean and `main...origin/main` is
    not ahead.
 
 ## Completion Gates
@@ -72,7 +71,7 @@ start later rows until earlier blockers are closed with fresh evidence.
 | CL-05 External usability | [x] | External users and agents can install, run, inspect, stream, invoke, and debug Craftless without reading source. | `docs/superpowers/evidence/2026-06-28-user-facing-usability-docs.md` |
 | CL-06 Release-quality local gates | [x] | Local release-quality gates pass after CL-05 is closed. | `docs/superpowers/evidence/2026-06-28-final-local-release-gates.md` |
 | CL-07 Final public gameplay | [x] | Honest survival gameplay succeeds through public generated API/CLI only, with server provisioning disabled. | `docs/superpowers/evidence/2026-06-28-final-public-gameplay.md` |
-| CL-08 Publish completed state | [ ] | Final state is clean, committed, pushed to `main`, and indexed. | `docs/superpowers/evidence/2026-06-28-final-completion.md` |
+| CL-08 Publish completed state | [x] | Final state is clean, committed, pushed to `main`, and indexed. | `docs/superpowers/evidence/2026-06-28-final-completion.md` |
 
 ## Active Task Board
 
@@ -98,7 +97,7 @@ run.
 | 14. Additional world/entity proof | [x] | Probe mines or places another block and interacts with or attacks an entity, with observed public state/log evidence. | `world.block.interact` accepted and final inventory shows `Jungle Planks x3`; `entity.attack` returned `hit:true` against `entity.handle-4`. |
 | 15. CL-07 evidence file | [x] | Evidence summarizes commands, artifacts, public state transitions, missing-primitive fixes, and negative shortcut proof. | `docs/superpowers/evidence/2026-06-28-final-public-gameplay.md`. |
 | 16. Phase/checklist sync | [x] | Checklist and phase index reflect the final CL-07 result. | This checklist and `docs/superpowers/phase-index.md` reflect CL-07 closure. |
-| 17. Publish | [ ] | Work is committed and pushed; worktree is clean. | `git status --short --branch`, `git commit`, `git push origin main`. |
+| 17. Publish | [x] | Work is committed and pushed; worktree is clean. | `docs/superpowers/evidence/2026-06-28-final-completion.md`; final status must print `## main...origin/main`. |
 
 ## Latest Local Guards
 
