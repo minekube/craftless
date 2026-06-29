@@ -12,11 +12,11 @@ Craftless currently has:
 - pinned tool execution through `mise`, with Bun used only through
   `mise exec -- bun`;
 - a Ktor daemon with stable supervisor OpenAPI at `/openapi.json`;
-- a Ktor Client based adaptive JVM `craftless` CLI;
+- a Ktor Client based JVM `craftless api` route invoker;
 - generated per-client OpenAPI at `/clients/{id}/openapi.json`;
 - graph-projected actions and resources exposed through
   `/clients/{id}/actions`, `/clients/{id}/resources`,
-  `POST /clients/{id}:run`, and generated aliases;
+  `POST /clients/{id}:run`, and generated routes;
 - graph-projected handle, schema, availability, provenance, event, and
   fingerprint metadata in per-client OpenAPI extensions;
 - per-client runtime fingerprints in OpenAPI extensions, response headers, and
@@ -32,7 +32,8 @@ Craftless currently has:
   rule-selected native libraries, Fabric loader profile libraries, launch
   argument placeholders, logging config, asset indexes, and standard asset
   object paths into Craftless-owned workspace handles;
-- manifest-driven cache export and cleanup through the supervisor API and CLI;
+- manifest-driven cache export and cleanup through the supervisor API and
+  `craftless api`;
 - a stable `DriverSession` contract with lifecycle primitives plus generic
   action discovery and invocation, not one driver method per Minecraft action;
 - protocol and architecture checks rejecting public Fabric, Yarn, intermediary,
@@ -52,7 +53,7 @@ Craftless currently has:
   resources, SSE, and public-state verification;
 - packaged latest/current `26.2` and representative older `1.20.6` product
   lane evidence under the same create, attach, connect, generated OpenAPI,
-  projection, SSE, JSON-RPC, and adaptive CLI gates;
+  projection, SSE, JSON-RPC, and `craftless api` gates;
 - local server, Fabric client, compatibility, distribution, Docker, installer,
   and final public gameplay evidence under `docs/superpowers/evidence/`.
 
@@ -186,7 +187,7 @@ or static placeholder descriptors.
   rigor now used for Fabric Loader, installed-mod, selected registry, and
   gateway-derived server-feature metadata.
 - Extend daemon validation for mismatched result schemas before dispatch.
-- Keep generated aliases derived from OpenAPI metadata only.
+- Keep generated routes derived from OpenAPI metadata only.
 
 Verification gate:
 
@@ -196,7 +197,7 @@ mise exec -- gradle :protocol:test :driver-api:test :daemon:test :cli:test
 mise run ci
 ```
 
-## Phase 3: Adaptive CLI And Client Generation
+## Phase 3: API-Aligned CLI And Client Generation
 
 Goal: make `craftless` and future generated clients consume live specs instead
 of mirroring the API by hand.
@@ -214,7 +215,7 @@ of mirroring the API by hand.
   descriptor projection/availability view.
 - Keep static CLI commands limited to daemon lifecycle and generic OpenAPI
   route invocation.
-- Add an OpenAPI compatibility fixture that proves generated aliases, generic
+- Add an OpenAPI compatibility fixture that proves generated routes, generic
   action invocation, and schema metadata stay in sync.
 - Defer any TypeScript SDK until the generated API contract is strong enough
   and explicitly approved as a product surface.

@@ -33,3 +33,19 @@ failed before implementation because supervisor OpenAPI still serialized
 
 `mise exec -- gradle :cli:test --tests com.minekube.craftless.cli.CraftlessCliTest :protocol:test --tests com.minekube.craftless.protocol.OpenApiGenerationTest`
 passed after the API-only CLI and OpenAPI changes.
+
+`rg -n "craftless clients|clients \"\\$CLIENT_ID\"|clients create|clients <id>|GeneratedRouteCli|x-craftless-cli|generated alias|generated aliases|CLI alias|generated CLI subcommands|generated CLI help|adaptive CLI invocation|adaptive CLI" README.md .agents scripts playwright docs/*.md docs/agent*.md docs/final* docs/roadmap.md cli/AGENTS.md daemon/AGENTS.md docs/agent-operating-contract.md docs/agent-module-contracts.md cli/src/main protocol/src/main .agents/skills/test-suite-builder/SKILL.md -g '!**/build/**'`
+returned no current-facing stale CLI design mentions.
+
+`bash -n scripts/packaged-latest-current-probe.sh scripts/packaged-representative-older-probe.sh scripts/final-public-gameplay-probe.sh`
+passed after converting packaged and final probe scripts to `craftless api`
+route invocations.
+
+`mise exec -- bun test playwright/src/distribution.test.ts`
+passed after updating distribution assertions to the API-only CLI shape.
+
+`mise exec -- gradle :cli:test :protocol:test :cli:ktlintCheck :protocol:ktlintCheck`
+passed after removing the stale generated-command CLI helpers and ignored
+legacy shortcut tests.
+
+`git diff --check` passed.

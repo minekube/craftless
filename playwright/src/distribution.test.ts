@@ -100,7 +100,7 @@ describe("distribution surface", () => {
     expect(mise).toContain("$PWD/scripts/packaged-latest-current-probe.sh");
     expect(mise).toContain("mise run package-cli");
     expect(script).toContain("build/docker/craftless/bin/craftless");
-    expect(script).toContain("--version latest-release");
+    expect(script).toContain("-F version=latest-release");
     expect(script).toContain("supervisor-openapi.json");
     expect(script).toContain("clients-create-latest-release.log");
     expect(script).toContain("client-openapi-connected.json");
@@ -111,7 +111,8 @@ describe("distribution surface", () => {
     expect(script).toContain("x-craftless-actions");
     expect(script).toContain('!action.id.startsWith("task.")');
     expect(script).toContain('method: "invoke"');
-    expect(script).toContain('clients "$CLIENT_ID" run "$GENERATED_ACTION_ID"');
+    expect(script).toContain('api "/clients/$CLIENT_ID:run"');
+    expect(script).toContain('-F "action=$GENERATED_ACTION_ID"');
     expect(script).toContain("mise exec -- bun");
     expect(script).not.toContain("task.survival");
   });
@@ -125,8 +126,8 @@ describe("distribution surface", () => {
     expect(mise).toContain("$PWD/scripts/packaged-representative-older-probe.sh");
     expect(mise).toContain("mise run package-cli");
     expect(script).toContain("build/docker/craftless/bin/craftless");
-    expect(script).toContain("--version 1.20.6");
-    expect(script).toContain("--loader-version 0.19.3");
+    expect(script).toContain("-F version=1.20.6");
+    expect(script).toContain("-F loaderVersion=0.19.3");
     expect(script).toContain("clients-create-representative-older.log");
     expect(script).toContain("client-openapi-connected.json");
     expect(script).toContain("client-rpc-subscribe.json");
@@ -136,7 +137,8 @@ describe("distribution surface", () => {
     expect(script).toContain("x-craftless-actions");
     expect(script).toContain('!action.id.startsWith("task.")');
     expect(script).toContain('method: "invoke"');
-    expect(script).toContain('clients "$CLIENT_ID" run "$GENERATED_ACTION_ID"');
+    expect(script).toContain('api "/clients/$CLIENT_ID:run"');
+    expect(script).toContain('-F "action=$GENERATED_ACTION_ID"');
     expect(script).toContain("mise exec -- bun");
     expect(script).not.toContain("task.survival");
     expect(script).not.toContain(":driver-fabric:runClient");
@@ -186,7 +188,7 @@ describe("distribution surface", () => {
       expect(surface).toContain("launches a new daemon-managed real Minecraft Java client process");
       expect(surface).toContain("not a selector, retry, or reuse operation");
       expect(surface).toContain("Creating fresh timestamped ids for retries leaves multiple Minecraft clients running");
-      expect(surface).toContain("craftless clients <id> stop --api \"$CRAFTLESS\"");
+      expect(surface).toContain("craftless api /clients/<id>:stop --api \"$CRAFTLESS\" -X POST");
     }
   });
 

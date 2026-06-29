@@ -26,7 +26,7 @@ gameplay SDK.
 | Gameplay surface | Runtime capability graph projection, not a static catalog |
 | Events | SSE streams plus JSON-RPC-style HTTP control/query calls |
 | Current Fabric lane | Verified for the compiled lane |
-| Latest and older lanes | Latest/current `26.2` and representative older `1.20.6` packaged lanes are verified through create, attach, connect, generated OpenAPI, projections, SSE, JSON-RPC query/subscription, JSON-RPC invocation, and adaptive CLI invocation |
+| Latest and older lanes | Latest/current `26.2` and representative older `1.20.6` packaged lanes are verified through create, attach, connect, generated OpenAPI, projections, SSE, JSON-RPC query/subscription, JSON-RPC invocation, and `craftless api` invocation |
 | Final gameplay evidence | Public API/CLI survival evidence passed with server provisioning disabled |
 | Completion | All CL gates are closed; see `docs/project-completion-checklist.md` |
 
@@ -233,7 +233,7 @@ Stream live events:
 curl -N "$CRAFTLESS/clients/alice/events:stream"
 ```
 
-Use the adaptive CLI against the same generated metadata:
+Use the API-aligned CLI against the same generated metadata:
 
 ```sh
 craftless api /clients/alice/actions --api "$CRAFTLESS"
@@ -246,7 +246,7 @@ craftless api /clients/alice/player:chat --method POST --help --api "$CRAFTLESS"
 
 Per-client generated routes such as `POST /clients/alice/player:chat` come
 from the live OpenAPI document. They are invoked through `craftless api`, not
-through generated CLI subcommands.
+through `craftless api` route invocations.
 
 ## Two-Client Co-Play Bootstrap
 
@@ -294,7 +294,7 @@ Agents should behave like external Craftless users:
    evidence, not as an independent catalog.
 6. Subscribe to `GET /clients/{id}/events:stream` before state-changing work.
 7. Invoke only advertised actions through `POST /clients/{id}:run`, generated
-   alias routes, or the adaptive CLI.
+   generated routes, or the API-aligned CLI.
 
 The repo-local skill
 `.agents/skills/craftless-public-gameplay-agent/SKILL.md` captures this
@@ -333,11 +333,11 @@ Verified surfaces:
 - stable supervisor OpenAPI at `GET /openapi.json`;
 - generated per-client OpenAPI at `GET /clients/{id}/openapi.json`;
 - graph-projected actions, resources, handles, schemas, availability,
-  fingerprints, generated aliases, and event metadata;
+  fingerprints, generated routes, and event metadata;
 - generic action invocation through `POST /clients/{id}:run`;
 - SSE event streams plus JSON-RPC-style HTTP control/query calls;
-- adaptive CLI discovery, generated help, generated aliases, action
-  invocation, event watching, tools export, and OpenAPI cache revalidation;
+- API-aligned CLI discovery, OpenAPI-derived route help, action invocation,
+  event streaming, and route invocation;
 - cache preparation for Minecraft/Fabric metadata, libraries, assets, natives,
   Java runtime files, launch arguments, classpaths, logging, and instance file
   layout;

@@ -18,7 +18,7 @@ When daemon-specific instructions need to change, update
 - Keep stable lifecycle/client/version/cache/file routes separate from the
   generated per-client API.
 - Do not add public static gameplay route families; use descriptors plus
-  generic invocation and generated aliases described by OpenAPI.
+  generic invocation and generated routes described by OpenAPI.
 - Keep Minecraft-version knowledge in resolver data/services and compatibility
   probes, not per-version daemon routes, session APIs, or action catalogs.
 - Do not claim generated gameplay support until a prepared session is replaced

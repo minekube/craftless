@@ -1,6 +1,6 @@
 ---
 name: craftless-public-gameplay-agent
-description: Use when an agent must control a Craftless Minecraft client through the public generated API, adaptive CLI, or SSE/JSON-RPC streams to perform gameplay without hard-coded scenario shortcuts.
+description: Use when an agent must control a Craftless Minecraft client through the public generated API, craftless api CLI, or SSE/JSON-RPC streams to perform gameplay without hard-coded scenario shortcuts.
 ---
 
 # Craftless Public Gameplay Agent
@@ -107,9 +107,9 @@ API/process check proves it.
 
 ## Adaptive CLI Sequence
 
-The CLI is an adaptive consumer of the same live metadata. Use
+The CLI is an OpenAPI-aligned consumer of the same live metadata. Use
 `craftless api <endpoint>` when shelling out is easier than writing HTTP calls;
-do not treat generated aliases as CLI subcommands.
+do not treat generated routes as CLI subcommands.
 
 Discover live actions and resources:
 

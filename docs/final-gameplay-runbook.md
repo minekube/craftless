@@ -42,7 +42,7 @@ curl -fsS "$CRAFTLESS/clients/<id>/events"
 Stop abandoned clients through the supervisor API before a new attempt:
 
 ```sh
-craftless clients <id> stop --api "$CRAFTLESS"
+craftless api /clients/<id>:stop --api "$CRAFTLESS" -X POST
 ```
 
 When reporting status, include the fact that these checks were run now. If a
@@ -165,7 +165,7 @@ Do not call `update_goal(status = "complete")` until all of these are true:
 - Final gameplay artifacts exist in the evidence path.
 - The gameplay did not bypass the runtime graph with a new static public action
   surface.
-- The survival scenario is reproducible by an external agent or adaptive CLI
+- The survival scenario is reproducible by an external agent or `craftless api`
   flow using generated OpenAPI/SSE/JSON-RPC metadata, not only by an internal
   hard-coded `task.survival.*` scenario.
 - No item was granted through a server command, pre-seeded inventory, or manual

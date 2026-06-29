@@ -21,7 +21,7 @@ DAEMON_PID=""
 cleanup() {
   set +e
   if [ -n "$DAEMON_PID" ]; then
-    "$CRAFTLESS_BIN" clients "$CLIENT_ID" stop --api "$API" > "$ARTIFACTS_DIR/client-stop.log" 2>&1
+    "$CRAFTLESS_BIN" api "/clients/$CLIENT_ID:stop" --api "$API" -X POST > "$ARTIFACTS_DIR/client-stop.log" 2>&1
     kill "$DAEMON_PID" >/dev/null 2>&1
     wait "$DAEMON_PID" >/dev/null 2>&1
   fi
@@ -53,12 +53,14 @@ process.exit(1);
 '
 
 CRAFTLESS_HTTP_REQUEST_TIMEOUT_MS="$TIMEOUT_MS" \
-  "$CRAFTLESS_BIN" clients create "$CLIENT_ID" \
+  "$CRAFTLESS_BIN" api /clients \
   --api "$API" \
-  --version 1.20.6 \
-  --loader fabric \
-  --loader-version 0.19.3 \
-  --offline-name OlderProduct \
+  -F "id=$CLIENT_ID" \
+  -F version=1.20.6 \
+  -F loader=FABRIC \
+  -F loaderVersion=0.19.3 \
+  -F "profile[kind]=OFFLINE" \
+  -F "profile[name]=OlderProduct" \
   > "$ARTIFACTS_DIR/clients-create-representative-older.log" 2>&1
 
 API="$API" CLIENT_ID="$CLIENT_ID" TIMEOUT_MS="$TIMEOUT_MS" mise exec -- bun --eval '
@@ -79,10 +81,10 @@ console.error(`timed out waiting for client.attached for ${clientId}`);
 process.exit(1);
 '
 
-"$CRAFTLESS_BIN" clients "$CLIENT_ID" connect \
+"$CRAFTLESS_BIN" api "/clients/$CLIENT_ID:connect" \
   --api "$API" \
-  --host 127.0.0.1 \
-  --port "$SERVER_PORT" \
+  -F host=127.0.0.1 \
+  -F "port=$SERVER_PORT" \
   > "$ARTIFACTS_DIR/clients-connect-representative-older.log" 2>&1
 
 API="$API" CLIENT_ID="$CLIENT_ID" ARTIFACTS_DIR="$ARTIFACTS_DIR" TIMEOUT_MS="$TIMEOUT_MS" mise exec -- bun --eval '
@@ -114,13 +116,19 @@ console.error(`timed out waiting for connected generated OpenAPI for ${clientId}
 process.exit(1);
 '
 
-"$CRAFTLESS_BIN" clients "$CLIENT_ID" openapi --api "$API" > "$ARTIFACTS_DIR/client-openapi-cli.json"
-"$CRAFTLESS_BIN" clients "$CLIENT_ID" actions --api "$API" > "$ARTIFACTS_DIR/client-actions.json"
-"$CRAFTLESS_BIN" clients "$CLIENT_ID" resources --api "$API" > "$ARTIFACTS_DIR/client-resources.json"
-"$CRAFTLESS_BIN" clients "$CLIENT_ID" events --api "$API" > "$ARTIFACTS_DIR/client-events-stream.sse"
-"$CRAFTLESS_BIN" clients "$CLIENT_ID" query openapi --api "$API" > "$ARTIFACTS_DIR/client-rpc-openapi.json"
-"$CRAFTLESS_BIN" clients "$CLIENT_ID" query actions --api "$API" > "$ARTIFACTS_DIR/client-rpc-actions.json"
-"$CRAFTLESS_BIN" clients "$CLIENT_ID" query resources --api "$API" > "$ARTIFACTS_DIR/client-rpc-resources.json"
+"$CRAFTLESS_BIN" api "/clients/$CLIENT_ID/openapi.json" --api "$API" > "$ARTIFACTS_DIR/client-openapi-cli.json"
+"$CRAFTLESS_BIN" api "/clients/$CLIENT_ID/actions" --api "$API" > "$ARTIFACTS_DIR/client-actions.json"
+"$CRAFTLESS_BIN" api "/clients/$CLIENT_ID/resources" --api "$API" > "$ARTIFACTS_DIR/client-resources.json"
+"$CRAFTLESS_BIN" api "/clients/$CLIENT_ID/events:stream" --api "$API" > "$ARTIFACTS_DIR/client-events-stream.sse"
+"$CRAFTLESS_BIN" api "/clients/$CLIENT_ID:rpc" --api "$API" \
+  -f jsonrpc=2.0 -F id=query-openapi -F method=query -F "params[target]=openapi" \
+  > "$ARTIFACTS_DIR/client-rpc-openapi.json"
+"$CRAFTLESS_BIN" api "/clients/$CLIENT_ID:rpc" --api "$API" \
+  -f jsonrpc=2.0 -F id=query-actions -F method=query -F "params[target]=actions" \
+  > "$ARTIFACTS_DIR/client-rpc-actions.json"
+"$CRAFTLESS_BIN" api "/clients/$CLIENT_ID:rpc" --api "$API" \
+  -f jsonrpc=2.0 -F id=query-resources -F method=query -F "params[target]=resources" \
+  > "$ARTIFACTS_DIR/client-rpc-resources.json"
 
 GENERATED_ACTION_ID="$(
   API="$API" CLIENT_ID="$CLIENT_ID" ARTIFACTS_DIR="$ARTIFACTS_DIR" TIMEOUT_MS="$TIMEOUT_MS" mise exec -- bun --eval '
@@ -194,8 +202,9 @@ if (body.result?.action !== actionId || body.result?.status !== "ACCEPTED") {
 }
 '
 
-"$CRAFTLESS_BIN" clients "$CLIENT_ID" run "$GENERATED_ACTION_ID" \
+"$CRAFTLESS_BIN" api "/clients/$CLIENT_ID:run" \
   --api "$API" \
+  -F "action=$GENERATED_ACTION_ID" \
   > "$ARTIFACTS_DIR/client-cli-invoke-generated.log" 2>&1
 
 API="$API" CLIENT_ID="$CLIENT_ID" ARTIFACTS_DIR="$ARTIFACTS_DIR" mise exec -- bun --eval '

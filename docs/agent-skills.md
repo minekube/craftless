@@ -8,7 +8,7 @@ should not be installed unless the repository starts using those technologies.
 
 - `.agents/skills/craftless-public-gameplay-agent` captures how external
   agents should control Craftless clients through generated per-client
-  OpenAPI, adaptive CLI, and SSE/JSON-RPC streams without static scenario
+  OpenAPI, `craftless api`, and SSE/JSON-RPC streams without static scenario
   shortcuts. It also records live co-play rules for navigation schemas,
   stop-command parsing, Minecraft-chat coordination, generic
   `craftless api /clients/<id>:run` invocation, POST JSON-RPC-style

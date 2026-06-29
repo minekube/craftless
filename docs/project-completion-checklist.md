@@ -60,7 +60,7 @@ Status legend:
 | --- | --- | --- | --- |
 | CL-01 Generated authority | [x] | Public gameplay authority is generated runtime graph/OpenAPI, not static lists. | Phases 171-173; evidence index below. |
 | CL-02 Static shortcut guards | [x] | Static gameplay catalog regressions are guarded; transitional Fabric bootstrap cannot become public API authority. | Phase 178; evidence index below. |
-| CL-03 Latest/current lane | [x] | Minecraft `26.2` packaged lane completes create, attach, connect, generated OpenAPI, projections, SSE, JSON-RPC, and adaptive CLI invocation. | `docs/superpowers/evidence/2026-06-28-latest-current-generated-primitive-smoke.md` |
+| CL-03 Latest/current lane | [x] | Minecraft `26.2` packaged lane completes create, attach, connect, generated OpenAPI, projections, SSE, JSON-RPC, and `craftless api` invocation. | `docs/superpowers/evidence/2026-06-28-latest-current-generated-primitive-smoke.md` |
 | CL-04 Representative older lane | [x] | Minecraft `1.20.6` packaged lane completes the same public product gate set as CL-03. | `docs/superpowers/evidence/2026-06-28-representative-older-product-lane.md` |
 | CL-05 External usability | [x] | External users and agents can install, run, inspect, stream, invoke, and debug Craftless without reading source. | `docs/superpowers/evidence/2026-06-28-user-facing-usability-docs.md` |
 | CL-06 Release-quality local gates | [x] | Local release-quality gates passed after CL-05 closed. | `docs/superpowers/evidence/2026-06-28-final-local-release-gates.md` |
