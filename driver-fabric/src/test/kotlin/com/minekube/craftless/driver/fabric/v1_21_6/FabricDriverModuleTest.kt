@@ -1249,7 +1249,35 @@ class FabricDriverModuleTest {
     fun `fabric backend reports connect as unobserved until gateway is connected`() {
         val gateway = RecordingFabricClientGateway()
         gateway.connectMarksConnected = false
-        val backend = FabricDriverBackend.real(gateway)
+        val backend =
+            FabricDriverBackend.real(
+                gateway = gateway,
+                runtimeMetadataProvider = blockQueryRuntimeMetadataProvider(),
+                connectObservationTimeoutMillis = 5,
+                connectObservationPollMillis = 1,
+                connectObservationStableMillis = 1,
+            )
+
+        val result = backend.connect("alice", ConnectionTarget("127.0.0.1", 25565))
+
+        assertEquals(DriverBackendAction.CONNECT, result.action)
+        assertFalse(result.observed)
+        assertEquals(listOf("connect 127.0.0.1:25565"), gateway.actions)
+    }
+
+    @Test
+    fun `fabric backend does not treat transient connection state as observed connect`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connectMarksConnected = false
+        gateway.connectedChecks += listOf(true, false, false, false)
+        val backend =
+            FabricDriverBackend.real(
+                gateway = gateway,
+                runtimeMetadataProvider = blockQueryRuntimeMetadataProvider(),
+                connectObservationTimeoutMillis = 25,
+                connectObservationPollMillis = 1,
+                connectObservationStableMillis = 5,
+            )
 
         val result = backend.connect("alice", ConnectionTarget("127.0.0.1", 25565))
 
@@ -3785,7 +3813,7 @@ class FabricDriverModuleTest {
 
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
 
-        gateway.awaitAction("stop")
+        gateway.awaitAction("stop", timeoutMillis = 2_000)
         val envLines = Files.readAllLines(envOutput)
         assertTrue(envLines[0].startsWith("http://127.0.0.1:"))
         assertEquals("fabric-smoke", envLines[1])
@@ -3851,7 +3879,7 @@ class FabricDriverModuleTest {
 
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
 
-        gateway.awaitAction("stop")
+        gateway.awaitAction("stop", timeoutMillis = 2_000)
         val readyLines = Files.readAllLines(readyOutput)
         assertTrue(readyLines[0].startsWith("http://127.0.0.1:"))
         assertEquals("fabric-smoke", readyLines[1])
@@ -3934,7 +3962,7 @@ class FabricDriverModuleTest {
 
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
 
-        gateway.awaitAction("stop")
+        gateway.awaitAction("stop", timeoutMillis = 2_000)
 
         val reminderLines = Files.readAllLines(readyOutput)
         assertTrue(reminderLines.size >= 2, "expected repeated ready notifications, got $reminderLines")
@@ -4336,6 +4364,21 @@ class FabricDriverModuleTest {
         assertEquals(emptyList(), gateway.actions)
     }
 
+    @Test
+    fun `fabric smoke connected gate ignores transient connection state`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connectedChecks += listOf(true, false, false, false)
+
+        assertFalse(
+            gateway.awaitConnected(
+                timeout = 20.milliseconds,
+                pollInterval = 1.milliseconds,
+                stableConnectionWindow = 5.milliseconds,
+            ),
+        )
+        assertEquals(emptyList(), gateway.actions)
+    }
+
     private fun resourceJson(path: String) =
         json
             .parseToJsonElement(
@@ -4472,6 +4515,8 @@ private class RecordingFabricClientGateway : FabricClientGateway {
 
     var connectMarksConnected = true
 
+    val connectedChecks = ArrayDeque<Boolean>()
+
     @Volatile
     var ready = true
 
@@ -4529,7 +4574,7 @@ private class RecordingFabricClientGateway : FabricClientGateway {
         connected = false
     }
 
-    override fun isConnected(): Boolean = connected
+    override fun isConnected(): Boolean = connectedChecks.removeFirstOrNull() ?: connected
 
     override fun isReadyToConnect(): Boolean = ready
 
@@ -4544,8 +4589,11 @@ private class RecordingFabricClientGateway : FabricClientGateway {
         error("timed out waiting for $count gateway actions; observed=${actionSnapshot()}")
     }
 
-    fun awaitAction(action: String) {
-        val deadline = System.nanoTime() + 1_000_000_000
+    fun awaitAction(
+        action: String,
+        timeoutMillis: Long = 1_000,
+    ) {
+        val deadline = System.nanoTime() + timeoutMillis * 1_000_000
         while (System.nanoTime() < deadline) {
             if (action in actionSnapshot()) {
                 return

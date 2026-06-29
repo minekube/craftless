@@ -255,12 +255,14 @@ class LocalSessionApiServer private constructor(
                                 port = request.port,
                             ),
                         )
-                    events +=
-                        SessionEvent(
-                            type = "client.connected",
-                            client = client.id,
-                            message = "connected ${client.id} to ${request.host}:${request.port}",
-                        )
+                    if (client.state == ClientState.CONNECTED) {
+                        events +=
+                            SessionEvent(
+                                type = "client.connected",
+                                client = client.id,
+                                message = "connected ${client.id} to ${request.host}:${request.port}",
+                            )
+                    }
                     call.respondJson(HttpStatusCode.OK, client)
                 }.getOrElse { error ->
                     when (error) {

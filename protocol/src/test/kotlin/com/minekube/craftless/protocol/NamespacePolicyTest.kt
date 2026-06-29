@@ -166,8 +166,8 @@ class NamespacePolicyTest {
             "mise must expose a CI Craftless daemon smoke task",
         )
         assertTrue(
-            mise.contains("mise exec -- gradle :cli:installDist"),
-            "CI Craftless smoke must build the installed CLI distribution",
+            mise.contains("mise run package-cli"),
+            "CI Craftless smoke must build the release-style packaged CLI distribution",
         )
         assertTrue(
             mise.contains("scripts/ci-craftless-smoke.sh"),
@@ -189,7 +189,7 @@ class NamespacePolicyTest {
             "server start",
             "/openapi.json",
             "/version",
-            "cli/build/install/craftless/bin/craftless",
+            "build/docker/craftless/bin/craftless",
         ).forEach { required ->
             assertTrue(
                 smokeScriptText.contains(required),

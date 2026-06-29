@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CRAFTLESS_BIN="${CRAFTLESS_CI_SMOKE_BIN:-"$ROOT/cli/build/install/craftless/bin/craftless"}"
+CRAFTLESS_BIN="${CRAFTLESS_CI_SMOKE_BIN:-"$ROOT/build/docker/craftless/bin/craftless"}"
 SMOKE_ROOT="${CRAFTLESS_CI_SMOKE_ROOT:-"$ROOT/build/craftless-ci-smoke"}"
 WORKSPACE="$SMOKE_ROOT/workspace"
 ARTIFACTS="$SMOKE_ROOT/artifacts"

@@ -22,6 +22,7 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class HttpDriverSessionTest {
     @Test
@@ -29,6 +30,14 @@ class HttpDriverSessionTest {
         val source = Files.readString(repositoryRoot().resolve("daemon/src/main/kotlin/com/minekube/craftless/daemon/HttpDriverSession.kt"))
 
         assertFalse(source.contains("get(\"actions\")"))
+    }
+
+    @Test
+    fun `http driver session declares explicit daemon to driver timeout`() {
+        val source = Files.readString(repositoryRoot().resolve("daemon/src/main/kotlin/com/minekube/craftless/daemon/HttpDriverSession.kt"))
+
+        assertTrue(source.contains("HttpTimeout"))
+        assertTrue(source.contains("requestTimeoutMillis = DRIVER_REQUEST_TIMEOUT_MS"))
     }
 
     @Test

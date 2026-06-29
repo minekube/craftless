@@ -24,9 +24,9 @@ description = "Run the Playwright integration helper tests"
 run = "mise exec -- bun test playwright"
 
 [tasks.ci-craftless-smoke]
-description = "Run the installed Craftless CLI daemon and probe the live API"
+description = "Run the packaged Craftless CLI daemon and probe the live API"
 run = [
-    "mise exec -- gradle :cli:installDist",
+    "mise run package-cli",
     "scripts/ci-craftless-smoke.sh",
 ]
 

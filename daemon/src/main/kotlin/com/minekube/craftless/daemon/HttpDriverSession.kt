@@ -11,6 +11,7 @@ import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -24,7 +25,7 @@ import kotlinx.serialization.json.Json
 class HttpDriverSession(
     override val clientId: String,
     endpoint: String,
-    private val http: HttpClient = HttpClient(CIO),
+    private val http: HttpClient = defaultDriverHttpClient(),
 ) : DriverSession {
     private val endpoint = endpoint.trimEnd('/')
     private val json = Json { ignoreUnknownKeys = true }
@@ -73,3 +74,12 @@ class HttpDriverSession(
 
 @kotlinx.serialization.Serializable
 private object UnitPayload
+
+private const val DRIVER_REQUEST_TIMEOUT_MS = 60_000L
+
+private fun defaultDriverHttpClient(): HttpClient =
+    HttpClient(CIO) {
+        install(HttpTimeout) {
+            requestTimeoutMillis = DRIVER_REQUEST_TIMEOUT_MS
+        }
+    }

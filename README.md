@@ -359,6 +359,9 @@ mise run package-cli
 mise run ci-craftless-smoke
 ```
 
+`ci-craftless-smoke` runs the packaged CLI distribution, starts
+`craftless server start`, and probes the live supervisor API.
+
 Docs-only edits must at least pass:
 
 ```sh

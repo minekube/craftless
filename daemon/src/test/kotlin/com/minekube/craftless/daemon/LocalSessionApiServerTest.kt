@@ -2362,6 +2362,36 @@ class LocalSessionApiServerTest {
             }
         }
 
+    @Test
+    fun `server does not emit connected event for unobserved connect`() =
+        withHttpClient { http ->
+            LocalSessionApiServer
+                .inMemory(
+                    driverFactory =
+                        DriverSessionFactory { request ->
+                            UnobservedConnectDriverSession(request.id)
+                        },
+                ).use { server ->
+                    server.start()
+                    createAlice(http, server)
+
+                    http
+                        .post(server.url("/clients/alice:connect")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"host":"localhost","port":25565}""")
+                        }.let { response ->
+                            assertEquals(HttpStatusCode.OK, response.status)
+                            assertTrue(response.bodyAsText().contains("\"state\":\"RUNNING\""))
+                        }
+
+                    http.get(server.url("/clients/alice/events")).let { response ->
+                        val body = response.bodyAsText()
+                        assertEquals(HttpStatusCode.OK, response.status)
+                        assertFalse(body.contains("client.connected"))
+                    }
+                }
+        }
+
     private fun withHttpClient(block: suspend (HttpClient) -> Unit) {
         kotlinx.coroutines.runBlocking {
             HttpClient(CIO).use { client -> block(client) }
@@ -3021,6 +3051,27 @@ private class EventMetadataDriverSession(
             status = DriverActionStatus.ACCEPTED,
             message = "scanned world radius 4",
         )
+
+    override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
+
+    override fun events(): List<DriverEvent> = emptyList()
+}
+
+private class UnobservedConnectDriverSession(
+    override val clientId: String,
+) : DriverSession {
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.RUNNING)
+
+    override fun connect(target: ConnectionTarget): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.RUNNING)
+
+    override fun actions(): List<DriverActionDescriptor> = emptyList()
+
+    override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
+
+    override fun runtimeGraph(): RuntimeCapabilityGraph = RuntimeCapabilityGraph(clientId = clientId)
+
+    override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
+        DriverActionResult(invocation.action, DriverActionStatus.UNSUPPORTED)
 
     override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
 

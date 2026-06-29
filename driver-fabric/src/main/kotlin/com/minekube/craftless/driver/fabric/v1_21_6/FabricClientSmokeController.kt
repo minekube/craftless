@@ -141,7 +141,7 @@ data class FabricClientSmokeController(
                             ConnectRequest(host = target.host, port = target.port),
                         )
                     }
-                    if (gateway.awaitConnected(connectTimeout, pollInterval)) {
+                    if (gateway.awaitConnected(connectTimeout, pollInterval, stableConnectionWindow = 0.milliseconds)) {
                         val connectedOpenApi = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/openapi.json"))
                         val connectedActions = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/actions"))
                         writeArtifact("client-openapi-connected.json", connectedOpenApi)
@@ -913,17 +913,26 @@ private val PUBLIC_AGENT_REQUIRED_ACTIONS =
 internal fun FabricClientGateway.awaitConnected(
     timeout: Duration,
     pollInterval: Duration,
+    stableConnectionWindow: Duration = 750.milliseconds,
 ): Boolean {
     require(timeout.isPositive()) { "fabric smoke connect timeout must be positive" }
     require(pollInterval.isPositive()) { "fabric smoke poll interval must be positive" }
+    require(!stableConnectionWindow.isNegative()) { "fabric smoke stable connection window must not be negative" }
     val deadline = System.nanoTime() + timeout.inWholeNanoseconds
+    var connectedSince: Long? = null
     while (System.nanoTime() < deadline) {
+        val now = System.nanoTime()
         if (isConnected()) {
-            return true
+            val since = connectedSince ?: now.also { connectedSince = it }
+            if (now - since >= stableConnectionWindow.inWholeNanoseconds) {
+                return true
+            }
+        } else {
+            connectedSince = null
         }
         Thread.sleep(pollInterval.inWholeMilliseconds.coerceAtLeast(1))
     }
-    return isConnected()
+    return false
 }
 
 internal fun FabricClientGateway.awaitReadyToConnect(

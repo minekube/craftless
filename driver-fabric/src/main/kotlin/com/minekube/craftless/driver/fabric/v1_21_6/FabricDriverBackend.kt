@@ -66,6 +66,9 @@ class FabricDriverBackend private constructor(
     private val capabilityDiscovery: FabricCapabilityDiscovery = defaultFabricCapabilityDiscovery(),
     private val runtimeMetadataProvider: FabricRuntimeMetadataProvider = staticFabricRuntimeMetadataProvider(),
     private val pathfinderBackend: FabricPathfinderBackend = UnavailableFabricPathfinderBackend,
+    private val connectObservationTimeoutMillis: Long = DEFAULT_CONNECT_OBSERVATION_TIMEOUT_MS,
+    private val connectObservationPollMillis: Long = DEFAULT_CONNECT_OBSERVATION_POLL_MS,
+    private val connectObservationStableMillis: Long = DEFAULT_CONNECT_OBSERVATION_STABLE_MS,
 ) : DriverBackend {
     private val events = mutableListOf<String>()
     private val executionAdaptersByOperationId = executionAdapters.associateBy { it.operationId }
@@ -84,7 +87,7 @@ class FabricDriverBackend private constructor(
         return DriverBackendResult(
             action = DriverBackendAction.CONNECT,
             message = "fabric ${mode.id} connect requested",
-            observed = gateway?.isConnected() ?: true,
+            observed = observeStableConnection(),
         )
     }
 
@@ -944,6 +947,29 @@ class FabricDriverBackend private constructor(
             message = invocation.operation.availability.reason ?: "adapter-unavailable",
         )
 
+    private fun observeStableConnection(): Boolean {
+        val gateway = gateway ?: return true
+        require(connectObservationTimeoutMillis > 0) { "connect observation timeout must be positive" }
+        require(connectObservationPollMillis > 0) { "connect observation poll interval must be positive" }
+        require(connectObservationStableMillis >= 0) { "connect observation stable window must not be negative" }
+        val stableWindowNanos = connectObservationStableMillis * NANOS_PER_MILLI
+        val deadline = System.nanoTime() + connectObservationTimeoutMillis * NANOS_PER_MILLI
+        var connectedSince: Long? = null
+        while (System.nanoTime() < deadline) {
+            val now = System.nanoTime()
+            if (gateway.isConnected()) {
+                val since = connectedSince ?: now.also { connectedSince = it }
+                if (now - since >= stableWindowNanos) {
+                    return true
+                }
+            } else {
+                connectedSince = null
+            }
+            Thread.sleep(connectObservationPollMillis)
+        }
+        return false
+    }
+
     private enum class Mode(
         val id: String,
     ) {
@@ -976,6 +1002,9 @@ class FabricDriverBackend private constructor(
         internal fun real(
             gateway: FabricClientGateway,
             runtimeMetadataProvider: FabricRuntimeMetadataProvider,
+            connectObservationTimeoutMillis: Long = DEFAULT_CONNECT_OBSERVATION_TIMEOUT_MS,
+            connectObservationPollMillis: Long = DEFAULT_CONNECT_OBSERVATION_POLL_MS,
+            connectObservationStableMillis: Long = DEFAULT_CONNECT_OBSERVATION_STABLE_MS,
         ): FabricDriverBackend {
             val pathfinderBackend = ReflectiveFabricPathfinderBackend(gateway = gateway)
             return FabricDriverBackend(
@@ -983,6 +1012,9 @@ class FabricDriverBackend private constructor(
                 gateway = gateway,
                 runtimeMetadataProvider = runtimeMetadataProvider,
                 pathfinderBackend = pathfinderBackend,
+                connectObservationTimeoutMillis = connectObservationTimeoutMillis,
+                connectObservationPollMillis = connectObservationPollMillis,
+                connectObservationStableMillis = connectObservationStableMillis,
             )
         }
 
@@ -993,6 +1025,11 @@ class FabricDriverBackend private constructor(
         fun current(): FabricDriverBackend = installed ?: metadataOnly().also(::install)
     }
 }
+
+private const val DEFAULT_CONNECT_OBSERVATION_TIMEOUT_MS = 15_000L
+private const val DEFAULT_CONNECT_OBSERVATION_POLL_MS = 100L
+private const val DEFAULT_CONNECT_OBSERVATION_STABLE_MS = 750L
+private const val NANOS_PER_MILLI = 1_000_000L
 
 private fun Map<String, JsonElement>.blockQueryTarget(): BlockPos? {
     val target = this["target"] as? JsonObject ?: return null
