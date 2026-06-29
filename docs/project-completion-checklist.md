@@ -154,3 +154,5 @@ Required negative proof:
   `docs/superpowers/evidence/2026-06-29-core-openapi-descriptions.md`.
 - Phase 193:
   `docs/superpowers/evidence/2026-06-29-api-only-cli.md`.
+- Phase 194:
+  `docs/superpowers/evidence/2026-06-29-fumadocs-github-pages.md`.

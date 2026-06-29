@@ -210,3 +210,9 @@ Phase 193 replaces generated CLI route subcommands with the single
 `craftless api <endpoint>` route invoker. Supervisor and per-client routes are
 matched from OpenAPI paths and request schemas; `x-craftless-cli` is no longer
 serialized, and `GeneratedRouteCli` is removed.
+Phase 194 adds a static Fumadocs Cloudflare Workers documentation site. The
+site is built with Bun through mise, exports a compact supervisor OpenAPI
+snapshot from the protocol route catalog, renders a stable `/docs/api-reference`
+entrypoint plus generated operation pages, and deploys `docs-site/out` with
+Workers Static Assets and preview URLs. A FumaPress spike found it useful as
+preview tooling but less suitable than Fumadocs Next static export for this PR.

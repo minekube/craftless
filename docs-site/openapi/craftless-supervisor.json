@@ -1,0 +1,2718 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Craftless Client Session API",
+    "version": "0.1.0"
+  },
+  "tags": [
+    {
+      "name": "cache",
+      "description": "Craftless-owned cache preparation, export, and cleanup. These operations resolve Minecraft runtime inputs without exposing launcher internals as public API contracts."
+    },
+    {
+      "name": "clients",
+      "description": "Daemon-managed real Minecraft Java clients, including create, inspect, attach, connect, generated per-client OpenAPI, action/resource discovery, generic action invocation, RPC, events, and stop flows."
+    },
+    {
+      "name": "events",
+      "description": "Bounded event history and live Server-Sent Event streams for supervisor and client lifecycle evidence. Use events to correlate launch, attach, connect, discovery, invocation, and stop progress."
+    },
+    {
+      "name": "openapi",
+      "description": "Machine contracts for the stable supervisor API and generated per-client APIs. Agents should fetch these documents before choosing routes, commands, actions, schemas, or stream contracts."
+    },
+    {
+      "name": "runtimes",
+      "description": "Java runtime discovery and resolution for Minecraft launches. Use these operations to explain or select compatible Java runtimes through Craftless-owned surfaces."
+    },
+    {
+      "name": "version",
+      "description": "Daemon, protocol, platform, and runtime identity. Use these operations to confirm which Craftless supervisor is answering before making live status or compatibility claims."
+    }
+  ],
+  "paths": {
+    "/openapi.json": {
+      "get": {
+        "operationId": "getOpenapiJson",
+        "tags": [
+          "openapi"
+        ],
+        "summary": "Fetch supervisor OpenAPI",
+        "description": "Returns the stable supervisor API contract for Craftless lifecycle, cache, runtime, client management, events, and per-client discovery. Adaptive agents and CLIs should fetch this before choosing supervisor routes.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "openapi": {
+                      "type": "string"
+                    },
+                    "info": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "version"
+                      ]
+                    },
+                    "paths": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "x-craftless": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "x-craftless-actions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "schemaVersion": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "availability": {
+                            "type": "string"
+                          },
+                          "availabilityReason": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "args": {
+                            "type": "object",
+                            "additionalProperties": true
+                          },
+                          "result": {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "schemaVersion",
+                          "source",
+                          "availability"
+                        ]
+                      }
+                    },
+                    "x-craftless-resources": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "actions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "availability": {
+                            "type": "string"
+                          },
+                          "availabilityReasons": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "actionDescriptors": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "schemaVersion": {
+                                  "type": "string"
+                                },
+                                "source": {
+                                  "type": "string"
+                                },
+                                "availability": {
+                                  "type": "string"
+                                },
+                                "availabilityReason": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "args": {
+                                  "type": "object",
+                                  "additionalProperties": true
+                                },
+                                "result": {
+                                  "type": "object",
+                                  "additionalProperties": true
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "schemaVersion",
+                                "source",
+                                "availability"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "actions",
+                          "availability",
+                          "availabilityReasons",
+                          "actionDescriptors"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "openapi",
+                    "info",
+                    "paths"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "supervisor",
+          "x-craftless-member": "openapi",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "route"
+        }
+      }
+    },
+    "/version": {
+      "get": {
+        "operationId": "getVersion",
+        "tags": [
+          "version"
+        ],
+        "summary": "Inspect daemon runtime",
+        "description": "Returns daemon and runtime identity information, including Craftless driver, Java runtime, platform, and protocol details. Use it to confirm which local supervisor is answering before making lifecycle claims.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "minecraft": {
+                      "type": "string"
+                    },
+                    "loader": {
+                      "type": "string",
+                      "enum": [
+                        "FABRIC",
+                        "VANILLA",
+                        "NEOFORGE",
+                        "FORGE",
+                        "QUILT"
+                      ]
+                    },
+                    "loaderVersion": {
+                      "type": "string"
+                    },
+                    "driver": {
+                      "type": "string"
+                    },
+                    "driverVersion": {
+                      "type": "string"
+                    },
+                    "java": {
+                      "type": "string"
+                    },
+                    "mappingsFingerprint": {
+                      "type": "string"
+                    },
+                    "openapiGeneratedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "minecraft",
+                    "loader",
+                    "loaderVersion",
+                    "driver",
+                    "driverVersion",
+                    "java",
+                    "mappingsFingerprint",
+                    "openapiGeneratedAt"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "supervisor",
+          "x-craftless-member": "version",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "route"
+        }
+      }
+    },
+    "/events": {
+      "get": {
+        "operationId": "getEvents",
+        "tags": [
+          "events"
+        ],
+        "summary": "List supervisor events",
+        "description": "Lists recent supervisor lifecycle and diagnostic events retained by the daemon. Use this for bounded status checks before switching to the live stream for ongoing observation.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "client": {
+                        "type": "string"
+                      },
+                      "message": {
+                        "type": "string"
+                      },
+                      "time": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "time"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "supervisor",
+          "x-craftless-member": "events",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "route"
+        }
+      }
+    },
+    "/events:stream": {
+      "get": {
+        "operationId": "streamEvents",
+        "tags": [
+          "events"
+        ],
+        "summary": "Stream supervisor events",
+        "description": "Streams supervisor lifecycle and diagnostic events as Server-Sent Events. Subscribe when an agent needs fresh evidence about daemon, cache, client, attach, connect, or stop progress.",
+        "responses": {
+          "200": {}
+        },
+        "x-craftless": {
+          "x-craftless-owner": "supervisor",
+          "x-craftless-member": "events",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "route"
+        }
+      }
+    },
+    "/cache:prepare": {
+      "post": {
+        "operationId": "prepareCache",
+        "tags": [
+          "cache"
+        ],
+        "summary": "Prepare cache artifacts",
+        "description": "Prepares Craftless-owned cache and launch material for a Minecraft version and loader before a client is created. This resolves metadata, artifacts, libraries, assets, native paths, and launch inputs without exposing launcher internals.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "minecraftVersion": {
+                      "type": "string"
+                    },
+                    "loader": {
+                      "type": "string",
+                      "enum": [
+                        "FABRIC",
+                        "VANILLA",
+                        "NEOFORGE",
+                        "FORGE",
+                        "QUILT"
+                      ]
+                    },
+                    "loaderVersion": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "cacheRoot": {
+                      "type": "string"
+                    },
+                    "minecraftVersionRoot": {
+                      "type": "string"
+                    },
+                    "loaderRoot": {
+                      "type": "string"
+                    },
+                    "runtimeRoot": {
+                      "type": "string"
+                    },
+                    "manifest": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "artifacts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string"
+                          },
+                          "handle": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "handle",
+                          "status"
+                        ]
+                      }
+                    },
+                    "launch": {
+                      "type": "object",
+                      "properties": {
+                        "classpath": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "nativePath": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "javaExecutable": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "arguments": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "classpath",
+                        "nativePath",
+                        "javaExecutable",
+                        "arguments"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "minecraftVersion",
+                    "loader",
+                    "loaderVersion",
+                    "cacheRoot",
+                    "minecraftVersionRoot",
+                    "loaderRoot",
+                    "runtimeRoot",
+                    "manifest",
+                    "status",
+                    "artifacts",
+                    "launch"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "minecraftVersion": {
+                    "type": "string"
+                  },
+                  "loader": {
+                    "type": "string",
+                    "enum": [
+                      "FABRIC",
+                      "VANILLA",
+                      "NEOFORGE",
+                      "FORGE",
+                      "QUILT"
+                    ]
+                  },
+                  "loaderVersion": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "minecraftVersion",
+                  "loader"
+                ]
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "cache",
+          "x-craftless-member": "prepare",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "method"
+        }
+      }
+    },
+    "/cache:export": {
+      "post": {
+        "operationId": "exportCache",
+        "tags": [
+          "cache"
+        ],
+        "summary": "Export prepared cache",
+        "description": "Exports prepared cache material into an archive or manifest-oriented artifact set. Use this for repeatable CI, distribution, or offline preparation after cache preparation has resolved the runtime inputs.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "manifest": {
+                      "type": "string"
+                    },
+                    "archive": {
+                      "type": "string"
+                    },
+                    "included": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "manifest",
+                    "archive",
+                    "included",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "manifest": {
+                    "type": "string"
+                  },
+                  "archive": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "manifest"
+                ]
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "cache",
+          "x-craftless-member": "export",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "method"
+        }
+      }
+    },
+    "/cache:cleanup": {
+      "post": {
+        "operationId": "cleanupCache",
+        "tags": [
+          "cache"
+        ],
+        "summary": "Clean prepared cache",
+        "description": "Cleans cache material for a prepared manifest. Use this to remove obsolete resolved artifacts while keeping cache management inside the supervisor API instead of deleting launcher files directly.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "manifest": {
+                      "type": "string"
+                    },
+                    "deleted": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "missing": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "manifest",
+                    "deleted",
+                    "missing",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "manifest": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "manifest"
+                ]
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "cache",
+          "x-craftless-member": "cleanup",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "method"
+        }
+      }
+    },
+    "/runtimes/java": {
+      "get": {
+        "operationId": "listJavaRuntimes",
+        "tags": [
+          "runtimes"
+        ],
+        "summary": "List Java runtimes",
+        "description": "Lists Java runtime candidates known to Craftless. Use this to inspect configured, managed, and system runtimes before resolving which Java runtime can launch a selected Minecraft version.",
+        "responses": {
+          "200": {}
+        },
+        "x-craftless": {
+          "x-craftless-owner": "runtimes",
+          "x-craftless-member": "java",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "route"
+        }
+      }
+    },
+    "/runtimes/java:resolve": {
+      "post": {
+        "operationId": "resolveJavaRuntime",
+        "tags": [
+          "runtimes"
+        ],
+        "summary": "Resolve Java runtime",
+        "description": "Resolves the Java runtime suitable for a requested Minecraft version. Use this before launch diagnostics when an agent must explain why a version can or cannot be started on the current machine.",
+        "responses": {
+          "200": {}
+        },
+        "x-craftless": {
+          "x-craftless-owner": "runtimes",
+          "x-craftless-member": "java",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "method"
+        }
+      }
+    },
+    "/clients": {
+      "get": {
+        "operationId": "listClients",
+        "tags": [
+          "clients"
+        ],
+        "summary": "List client processes",
+        "description": "Lists daemon-managed client processes. Use this before creating another client in an existing daemon or workspace so agents can reuse or stop prior attempts instead of launching duplicates.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "instance": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id"
+                            ]
+                          },
+                          "loader": {
+                            "type": "string"
+                          },
+                          "files": {
+                            "type": "object",
+                            "properties": {
+                              "root": {
+                                "type": "string"
+                              },
+                              "gameRoot": {
+                                "type": "string"
+                              },
+                              "runtimeRoot": {
+                                "type": "string"
+                              },
+                              "cache": {
+                                "type": "string"
+                              },
+                              "mods": {
+                                "type": "string"
+                              },
+                              "config": {
+                                "type": "string"
+                              },
+                              "saves": {
+                                "type": "string"
+                              },
+                              "resourcePacks": {
+                                "type": "string"
+                              },
+                              "shaderPacks": {
+                                "type": "string"
+                              },
+                              "screenshots": {
+                                "type": "string"
+                              },
+                              "logs": {
+                                "type": "string"
+                              },
+                              "artifacts": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "root",
+                              "gameRoot",
+                              "runtimeRoot",
+                              "cache",
+                              "mods",
+                              "config",
+                              "saves",
+                              "resourcePacks",
+                              "shaderPacks",
+                              "screenshots",
+                              "logs",
+                              "artifacts"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "version",
+                          "loader",
+                          "files"
+                        ]
+                      },
+                      "profile": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "name"
+                        ]
+                      },
+                      "presentation": {
+                        "type": "object",
+                        "properties": {
+                          "window": {
+                            "type": "string",
+                            "enum": [
+                              "NONE",
+                              "VISIBLE"
+                            ],
+                            "default": "NONE"
+                          },
+                          "audio": {
+                            "type": "string",
+                            "enum": [
+                              "MUTED",
+                              "DEFAULT"
+                            ],
+                            "default": "MUTED"
+                          }
+                        },
+                        "required": [
+                          "window",
+                          "audio"
+                        ]
+                      },
+                      "state": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "instance",
+                      "profile",
+                      "presentation",
+                      "state"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "clients",
+          "x-craftless-member": "list",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "route"
+        }
+      },
+      "post": {
+        "operationId": "createClient",
+        "tags": [
+          "clients"
+        ],
+        "summary": "Launch a new client process",
+        "description": "This operation launches a new daemon-managed real Minecraft Java client process. This is not a selector, retry, or reuse operation. Before calling it in an existing daemon or workspace, call GET /clients and GET /clients/{id} to reuse a suitable client. If replacing a failed attempt, stop the old client with POST /clients/{id}:stop first. Creating fresh timestamped ids for retries leaves multiple Minecraft clients running.",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ]
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "files": {
+                          "type": "object",
+                          "properties": {
+                            "root": {
+                              "type": "string"
+                            },
+                            "gameRoot": {
+                              "type": "string"
+                            },
+                            "runtimeRoot": {
+                              "type": "string"
+                            },
+                            "cache": {
+                              "type": "string"
+                            },
+                            "mods": {
+                              "type": "string"
+                            },
+                            "config": {
+                              "type": "string"
+                            },
+                            "saves": {
+                              "type": "string"
+                            },
+                            "resourcePacks": {
+                              "type": "string"
+                            },
+                            "shaderPacks": {
+                              "type": "string"
+                            },
+                            "screenshots": {
+                              "type": "string"
+                            },
+                            "logs": {
+                              "type": "string"
+                            },
+                            "artifacts": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "root",
+                            "gameRoot",
+                            "runtimeRoot",
+                            "cache",
+                            "mods",
+                            "config",
+                            "saves",
+                            "resourcePacks",
+                            "shaderPacks",
+                            "screenshots",
+                            "logs",
+                            "artifacts"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "version",
+                        "loader",
+                        "files"
+                      ]
+                    },
+                    "profile": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "name"
+                      ]
+                    },
+                    "presentation": {
+                      "type": "object",
+                      "properties": {
+                        "window": {
+                          "type": "string",
+                          "enum": [
+                            "NONE",
+                            "VISIBLE"
+                          ],
+                          "default": "NONE"
+                        },
+                        "audio": {
+                          "type": "string",
+                          "enum": [
+                            "MUTED",
+                            "DEFAULT"
+                          ],
+                          "default": "MUTED"
+                        }
+                      },
+                      "required": [
+                        "window",
+                        "audio"
+                      ]
+                    },
+                    "state": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "instance",
+                    "profile",
+                    "presentation",
+                    "state"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "string"
+                  },
+                  "loader": {
+                    "type": "string",
+                    "enum": [
+                      "FABRIC",
+                      "VANILLA",
+                      "NEOFORGE",
+                      "FORGE",
+                      "QUILT"
+                    ]
+                  },
+                  "loaderVersion": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "profile": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "name"
+                    ]
+                  },
+                  "presentation": {
+                    "type": "object",
+                    "properties": {
+                      "window": {
+                        "type": "string",
+                        "enum": [
+                          "NONE",
+                          "VISIBLE"
+                        ],
+                        "default": "NONE"
+                      },
+                      "audio": {
+                        "type": "string",
+                        "enum": [
+                          "MUTED",
+                          "DEFAULT"
+                        ],
+                        "default": "MUTED"
+                      }
+                    },
+                    "required": [
+                      "window",
+                      "audio"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "version",
+                  "loader"
+                ]
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "clients",
+          "x-craftless-member": "create",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "route"
+        }
+      }
+    },
+    "/clients/{id}": {
+      "get": {
+        "operationId": "getClient",
+        "tags": [
+          "clients"
+        ],
+        "summary": "Inspect a client process",
+        "description": "Inspects one existing daemon-managed client process. Prefer this when a client id is already known; it does not launch a new client.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ]
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "files": {
+                          "type": "object",
+                          "properties": {
+                            "root": {
+                              "type": "string"
+                            },
+                            "gameRoot": {
+                              "type": "string"
+                            },
+                            "runtimeRoot": {
+                              "type": "string"
+                            },
+                            "cache": {
+                              "type": "string"
+                            },
+                            "mods": {
+                              "type": "string"
+                            },
+                            "config": {
+                              "type": "string"
+                            },
+                            "saves": {
+                              "type": "string"
+                            },
+                            "resourcePacks": {
+                              "type": "string"
+                            },
+                            "shaderPacks": {
+                              "type": "string"
+                            },
+                            "screenshots": {
+                              "type": "string"
+                            },
+                            "logs": {
+                              "type": "string"
+                            },
+                            "artifacts": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "root",
+                            "gameRoot",
+                            "runtimeRoot",
+                            "cache",
+                            "mods",
+                            "config",
+                            "saves",
+                            "resourcePacks",
+                            "shaderPacks",
+                            "screenshots",
+                            "logs",
+                            "artifacts"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "version",
+                        "loader",
+                        "files"
+                      ]
+                    },
+                    "profile": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "name"
+                      ]
+                    },
+                    "presentation": {
+                      "type": "object",
+                      "properties": {
+                        "window": {
+                          "type": "string",
+                          "enum": [
+                            "NONE",
+                            "VISIBLE"
+                          ],
+                          "default": "NONE"
+                        },
+                        "audio": {
+                          "type": "string",
+                          "enum": [
+                            "MUTED",
+                            "DEFAULT"
+                          ],
+                          "default": "MUTED"
+                        }
+                      },
+                      "required": [
+                        "window",
+                        "audio"
+                      ]
+                    },
+                    "state": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "instance",
+                    "profile",
+                    "presentation",
+                    "state"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "clients",
+          "x-craftless-member": "get",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "route"
+        }
+      }
+    },
+    "/clients/{id}/openapi.json": {
+      "get": {
+        "operationId": "getClientOpenapiJson",
+        "tags": [
+          "clients"
+        ],
+        "summary": "Fetch client OpenAPI",
+        "description": "Returns the generated live API for one client. This per-client OpenAPI document is the authority for that client's discovered actions, resources, aliases, schemas, handles, availability, and runtime fingerprints.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "openapi": {
+                      "type": "string"
+                    },
+                    "info": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "version"
+                      ]
+                    },
+                    "paths": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "x-craftless": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "x-craftless-actions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "schemaVersion": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "availability": {
+                            "type": "string"
+                          },
+                          "availabilityReason": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "args": {
+                            "type": "object",
+                            "additionalProperties": true
+                          },
+                          "result": {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "schemaVersion",
+                          "source",
+                          "availability"
+                        ]
+                      }
+                    },
+                    "x-craftless-resources": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "actions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "availability": {
+                            "type": "string"
+                          },
+                          "availabilityReasons": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "actionDescriptors": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "schemaVersion": {
+                                  "type": "string"
+                                },
+                                "source": {
+                                  "type": "string"
+                                },
+                                "availability": {
+                                  "type": "string"
+                                },
+                                "availabilityReason": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "args": {
+                                  "type": "object",
+                                  "additionalProperties": true
+                                },
+                                "result": {
+                                  "type": "object",
+                                  "additionalProperties": true
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "schemaVersion",
+                                "source",
+                                "availability"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "actions",
+                          "availability",
+                          "availabilityReasons",
+                          "actionDescriptors"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "openapi",
+                    "info",
+                    "paths"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "clients",
+          "x-craftless-member": "openapi",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "route"
+        }
+      }
+    },
+    "/clients/{id}:attach": {
+      "post": {
+        "operationId": "attachClientDriver",
+        "tags": [
+          "clients"
+        ],
+        "summary": "Attach client driver",
+        "description": "Attaches an already-running in-client Craftless driver endpoint to the supervisor. Use this when a real client exists outside daemon launch but should still expose generated per-client APIs.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ]
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "files": {
+                          "type": "object",
+                          "properties": {
+                            "root": {
+                              "type": "string"
+                            },
+                            "gameRoot": {
+                              "type": "string"
+                            },
+                            "runtimeRoot": {
+                              "type": "string"
+                            },
+                            "cache": {
+                              "type": "string"
+                            },
+                            "mods": {
+                              "type": "string"
+                            },
+                            "config": {
+                              "type": "string"
+                            },
+                            "saves": {
+                              "type": "string"
+                            },
+                            "resourcePacks": {
+                              "type": "string"
+                            },
+                            "shaderPacks": {
+                              "type": "string"
+                            },
+                            "screenshots": {
+                              "type": "string"
+                            },
+                            "logs": {
+                              "type": "string"
+                            },
+                            "artifacts": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "root",
+                            "gameRoot",
+                            "runtimeRoot",
+                            "cache",
+                            "mods",
+                            "config",
+                            "saves",
+                            "resourcePacks",
+                            "shaderPacks",
+                            "screenshots",
+                            "logs",
+                            "artifacts"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "version",
+                        "loader",
+                        "files"
+                      ]
+                    },
+                    "profile": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "name"
+                      ]
+                    },
+                    "presentation": {
+                      "type": "object",
+                      "properties": {
+                        "window": {
+                          "type": "string",
+                          "enum": [
+                            "NONE",
+                            "VISIBLE"
+                          ],
+                          "default": "NONE"
+                        },
+                        "audio": {
+                          "type": "string",
+                          "enum": [
+                            "MUTED",
+                            "DEFAULT"
+                          ],
+                          "default": "MUTED"
+                        }
+                      },
+                      "required": [
+                        "window",
+                        "audio"
+                      ]
+                    },
+                    "state": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "instance",
+                    "profile",
+                    "presentation",
+                    "state"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "endpoint": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "endpoint"
+                ]
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "clients",
+          "x-craftless-member": "attach",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "method"
+        }
+      }
+    },
+    "/clients/{id}:connect": {
+      "post": {
+        "operationId": "clientConnect",
+        "tags": [
+          "clients"
+        ],
+        "summary": "Connect an existing client",
+        "description": "Connects an existing client process to a Minecraft server. This does not create or replace a client.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ]
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "files": {
+                          "type": "object",
+                          "properties": {
+                            "root": {
+                              "type": "string"
+                            },
+                            "gameRoot": {
+                              "type": "string"
+                            },
+                            "runtimeRoot": {
+                              "type": "string"
+                            },
+                            "cache": {
+                              "type": "string"
+                            },
+                            "mods": {
+                              "type": "string"
+                            },
+                            "config": {
+                              "type": "string"
+                            },
+                            "saves": {
+                              "type": "string"
+                            },
+                            "resourcePacks": {
+                              "type": "string"
+                            },
+                            "shaderPacks": {
+                              "type": "string"
+                            },
+                            "screenshots": {
+                              "type": "string"
+                            },
+                            "logs": {
+                              "type": "string"
+                            },
+                            "artifacts": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "root",
+                            "gameRoot",
+                            "runtimeRoot",
+                            "cache",
+                            "mods",
+                            "config",
+                            "saves",
+                            "resourcePacks",
+                            "shaderPacks",
+                            "screenshots",
+                            "logs",
+                            "artifacts"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "version",
+                        "loader",
+                        "files"
+                      ]
+                    },
+                    "profile": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "name"
+                      ]
+                    },
+                    "presentation": {
+                      "type": "object",
+                      "properties": {
+                        "window": {
+                          "type": "string",
+                          "enum": [
+                            "NONE",
+                            "VISIBLE"
+                          ],
+                          "default": "NONE"
+                        },
+                        "audio": {
+                          "type": "string",
+                          "enum": [
+                            "MUTED",
+                            "DEFAULT"
+                          ],
+                          "default": "MUTED"
+                        }
+                      },
+                      "required": [
+                        "window",
+                        "audio"
+                      ]
+                    },
+                    "state": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "instance",
+                    "profile",
+                    "presentation",
+                    "state"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "host": {
+                    "type": "string"
+                  },
+                  "port": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "host",
+                  "port"
+                ]
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "clients",
+          "x-craftless-member": "connect",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "method"
+        }
+      }
+    },
+    "/clients/{id}/actions": {
+      "get": {
+        "operationId": "listClientActions",
+        "tags": [
+          "clients"
+        ],
+        "summary": "List client actions",
+        "description": "Lists the current action projection for one client. This is convenient discovery evidence, while the generated live API remains the authority for schemas, aliases, and invocation details.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "schemaVersion": {
+                        "type": "string"
+                      },
+                      "source": {
+                        "type": "string"
+                      },
+                      "availability": {
+                        "type": "string"
+                      },
+                      "availabilityReason": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "args": {
+                        "type": "object",
+                        "additionalProperties": true
+                      },
+                      "result": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "schemaVersion",
+                      "source",
+                      "availability"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "clients",
+          "x-craftless-member": "actions",
+          "x-craftless-target": "client",
+          "x-craftless-return": "value",
+          "x-craftless-source": "action"
+        }
+      }
+    },
+    "/clients/{id}/resources": {
+      "get": {
+        "operationId": "listClientResources",
+        "tags": [
+          "clients"
+        ],
+        "summary": "List client resources",
+        "description": "Lists the current resource projection for one client, including discovered resource groups and handles when available. Use it to inspect live affordances before invoking advertised actions.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "actions": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "availability": {
+                        "type": "string"
+                      },
+                      "availabilityReasons": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "actionDescriptors": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "schemaVersion": {
+                              "type": "string"
+                            },
+                            "source": {
+                              "type": "string"
+                            },
+                            "availability": {
+                              "type": "string"
+                            },
+                            "availabilityReason": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "args": {
+                              "type": "object",
+                              "additionalProperties": true
+                            },
+                            "result": {
+                              "type": "object",
+                              "additionalProperties": true
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "schemaVersion",
+                            "source",
+                            "availability"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "actions",
+                      "availability",
+                      "availabilityReasons",
+                      "actionDescriptors"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "clients",
+          "x-craftless-member": "resources",
+          "x-craftless-target": "client",
+          "x-craftless-return": "value",
+          "x-craftless-source": "resource"
+        }
+      }
+    },
+    "/clients/{id}:run": {
+      "post": {
+        "operationId": "runClientAction",
+        "tags": [
+          "clients"
+        ],
+        "summary": "Run client action",
+        "description": "Invokes one advertised action on an existing client through the generic public execution route. Agents must choose the action id and arguments from the generated live API or projections for that same client.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "action",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string"
+                  },
+                  "args": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                },
+                "required": [
+                  "action"
+                ]
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "clients",
+          "x-craftless-member": "run",
+          "x-craftless-target": "client",
+          "x-craftless-return": "value",
+          "x-craftless-source": "action"
+        }
+      }
+    },
+    "/clients/{id}:rpc": {
+      "post": {
+        "operationId": "clientJsonRpc",
+        "tags": [
+          "clients"
+        ],
+        "summary": "Send client RPC",
+        "description": "Sends a JSON-RPC-style control or query request to an existing client. Use this for generic query, invoke, subscribe, and unsubscribe flows when the generated API advertises the target shape.",
+        "responses": {
+          "200": {}
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "method": {
+                    "type": "string",
+                    "enum": [
+                      "invoke",
+                      "subscribe",
+                      "unsubscribe",
+                      "query"
+                    ]
+                  },
+                  "params": {
+                    "type": "object",
+                    "properties": {
+                      "target": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "method"
+                ]
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "clients",
+          "x-craftless-member": "rpc",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "method"
+        }
+      }
+    },
+    "/clients/{id}:stop": {
+      "post": {
+        "operationId": "stopClient",
+        "tags": [
+          "clients"
+        ],
+        "summary": "Stop a client process",
+        "description": "Stops and releases one daemon-managed client process. Use this before replacing or retrying a failed client launch.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ]
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "files": {
+                          "type": "object",
+                          "properties": {
+                            "root": {
+                              "type": "string"
+                            },
+                            "gameRoot": {
+                              "type": "string"
+                            },
+                            "runtimeRoot": {
+                              "type": "string"
+                            },
+                            "cache": {
+                              "type": "string"
+                            },
+                            "mods": {
+                              "type": "string"
+                            },
+                            "config": {
+                              "type": "string"
+                            },
+                            "saves": {
+                              "type": "string"
+                            },
+                            "resourcePacks": {
+                              "type": "string"
+                            },
+                            "shaderPacks": {
+                              "type": "string"
+                            },
+                            "screenshots": {
+                              "type": "string"
+                            },
+                            "logs": {
+                              "type": "string"
+                            },
+                            "artifacts": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "root",
+                            "gameRoot",
+                            "runtimeRoot",
+                            "cache",
+                            "mods",
+                            "config",
+                            "saves",
+                            "resourcePacks",
+                            "shaderPacks",
+                            "screenshots",
+                            "logs",
+                            "artifacts"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "version",
+                        "loader",
+                        "files"
+                      ]
+                    },
+                    "profile": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "name"
+                      ]
+                    },
+                    "presentation": {
+                      "type": "object",
+                      "properties": {
+                        "window": {
+                          "type": "string",
+                          "enum": [
+                            "NONE",
+                            "VISIBLE"
+                          ],
+                          "default": "NONE"
+                        },
+                        "audio": {
+                          "type": "string",
+                          "enum": [
+                            "MUTED",
+                            "DEFAULT"
+                          ],
+                          "default": "MUTED"
+                        }
+                      },
+                      "required": [
+                        "window",
+                        "audio"
+                      ]
+                    },
+                    "state": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "instance",
+                    "profile",
+                    "presentation",
+                    "state"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "clients",
+          "x-craftless-member": "stop",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "method"
+        }
+      }
+    },
+    "/clients/{id}/events": {
+      "get": {
+        "operationId": "getClientEvents",
+        "tags": [
+          "clients"
+        ],
+        "summary": "List client events",
+        "description": "Lists recent lifecycle, runtime, capability, and invocation events for one client. Use this for bounded evidence about attach, connect, discovery, or action outcomes.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "client": {
+                        "type": "string"
+                      },
+                      "message": {
+                        "type": "string"
+                      },
+                      "time": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "time"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "clients",
+          "x-craftless-member": "events",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "route"
+        }
+      }
+    },
+    "/clients/{id}/events:stream": {
+      "get": {
+        "operationId": "streamClientEvents",
+        "tags": [
+          "clients"
+        ],
+        "summary": "Stream client events",
+        "description": "Streams lifecycle, runtime, capability, and invocation events for one client as Server-Sent Events. Subscribe before state-changing work when an agent needs correlated live evidence.",
+        "responses": {
+          "200": {}
+        },
+        "x-craftless": {
+          "x-craftless-owner": "clients",
+          "x-craftless-member": "events",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "route"
+        }
+      }
+    }
+  }
+}
