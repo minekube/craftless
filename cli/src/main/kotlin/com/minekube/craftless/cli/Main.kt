@@ -60,7 +60,7 @@ object CraftlessCli {
     private const val CRAFTLESS_HTTP_REQUEST_TIMEOUT_MS = "CRAFTLESS_HTTP_REQUEST_TIMEOUT_MS"
     private const val DEFAULT_HTTP_REQUEST_TIMEOUT_MS = 900_000L
     private const val GENERATED_ACTION_USAGE =
-        "error: usage is clients <id> <resource...> <action> [--api <url>] [--openapi-cache <dir>] [--arg key=value] [--<arg> value]"
+        "error: generated client action aliases were removed; use craftless api <endpoint> instead"
 
     private val json =
         Json {
@@ -71,21 +71,7 @@ object CraftlessCli {
 
     fun root(): CoreCliktCommand =
         RootCommand().subcommands(
-            GroupCommand("clients").subcommands(
-                LeafCommand("create"),
-                LeafCommand("list"),
-            ),
-            GroupCommand("cache").subcommands(
-                LeafCommand("prepare"),
-                LeafCommand("export"),
-                LeafCommand("cleanup"),
-            ),
-            GroupCommand("runtimes").subcommands(
-                GroupCommand("java").subcommands(
-                    LeafCommand("list"),
-                    LeafCommand("resolve"),
-                ),
-            ),
+            LeafCommand("api"),
             GroupCommand("daemon").subcommands(
                 LeafCommand("start"),
             ),
@@ -96,24 +82,7 @@ object CraftlessCli {
 
     fun registeredCommandPaths(): Set<String> =
         setOf(
-            "clients create",
-            "clients list",
-            "clients <id> get",
-            "clients <id> connect",
-            "clients <id> stop",
-            "clients <id> openapi",
-            "clients <id> actions",
-            "clients <id> resources",
-            "clients <id> query <target>",
-            "clients <id> events",
-            "clients <id> tools",
-            "clients <id> run <action>",
-            "clients <id> <resource...> <action>",
-            "cache prepare",
-            "cache export",
-            "cache cleanup",
-            "runtimes java list",
-            "runtimes java resolve",
+            "api <endpoint>",
             "daemon start",
         )
 
@@ -134,45 +103,13 @@ object CraftlessCli {
             stdout(help)
             return 0
         }
+        if (args.startsWithCommand("api")) {
+            return ApiCli(json) { environment -> apiHttpClient(environment) }
+                .run(args.drop(1), stdout, stderr, env)
+        }
         if (args.startsWithCommand("daemon", "start") || args.startsWithCommand("server", "start")) {
             return runDaemonStart(args.drop(2), stdout, stderr, afterStart, env, cacheMetadataFetcher, distributionRoot)
         }
-        if (args.startsWithCommand("cache", "prepare") && args.contains("--workspace")) {
-            return prepareCache(args.drop(2), stdout, stderr, cacheMetadataFetcher)
-        }
-        if (args.startsWithCommand("cache", "export") && args.contains("--workspace")) {
-            return exportCache(args.drop(2), stdout, stderr)
-        }
-        if (args.startsWithCommand("cache", "cleanup") && args.contains("--workspace")) {
-            return cleanupCache(args.drop(2), stdout, stderr)
-        }
-        if (args.size >= 3 && args[0] == "clients" && args[2] == "openapi") {
-            return getClientOpenApi(args.drop(1), stdout, stderr, env)
-        }
-        if (args.size >= 3 && args[0] == "clients" && args[2] == "actions") {
-            return getClientActions(args.drop(1), stdout, stderr, env)
-        }
-        if (args.size >= 3 && args[0] == "clients" && args[2] == "resources") {
-            return getClientResources(args.drop(1), stdout, stderr, env)
-        }
-        if (args.size >= 3 && args[0] == "clients" && args[2] == "query") {
-            return queryClient(args.drop(1), stdout, stderr, env)
-        }
-        if (args.size >= 3 && args[0] == "clients" && args[2] == "events") {
-            return getClientEvents(args.drop(1), stdout, stderr, env)
-        }
-        if (args.size >= 3 && args[0] == "clients" && args[2] == "tools") {
-            return getClientTools(args.drop(1), stdout, stderr, env)
-        }
-        if (args.size >= 4 && args[0] == "clients" && args[2] == "run") {
-            return runClientAction(args.drop(1), stdout, stderr, env)
-        }
-        if (args.isGeneratedGameplayAlias()) {
-            return runGeneratedClientAction(args.drop(1), stdout, stderr, env)
-        }
-        GeneratedRouteCli(json) { environment -> apiHttpClient(environment) }
-            .run(args, stdout, stderr, env)
-            ?.let { exit -> return exit }
         if (args.isNotEmpty()) {
             stderr("error: unknown command ${args.joinToString(" ")}")
             return 2
@@ -188,9 +125,7 @@ object CraftlessCli {
 
     private fun groupHelp(args: List<String>): String? =
         when {
-            args.isGroupHelp("clients") -> clientsHelp()
-            args.isGroupHelp("cache") -> cacheHelp()
-            args.isGroupHelp("runtimes") -> runtimesHelp()
+            args.isGroupHelp("api") -> ApiCli(json) { environment -> apiHttpClient(environment) }.help()
             args.isGroupHelp("daemon") -> daemonHelp()
             args.isGroupHelp("server") -> serverHelp()
             else -> null
@@ -204,29 +139,6 @@ object CraftlessCli {
     private fun List<String>.startsWithCommand(vararg tokens: String): Boolean =
         size >= tokens.size && tokens.indices.all { index -> this[index] == tokens[index] }
 
-    private fun List<String>.isGeneratedGameplayAlias(): Boolean {
-        val command = getOrNull(2) ?: return false
-        val stableClientCommands =
-            setOf(
-                "actions",
-                "attach",
-                "connect",
-                "events",
-                "get",
-                "openapi",
-                "query",
-                "resources",
-                "run",
-                "stop",
-                "tools",
-            )
-        return size >= 4 &&
-            getOrNull(0) == "clients" &&
-            getOrNull(1) !in setOf("create", "list") &&
-            !command.startsWith("--") &&
-            command !in stableClientCommands
-    }
-
     private fun rootHelp(): String =
         buildString {
             appendLine("Usage: craftless <command> [args]")
@@ -238,37 +150,7 @@ object CraftlessCli {
                 appendLine("  $command")
             }
             appendLine()
-            appendLine("Generated gameplay commands are loaded from each live client's OpenAPI document.")
-            append("Use `craftless clients <id> <resource...> <action> --help` after client discovery for action help.")
-        }
-
-    private fun clientsHelp(): String =
-        buildString {
-            appendLine("Usage: craftless clients <command> [args]")
-            appendLine()
-            appendLine("Stable commands:")
-            listOf(
-                "clients create",
-                "clients list",
-                "clients <id> get",
-                "clients <id> connect",
-                "clients <id> stop",
-                "clients <id> openapi",
-                "clients <id> actions",
-                "clients <id> resources",
-                "clients <id> query <target>",
-                "clients <id> events",
-                "clients <id> tools",
-                "clients <id> run <action>",
-                "clients <id> <resource...> <action>",
-            ).forEach { command ->
-                appendLine("  $command")
-            }
-            appendLine()
-            appendLine("Generated gameplay commands are loaded from each live client's OpenAPI document.")
-            append("Use `craftless clients <id> actions --help --api <url>` or ")
-            append("`craftless clients <id> <resource...> <action> --help --api <url>` ")
-            append("after client discovery for generated action help.")
+            append("Use `craftless api /openapi.json` and `craftless api /clients/{id}/openapi.json` for discovery.")
         }
 
     private fun cacheHelp(): String =

@@ -208,8 +208,8 @@ class NamespacePolicyTest {
             listOf(
                 "GET /openapi.json",
                 "GET /clients/{id}/openapi.json",
-                "craftless clients <id> actions",
-                "craftless clients <id> run <action>",
+                "craftless api /clients/<id>/actions",
+                "craftless api /clients/<id>:run",
                 "POST /clients/{id}:run",
                 "POST JSON-RPC-style",
                 "GET /clients/{id}/events:stream",

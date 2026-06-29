@@ -206,3 +206,7 @@ description for discovery/version, events, cache, Java runtime resolution,
 client lifecycle, per-client OpenAPI, action/resource projections, generic
 invocation, JSON-RPC, and streams. The coverage test prevents future stable
 routes from appearing without agent-readable OpenAPI guidance.
+Phase 193 replaces generated CLI route subcommands with the single
+`craftless api <endpoint>` route invoker. Supervisor and per-client routes are
+matched from OpenAPI paths and request schemas; `x-craftless-cli` is no longer
+serialized, and `GeneratedRouteCli` is removed.

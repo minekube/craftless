@@ -205,23 +205,15 @@ of mirroring the API by hand.
   emits HTTP `ETag` revalidation metadata for the live per-client spec;
   action/resource projections share the same validator;
   the Bun helper revalidates process-local and optional durable cached live
-  specs with `If-None-Match`; `craftless clients <id> openapi --openapi-cache <dir>`,
-  `craftless clients <id> actions --openapi-cache <dir>`, `craftless clients
-  <id> resources --openapi-cache <dir>`, `craftless clients <id> tools
-  --openapi-cache <dir>`, `craftless clients <id> run <action>
-  --openapi-cache <dir>`, and generated action aliases with `--openapi-cache
-  <dir>` now persist the live per-client OpenAPI body plus ETag and revalidate
-  it across CLI invocations.
-- Render dynamic CLI help from `/clients/{id}/openapi.json`, using
-  `/clients/{id}/actions` only as a descriptor projection/availability view.
-  Generated action alias help and generated resource help now use live
-  per-client OpenAPI metadata.
-- Export agent-tool manifests from `/clients/{id}/openapi.json` through
-  `craftless clients <id> tools`, including the runtime fingerprint, generated
-  alias route, availability, and action argument schema for each live action.
-- Keep static CLI commands limited to daemon lifecycle, client lifecycle,
-  discovery, agent-tool export, generic action invocation, auth/config, and
-  output modes.
+  specs with `If-None-Match`; `craftless api /clients/<id>/openapi.json`,
+  `craftless api /clients/<id>/actions`, `craftless api /clients/<id>/resources`,
+  and `craftless api /clients/<id>:run` consume the live per-client OpenAPI
+  authority through one generic route invoker.
+- Render dynamic CLI help from OpenAPI paths and schemas through
+  `craftless api <endpoint> --help`, using `/clients/{id}/actions` only as a
+  descriptor projection/availability view.
+- Keep static CLI commands limited to daemon lifecycle and generic OpenAPI
+  route invocation.
 - Add an OpenAPI compatibility fixture that proves generated aliases, generic
   action invocation, and schema metadata stay in sync.
 - Defer any TypeScript SDK until the generated API contract is strong enough

@@ -49,6 +49,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import java.net.ServerSocket
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -77,30 +78,30 @@ class CraftlessCliTest {
     }
 
     @Test
-    fun `cli registers first jvm command tree`() {
+    fun `cli registers api first command tree`() {
         val commands = CraftlessCli.registeredCommandPaths()
 
-        assertTrue(commands.contains("clients create"))
-        assertTrue(commands.contains("clients list"))
-        assertTrue(commands.contains("clients <id> get"))
-        assertTrue(commands.contains("clients <id> connect"))
-        assertTrue(commands.contains("clients <id> stop"))
-        assertTrue(commands.contains("clients <id> openapi"))
-        assertTrue(commands.contains("clients <id> actions"))
-        assertTrue(commands.contains("clients <id> resources"))
-        assertTrue(commands.contains("clients <id> query <target>"))
-        assertTrue(commands.contains("clients <id> events"))
-        assertTrue(commands.contains("clients <id> tools"))
-        assertTrue(commands.contains("clients <id> run <action>"))
-        assertTrue(commands.contains("clients <id> <resource...> <action>"))
-        assertTrue(commands.contains("cache prepare"))
-        assertTrue(commands.contains("cache export"))
-        assertTrue(commands.contains("cache cleanup"))
-        assertTrue(commands.contains("runtimes java list"))
-        assertTrue(commands.contains("runtimes java resolve"))
+        assertTrue(commands.contains("api <endpoint>"))
         assertTrue(commands.contains("daemon start"))
+        assertFalse(commands.contains("clients create"))
+        assertFalse(commands.contains("clients list"))
+        assertFalse(commands.contains("clients <id> get"))
+        assertFalse(commands.contains("clients <id> connect"))
+        assertFalse(commands.contains("clients <id> stop"))
+        assertFalse(commands.contains("clients <id> openapi"))
+        assertFalse(commands.contains("clients <id> actions"))
+        assertFalse(commands.contains("clients <id> resources"))
+        assertFalse(commands.contains("clients <id> query <target>"))
+        assertFalse(commands.contains("clients <id> events"))
+        assertFalse(commands.contains("clients <id> tools"))
+        assertFalse(commands.contains("clients <id> run <action>"))
+        assertFalse(commands.contains("clients <id> <resource...> <action>"))
+        assertFalse(commands.contains("cache prepare"))
+        assertFalse(commands.contains("cache export"))
+        assertFalse(commands.contains("cache cleanup"))
+        assertFalse(commands.contains("runtimes java list"))
+        assertFalse(commands.contains("runtimes java resolve"))
         assertFalse(commands.contains("server start"))
-        assertTrue("clients api" !in commands)
         assertTrue("versions" !in commands)
         assertTrue("profiles" !in commands)
         assertTrue("test run" !in commands)
@@ -144,21 +145,22 @@ class CraftlessCliTest {
         assertEquals("", errors.toString())
         val help = output.toString()
         assertTrue(help.contains("Usage: craftless <command> [args]"))
+        assertTrue(help.contains("api <endpoint>"))
         assertTrue(help.contains("daemon start"))
         assertFalse(help.contains("server start"))
-        assertTrue(help.contains("clients <id> <resource...> <action>"))
+        assertFalse(help.contains("clients <id> <resource...> <action>"))
         assertFalse(help.contains("player chat"))
         assertFalse(help.contains("world block break"))
     }
 
     @Test
-    fun `clients help prints stable and adaptive command guidance`() {
+    fun `api help prints generic route command guidance`() {
         val output = StringBuilder()
         val errors = StringBuilder()
 
         val exit =
             CraftlessCli.run(
-                listOf("clients", "--help"),
+                listOf("api", "--help"),
                 stdout = { output.appendLine(it) },
                 stderr = { errors.appendLine(it) },
             )
@@ -166,10 +168,10 @@ class CraftlessCliTest {
         assertEquals(0, exit)
         assertEquals("", errors.toString())
         val help = output.toString()
-        assertTrue(help.contains("Usage: craftless clients <command> [args]"))
-        assertTrue(help.contains("clients create"))
-        assertTrue(help.contains("clients <id> run <action>"))
-        assertTrue(help.contains("Generated gameplay commands are loaded from each live client's OpenAPI document."))
+        assertTrue(help.contains("Usage: craftless api <endpoint> [flags]"))
+        assertTrue(help.contains("-X, --method <method>"))
+        assertTrue(help.contains("-F, --field key=value"))
+        assertTrue(help.contains("OpenAPI"))
         assertFalse(help.contains("player chat"))
         assertFalse(help.contains("world block break"))
     }
@@ -206,6 +208,178 @@ class CraftlessCliTest {
         assertEquals(2, exit)
         assertEquals("", output.toString())
         assertTrue(errors.toString().contains("unknown command clients api"))
+    }
+
+    @Test
+    fun `removed clients create command returns explicit usage error`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        val exit =
+            CraftlessCli.run(
+                listOf("clients", "create", "bot", "--version", "latest-release", "--loader", "FABRIC"),
+                stdout = { output.appendLine(it) },
+                stderr = { errors.appendLine(it) },
+            )
+
+        assertEquals(2, exit)
+        assertEquals("", output.toString())
+        assertTrue(errors.toString().contains("unknown command clients create bot"))
+    }
+
+    @Test
+    fun `api gets supervisor route by endpoint`() {
+        val output = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            val exit =
+                CraftlessCli.run(
+                    listOf("api", "/version", "--api", server.url),
+                    stdout = { output.appendLine(it) },
+                )
+
+            assertEquals(0, exit)
+        }
+
+        val version = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        assertEquals("fake", version["minecraft"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `api posts typed fields to supervisor route`() {
+        RecordingCreateApiServer().use { server ->
+            val output = StringBuilder()
+            val errors = StringBuilder()
+
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "api",
+                        "/clients",
+                        "--api",
+                        server.url,
+                        "-F",
+                        "id=bot",
+                        "-F",
+                        "version=latest-release",
+                        "-F",
+                        "loader=FABRIC",
+                        "-F",
+                        "profile[kind]=OFFLINE",
+                        "-F",
+                        "profile[name]=Bot",
+                        "-F",
+                        "presentation[window]=NONE",
+                        "-F",
+                        "presentation[audio]=MUTED",
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
+
+            assertEquals(0, exit, errors.toString())
+            val request = Json.parseToJsonElement(server.createBodies.single()).jsonObject
+            assertEquals("bot", request["id"]?.jsonPrimitive?.content)
+            assertEquals("latest-release", request["version"]?.jsonPrimitive?.content)
+            assertEquals("FABRIC", request["loader"]?.jsonPrimitive?.content)
+            assertEquals(
+                "Bot",
+                request["profile"]
+                    ?.jsonObject
+                    ?.get("name")
+                    ?.jsonPrimitive
+                    ?.content,
+            )
+            assertEquals(
+                "NONE",
+                request["presentation"]
+                    ?.jsonObject
+                    ?.get("window")
+                    ?.jsonPrimitive
+                    ?.content,
+            )
+        }
+    }
+
+    @Test
+    fun `api help is inferred from supervisor openapi schema`() {
+        RecordingCreateApiServer().use { server ->
+            val output = StringBuilder()
+            val errors = StringBuilder()
+
+            val exit =
+                CraftlessCli.run(
+                    listOf("api", "/clients", "--method", "POST", "--help", "--api", server.url),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
+
+            assertEquals(0, exit, errors.toString())
+            val help = output.toString()
+            assertTrue(help.contains("Route: POST /clients"))
+            assertTrue(help.contains("launches a new daemon-managed real Minecraft Java client process"))
+            assertTrue(help.contains("id string required"))
+            assertTrue(help.contains("presentation.audio string required default=MUTED enum=MUTED|DEFAULT"))
+            assertTrue(help.contains("presentation.window string required default=NONE enum=NONE|VISIBLE"))
+        }
+    }
+
+    @Test
+    fun `api posts generic run body with nested action args`() {
+        val output = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "api",
+                        "/clients/alice:run",
+                        "--api",
+                        server.url,
+                        "-F",
+                        "action=player.chat",
+                        "-F",
+                        "args[message]=hello api",
+                    ),
+                    stdout = { output.appendLine(it) },
+                )
+
+            assertEquals(0, exit)
+        }
+
+        val response = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        assertEquals("player.chat", response["action"]?.jsonPrimitive?.content)
+        assertEquals("ACCEPTED", response["status"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `api posts per client generated route from live openapi`() {
+        val output = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "api",
+                        "/clients/alice/player:chat",
+                        "--api",
+                        server.url,
+                        "-F",
+                        "message=hello generated api",
+                    ),
+                    stdout = { output.appendLine(it) },
+                )
+
+            assertEquals(0, exit)
+        }
+
+        val response = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        assertEquals("player.chat", response["action"]?.jsonPrimitive?.content)
+        assertEquals("ACCEPTED", response["status"]?.jsonPrimitive?.content)
     }
 
     @Test
@@ -668,6 +842,7 @@ class CraftlessCliTest {
         assertTrue(!Files.exists(workspace.resolve("cache/mods/craftless")))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `client create uses configured api request timeout`() {
         SlowCreateApiServer(delayMillis = 250).use { server ->
@@ -725,6 +900,7 @@ class CraftlessCliTest {
         }
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `cache prepare creates cache handles in workspace`() {
         val output = StringBuilder()
@@ -786,6 +962,7 @@ class CraftlessCliTest {
         assertTrue(Files.isRegularFile(workspace.resolve("cache/loaders/fabric/1.21.6/0.17.2/profile.json")))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `cache prepare accepts pinned loader version`() {
         val output = StringBuilder()
@@ -844,6 +1021,7 @@ class CraftlessCliTest {
         assertTrue(Files.isRegularFile(workspace.resolve("cache/loaders/fabric/1.21.6/0.16.14/profile.json")))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `runtimes java list returns supervisor runtime candidates`() {
         val output = StringBuilder()
@@ -870,6 +1048,7 @@ class CraftlessCliTest {
         )
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `runtimes java resolve resolves by minecraft version through supervisor api`() {
         val output = StringBuilder()
@@ -933,6 +1112,7 @@ class CraftlessCliTest {
         )
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `runtimes java resolve resolves latest release alias through supervisor api`() {
         val output = StringBuilder()
@@ -1000,6 +1180,7 @@ class CraftlessCliTest {
         )
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `cache export and cleanup operate on a prepared manifest`() {
         val prepareOutput = StringBuilder()
@@ -1079,6 +1260,7 @@ class CraftlessCliTest {
         assertTrue(!Files.exists(workspace.resolve(prepared.manifest)))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients create posts an offline client request to daemon`() {
         val output = StringBuilder()
@@ -1110,6 +1292,7 @@ class CraftlessCliTest {
         assertEquals("RUNNING", client["state"]?.jsonPrimitive?.content)
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients create sends requested loader version lane`() {
         RecordingCreateApiServer().use { server ->
@@ -1143,6 +1326,7 @@ class CraftlessCliTest {
         }
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients create defaults to muted non visible request without offline name`() {
         RecordingCreateApiServer().use { server ->
@@ -1175,6 +1359,7 @@ class CraftlessCliTest {
         }
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `generated supervisor route creates client from openapi cli metadata`() {
         RecordingCreateApiServer().use { server ->
@@ -1206,6 +1391,7 @@ class CraftlessCliTest {
         }
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `generated supervisor route help is loaded from supervisor openapi`() {
         RecordingCreateApiServer().use { server ->
@@ -1232,6 +1418,7 @@ class CraftlessCliTest {
         }
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients create sends explicit visible default audio request`() {
         RecordingCreateApiServer().use { server ->
@@ -1270,6 +1457,7 @@ class CraftlessCliTest {
         }
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients create rejects unknown audio presentation`() {
         RecordingCreateApiServer().use { server ->
@@ -1302,6 +1490,7 @@ class CraftlessCliTest {
         }
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients create usage includes loader version option`() {
         val output = StringBuilder()
@@ -1327,6 +1516,7 @@ class CraftlessCliTest {
         assertTrue(errors.toString().contains("[--audio <muted|default>]"))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients list fetches clients from daemon`() {
         val output = StringBuilder()
@@ -1352,6 +1542,7 @@ class CraftlessCliTest {
         assertTrue(clients.any { it.jsonObject["id"]?.jsonPrimitive?.content == "alice" })
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients list jsonl prints one client per line`() {
         val output = StringBuilder()
@@ -1395,6 +1586,7 @@ class CraftlessCliTest {
         )
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients get fetches one client from daemon`() {
         val output = StringBuilder()
@@ -1422,6 +1614,7 @@ class CraftlessCliTest {
         assertEquals("RUNNING", client["state"]?.jsonPrimitive?.content)
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients list uses craftless api environment variable`() {
         val output = StringBuilder()
@@ -1443,6 +1636,7 @@ class CraftlessCliTest {
         assertTrue(clients.any { it.jsonObject["id"]?.jsonPrimitive?.content == "alice" })
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `explicit api option wins over craftless api environment variable`() {
         val output = StringBuilder()
@@ -1467,6 +1661,7 @@ class CraftlessCliTest {
         assertTrue(clients.any { it.jsonObject["id"]?.jsonPrimitive?.content == "alice" })
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients connect posts connection target to daemon`() {
         val output = StringBuilder()
@@ -1498,6 +1693,7 @@ class CraftlessCliTest {
         assertEquals("CONNECTED", client["state"]?.jsonPrimitive?.content)
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients stop posts stop lifecycle method to daemon`() {
         val output = StringBuilder()
@@ -1525,6 +1721,7 @@ class CraftlessCliTest {
         assertEquals("STOPPED", client["state"]?.jsonPrimitive?.content)
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients run posts typed action args to daemon`() {
         val output = StringBuilder()
@@ -1556,6 +1753,7 @@ class CraftlessCliTest {
         assertEquals("hello from cli", response["message"]?.jsonPrimitive?.content)
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients run rejects actions missing from live openapi action metadata`() {
         val output = StringBuilder()
@@ -1585,6 +1783,7 @@ class CraftlessCliTest {
         assertTrue(errors.toString().contains("action player.fly is not described by live OpenAPI for client alice"))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients run rejects actions missing from live openapi`() {
         val output = StringBuilder()
@@ -1615,6 +1814,7 @@ class CraftlessCliTest {
         assertTrue(errors.toString().contains("action player.chat is not described by live OpenAPI for client alice"))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients run uses live openapi action metadata as argument schema`() {
         val output = StringBuilder()
@@ -1643,6 +1843,7 @@ class CraftlessCliTest {
         assertTrue(errors.toString().contains("action player.chat requires argument message"))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients run revalidates durable live openapi cache by etag before invocation`() {
         val cacheDir = Files.createTempDirectory("craftless-cli-run-openapi-cache")
@@ -1695,6 +1896,7 @@ class CraftlessCliTest {
         assertEquals("ACCEPTED", response["status"]?.jsonPrimitive?.content)
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `generated client action alias rejects actions missing from live openapi action list`() {
         val output = StringBuilder()
@@ -1725,6 +1927,7 @@ class CraftlessCliTest {
         assertTrue(errors.toString().contains("action player.chat is not described by live OpenAPI for client alice"))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `generated client action alias rejects live openapi route mapped to another action`() {
         val output = StringBuilder()
@@ -1755,6 +1958,7 @@ class CraftlessCliTest {
         assertTrue(errors.toString().contains("action player.chat is not described by live OpenAPI for client alice"))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `generated client action alias uses live openapi action metadata as argument schema`() {
         val output = StringBuilder()
@@ -1783,6 +1987,7 @@ class CraftlessCliTest {
         assertTrue(errors.toString().contains("action player.chat requires argument message"))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `generated client action alias revalidates durable live openapi cache by etag before invocation`() {
         val cacheDir = Files.createTempDirectory("craftless-cli-alias-openapi-cache")
@@ -1835,6 +2040,7 @@ class CraftlessCliTest {
         assertEquals("ACCEPTED", response["status"]?.jsonPrimitive?.content)
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients actions fetches discovered actions from daemon`() {
         val output = StringBuilder()
@@ -1862,6 +2068,7 @@ class CraftlessCliTest {
         assertTrue(actions.any { it.jsonObject["id"]?.jsonPrimitive?.content == "player.move" })
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients actions uses live openapi as action authority`() {
         val output = StringBuilder()
@@ -1886,6 +2093,7 @@ class CraftlessCliTest {
         assertEquals(listOf("player.chat"), actions.map { it.jsonObject["id"]?.jsonPrimitive?.content })
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients actions help is generated from live openapi actions`() {
         val output = StringBuilder()
@@ -1921,6 +2129,7 @@ class CraftlessCliTest {
         assertFalse(help.trimStart().startsWith("["))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients actions revalidates durable live openapi cache by etag`() {
         val cacheDir = Files.createTempDirectory("craftless-cli-openapi-cache")
@@ -1965,6 +2174,7 @@ class CraftlessCliTest {
         assertEquals(listOf("player.chat"), actions.map { it.jsonObject["id"]?.jsonPrimitive?.content })
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients openapi revalidates durable live openapi cache by etag`() {
         val cacheDir = Files.createTempDirectory("craftless-cli-raw-openapi-cache")
@@ -2016,6 +2226,7 @@ class CraftlessCliTest {
         assertEquals("fingerprint-test", fingerprint)
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients tools exports agent tools from live openapi actions`() {
         val output = StringBuilder()
@@ -2051,6 +2262,7 @@ class CraftlessCliTest {
         assertEquals("true", message["required"]?.jsonPrimitive?.content)
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients tools revalidates durable live openapi cache by etag`() {
         val cacheDir = Files.createTempDirectory("craftless-cli-tools-openapi-cache")
@@ -2096,6 +2308,7 @@ class CraftlessCliTest {
         assertEquals(listOf("craftless_player_chat"), tools.map { it.jsonObject["name"]?.jsonPrimitive?.content })
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients resources fetches live resource projection from daemon`() {
         val output = StringBuilder()
@@ -2128,6 +2341,7 @@ class CraftlessCliTest {
         assertEquals("available", player["availability"]?.jsonPrimitive?.content)
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients resources uses live openapi as resource authority`() {
         val output = StringBuilder()
@@ -2154,6 +2368,7 @@ class CraftlessCliTest {
         assertEquals(listOf("player.chat"), player["actions"]?.jsonArray?.map { it.jsonPrimitive.content })
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients resources revalidates durable live openapi cache by etag`() {
         val cacheDir = Files.createTempDirectory("craftless-cli-resource-openapi-cache")
@@ -2198,6 +2413,7 @@ class CraftlessCliTest {
         assertEquals(listOf("player"), resources.map { it.jsonObject["id"]?.jsonPrimitive?.content })
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients query fetches live projection through json rpc`() {
         val output = StringBuilder()
@@ -2226,6 +2442,7 @@ class CraftlessCliTest {
         assertTrue(actions.any { it.jsonObject["id"]?.jsonPrimitive?.content == "player.move" })
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients openapi fetches live per client spec from daemon`() {
         val output = StringBuilder()
@@ -2259,6 +2476,7 @@ class CraftlessCliTest {
         )
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients run preserves boolean and integer action args`() {
         val output = StringBuilder()
@@ -2291,6 +2509,7 @@ class CraftlessCliTest {
         assertEquals("ACCEPTED", response["status"]?.jsonPrimitive?.content)
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients events watches live sse stream from daemon`() {
         val output = StringBuilder()
@@ -2337,6 +2556,7 @@ class CraftlessCliTest {
         assertTrue(!body.contains("client.created"))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients run rejects args missing from runtime action metadata`() {
         val output = StringBuilder()
@@ -2370,6 +2590,7 @@ class CraftlessCliTest {
         assertTrue(errors.toString().contains("action player.chat does not declare argument surprise"))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients run rejects missing required runtime action args`() {
         val output = StringBuilder()
@@ -2399,6 +2620,7 @@ class CraftlessCliTest {
         assertTrue(errors.toString().contains("action player.chat requires argument message"))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `generated client action alias dispatches from runtime action metadata`() {
         val output = StringBuilder()
@@ -2430,6 +2652,7 @@ class CraftlessCliTest {
         assertEquals("hello from alias cli", response["message"]?.jsonPrimitive?.content)
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `generated client action alias maps single positional arg to required action argument`() {
         val output = StringBuilder()
@@ -2460,6 +2683,7 @@ class CraftlessCliTest {
         assertEquals("hello from positional alias", response["message"]?.jsonPrimitive?.content)
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `generated client action alias rejects missing required runtime action args`() {
         val output = StringBuilder()
@@ -2489,6 +2713,7 @@ class CraftlessCliTest {
         assertTrue(errors.toString().contains("action player.chat requires argument message"))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `generated client action alias rejects arg pairs missing from runtime action metadata`() {
         val output = StringBuilder()
@@ -2522,6 +2747,7 @@ class CraftlessCliTest {
         assertTrue(errors.toString().contains("action player.chat does not declare argument surprise"))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `generated client action alias preserves typed args from action schema`() {
         val output = StringBuilder()
@@ -2553,6 +2779,7 @@ class CraftlessCliTest {
         assertEquals("ACCEPTED", response["status"]?.jsonPrimitive?.content)
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `generated nested client action alias dispatches from runtime action metadata`() {
         val output = StringBuilder()
@@ -2591,6 +2818,7 @@ class CraftlessCliTest {
         assertEquals("ACCEPTED", response["status"]?.jsonPrimitive?.content)
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `generated client action alias help is loaded from runtime action metadata`() {
         val output = StringBuilder()
@@ -2626,6 +2854,7 @@ class CraftlessCliTest {
         assertTrue(help.contains("--ticks integer"))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `generated client resource help is loaded from live openapi resource metadata`() {
         val output = StringBuilder()
@@ -2659,6 +2888,7 @@ class CraftlessCliTest {
         assertTrue(help.contains("  chat available"))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `generated client action alias help rejects actions missing from live openapi action metadata`() {
         val output = StringBuilder()
@@ -2689,6 +2919,7 @@ class CraftlessCliTest {
         assertTrue(errors.toString().contains("action player.fly is not described by live OpenAPI for client alice"))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `generated client action alias rejects actions missing from live openapi action metadata`() {
         val output = StringBuilder()
@@ -2718,6 +2949,7 @@ class CraftlessCliTest {
         assertTrue(errors.toString().contains("action player.fly is not described by live OpenAPI for client alice"))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients run returns nonzero for daemon errors`() {
         val output = StringBuilder()
@@ -2747,6 +2979,7 @@ class CraftlessCliTest {
         assertTrue(errors.toString().contains("MISSING_CLIENT"))
     }
 
+    @Ignore("Obsolete route shortcut coverage; use craftless api endpoint tests instead.")
     @Test
     fun `clients run returns nonzero when runtime action result fails`() {
         val output = StringBuilder()

@@ -11,7 +11,7 @@ should not be installed unless the repository starts using those technologies.
   OpenAPI, adaptive CLI, and SSE/JSON-RPC streams without static scenario
   shortcuts. It also records live co-play rules for navigation schemas,
   stop-command parsing, Minecraft-chat coordination, generic
-  `craftless clients <id> run <action>` invocation, POST JSON-RPC-style
+  `craftless api /clients/<id>:run` invocation, POST JSON-RPC-style
   control/query, SSE observation, fresh live-state checks before status
   claims, stale-client cleanup, and required final gameplay artifacts.
 - `.agents/skills/kotlin-jvm-modern-practices` captures Craftless's modern
