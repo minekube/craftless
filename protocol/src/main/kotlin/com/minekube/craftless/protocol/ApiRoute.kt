@@ -3,25 +3,6 @@ package com.minekube.craftless.protocol
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class ApiRouteCli(
-    val command: List<String>,
-    val aliases: List<List<String>> = emptyList(),
-    val hidden: Boolean = false,
-    val stream: Boolean = false,
-    val body: List<ApiRouteCliBinding> = emptyList(),
-)
-
-@Serializable
-data class ApiRouteCliBinding(
-    val pointer: String,
-    val flag: String? = null,
-    val argument: String? = null,
-    val fixed: String? = null,
-    val type: String = "string",
-    val required: Boolean = false,
-)
-
-@Serializable
 data class ApiRoute(
     val method: String,
     val path: String,
@@ -33,7 +14,6 @@ data class ApiRoute(
     val source: String,
     val returnKind: String = "value",
     val actionId: String? = null,
-    val cli: ApiRouteCli? = null,
     val summary: String? = null,
     val description: String? = null,
 ) {
@@ -139,16 +119,19 @@ class ApiRouteCatalog(
             "Connects an existing client process to a Minecraft server. This does not create or replace a client."
 
         private const val CLIENT_OPENAPI_DESCRIPTION =
-            "Returns the generated live API for one client. This per-client OpenAPI document is the authority for that client's discovered actions, resources, aliases, schemas, handles, availability, and runtime fingerprints."
+            "Returns the generated live API for one client. This per-client OpenAPI document is the authority for that client's discovered actions, resources, routes, schemas, handles, availability, and runtime fingerprints."
 
         private const val CLIENT_ATTACH_DESCRIPTION =
             "Attaches an already-running in-client Craftless driver endpoint to the supervisor. Use this when a real client exists outside daemon launch but should still expose generated per-client APIs."
 
         private const val CLIENT_ACTIONS_DESCRIPTION =
-            "Lists the current action projection for one client. This is convenient discovery evidence, while the generated live API remains the authority for schemas, aliases, and invocation details."
+            "Lists the current action projection for one client. This is convenient discovery evidence, while the generated live API remains the authority for schemas, generated routes, and invocation details."
 
         private const val CLIENT_RESOURCES_DESCRIPTION =
             "Lists the current resource projection for one client, including discovered resource groups and handles when available. Use it to inspect live affordances before invoking advertised actions."
+
+        private const val CLIENT_ARTIFACT_DESCRIPTION =
+            "Downloads a daemon-owned artifact for one client, such as media produced by a generated action. Artifact ids are resolved under the client's Craftless runtime artifact directory and cannot traverse outside it."
 
         private const val CLIENT_RUN_DESCRIPTION =
             "Invokes one advertised action on an existing client through the generic public execution route. Agents must choose the action id and arguments from the generated live API or projections for that same client."
@@ -176,7 +159,6 @@ class ApiRouteCatalog(
                         "supervisor",
                         "openapi",
                         "route",
-                        cli("openapi"),
                         summary = "Fetch supervisor OpenAPI",
                         description = OPENAPI_DESCRIPTION,
                     ),
@@ -188,7 +170,6 @@ class ApiRouteCatalog(
                         "supervisor",
                         "version",
                         "route",
-                        cli("version"),
                         summary = "Inspect daemon runtime",
                         description = VERSION_DESCRIPTION,
                     ),
@@ -200,7 +181,6 @@ class ApiRouteCatalog(
                         "supervisor",
                         "events",
                         "route",
-                        cli("events", "list"),
                         summary = "List supervisor events",
                         description = EVENTS_DESCRIPTION,
                     ),
@@ -212,7 +192,6 @@ class ApiRouteCatalog(
                         "supervisor",
                         "events",
                         "route",
-                        cli("events", stream = true),
                         summary = "Stream supervisor events",
                         description = EVENTS_STREAM_DESCRIPTION,
                     ),
@@ -224,16 +203,6 @@ class ApiRouteCatalog(
                         "cache",
                         "prepare",
                         "method",
-                        cli(
-                            "cache",
-                            "prepare",
-                            body =
-                                listOf(
-                                    bind("/minecraftVersion", flag = "--mc", required = true),
-                                    bind("/loader", flag = "--loader", required = true),
-                                    bind("/loaderVersion", flag = "--loader-version"),
-                                ),
-                        ),
                         summary = "Prepare cache artifacts",
                         description = CACHE_PREPARE_DESCRIPTION,
                     ),
@@ -245,15 +214,6 @@ class ApiRouteCatalog(
                         "cache",
                         "export",
                         "method",
-                        cli(
-                            "cache",
-                            "export",
-                            body =
-                                listOf(
-                                    bind("/manifest", flag = "--manifest", required = true),
-                                    bind("/archive", flag = "--archive"),
-                                ),
-                        ),
                         summary = "Export prepared cache",
                         description = CACHE_EXPORT_DESCRIPTION,
                     ),
@@ -265,11 +225,6 @@ class ApiRouteCatalog(
                         "cache",
                         "cleanup",
                         "method",
-                        cli(
-                            "cache",
-                            "cleanup",
-                            body = listOf(bind("/manifest", flag = "--manifest", required = true)),
-                        ),
                         summary = "Clean prepared cache",
                         description = CACHE_CLEANUP_DESCRIPTION,
                     ),
@@ -281,7 +236,6 @@ class ApiRouteCatalog(
                         "runtimes",
                         "java",
                         "route",
-                        cli("runtimes", "java", "list"),
                         summary = "List Java runtimes",
                         description = JAVA_LIST_DESCRIPTION,
                     ),
@@ -293,12 +247,6 @@ class ApiRouteCatalog(
                         "runtimes",
                         "java",
                         "method",
-                        cli(
-                            "runtimes",
-                            "java",
-                            "resolve",
-                            body = listOf(bind("/minecraftVersion", flag = "--mc", required = true)),
-                        ),
                         summary = "Resolve Java runtime",
                         description = JAVA_RESOLVE_DESCRIPTION,
                     ),
@@ -310,7 +258,6 @@ class ApiRouteCatalog(
                         "clients",
                         "list",
                         "route",
-                        cli("clients", "list"),
                         summary = "List client processes",
                         description = CLIENT_LIST_DESCRIPTION,
                     ),
@@ -322,22 +269,6 @@ class ApiRouteCatalog(
                         "clients",
                         "create",
                         "route",
-                        cli(
-                            "clients",
-                            "create",
-                            "{id}",
-                            body =
-                                listOf(
-                                    bind("/id", argument = "id", required = true),
-                                    bind("/version", flag = "--version", required = true),
-                                    bind("/loader", flag = "--loader", required = true),
-                                    bind("/loaderVersion", flag = "--loader-version"),
-                                    bind("/profile/name", flag = "--offline-name"),
-                                    bind("/profile/kind", flag = "--offline-name", fixed = "OFFLINE"),
-                                    bind("/presentation/window", flag = "--visible", fixed = "VISIBLE"),
-                                    bind("/presentation/audio", flag = "--audio"),
-                                ),
-                        ),
                         summary = "Launch a new client process",
                         description = CLIENT_CREATE_DESCRIPTION,
                     ),
@@ -349,7 +280,6 @@ class ApiRouteCatalog(
                         "clients",
                         "get",
                         "route",
-                        cli("clients", "{id}", "get"),
                         summary = "Inspect a client process",
                         description = CLIENT_GET_DESCRIPTION,
                     ),
@@ -361,7 +291,6 @@ class ApiRouteCatalog(
                         "clients",
                         "openapi",
                         "route",
-                        cli("clients", "{id}", "openapi"),
                         summary = "Fetch client OpenAPI",
                         description = CLIENT_OPENAPI_DESCRIPTION,
                     ),
@@ -373,12 +302,6 @@ class ApiRouteCatalog(
                         "clients",
                         "attach",
                         "method",
-                        cli(
-                            "clients",
-                            "{id}",
-                            "attach",
-                            body = listOf(bind("/endpoint", flag = "--endpoint", required = true)),
-                        ),
                         summary = "Attach client driver",
                         description = CLIENT_ATTACH_DESCRIPTION,
                     ),
@@ -390,16 +313,6 @@ class ApiRouteCatalog(
                         "clients",
                         "connect",
                         "method",
-                        cli(
-                            "clients",
-                            "{id}",
-                            "connect",
-                            body =
-                                listOf(
-                                    bind("/host", flag = "--host", required = true),
-                                    bind("/port", flag = "--port", type = "integer", required = true),
-                                ),
-                        ),
                         summary = "Connect an existing client",
                         description = CLIENT_CONNECT_DESCRIPTION,
                     ),
@@ -411,7 +324,6 @@ class ApiRouteCatalog(
                         "clients",
                         "actions",
                         "action",
-                        cli("clients", "{id}", "actions"),
                         summary = "List client actions",
                         description = CLIENT_ACTIONS_DESCRIPTION,
                     ),
@@ -423,9 +335,19 @@ class ApiRouteCatalog(
                         "clients",
                         "resources",
                         "resource",
-                        cli("clients", "{id}", "resources"),
                         summary = "List client resources",
                         description = CLIENT_RESOURCES_DESCRIPTION,
+                    ),
+                    route(
+                        "GET",
+                        "/clients/{id}/artifacts/{artifact-id}",
+                        "getClientArtifact",
+                        "clients",
+                        "clients",
+                        "artifacts",
+                        "route",
+                        summary = "Download client artifact",
+                        description = CLIENT_ARTIFACT_DESCRIPTION,
                     ),
                     route(
                         "POST",
@@ -435,7 +357,6 @@ class ApiRouteCatalog(
                         "clients",
                         "run",
                         "action",
-                        cli("clients", "{id}", "run", "{action}"),
                         summary = "Run client action",
                         description = CLIENT_RUN_DESCRIPTION,
                     ),
@@ -447,17 +368,6 @@ class ApiRouteCatalog(
                         "clients",
                         "rpc",
                         "method",
-                        cli(
-                            "clients",
-                            "{id}",
-                            "query",
-                            "{target}",
-                            body =
-                                listOf(
-                                    bind("/method", fixed = "query"),
-                                    bind("/params/target", argument = "target", required = true),
-                                ),
-                        ),
                         summary = "Send client RPC",
                         description = CLIENT_RPC_DESCRIPTION,
                     ),
@@ -469,7 +379,6 @@ class ApiRouteCatalog(
                         "clients",
                         "stop",
                         "method",
-                        cli("clients", "{id}", "stop"),
                         summary = "Stop a client process",
                         description = CLIENT_STOP_DESCRIPTION,
                     ),
@@ -481,7 +390,6 @@ class ApiRouteCatalog(
                         "clients",
                         "events",
                         "route",
-                        cli("clients", "{id}", "events", "list"),
                         summary = "List client events",
                         description = CLIENT_EVENTS_DESCRIPTION,
                     ),
@@ -493,43 +401,10 @@ class ApiRouteCatalog(
                         "clients",
                         "events",
                         "route",
-                        cli("clients", "{id}", "events", stream = true),
                         summary = "Stream client events",
                         description = CLIENT_EVENTS_STREAM_DESCRIPTION,
                     ),
                 ),
-            )
-
-        private fun cli(
-            vararg command: String,
-            stream: Boolean = false,
-            hidden: Boolean = false,
-            aliases: List<List<String>> = emptyList(),
-            body: List<ApiRouteCliBinding> = emptyList(),
-        ): ApiRouteCli =
-            ApiRouteCli(
-                command = command.toList(),
-                aliases = aliases,
-                hidden = hidden,
-                stream = stream,
-                body = body,
-            )
-
-        private fun bind(
-            pointer: String,
-            flag: String? = null,
-            argument: String? = null,
-            fixed: String? = null,
-            type: String = "string",
-            required: Boolean = false,
-        ): ApiRouteCliBinding =
-            ApiRouteCliBinding(
-                pointer = pointer,
-                flag = flag,
-                argument = argument,
-                fixed = fixed,
-                type = type,
-                required = required,
             )
 
         private fun route(
@@ -540,7 +415,6 @@ class ApiRouteCatalog(
             owner: String,
             member: String,
             source: String,
-            cli: ApiRouteCli? = null,
             returnKind: String = "value",
             summary: String? = null,
             description: String? = null,
@@ -557,7 +431,6 @@ class ApiRouteCatalog(
                 target = if (source == "action" || source == "resource") "client" else "supervisor",
                 source = source,
                 returnKind = returnKind,
-                cli = cli,
             )
     }
 }

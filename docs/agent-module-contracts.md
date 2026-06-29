@@ -221,10 +221,10 @@ Verification: `mise exec -- gradle :driver-fabric-attach:test`.
 Use Clikt for the JVM CLI, Mordant for terminal output, and Ktor Client for
 daemon/API calls.
 
-Keep action commands adaptive. Static commands may cover daemon startup,
-config, auth, lifecycle, discovery, output modes, and generic action
-invocation. Gameplay commands/help/aliases must come from
-`/openapi.json`, `/clients/{id}/openapi.json`, and `/clients/{id}/actions`.
+Keep action invocation adaptive. Static commands may cover daemon startup,
+config, auth, lifecycle, discovery, output modes, and generic API invocation.
+Gameplay routes/help must come from `/openapi.json`,
+`/clients/{id}/openapi.json`, and `/clients/{id}/actions`.
 
 Do not add static CLI command trees for Minecraft versions, loaders, Fabric
 lanes, survival scenarios, material recipes, combat flows, or

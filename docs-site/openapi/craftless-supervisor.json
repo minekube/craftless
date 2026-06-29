@@ -1383,7 +1383,7 @@
           "clients"
         ],
         "summary": "Fetch client OpenAPI",
-        "description": "Returns the generated live API for one client. This per-client OpenAPI document is the authority for that client's discovered actions, resources, aliases, schemas, handles, availability, and runtime fingerprints.",
+        "description": "Returns the generated live API for one client. This per-client OpenAPI document is the authority for that client's discovered actions, resources, routes, schemas, handles, availability, and runtime fingerprints.",
         "responses": {
           "200": {
             "content": {
@@ -2055,7 +2055,7 @@
           "clients"
         ],
         "summary": "List client actions",
-        "description": "Lists the current action projection for one client. This is convenient discovery evidence, while the generated live API remains the authority for schemas, aliases, and invocation details.",
+        "description": "Lists the current action projection for one client. This is convenient discovery evidence, while the generated live API remains the authority for schemas, generated routes, and invocation details.",
         "responses": {
           "200": {
             "content": {
@@ -2248,6 +2248,70 @@
           "x-craftless-target": "client",
           "x-craftless-return": "value",
           "x-craftless-source": "resource"
+        }
+      }
+    },
+    "/clients/{id}/artifacts/{artifact-id}": {
+      "get": {
+        "operationId": "getClientArtifact",
+        "tags": [
+          "clients"
+        ],
+        "summary": "Download client artifact",
+        "description": "Downloads a daemon-owned artifact for one client, such as media produced by a generated action. Artifact ids are resolved under the client's Craftless runtime artifact directory and cannot traverse outside it.",
+        "responses": {
+          "200": {},
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "clients",
+          "x-craftless-member": "artifacts",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "route"
         }
       }
     },

@@ -216,3 +216,11 @@ snapshot from the protocol route catalog, renders a stable `/docs/api-reference`
 entrypoint plus generated operation pages, and deploys `docs-site/out` with
 Workers Static Assets and preview URLs. A FumaPress spike found it useful as
 preview tooling but less suitable than Fumadocs Next static export for this PR.
+Phase 195 adds the screenshot API product slice. Screenshot capture is exposed
+as generated runtime graph resource `media.screenshot` and operation
+`media.screenshot.capture`, with the generated route
+`POST /clients/{id}/media/screenshot:capture` and generic fallback
+`POST /clients/{id}:run`. The daemon now serves generic client artifacts from
+`GET /clients/{id}/artifacts/{artifact-id}` with traversal guards. This phase
+uses a deterministic fake-driver path; Fabric capture remains a follow-up
+adapter task.
