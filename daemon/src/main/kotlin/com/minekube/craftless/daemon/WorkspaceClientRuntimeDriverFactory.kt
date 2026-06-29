@@ -20,6 +20,8 @@ import com.minekube.craftless.protocol.ClientAudioMode
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.ClientWindowMode
 import com.minekube.craftless.protocol.CreateClientRequest
+import com.minekube.craftless.protocol.DriverModVersionDescriptor
+import com.minekube.craftless.protocol.DriverModVersionListResult
 import com.minekube.craftless.protocol.InstanceFiles
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
@@ -144,6 +146,8 @@ fun interface ClientRuntimeDriverModProvider {
     fun modsFor(request: ClientRuntimeDriverModRequest): ClientRuntimeDriverMods = ClientRuntimeDriverMods(primary = modFor(request))
 
     fun preferredLoaderVersion(request: ClientRuntimeDriverModRequest): String? = null
+
+    fun driverModVersions(): DriverModVersionListResult = DriverModVersionListResult(entries = emptyList())
 }
 
 data class ClientRuntimeDriverMods(
@@ -212,6 +216,33 @@ class ConfiguredClientRuntimeDriverModProvider(
                 )
             else -> ClientRuntimeDriverMods(primary = null)
         }
+    }
+
+    override fun driverModVersions(): DriverModVersionListResult {
+        val manifestPath = configuredManifestPath()
+        if (manifestPath != null) {
+            val manifest = launcherJson.decodeFromString<ConfiguredDriverModManifest>(Files.readString(manifestPath))
+            return DriverModVersionListResult(
+                source = "manifest",
+                entries =
+                    manifest.entries.map { entry ->
+                        DriverModVersionDescriptor(
+                            loader = entry.loader,
+                            minecraftVersion = entry.minecraftVersion,
+                            loaderVersion = entry.loaderVersion,
+                            fabricApiVersion = entry.fabricApiVersion,
+                            javaMajorVersion = entry.javaMajorVersion,
+                            mappingsFingerprint = entry.mappingsFingerprint,
+                            path = entry.path,
+                            runtimeMods = entry.runtimeMods,
+                        )
+                    },
+            )
+        }
+        return DriverModVersionListResult(
+            source = environment[CRAFTLESS_FABRIC_DRIVER_MOD]?.takeIf { it.isNotBlank() }?.let { "environment" },
+            entries = emptyList(),
+        )
     }
 
     private fun configuredManifestPath(): Path? =

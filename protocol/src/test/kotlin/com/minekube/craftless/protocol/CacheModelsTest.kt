@@ -27,6 +27,13 @@ class CacheModelsTest {
     }
 
     @Test
+    fun `cache prepare request defaults to latest release alias`() {
+        val request = CachePrepareRequest(loader = Loader.FABRIC)
+
+        assertEquals(DEFAULT_MINECRAFT_VERSION, request.minecraftVersion)
+    }
+
+    @Test
     fun `cache export and cleanup requests validate handles`() {
         val export = CacheExportRequest(manifest = "cache/prepared/1.21.6-fabric.json")
         val cleanup = CacheCleanupRequest(manifest = "cache/prepared/1.21.6-fabric.json")

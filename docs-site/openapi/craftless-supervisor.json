@@ -28,6 +28,10 @@
     {
       "name": "version",
       "description": "Daemon, protocol, platform, and runtime identity. Use these operations to confirm which Craftless supervisor is answering before making live status or compatibility claims."
+    },
+    {
+      "name": "versions",
+      "description": "Craftless-owned API operations for versions."
     }
   ],
   "paths": {
@@ -341,6 +345,268 @@
         }
       }
     },
+    "/versions/runtime-targets": {
+      "get": {
+        "operationId": "listRuntimeTargets",
+        "tags": [
+          "versions"
+        ],
+        "summary": "List runtime targets",
+        "description": "Lists Minecraft Java versions from Mojang's live version index, including moving latest-release and latest-snapshot aliases. Use this before choosing a client or cache version instead of assuming a pinned historical release.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "latest": {
+                      "type": "object",
+                      "properties": {
+                        "release": {
+                          "type": "string"
+                        },
+                        "snapshot": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "release",
+                        "snapshot"
+                      ]
+                    },
+                    "versions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "latest",
+                    "versions"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "versions",
+          "x-craftless-member": "runtime-targets",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "route"
+        }
+      }
+    },
+    "/versions/loader-targets": {
+      "get": {
+        "operationId": "listLoaderTargets",
+        "tags": [
+          "versions"
+        ],
+        "summary": "List loader targets",
+        "description": "Lists Fabric's known Minecraft game versions and stability flags from Fabric metadata. Use this with Minecraft version discovery to understand which game releases Fabric currently tracks.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "versions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "version": {
+                            "type": "string"
+                          },
+                          "stable": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "version",
+                          "stable"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "versions"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "versions",
+          "x-craftless-member": "loader-targets",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "route"
+        }
+      }
+    },
+    "/versions/loaders": {
+      "get": {
+        "operationId": "listLoaderVersions",
+        "tags": [
+          "versions"
+        ],
+        "summary": "List loader versions",
+        "description": "Lists Fabric Loader versions and stability flags from Fabric metadata. Use this before pinning a loader version; omitted loader versions can be resolved by Craftless from compatible metadata.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "versions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "version": {
+                            "type": "string"
+                          },
+                          "stable": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "version",
+                          "stable"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "versions"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "versions",
+          "x-craftless-member": "loaders",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "route"
+        }
+      }
+    },
+    "/versions/driver-mods": {
+      "get": {
+        "operationId": "listDriverModVersions",
+        "tags": [
+          "versions"
+        ],
+        "summary": "List driver mod versions",
+        "description": "Lists Craftless driver mod runtime lanes available to this daemon distribution or configured environment. Use this to understand which packaged driver artifacts can satisfy Minecraft, loader, Fabric API, Java, and mapping runtime identity.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "loader": {
+                            "type": "string",
+                            "enum": [
+                              "FABRIC",
+                              "VANILLA",
+                              "NEOFORGE",
+                              "FORGE",
+                              "QUILT"
+                            ]
+                          },
+                          "minecraftVersion": {
+                            "type": "string"
+                          },
+                          "loaderVersion": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "fabricApiVersion": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "javaMajorVersion": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "mappingsFingerprint": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "runtimeMods": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "loader",
+                          "minecraftVersion",
+                          "path",
+                          "runtimeMods"
+                        ]
+                      }
+                    },
+                    "source": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "entries"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "versions",
+          "x-craftless-member": "driver-mods",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "route"
+        }
+      }
+    },
     "/cache:prepare": {
       "post": {
         "operationId": "prepareCache",
@@ -496,7 +762,8 @@
                 "type": "object",
                 "properties": {
                   "minecraftVersion": {
-                    "type": "string"
+                    "type": "string",
+                    "default": "latest-release"
                   },
                   "loader": {
                     "type": "string",
@@ -514,7 +781,6 @@
                   }
                 },
                 "required": [
-                  "minecraftVersion",
                   "loader"
                 ]
               }
@@ -1113,7 +1379,8 @@
                     "type": "string"
                   },
                   "version": {
-                    "type": "string"
+                    "type": "string",
+                    "default": "latest-release"
                   },
                   "loader": {
                     "type": "string",
@@ -1172,7 +1439,6 @@
                 },
                 "required": [
                   "id",
-                  "version",
                   "loader"
                 ]
               }

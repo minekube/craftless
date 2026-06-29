@@ -41,6 +41,29 @@ fun String.resolveMinecraftVersion(minecraftVersion: String): String {
     return resolved
 }
 
+fun String.minecraftVersionList(): MinecraftVersionListResult {
+    val root = Json.parseToJsonElement(this).jsonObject
+    val latest = root["latest"]?.jsonObject ?: error("minecraft version index is missing latest aliases")
+    val release = latest["release"]?.jsonPrimitive?.content ?: error("minecraft version index is missing latest.release")
+    val snapshot = latest["snapshot"]?.jsonPrimitive?.content ?: error("minecraft version index is missing latest.snapshot")
+    val versions =
+        root["versions"]
+            ?.jsonArray
+            .orEmpty()
+            .map { version ->
+                val item = version.jsonObject
+                MinecraftVersionDescriptor(
+                    id = item["id"]?.jsonPrimitive?.content ?: error("minecraft version entry is missing id"),
+                    type = item["type"]?.jsonPrimitive?.content ?: "unknown",
+                    url = item["url"]?.jsonPrimitive?.content,
+                )
+            }
+    return MinecraftVersionListResult(
+        latest = MinecraftLatestVersions(release = release, snapshot = snapshot),
+        versions = versions,
+    )
+}
+
 fun requireFileSafeCacheSegment(
     value: String,
     label: String,

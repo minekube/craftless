@@ -48,6 +48,53 @@ class ConfiguredClientRuntimeDriverModProviderTest {
     }
 
     @Test
+    fun `manifest exposes configured driver mod versions`() {
+        val root = Files.createTempDirectory("craftless-driver-mod-manifest-versions")
+        val manifest = root.resolve("driver-mods.json")
+        Files.writeString(
+            manifest,
+            """
+            {
+              "entries": [
+                {
+                  "loader": "FABRIC",
+                  "minecraftVersion": "26.2",
+                  "loaderVersion": "0.19.3",
+                  "fabricApiVersion": "0.153.0+26.2",
+                  "javaMajorVersion": 25,
+                  "mappingsFingerprint": "craftless-fabric-official-26-2",
+                  "path": "mods/fabric-26.2/craftless-driver-fabric-official.jar",
+                  "runtimeMods": [
+                    "mods/fabric-26.2/runtime/pathing.jar"
+                  ]
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+        val provider =
+            ConfiguredClientRuntimeDriverModProvider(
+                environment =
+                    mapOf(
+                        ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_DRIVER_MOD_MANIFEST to manifest.toString(),
+                    ),
+            )
+
+        val versions = provider.driverModVersions()
+        val entry = versions.entries.single()
+
+        assertEquals("manifest", versions.source)
+        assertEquals(Loader.FABRIC, entry.loader)
+        assertEquals("26.2", entry.minecraftVersion)
+        assertEquals("0.19.3", entry.loaderVersion)
+        assertEquals("0.153.0+26.2", entry.fabricApiVersion)
+        assertEquals(25, entry.javaMajorVersion)
+        assertEquals("craftless-fabric-official-26-2", entry.mappingsFingerprint)
+        assertEquals("mods/fabric-26.2/craftless-driver-fabric-official.jar", entry.path)
+        assertEquals(listOf("mods/fabric-26.2/runtime/pathing.jar"), entry.runtimeMods)
+    }
+
+    @Test
     fun `manifest exact runtime lane wins over single fabric fallback`() {
         val root = Files.createTempDirectory("craftless-driver-mod-manifest")
         val manifestMod = root.resolve("mods/craftless-driver-fabric-1.21.6.jar")

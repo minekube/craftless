@@ -198,8 +198,9 @@ class OpenApiGenerationTest {
                 ?.get("application/json")
                 ?.schema
         assertNotNull(requestSchema)
-        assertEquals(listOf("minecraftVersion", "loader"), requestSchema.required)
+        assertEquals(listOf("loader"), requestSchema.required)
         assertEquals("string", requestSchema.properties["minecraftVersion"]?.type)
+        assertEquals(DEFAULT_MINECRAFT_VERSION, requestSchema.properties["minecraftVersion"]?.default)
         assertEquals("string", requestSchema.properties["loader"]?.type)
         assertEquals("string", requestSchema.properties["loaderVersion"]?.type)
         assertEquals(true, requestSchema.properties["loaderVersion"]?.nullable)
@@ -280,6 +281,9 @@ class OpenApiGenerationTest {
         assertTrue(requireNotNull(document.paths["/openapi.json"]?.get?.description).contains("stable supervisor API"))
         assertTrue(requireNotNull(document.paths["/version"]?.get?.description).contains("runtime identity"))
         assertTrue(requireNotNull(document.paths["/events:stream"]?.get?.description).contains("Server-Sent Events"))
+        assertTrue(requireNotNull(document.paths["/versions/runtime-targets"]?.get?.description).contains("latest-release"))
+        assertTrue(requireNotNull(document.paths["/versions/loaders"]?.get?.description).contains("Fabric Loader"))
+        assertTrue(requireNotNull(document.paths["/versions/driver-mods"]?.get?.description).contains("driver mod runtime lanes"))
         assertTrue(requireNotNull(document.paths["/cache:prepare"]?.post?.description).contains("Minecraft"))
         assertTrue(requireNotNull(document.paths["/runtimes/java:resolve"]?.post?.description).contains("Java runtime"))
         assertTrue(requireNotNull(document.paths["/clients/{id}/openapi.json"]?.get?.description).contains("generated live API"))
@@ -287,6 +291,38 @@ class OpenApiGenerationTest {
         assertTrue(requireNotNull(document.paths["/clients/{id}/resources"]?.get?.description).contains("handles"))
         assertTrue(requireNotNull(document.paths["/clients/{id}:run"]?.post?.description).contains("advertised action"))
         assertTrue(requireNotNull(document.paths["/clients/{id}:rpc"]?.post?.description).contains("JSON-RPC"))
+    }
+
+    @Test
+    fun `stable supervisor openapi describes version discovery and latest defaults`() {
+        val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
+
+        val createSchema =
+            requireNotNull(
+                document.paths["/clients"]
+                    ?.post
+                    ?.requestBody
+                    ?.content
+                    ?.get("application/json")
+                    ?.schema,
+            )
+        assertEquals(listOf("id", "loader"), createSchema.required)
+        assertEquals(DEFAULT_MINECRAFT_VERSION, createSchema.properties["version"]?.default)
+
+        val minecraftVersions = requireNotNull(document.paths["/versions/runtime-targets"]?.get)
+        assertEquals("listRuntimeTargets", minecraftVersions.operationId)
+        assertEquals("versions", minecraftVersions.tags.single())
+        val minecraftSchema = requireNotNull(minecraftVersions.okSchema())
+        assertEquals(listOf("latest", "versions"), minecraftSchema.required)
+        assertEquals("object", minecraftSchema.properties["latest"]?.type)
+        assertEquals("array", minecraftSchema.properties["versions"]?.type)
+
+        val fabricLoadersSchema = requireNotNull(document.paths["/versions/loaders"]?.get?.okSchema())
+        assertEquals("array", fabricLoadersSchema.properties["versions"]?.type)
+
+        val driverModsSchema = requireNotNull(document.paths["/versions/driver-mods"]?.get?.okSchema())
+        assertEquals(listOf("entries"), driverModsSchema.required)
+        assertEquals("array", driverModsSchema.properties["entries"]?.type)
     }
 
     @Test
@@ -875,9 +911,10 @@ class OpenApiGenerationTest {
                 ?.schema
         assertNotNull(createSchema)
         assertEquals("object", createSchema.type)
-        assertEquals(listOf("id", "version", "loader"), createSchema.required)
+        assertEquals(listOf("id", "loader"), createSchema.required)
         assertEquals("string", createSchema.properties["id"]?.type)
         assertEquals("string", createSchema.properties["version"]?.type)
+        assertEquals(DEFAULT_MINECRAFT_VERSION, createSchema.properties["version"]?.default)
         assertEquals("string", createSchema.properties["loader"]?.type)
         assertEquals("string", createSchema.properties["loaderVersion"]?.type)
         assertEquals(true, createSchema.properties["loaderVersion"]?.nullable)
@@ -944,7 +981,8 @@ class OpenApiGenerationTest {
                     ?.get("application/json")
                     ?.schema,
             )
-        assertEquals(listOf("id", "version", "loader"), createSchema.required)
+        assertEquals(listOf("id", "loader"), createSchema.required)
+        assertEquals(DEFAULT_MINECRAFT_VERSION, createSchema.properties["version"]?.default)
         assertEquals(
             listOf("NONE", "VISIBLE"),
             createSchema.properties["presentation"]

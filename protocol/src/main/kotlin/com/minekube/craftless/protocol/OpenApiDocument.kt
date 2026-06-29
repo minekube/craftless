@@ -637,6 +637,10 @@ private fun ApiRoute.responses(actionsById: Map<String, OpenApiAction>): Map<Str
                 path.endsWith("openapi.json") && method == "GET" -> openApiDocumentResponse()
                 path == "/version" && method == "GET" -> versionResponse()
                 (path == "/events" || path.endsWith("/events")) && method == "GET" -> eventListResponse()
+                path == "/versions/runtime-targets" && method == "GET" -> minecraftVersionListResponse()
+                path == "/versions/loader-targets" && method == "GET" -> fabricGameVersionListResponse()
+                path == "/versions/loaders" && method == "GET" -> fabricLoaderVersionListResponse()
+                path == "/versions/driver-mods" && method == "GET" -> driverModVersionListResponse()
                 path.endsWith("/actions") && method == "GET" -> actionListResponse()
                 path.endsWith("/resources") && method == "GET" -> resourceListResponse()
                 path == "/cache:prepare" && method == "POST" -> cachePrepareResponse()
@@ -786,6 +790,140 @@ private fun eventListResponse(): OpenApiResponse =
                                 ),
                             required = listOf("type", "time"),
                         ),
+                ),
+            ),
+    )
+
+private fun minecraftVersionListResponse(): OpenApiResponse =
+    OpenApiResponse(
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "latest" to
+                                OpenApiSchema(
+                                    type = "object",
+                                    properties =
+                                        mapOf(
+                                            "release" to OpenApiSchema(type = "string"),
+                                            "snapshot" to OpenApiSchema(type = "string"),
+                                        ),
+                                    required = listOf("release", "snapshot"),
+                                ),
+                            "versions" to
+                                OpenApiSchema(
+                                    type = "array",
+                                    items =
+                                        OpenApiSchema(
+                                            type = "object",
+                                            properties =
+                                                mapOf(
+                                                    "id" to OpenApiSchema(type = "string"),
+                                                    "type" to OpenApiSchema(type = "string"),
+                                                    "url" to OpenApiSchema(type = "string", nullable = true),
+                                                ),
+                                            required = listOf("id", "type"),
+                                        ),
+                                ),
+                        ),
+                    required = listOf("latest", "versions"),
+                ),
+            ),
+    )
+
+private fun fabricGameVersionListResponse(): OpenApiResponse =
+    OpenApiResponse(
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "versions" to
+                                OpenApiSchema(
+                                    type = "array",
+                                    items =
+                                        OpenApiSchema(
+                                            type = "object",
+                                            properties =
+                                                mapOf(
+                                                    "version" to OpenApiSchema(type = "string"),
+                                                    "stable" to OpenApiSchema(type = "boolean"),
+                                                ),
+                                            required = listOf("version", "stable"),
+                                        ),
+                                ),
+                        ),
+                    required = listOf("versions"),
+                ),
+            ),
+    )
+
+private fun fabricLoaderVersionListResponse(): OpenApiResponse =
+    OpenApiResponse(
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "versions" to
+                                OpenApiSchema(
+                                    type = "array",
+                                    items =
+                                        OpenApiSchema(
+                                            type = "object",
+                                            properties =
+                                                mapOf(
+                                                    "version" to OpenApiSchema(type = "string"),
+                                                    "stable" to OpenApiSchema(type = "boolean"),
+                                                ),
+                                            required = listOf("version", "stable"),
+                                        ),
+                                ),
+                        ),
+                    required = listOf("versions"),
+                ),
+            ),
+    )
+
+private fun driverModVersionListResponse(): OpenApiResponse =
+    OpenApiResponse(
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "entries" to
+                                OpenApiSchema(
+                                    type = "array",
+                                    items =
+                                        OpenApiSchema(
+                                            type = "object",
+                                            properties =
+                                                mapOf(
+                                                    "loader" to OpenApiSchema(type = "string", enumValues = Loader.entries.map { it.name }),
+                                                    "minecraftVersion" to OpenApiSchema(type = "string"),
+                                                    "loaderVersion" to OpenApiSchema(type = "string", nullable = true),
+                                                    "fabricApiVersion" to OpenApiSchema(type = "string", nullable = true),
+                                                    "javaMajorVersion" to OpenApiSchema(type = "integer", nullable = true),
+                                                    "mappingsFingerprint" to OpenApiSchema(type = "string", nullable = true),
+                                                    "path" to OpenApiSchema(type = "string"),
+                                                    "runtimeMods" to
+                                                        OpenApiSchema(
+                                                            type = "array",
+                                                            items = OpenApiSchema(type = "string"),
+                                                        ),
+                                                ),
+                                            required = listOf("loader", "minecraftVersion", "path", "runtimeMods"),
+                                        ),
+                                ),
+                            "source" to OpenApiSchema(type = "string", nullable = true),
+                        ),
+                    required = listOf("entries"),
                 ),
             ),
     )
@@ -1074,13 +1212,13 @@ private fun createClientRequestBody(): OpenApiRequestBody =
                     properties =
                         mapOf(
                             "id" to OpenApiSchema(type = "string"),
-                            "version" to OpenApiSchema(type = "string"),
+                            "version" to OpenApiSchema(type = "string", default = DEFAULT_MINECRAFT_VERSION),
                             "loader" to OpenApiSchema(type = "string", enumValues = Loader.entries.map { it.name }),
                             "loaderVersion" to OpenApiSchema(type = "string", nullable = true),
                             "profile" to profileSchema(),
                             "presentation" to presentationSchema(),
                         ),
-                    required = listOf("id", "version", "loader"),
+                    required = listOf("id", "loader"),
                 ),
             ),
     )
@@ -1114,11 +1252,11 @@ private fun cachePrepareRequestBody(): OpenApiRequestBody =
                     type = "object",
                     properties =
                         mapOf(
-                            "minecraftVersion" to OpenApiSchema(type = "string"),
+                            "minecraftVersion" to OpenApiSchema(type = "string", default = DEFAULT_MINECRAFT_VERSION),
                             "loader" to OpenApiSchema(type = "string", enumValues = Loader.entries.map { it.name }),
                             "loaderVersion" to OpenApiSchema(type = "string", nullable = true),
                         ),
-                    required = listOf("minecraftVersion", "loader"),
+                    required = listOf("loader"),
                 ),
             ),
     )

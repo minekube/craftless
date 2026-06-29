@@ -243,6 +243,117 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `server exposes Minecraft Fabric and packaged driver version discovery`() =
+        withHttpClient { http ->
+            val root = Files.createTempDirectory("craftless-version-discovery")
+            val manifest = root.resolve("driver-mods.json")
+            Files.writeString(
+                manifest,
+                """
+                {
+                  "entries": [
+                    {
+                      "loader": "FABRIC",
+                      "minecraftVersion": "26.2",
+                      "loaderVersion": "0.19.3",
+                      "fabricApiVersion": "0.153.0+26.2",
+                      "javaMajorVersion": 25,
+                      "mappingsFingerprint": "craftless-fabric-official-26-2",
+                      "path": "mods/fabric-26.2/craftless-driver-fabric-official.jar",
+                      "runtimeMods": []
+                    }
+                  ]
+                }
+                """.trimIndent(),
+            )
+            val metadataFetcher =
+                ServerStaticCacheMetadataFetcher(
+                    mapOf(
+                        MINECRAFT_VERSION_INDEX_URL to
+                            """
+                            {
+                              "latest": {
+                                "release": "26.2",
+                                "snapshot": "26.3-snapshot-1"
+                              },
+                              "versions": [
+                                {
+                                  "id": "26.2",
+                                  "type": "release",
+                                  "url": "https://metadata.test/26.2.json"
+                                },
+                                {
+                                  "id": "1.21.6",
+                                  "type": "release",
+                                  "url": "https://metadata.test/1.21.6.json"
+                                }
+                              ]
+                            }
+                            """.trimIndent(),
+                        "$FABRIC_META_BASE_URL/versions/game" to
+                            """
+                            [
+                              { "version": "26.3-snapshot-1", "stable": false },
+                              { "version": "26.2", "stable": true }
+                            ]
+                            """.trimIndent(),
+                        "$FABRIC_META_BASE_URL/versions/loader" to
+                            """
+                            [
+                              { "loader": { "version": "0.19.3", "stable": true } },
+                              { "loader": { "version": "0.19.2", "stable": false } }
+                            ]
+                            """.trimIndent(),
+                    ),
+                )
+            fakeLocalSessionApiServer(
+                cacheMetadataFetcher = metadataFetcher,
+                clientRuntimeDriverModProvider =
+                    ConfiguredClientRuntimeDriverModProvider(
+                        environment =
+                            mapOf(
+                                ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_DRIVER_MOD_MANIFEST to manifest.toString(),
+                            ),
+                    ),
+            ).use { server ->
+                server.start()
+
+                http.get(server.url("/versions/runtime-targets")).let { response ->
+                    val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+                    val latest = body["latest"]?.jsonObject
+                    val firstVersion = body["versions"]?.jsonArray?.first()?.jsonObject
+                    assertEquals(HttpStatusCode.OK, response.status)
+                    assertEquals("26.2", latest?.get("release")?.jsonPrimitive?.content)
+                    assertEquals("26.2", firstVersion?.get("id")?.jsonPrimitive?.content)
+                }
+
+                http.get(server.url("/versions/loader-targets")).let { response ->
+                    val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+                    val firstVersion = body["versions"]?.jsonArray?.first()?.jsonObject
+                    assertEquals(HttpStatusCode.OK, response.status)
+                    assertEquals("26.3-snapshot-1", firstVersion?.get("version")?.jsonPrimitive?.content)
+                }
+
+                http.get(server.url("/versions/loaders")).let { response ->
+                    val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+                    val firstVersion = body["versions"]?.jsonArray?.first()?.jsonObject
+                    assertEquals(HttpStatusCode.OK, response.status)
+                    assertEquals("0.19.3", firstVersion?.get("version")?.jsonPrimitive?.content)
+                }
+
+                http.get(server.url("/versions/driver-mods")).let { response ->
+                    val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+                    val entry = body["entries"]?.jsonArray?.single()?.jsonObject
+                    assertEquals(HttpStatusCode.OK, response.status)
+                    assertEquals("manifest", body["source"]?.jsonPrimitive?.content)
+                    assertEquals("26.2", entry?.get("minecraftVersion")?.jsonPrimitive?.content)
+                    assertEquals("0.19.3", entry?.get("loaderVersion")?.jsonPrimitive?.content)
+                    assertEquals("craftless-fabric-official-26-2", entry?.get("mappingsFingerprint")?.jsonPrimitive?.content)
+                }
+            }
+        }
+
+    @Test
     fun `server prepares instance file directories under configured workspace`() =
         withHttpClient { http ->
             val workspace = Files.createTempDirectory("craftless-server-client-files")
@@ -2582,6 +2693,7 @@ class LocalSessionApiServerTest {
 private fun fakeLocalSessionApiServer(
     workspaceRoot: java.nio.file.Path? = null,
     cacheMetadataFetcher: CacheMetadataFetcher = KtorCacheMetadataFetcher(),
+    clientRuntimeDriverModProvider: ClientRuntimeDriverModProvider = ConfiguredClientRuntimeDriverModProvider(),
 ): LocalSessionApiServer =
     LocalSessionApiServer.inMemory(
         driverFactory =
@@ -2590,6 +2702,7 @@ private fun fakeLocalSessionApiServer(
             },
         workspaceRoot = workspaceRoot,
         cacheMetadataFetcher = cacheMetadataFetcher,
+        clientRuntimeDriverModProvider = clientRuntimeDriverModProvider,
     )
 
 private class ServerStaticCacheMetadataFetcher(

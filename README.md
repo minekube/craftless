@@ -72,7 +72,7 @@ Create an API-first automation client with lifecycle defaults:
 
 ```sh
 craftless api /clients --api "$CRAFTLESS" \
-  -F id=bot -F version=latest-release -F loader=FABRIC
+  -F id=bot -F loader=FABRIC
 ```
 
 `craftless api /clients` with fields posts `POST /clients`, which launches a
@@ -263,7 +263,7 @@ craftless daemon start --port 8080 --workspace .craftless
 export CRAFTLESS=http://127.0.0.1:8080
 
 craftless api /clients --api "$CRAFTLESS" \
-  -F id=bot -F version=latest-release -F loader=FABRIC
+  -F id=bot -F loader=FABRIC
 craftless api /clients/bot:connect --api "$CRAFTLESS" \
   -F host=localhost -F port=25565
 ```
@@ -291,15 +291,18 @@ authority.
 Agents should behave like external Craftless users:
 
 1. Fetch the supervisor spec with `GET /openapi.json`.
-2. List existing clients with `GET /clients`; select or stop abandoned clients
+2. Discover runtime versions with `GET /versions/runtime-targets`,
+   `GET /versions/loader-targets`, `GET /versions/loaders`, and
+   `GET /versions/driver-mods` when a run must be pinned or explained.
+3. List existing clients with `GET /clients`; select or stop abandoned clients
    before calling `POST /clients`.
-3. Fetch `GET /clients/{id}/openapi.json`.
-4. Treat `x-craftless-actions`, `x-craftless-resources`, route metadata,
+4. Fetch `GET /clients/{id}/openapi.json`.
+5. Treat `x-craftless-actions`, `x-craftless-resources`, route metadata,
    schemas, availability, and fingerprints in that document as the authority.
-5. Use `/clients/{id}/actions` and `/clients/{id}/resources` as projection
+6. Use `/clients/{id}/actions` and `/clients/{id}/resources` as projection
    evidence, not as an independent catalog.
-6. Subscribe to `GET /clients/{id}/events:stream` before state-changing work.
-7. Invoke only advertised actions through `POST /clients/{id}:run`, generated
+7. Subscribe to `GET /clients/{id}/events:stream` before state-changing work.
+8. Invoke only advertised actions through `POST /clients/{id}:run`, generated
    generated routes, or the API-aligned CLI.
 
 The repo-local skill
@@ -325,8 +328,11 @@ Cache preparation resolves Minecraft metadata, the selected client jar,
 libraries, asset objects, native libraries, Fabric loader metadata, Java
 runtime requirements, launch arguments, classpath handles, logging metadata,
 asset indexes, and file layout inside a Craftless-owned workspace.
+When omitted, client creation and cache preparation default to `latest-release`.
 Use `latest-release` or `latest-snapshot` for moving Mojang aliases, or a
-concrete Minecraft version id when a run must be pinned.
+concrete Minecraft version id when a run must be pinned. Use
+`GET /versions/runtime-targets` and the loader version endpoints to discover
+current upstream versions before pinning.
 
 Java selection is a product runtime concern, separate from repository build
 tooling. Craftless can evaluate configured, managed, mise, and system runtime

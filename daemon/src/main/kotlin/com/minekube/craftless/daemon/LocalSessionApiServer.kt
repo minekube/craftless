@@ -62,6 +62,7 @@ import java.time.Instant
 class LocalSessionApiServer private constructor(
     private val service: ClientSessionService,
     private val cachePreparationService: CachePreparationService?,
+    private val versionDiscoveryService: VersionDiscoveryService,
     private val workspaceRuntimeFactory: WorkspaceClientRuntimeDriverFactory?,
     private val javaRuntimeService: JavaRuntimeService?,
     private val artifactStore: ClientArtifactStore?,
@@ -106,6 +107,30 @@ class LocalSessionApiServer private constructor(
             }
             get("/events:stream") {
                 call.respondSse(events.toLiveEvents().filter { event -> call.liveEventFilter().matches(event) })
+            }
+            get("/versions/runtime-targets") {
+                runCatching {
+                    call.respondJson(HttpStatusCode.OK, versionDiscoveryService.listMinecraftVersions())
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                }
+            }
+            get("/versions/loader-targets") {
+                runCatching {
+                    call.respondJson(HttpStatusCode.OK, versionDiscoveryService.listFabricGameVersions())
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                }
+            }
+            get("/versions/loaders") {
+                runCatching {
+                    call.respondJson(HttpStatusCode.OK, versionDiscoveryService.listFabricLoaderVersions())
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                }
+            }
+            get("/versions/driver-mods") {
+                call.respondJson(HttpStatusCode.OK, versionDiscoveryService.listDriverModVersions())
             }
             post("/cache:prepare") {
                 runCatching {
@@ -580,6 +605,11 @@ class LocalSessionApiServer private constructor(
                         fileStore = workspaceRoot?.let(::InstanceFileStore),
                     ),
                 cachePreparationService = workspaceRoot?.let { CachePreparationService(it, cacheMetadataFetcher) },
+                versionDiscoveryService =
+                    VersionDiscoveryService(
+                        metadataFetcher = cacheMetadataFetcher,
+                        driverModProvider = clientRuntimeDriverModProvider,
+                    ),
                 workspaceRuntimeFactory = workspaceRuntimeFactory,
                 javaRuntimeService = workspaceRoot?.let { JavaRuntimeService(it, cacheMetadataFetcher) },
                 artifactStore = workspaceRoot?.let(::ClientArtifactStore),

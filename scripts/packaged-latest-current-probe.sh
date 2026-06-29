@@ -244,12 +244,14 @@ const actions = JSON.parse(await fs.readFile(path.join(artifactsDir, "client-act
 const resources = JSON.parse(await fs.readFile(path.join(artifactsDir, "client-resources.json"), "utf8"));
 const openapi = JSON.parse(await fs.readFile(path.join(artifactsDir, "client-openapi-connected.json"), "utf8"));
 const selectedAction = JSON.parse(await fs.readFile(path.join(artifactsDir, "client-generated-action-selected.json"), "utf8"));
+const runtimeTargets = await fetch(`${api}/versions/runtime-targets`).then((response) => response.json());
+await fs.writeFile(path.join(artifactsDir, "runtime-targets.json"), `${JSON.stringify(runtimeTargets, null, 2)}\n`);
 const summary = {
   status: "connected",
   api,
   clientId,
   minecraftVersion: "latest-release",
-  concreteLatestVersion: "26.2",
+  concreteLatestVersion: runtimeTargets.latest.release,
   generatedInvocationAction: selectedAction.id,
   actionCount: actions.length,
   resourceIds: resources.map((resource) => resource.id),

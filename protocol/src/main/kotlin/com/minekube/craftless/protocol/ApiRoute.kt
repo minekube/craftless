@@ -91,6 +91,18 @@ class ApiRouteCatalog(
         private const val EVENTS_STREAM_DESCRIPTION =
             "Streams supervisor lifecycle and diagnostic events as Server-Sent Events. Subscribe when an agent needs fresh evidence about daemon, cache, client, attach, connect, or stop progress."
 
+        private const val MINECRAFT_VERSIONS_DESCRIPTION =
+            "Lists Minecraft Java versions from Mojang's live version index, including moving latest-release and latest-snapshot aliases. Use this before choosing a client or cache version instead of assuming a pinned historical release."
+
+        private const val FABRIC_GAME_VERSIONS_DESCRIPTION =
+            "Lists Fabric's known Minecraft game versions and stability flags from Fabric metadata. Use this with Minecraft version discovery to understand which game releases Fabric currently tracks."
+
+        private const val FABRIC_LOADER_VERSIONS_DESCRIPTION =
+            "Lists Fabric Loader versions and stability flags from Fabric metadata. Use this before pinning a loader version; omitted loader versions can be resolved by Craftless from compatible metadata."
+
+        private const val DRIVER_MOD_VERSIONS_DESCRIPTION =
+            "Lists Craftless driver mod runtime lanes available to this daemon distribution or configured environment. Use this to understand which packaged driver artifacts can satisfy Minecraft, loader, Fabric API, Java, and mapping runtime identity."
+
         private const val CACHE_PREPARE_DESCRIPTION =
             "Prepares Craftless-owned cache and launch material for a Minecraft version and loader before a client is created. This resolves metadata, artifacts, libraries, assets, native paths, and launch inputs without exposing launcher internals."
 
@@ -194,6 +206,50 @@ class ApiRouteCatalog(
                         "route",
                         summary = "Stream supervisor events",
                         description = EVENTS_STREAM_DESCRIPTION,
+                    ),
+                    route(
+                        "GET",
+                        "/versions/runtime-targets",
+                        "listRuntimeTargets",
+                        "versions",
+                        "versions",
+                        "runtime-targets",
+                        "route",
+                        summary = "List runtime targets",
+                        description = MINECRAFT_VERSIONS_DESCRIPTION,
+                    ),
+                    route(
+                        "GET",
+                        "/versions/loader-targets",
+                        "listLoaderTargets",
+                        "versions",
+                        "versions",
+                        "loader-targets",
+                        "route",
+                        summary = "List loader targets",
+                        description = FABRIC_GAME_VERSIONS_DESCRIPTION,
+                    ),
+                    route(
+                        "GET",
+                        "/versions/loaders",
+                        "listLoaderVersions",
+                        "versions",
+                        "versions",
+                        "loaders",
+                        "route",
+                        summary = "List loader versions",
+                        description = FABRIC_LOADER_VERSIONS_DESCRIPTION,
+                    ),
+                    route(
+                        "GET",
+                        "/versions/driver-mods",
+                        "listDriverModVersions",
+                        "versions",
+                        "versions",
+                        "driver-mods",
+                        "route",
+                        summary = "List driver mod versions",
+                        description = DRIVER_MOD_VERSIONS_DESCRIPTION,
                     ),
                     route(
                         "POST",

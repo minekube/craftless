@@ -1,5 +1,6 @@
 package com.minekube.craftless.protocol
 
+import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -78,13 +79,28 @@ class ClientModelsTest {
         val request =
             CreateClientRequest(
                 id = "api-bot-01",
-                version = "latest-release",
                 loader = Loader.FABRIC,
             )
 
+        assertEquals(DEFAULT_MINECRAFT_VERSION, request.version)
         assertEquals(null, request.profile)
         assertEquals(ClientPresentation(), request.presentation)
         assertEquals(Profile.offline("Apibot01"), request.resolvedProfile())
+    }
+
+    @Test
+    fun `create client request decodes missing version as latest release`() {
+        val request =
+            Json.decodeFromString<CreateClientRequest>(
+                """
+                {
+                  "id": "api-bot-01",
+                  "loader": "FABRIC"
+                }
+                """.trimIndent(),
+            )
+
+        assertEquals(DEFAULT_MINECRAFT_VERSION, request.version)
     }
 
     @Test

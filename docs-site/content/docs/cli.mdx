@@ -73,8 +73,16 @@ Create a default windowless, muted automation client:
 ```sh
 craftless api /clients --api "$CRAFTLESS" \
   -F id=bot \
-  -F version=latest-release \
   -F loader=FABRIC
+```
+
+Omitted client and cache Minecraft versions default to `latest-release`. Use
+the version discovery routes when a run should be pinned or explained:
+
+```sh
+craftless api /versions/runtime-targets --api "$CRAFTLESS"
+craftless api /versions/loaders --api "$CRAFTLESS"
+craftless api /versions/driver-mods --api "$CRAFTLESS"
 ```
 
 Connect it to a Minecraft server:

@@ -2,6 +2,8 @@ package com.minekube.craftless.protocol
 
 import kotlinx.serialization.Serializable
 
+const val DEFAULT_MINECRAFT_VERSION: String = "latest-release"
+
 @Serializable
 data class MinecraftVersion(
     val id: String,
@@ -120,7 +122,7 @@ data class InstanceFiles(
 @Serializable
 data class CreateClientRequest(
     val id: String,
-    val version: String,
+    val version: String = DEFAULT_MINECRAFT_VERSION,
     val loader: Loader,
     val loaderVersion: String? = null,
     val profile: Profile? = null,

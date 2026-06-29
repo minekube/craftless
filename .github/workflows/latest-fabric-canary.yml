@@ -1,0 +1,64 @@
+name: latest fabric canary
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 4 * * *"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  packaged-latest-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v4
+        with:
+          install: true
+          cache: true
+      - name: Record upstream version metadata
+        run: |
+          set -euo pipefail
+          mkdir -p build/reports
+          mise exec -- bun --eval '
+          const fs = await import("node:fs/promises");
+          const [minecraft, fabricGames, fabricLoaders] = await Promise.all([
+            fetch("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json").then((r) => r.json()),
+            fetch("https://meta.fabricmc.net/v2/versions/game").then((r) => r.json()),
+            fetch("https://meta.fabricmc.net/v2/versions/loader").then((r) => r.json()),
+          ]);
+          const stableFabricGame = fabricGames.find((version) => version.stable);
+          const loaderOf = (entry) => entry.loader ?? entry;
+          const stableFabricLoader = fabricLoaders.find((entry) => loaderOf(entry).stable);
+          const summary = {
+            minecraftLatest: minecraft.latest,
+            fabricLatestGame: fabricGames[0],
+            fabricLatestStableGame: stableFabricGame,
+            fabricLatestLoader: loaderOf(fabricLoaders[0]),
+            fabricLatestStableLoader: stableFabricLoader ? loaderOf(stableFabricLoader) : null,
+          };
+          await fs.writeFile("build/reports/latest-fabric-canary-metadata.json", `${JSON.stringify(summary, null, 2)}\n`);
+          await fs.appendFile(process.env.GITHUB_STEP_SUMMARY, [
+            "## Upstream version metadata",
+            "",
+            `- Mojang latest release: \`${minecraft.latest.release}\``,
+            `- Mojang latest snapshot: \`${minecraft.latest.snapshot}\``,
+            `- Fabric latest game: \`${fabricGames[0].version}\` (stable: \`${fabricGames[0].stable}\`)`,
+            `- Fabric latest stable game: \`${stableFabricGame?.version ?? "none"}\``,
+            `- Fabric latest loader: \`${loaderOf(fabricLoaders[0]).version}\` (stable: \`${loaderOf(fabricLoaders[0]).stable}\`)`,
+            `- Fabric latest stable loader: \`${stableFabricLoader ? loaderOf(stableFabricLoader).version : "none"}\``,
+            "",
+          ].join("\n"));
+          '
+      - name: Run packaged latest-release probe
+        run: mise run packaged-latest-current-probe
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: latest-fabric-canary-reports
+          path: |
+            build/reports/latest-fabric-canary-metadata.json
+            build/craftless-packaged-latest-current-probe/artifacts

@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class CachePrepareRequest(
-    val minecraftVersion: String,
+    val minecraftVersion: String = DEFAULT_MINECRAFT_VERSION,
     val loader: Loader,
     val loaderVersion: String? = null,
     val java: JavaRuntimeRequirement? = null,
@@ -161,6 +161,65 @@ enum class JavaRuntimeSourcePolicy {
     CONFIGURED_ONLY,
     MANAGED_ALLOWED,
 }
+
+@Serializable
+data class MinecraftVersionListResult(
+    val latest: MinecraftLatestVersions,
+    val versions: List<MinecraftVersionDescriptor>,
+)
+
+@Serializable
+data class MinecraftLatestVersions(
+    val release: String,
+    val snapshot: String,
+)
+
+@Serializable
+data class MinecraftVersionDescriptor(
+    val id: String,
+    val type: String,
+    val url: String? = null,
+)
+
+@Serializable
+data class FabricGameVersionListResult(
+    val versions: List<FabricGameVersionDescriptor>,
+)
+
+@Serializable
+data class FabricGameVersionDescriptor(
+    val version: String,
+    val stable: Boolean,
+)
+
+@Serializable
+data class FabricLoaderVersionListResult(
+    val versions: List<FabricLoaderVersionDescriptor>,
+)
+
+@Serializable
+data class FabricLoaderVersionDescriptor(
+    val version: String,
+    val stable: Boolean,
+)
+
+@Serializable
+data class DriverModVersionListResult(
+    val entries: List<DriverModVersionDescriptor>,
+    val source: String? = null,
+)
+
+@Serializable
+data class DriverModVersionDescriptor(
+    val loader: Loader,
+    val minecraftVersion: String,
+    val loaderVersion: String? = null,
+    val fabricApiVersion: String? = null,
+    val javaMajorVersion: Int? = null,
+    val mappingsFingerprint: String? = null,
+    val path: String,
+    val runtimeMods: List<String> = emptyList(),
+)
 
 @Serializable
 enum class JavaRuntimeProviderKind {
