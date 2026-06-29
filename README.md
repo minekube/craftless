@@ -391,6 +391,12 @@ mise run ci-craftless-smoke
 `ci-craftless-smoke` runs the packaged CLI distribution, starts
 `craftless daemon start`, and probes the live supervisor API.
 
+Release Please opens or updates the release PR on pushes to `main`, on manual
+dispatch, and on the weekly scheduled check when releasable changes exist since
+the latest `v*` release. Merging that PR creates the next `vX.Y.Z` tag; the
+tag-driven `release` workflow then builds the CLI archives, checksums, Docker
+runtime image, and GitHub release notes.
+
 Docs-only edits must at least pass:
 
 ```sh

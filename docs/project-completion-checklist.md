@@ -38,11 +38,11 @@ Status legend:
 | Field | State |
 | --- | --- |
 | Active gate | All CL gates closed |
-| Current state | All CL gates are closed. Phase 189 generated supervisor-route CLI and daemon naming is implemented and verified. |
+| Current state | All CL gates are closed. Phase 190 scheduled Release Please automation is implemented and verified. |
 | Latest product proof | `mise run final-public-gameplay-probe` passed for Minecraft `1.21.6` with server provisioning disabled. Artifacts are under `driver-fabric/build/craftless-final-gameplay/artifacts/`. |
-| Latest CI truth | `mise run ci` passed after Phase 189 generated route CLI and daemon naming. |
+| Latest CI truth | `mise run ci` passed after Phase 190 scheduled Release Please automation. |
 | Current blocker | None known. |
-| Next commands | Commit Phase 189 and push `main`. |
+| Next commands | Commit Phase 190 and push `main`, then confirm a clean branch state. |
 
 ## Next Work
 

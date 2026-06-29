@@ -193,10 +193,33 @@ describe("distribution surface", () => {
     expect(workflow).toContain("mise run ci");
     expect(workflow).toContain("mise run package-cli");
     expect(workflow).toContain("softprops/action-gh-release");
+    expect(workflow).toContain("generate_release_notes: true");
     expect(workflow).toContain("docker/setup-qemu-action");
     expect(workflow).toContain("docker/build-push-action");
     expect(workflow).toContain("platforms: linux/amd64,linux/arm64");
     expect(workflow).toContain("ghcr.io/minekube/craftless");
+  });
+
+  test("scheduled Release Please workflow creates release tags from main changes", () => {
+    const workflow = read(".github/workflows/release-please.yml");
+    const config = JSON.parse(read("release-please-config.json"));
+    const manifest = JSON.parse(read(".release-please-manifest.json"));
+    const changelog = read("CHANGELOG.md");
+
+    expect(workflow).toContain('branches: ["main"]');
+    expect(workflow).toContain("schedule:");
+    expect(workflow).toContain('cron: "17 8 * * 1"');
+    expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).toContain("googleapis/release-please-action@v4");
+    expect(workflow).toContain("config-file: release-please-config.json");
+    expect(workflow).toContain("manifest-file: .release-please-manifest.json");
+    expect(workflow).toContain("pull-requests: write");
+    expect(config.packages["."]["package-name"]).toBe("craftless");
+    expect(config.packages["."]["release-type"]).toBe("simple");
+    expect(config.packages["."]["include-v-in-tag"]).toBe(true);
+    expect(config.packages["."]["include-component-in-tag"]).toBe(false);
+    expect(manifest["."]).toBe("0.1.2");
+    expect(changelog).toContain("Release Please");
   });
 
   test("install script installs from minekube/craftless GitHub releases", () => {
@@ -227,6 +250,7 @@ describe("distribution surface", () => {
     expect(readme).toContain("CRAFTLESS_VERSION=v0.1.2");
     expect(readme).toContain("docker run");
     expect(readme).toContain("minekube/craftless/.github/actions/setup-craftless@v0.1.2");
+    expect(readme).toContain("Release Please opens or updates the release PR");
     expect(readme).not.toContain("setup-craftless@v0.1.0");
     expect(readme).toContain("Minecraft artifacts are downloaded into the workspace at runtime");
     expect(readme).toContain("Latest/current `26.2` and representative older `1.20.6` packaged lanes are verified");

@@ -187,3 +187,9 @@ has a Craftless OpenAPI route interpreter for supervisor commands, keeps
 per-client gameplay aliases generated from live per-client OpenAPI, and uses
 `daemon start` as the primary local API startup command while preserving
 `server start` as a compatibility alias.
+Phase 190 adds Release Please automation for Craftless releases. A scheduled
+and push-triggered workflow now opens or updates release PRs for releasable
+changes since the latest `v*` tag, rooted at the existing `v0.1.2` manifest.
+Merging the release PR creates the next `vX.Y.Z` tag, and the existing release
+workflow remains responsible for CI, CLI archives, checksums, Docker image
+publishing, and generated GitHub release notes.
