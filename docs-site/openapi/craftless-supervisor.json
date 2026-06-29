@@ -192,11 +192,6 @@
             }
           }
         },
-        "x-craftless-cli": {
-          "command": [
-            "openapi"
-          ]
-        },
         "x-craftless": {
           "x-craftless-owner": "supervisor",
           "x-craftless-member": "openapi",
@@ -268,11 +263,6 @@
             }
           }
         },
-        "x-craftless-cli": {
-          "command": [
-            "version"
-          ]
-        },
         "x-craftless": {
           "x-craftless-owner": "supervisor",
           "x-craftless-member": "version",
@@ -322,12 +312,6 @@
             }
           }
         },
-        "x-craftless-cli": {
-          "command": [
-            "events",
-            "list"
-          ]
-        },
         "x-craftless": {
           "x-craftless-owner": "supervisor",
           "x-craftless-member": "events",
@@ -347,12 +331,6 @@
         "description": "Streams supervisor lifecycle and diagnostic events as Server-Sent Events. Subscribe when an agent needs fresh evidence about daemon, cache, client, attach, connect, or stop progress.",
         "responses": {
           "200": {}
-        },
-        "x-craftless-cli": {
-          "command": [
-            "events"
-          ],
-          "stream": true
         },
         "x-craftless": {
           "x-craftless-owner": "supervisor",
@@ -543,30 +521,6 @@
             }
           }
         },
-        "x-craftless-cli": {
-          "command": [
-            "cache",
-            "prepare"
-          ],
-          "body": {
-            "bindings": [
-              {
-                "pointer": "/minecraftVersion",
-                "flag": "--mc",
-                "required": true
-              },
-              {
-                "pointer": "/loader",
-                "flag": "--loader",
-                "required": true
-              },
-              {
-                "pointer": "/loaderVersion",
-                "flag": "--loader-version"
-              }
-            ]
-          }
-        },
         "x-craftless": {
           "x-craftless-owner": "cache",
           "x-craftless-member": "prepare",
@@ -659,25 +613,6 @@
                 ]
               }
             }
-          }
-        },
-        "x-craftless-cli": {
-          "command": [
-            "cache",
-            "export"
-          ],
-          "body": {
-            "bindings": [
-              {
-                "pointer": "/manifest",
-                "flag": "--manifest",
-                "required": true
-              },
-              {
-                "pointer": "/archive",
-                "flag": "--archive"
-              }
-            ]
           }
         },
         "x-craftless": {
@@ -773,21 +708,6 @@
             }
           }
         },
-        "x-craftless-cli": {
-          "command": [
-            "cache",
-            "cleanup"
-          ],
-          "body": {
-            "bindings": [
-              {
-                "pointer": "/manifest",
-                "flag": "--manifest",
-                "required": true
-              }
-            ]
-          }
-        },
         "x-craftless": {
           "x-craftless-owner": "cache",
           "x-craftless-member": "cleanup",
@@ -808,13 +728,6 @@
         "responses": {
           "200": {}
         },
-        "x-craftless-cli": {
-          "command": [
-            "runtimes",
-            "java",
-            "list"
-          ]
-        },
         "x-craftless": {
           "x-craftless-owner": "runtimes",
           "x-craftless-member": "java",
@@ -834,22 +747,6 @@
         "description": "Resolves the Java runtime suitable for a requested Minecraft version. Use this before launch diagnostics when an agent must explain why a version can or cannot be started on the current machine.",
         "responses": {
           "200": {}
-        },
-        "x-craftless-cli": {
-          "command": [
-            "runtimes",
-            "java",
-            "resolve"
-          ],
-          "body": {
-            "bindings": [
-              {
-                "pointer": "/minecraftVersion",
-                "flag": "--mc",
-                "required": true
-              }
-            ]
-          }
         },
         "x-craftless": {
           "x-craftless-owner": "runtimes",
@@ -1019,12 +916,6 @@
               }
             }
           }
-        },
-        "x-craftless-cli": {
-          "command": [
-            "clients",
-            "list"
-          ]
         },
         "x-craftless": {
           "x-craftless-owner": "clients",
@@ -1288,54 +1179,6 @@
             }
           }
         },
-        "x-craftless-cli": {
-          "command": [
-            "clients",
-            "create",
-            "{id}"
-          ],
-          "body": {
-            "bindings": [
-              {
-                "pointer": "/id",
-                "argument": "id",
-                "required": true
-              },
-              {
-                "pointer": "/version",
-                "flag": "--version",
-                "required": true
-              },
-              {
-                "pointer": "/loader",
-                "flag": "--loader",
-                "required": true
-              },
-              {
-                "pointer": "/loaderVersion",
-                "flag": "--loader-version"
-              },
-              {
-                "pointer": "/profile/name",
-                "flag": "--offline-name"
-              },
-              {
-                "pointer": "/profile/kind",
-                "flag": "--offline-name",
-                "fixed": "OFFLINE"
-              },
-              {
-                "pointer": "/presentation/window",
-                "flag": "--visible",
-                "fixed": "VISIBLE"
-              },
-              {
-                "pointer": "/presentation/audio",
-                "flag": "--audio"
-              }
-            ]
-          }
-        },
         "x-craftless": {
           "x-craftless-owner": "clients",
           "x-craftless-member": "create",
@@ -1523,13 +1366,6 @@
               }
             }
           }
-        },
-        "x-craftless-cli": {
-          "command": [
-            "clients",
-            "{id}",
-            "get"
-          ]
         },
         "x-craftless": {
           "x-craftless-owner": "clients",
@@ -1722,13 +1558,6 @@
               }
             }
           }
-        },
-        "x-craftless-cli": {
-          "command": [
-            "clients",
-            "{id}",
-            "openapi"
-          ]
         },
         "x-craftless": {
           "x-craftless-owner": "clients",
@@ -1955,22 +1784,6 @@
                 ]
               }
             }
-          }
-        },
-        "x-craftless-cli": {
-          "command": [
-            "clients",
-            "{id}",
-            "attach"
-          ],
-          "body": {
-            "bindings": [
-              {
-                "pointer": "/endpoint",
-                "flag": "--endpoint",
-                "required": true
-              }
-            ]
           }
         },
         "x-craftless": {
@@ -2226,28 +2039,6 @@
             }
           }
         },
-        "x-craftless-cli": {
-          "command": [
-            "clients",
-            "{id}",
-            "connect"
-          ],
-          "body": {
-            "bindings": [
-              {
-                "pointer": "/host",
-                "flag": "--host",
-                "required": true
-              },
-              {
-                "pointer": "/port",
-                "flag": "--port",
-                "type": "integer",
-                "required": true
-              }
-            ]
-          }
-        },
         "x-craftless": {
           "x-craftless-owner": "clients",
           "x-craftless-member": "connect",
@@ -2332,13 +2123,6 @@
               }
             }
           }
-        },
-        "x-craftless-cli": {
-          "command": [
-            "clients",
-            "{id}",
-            "actions"
-          ]
         },
         "x-craftless": {
           "x-craftless-owner": "clients",
@@ -2457,13 +2241,6 @@
               }
             }
           }
-        },
-        "x-craftless-cli": {
-          "command": [
-            "clients",
-            "{id}",
-            "resources"
-          ]
         },
         "x-craftless": {
           "x-craftless-owner": "clients",
@@ -2598,14 +2375,6 @@
             }
           }
         },
-        "x-craftless-cli": {
-          "command": [
-            "clients",
-            "{id}",
-            "run",
-            "{action}"
-          ]
-        },
         "x-craftless": {
           "x-craftless-owner": "clients",
           "x-craftless-member": "run",
@@ -2655,27 +2424,6 @@
                 ]
               }
             }
-          }
-        },
-        "x-craftless-cli": {
-          "command": [
-            "clients",
-            "{id}",
-            "query",
-            "{target}"
-          ],
-          "body": {
-            "bindings": [
-              {
-                "pointer": "/method",
-                "fixed": "query"
-              },
-              {
-                "pointer": "/params/target",
-                "argument": "target",
-                "required": true
-              }
-            ]
           }
         },
         "x-craftless": {
@@ -2866,13 +2614,6 @@
             }
           }
         },
-        "x-craftless-cli": {
-          "command": [
-            "clients",
-            "{id}",
-            "stop"
-          ]
-        },
         "x-craftless": {
           "x-craftless-owner": "clients",
           "x-craftless-member": "stop",
@@ -2944,14 +2685,6 @@
             }
           }
         },
-        "x-craftless-cli": {
-          "command": [
-            "clients",
-            "{id}",
-            "events",
-            "list"
-          ]
-        },
         "x-craftless": {
           "x-craftless-owner": "clients",
           "x-craftless-member": "events",
@@ -2971,14 +2704,6 @@
         "description": "Streams lifecycle, runtime, capability, and invocation events for one client as Server-Sent Events. Subscribe before state-changing work when an agent needs correlated live evidence.",
         "responses": {
           "200": {}
-        },
-        "x-craftless-cli": {
-          "command": [
-            "clients",
-            "{id}",
-            "events"
-          ],
-          "stream": true
         },
         "x-craftless": {
           "x-craftless-owner": "clients",

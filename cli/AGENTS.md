@@ -16,9 +16,9 @@ When CLI-specific instructions need to change, update
 - `cli/` owns the JVM `craftless` command-line interface.
 - Use Clikt for commands, Mordant for terminal output, and Ktor Client for API
   calls.
-- Static CLI commands may cover daemon startup, config, auth, lifecycle,
-  discovery, output modes, and generic action invocation.
-- Gameplay commands/help/aliases must be adaptive from `/openapi.json`,
+- Static CLI commands may cover daemon startup plus the generic `api`
+  invoker.
+- API route invocation/help must be adaptive from `/openapi.json`,
   `/clients/{id}/openapi.json`, and `/clients/{id}/actions`.
 - Do not add static CLI trees for Minecraft versions, Fabric lanes, survival
   scenarios, recipes, combat flows, navigation flows, or version workarounds.

@@ -1,4 +1,4 @@
 {
   "title": "Craftless",
-  "pages": ["index", "---API Reference---", "..."]
+  "pages": ["index", "cli", "---API Reference---", "..."]
 }

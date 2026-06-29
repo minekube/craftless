@@ -839,39 +839,36 @@ class OpenApiGenerationTest {
     }
 
     @Test
-    fun `supervisor openapi exposes cli metadata for stable routes`() {
+    fun `supervisor openapi does not expose cli binding metadata`() {
         val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
+        val serialized = Json.encodeToString(document)
 
-        val create = requireNotNull(document.paths["/clients"]?.post?.cli)
-        assertEquals(listOf("clients", "create", "{id}"), create.command)
-        assertFalse(create.hidden)
-        assertFalse(create.stream)
-        val createBindings = requireNotNull(create.body).bindings
-        assertEquals("/id", createBindings.single { it.flag == null && it.argument == "id" }.pointer)
-        assertEquals("/version", createBindings.single { it.flag == "--version" }.pointer)
-        assertEquals("/loader", createBindings.single { it.flag == "--loader" }.pointer)
-        assertEquals("/loaderVersion", createBindings.single { it.flag == "--loader-version" }.pointer)
-        assertEquals("/profile/name", createBindings.single { it.flag == "--offline-name" && it.fixed == null }.pointer)
-        assertEquals("/profile/kind", createBindings.single { it.fixed == "OFFLINE" }.pointer)
-        assertEquals("/presentation/window", createBindings.single { it.flag == "--visible" }.pointer)
-        assertEquals("VISIBLE", createBindings.single { it.flag == "--visible" }.fixed)
-        assertEquals("/presentation/audio", createBindings.single { it.flag == "--audio" }.pointer)
-
-        val connect = requireNotNull(document.paths["/clients/{id}:connect"]?.post?.cli)
-        assertEquals(listOf("clients", "{id}", "connect"), connect.command)
-        val connectBindings = requireNotNull(connect.body).bindings
-        assertEquals("/host", connectBindings.single { it.flag == "--host" }.pointer)
-        assertEquals("/port", connectBindings.single { it.flag == "--port" }.pointer)
-
-        val stream = requireNotNull(document.paths["/clients/{id}/events:stream"]?.get?.cli)
-        assertEquals(listOf("clients", "{id}", "events"), stream.command)
-        assertTrue(stream.stream)
-
-        val eventList = requireNotNull(document.paths["/clients/{id}/events"]?.get?.cli)
-        assertEquals(listOf("clients", "{id}", "events", "list"), eventList.command)
-
-        val runtimes = requireNotNull(document.paths["/runtimes/java"]?.get?.cli)
-        assertEquals(listOf("runtimes", "java", "list"), runtimes.command)
+        assertFalse(serialized.contains("x-craftless-cli"))
+        assertTrue(requireNotNull(document.paths["/clients"]?.post?.summary).contains("Launch"))
+        val createSchema =
+            requireNotNull(
+                document.paths["/clients"]
+                    ?.post
+                    ?.requestBody
+                    ?.content
+                    ?.get("application/json")
+                    ?.schema,
+            )
+        assertEquals(listOf("id", "version", "loader"), createSchema.required)
+        assertEquals(
+            listOf("NONE", "VISIBLE"),
+            createSchema.properties["presentation"]
+                ?.properties
+                ?.get("window")
+                ?.enumValues,
+        )
+        assertEquals(
+            "MUTED",
+            createSchema.properties["presentation"]
+                ?.properties
+                ?.get("audio")
+                ?.default,
+        )
     }
 
     @Test

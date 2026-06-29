@@ -32,5 +32,5 @@ from the Fabric runtime capability graph and generated per-client OpenAPI. The
 daemon exposes `/clients/{id}/openapi.json` with client metadata plus
 graph-projected action/resource schemas, `GET /clients/{id}/actions` and
 `GET /clients/{id}/resources` for discovery, `POST /clients/{id}:run` as the
-stable generic invocation path, and generated aliases derived from those live
+stable generic invocation path, and generated routes derived from those live
 action descriptors.

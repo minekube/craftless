@@ -147,34 +147,8 @@ data class OpenApiOperation(
     val description: String? = null,
     val responses: Map<String, OpenApiResponse>,
     val requestBody: OpenApiRequestBody? = null,
-    @SerialName("x-craftless-cli")
-    val cli: OpenApiCliOperation? = null,
     @SerialName("x-craftless")
     val extensions: Map<String, String>,
-)
-
-@Serializable
-data class OpenApiCliOperation(
-    val command: List<String>,
-    val aliases: List<List<String>> = emptyList(),
-    val hidden: Boolean = false,
-    val stream: Boolean = false,
-    val body: OpenApiCliBody? = null,
-)
-
-@Serializable
-data class OpenApiCliBody(
-    val bindings: List<OpenApiCliBinding> = emptyList(),
-)
-
-@Serializable
-data class OpenApiCliBinding(
-    val pointer: String,
-    val flag: String? = null,
-    val argument: String? = null,
-    val fixed: String? = null,
-    val type: String = "string",
-    val required: Boolean = false,
 )
 
 @Serializable
@@ -575,7 +549,6 @@ private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenA
         description = description,
         responses = route.responses(actionsById),
         requestBody = route.requestBody(actionsById),
-        cli = route.cli?.toOpenApiCliOperation(),
         extensions =
             buildMap {
                 put("x-craftless-owner", route.owner)
@@ -587,28 +560,6 @@ private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenA
             },
     )
 }
-
-private fun ApiRouteCli.toOpenApiCliOperation(): OpenApiCliOperation =
-    OpenApiCliOperation(
-        command = command,
-        aliases = aliases,
-        hidden = hidden,
-        stream = stream,
-        body =
-            body
-                .takeIf { it.isNotEmpty() }
-                ?.let { bindings -> OpenApiCliBody(bindings.map { binding -> binding.toOpenApiCliBinding() }) },
-    )
-
-private fun ApiRouteCliBinding.toOpenApiCliBinding(): OpenApiCliBinding =
-    OpenApiCliBinding(
-        pointer = pointer,
-        flag = flag,
-        argument = argument,
-        fixed = fixed,
-        type = type,
-        required = required,
-    )
 
 private fun RuntimeOperationNode.toOpenApiAction(): OpenApiAction =
     OpenApiAction(

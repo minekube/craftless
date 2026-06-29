@@ -2,7 +2,7 @@
 
 ## Scope
 
-Phase 193 adds a static Fumadocs documentation site for Craftless, hosted by
+Phase 194 adds a static Fumadocs documentation site for Craftless, hosted by
 Cloudflare Workers Static Assets and built with Bun through mise.
 
 The site uses the generated Craftless supervisor OpenAPI snapshot as its API
@@ -30,6 +30,12 @@ static hosted API documentation site generated from OpenAPI.
   `docs-site/openapi/craftless-supervisor.json` from `:protocol`.
 - `mise run docs-site-build` regenerates OpenAPI, installs with Bun, and builds
   the static site.
+- `docs-site/content/docs/cli.mdx` documents the current API-only CLI:
+  `craftless daemon start` plus `craftless api <endpoint>` for supervisor,
+  per-client generated routes, generic invocation, events, and
+  OpenAPI-derived help.
+- The regenerated supervisor OpenAPI snapshot no longer contains
+  `x-craftless-cli`.
 - Supervisor OpenAPI now includes top-level tag descriptions for core pillars so
   Fumadocs can group operation pages and agents get better API context.
 - OpenAPI serialization now omits JSON nulls and default empty sections while
@@ -42,14 +48,15 @@ static hosted API documentation site generated from OpenAPI.
 mise exec -- bun test playwright/src/distribution.test.ts --test-name-pattern "Fumadocs site is a Cloudflare Workers product surface with previews"
 ```
 
-Result: passed with 1 focused test and 29 assertions.
+Result: passed with the docs-site CLI page assertions and no `x-craftless-cli`
+in the generated OpenAPI snapshot.
 
 ```sh
 cd docs-site && mise exec -- bun run build
 ```
 
-Result: passed. Next generated `/docs/api-reference` plus 22 generated
-operation pages under `/docs/api-reference/routes/...`.
+Result: passed. Next generated `/docs/cli`, `/docs/api-reference`, and 22
+generated operation pages under `/docs/api-reference/routes/...`.
 
 ```sh
 mise run docs-site-build
@@ -87,4 +94,4 @@ mise exec -- bun test playwright/src/distribution.test.ts
 git diff --check
 ```
 
-Result: all passed. The distribution test reported 19 tests and 233 assertions.
+Result: all passed. The distribution test reported 19 tests and 242 assertions.
