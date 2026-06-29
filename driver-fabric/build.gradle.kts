@@ -29,6 +29,11 @@ val fabricCompiledDistributionPath =
     fabricLaneProperty("craftless.fabric.distributionPath", "mods/craftless-driver-fabric.jar")
 val fabricCompiledMappingsFingerprint =
     fabricLaneProperty("craftless.fabric.mappingsFingerprint", "craftless-fabric-bindings")
+val fabricCompiledRuntimeMods =
+    providers
+        .gradleProperty("craftless.fabric.runtimeMods")
+        .map { value -> value.split(",").map { item -> item.trim() }.filter { item -> item.isNotEmpty() } }
+        .orElse(emptyList())
 val generatedFabricLaneMetadataDir =
     layout.buildDirectory.dir("generated/sources/fabricCompiledLaneMetadata/kotlin")
 val generatedFabricDriverLaneCatalog = layout.buildDirectory.file("generated/driver-lanes/fabric-driver-lanes.json")
@@ -165,11 +170,19 @@ val writeFabricDriverLaneCatalog =
         inputs.property("fabricCompiledApiVersion", fabricCompiledApiVersion)
         inputs.property("fabricCompiledJavaMajorVersion", fabricCompiledJavaMajorVersion)
         inputs.property("fabricCompiledMappingsFingerprint", fabricCompiledMappingsFingerprint)
+        inputs.property("fabricCompiledRuntimeMods", fabricCompiledRuntimeMods)
         outputs.file(generatedFabricDriverLaneCatalog)
 
         doLast {
             val output = generatedFabricDriverLaneCatalog.get().asFile
             output.parentFile.mkdirs()
+            val runtimeMods = fabricCompiledRuntimeMods.get()
+            val runtimeModsJson =
+                if (runtimeMods.isEmpty()) {
+                    ""
+                } else {
+                    ",\n                      \"runtimeMods\": ${jsonArray(runtimeMods)}"
+                }
             output.writeText(
                 """
                 {
@@ -184,7 +197,7 @@ val writeFabricDriverLaneCatalog =
                       "fabricApiVersion": ${jsonString(fabricCompiledApiVersion)},
                       "javaMajorVersion": $fabricCompiledJavaMajorVersion,
                       "mappingsFingerprint": ${jsonString(fabricCompiledMappingsFingerprint)},
-                      "distributionPath": ${jsonString(fabricCompiledDistributionPath)}
+                      "distributionPath": ${jsonString(fabricCompiledDistributionPath)}$runtimeModsJson
                     }
                   ]
                 }
@@ -417,6 +430,9 @@ tasks.register<JavaExec>("fabricClientSmoke") {
     val fabricSmokeEnabled =
         System.getenv("CRAFTLESS_FABRIC_CLIENT_SMOKE") == "1" ||
             System.getenv("CRAFTLESS_FABRIC_CLIENT_SMOKE").equals("true", ignoreCase = true)
+    val fabricSmokeProvisioningDisabled =
+        System.getenv("CRAFTLESS_DISABLE_SMOKE_PROVISIONING") == "1" ||
+            System.getenv("CRAFTLESS_DISABLE_SMOKE_PROVISIONING").equals("true", ignoreCase = true)
     val fabricSmokeMinecraftVersion =
         System
             .getenv("CRAFTLESS_SMOKE_MINECRAFT_VERSION")
@@ -453,16 +469,28 @@ tasks.register<JavaExec>("fabricClientSmoke") {
     if (fabricSmokeEnabled && System.getenv("CRAFTLESS_SMOKE_EXPECT_DISCONNECT").isNullOrBlank()) {
         environment("CRAFTLESS_SMOKE_EXPECT_DISCONNECT", "1")
     }
-    if (fabricSmokeEnabled && System.getenv("CRAFTLESS_SMOKE_PROVISION_ITEM_ID").isNullOrBlank()) {
+    if (
+        fabricSmokeEnabled &&
+        !fabricSmokeProvisioningDisabled &&
+        System.getenv("CRAFTLESS_SMOKE_PROVISION_ITEM_ID").isNullOrBlank()
+    ) {
         environment("CRAFTLESS_SMOKE_PROVISION_ITEM_ID", "minecraft:iron_sword")
     }
-    if (fabricSmokeEnabled && System.getenv("CRAFTLESS_SMOKE_PROVISION_ITEM_NAME").isNullOrBlank()) {
+    if (
+        fabricSmokeEnabled &&
+        !fabricSmokeProvisioningDisabled &&
+        System.getenv("CRAFTLESS_SMOKE_PROVISION_ITEM_NAME").isNullOrBlank()
+    ) {
         environment(
             "CRAFTLESS_SMOKE_PROVISION_ITEM_NAME",
             System.getenv("CRAFTLESS_FABRIC_SMOKE_EQUIP_ITEM") ?: "Iron Sword",
         )
     }
-    if (fabricSmokeEnabled && System.getenv("CRAFTLESS_SMOKE_PROVISION_ITEM_COUNT").isNullOrBlank()) {
+    if (
+        fabricSmokeEnabled &&
+        !fabricSmokeProvisioningDisabled &&
+        System.getenv("CRAFTLESS_SMOKE_PROVISION_ITEM_COUNT").isNullOrBlank()
+    ) {
         environment("CRAFTLESS_SMOKE_PROVISION_ITEM_COUNT", "1")
     }
     if (fabricSmokeEnabled && System.getenv("CRAFTLESS_FABRIC_SMOKE_REQUIRE_EQUIP_ITEM").isNullOrBlank()) {

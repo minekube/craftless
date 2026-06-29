@@ -58,6 +58,21 @@ fun requiredCatalogInt(
         ?.toIntOrNull()
         ?: error("Fabric driver lane entry requires numeric $field")
 
+fun optionalCatalogStringList(
+    entry: Map<*, *>,
+    field: String,
+): List<String> {
+    val values = entry[field] ?: return emptyList()
+    return (values as? List<*>)
+        ?.map { value ->
+            value
+                ?.toString()
+                ?.takeIf { string -> string.isNotBlank() }
+                ?: error("Fabric driver lane $field entries must be non-blank strings")
+        }
+        ?: error("Fabric driver lane $field must be a list")
+}
+
 fun validatedDistributionPath(distributionPath: String): String {
     val relativePath = Path.of(distributionPath)
     require(!relativePath.isAbsolute && relativePath.normalize() == relativePath) {
@@ -90,7 +105,7 @@ fun mergedCatalogEntries(
 fun renderDriverModManifest(entries: List<Map<*, *>>): String {
     val manifestEntries =
         entries.map { entry ->
-            linkedMapOf(
+            linkedMapOf<String, Any>(
                 "loader" to requiredCatalogString(entry, "loader"),
                 "minecraftVersion" to requiredCatalogString(entry, "minecraftVersion"),
                 "loaderVersion" to requiredCatalogString(entry, "loaderVersion"),
@@ -98,7 +113,14 @@ fun renderDriverModManifest(entries: List<Map<*, *>>): String {
                 "javaMajorVersion" to requiredCatalogInt(entry, "javaMajorVersion"),
                 "mappingsFingerprint" to requiredCatalogString(entry, "mappingsFingerprint"),
                 "path" to validatedDistributionPath(requiredCatalogString(entry, "distributionPath")),
-            )
+            ).also { manifestEntry ->
+                val runtimeMods =
+                    optionalCatalogStringList(entry, "runtimeMods")
+                        .map(::validatedDistributionPath)
+                if (runtimeMods.isNotEmpty()) {
+                    manifestEntry["runtimeMods"] = runtimeMods
+                }
+            }
         }
     return JsonOutput.prettyPrint(JsonOutput.toJson(linkedMapOf("entries" to manifestEntries))) + "\n"
 }
@@ -113,6 +135,16 @@ fun stagedExtraLaneArtifact(
         ?.normalize()
         ?.toFile()
         ?.takeIf { file -> file.isFile }
+
+fun stageDistributionPath(
+    source: File,
+    outputRoot: File,
+    distributionPath: String,
+) {
+    val target = outputRoot.toPath().resolve(distributionPath).toFile()
+    target.parentFile.mkdirs()
+    source.copyTo(target, overwrite = true)
+}
 
 gradle.projectsEvaluated {
     val fabricDriverRemapJar = fabricDriverProject.tasks.named("remapJar")
@@ -164,9 +196,15 @@ gradle.projectsEvaluated {
                                 stagedExtraLaneArtifact(configuredExtraFabricDriverLaneRoot, distributionPath)
                                     ?: error("Unsupported Fabric driver lane artifactKey: $artifactKey")
                         }
-                    val target = outputRoot.toPath().resolve(distributionPath).toFile()
-                    target.parentFile.mkdirs()
-                    source.copyTo(target, overwrite = true)
+                    stageDistributionPath(source, outputRoot, distributionPath)
+                    optionalCatalogStringList(entry, "runtimeMods")
+                        .map(::validatedDistributionPath)
+                        .forEach { runtimeModPath ->
+                            val runtimeMod =
+                                stagedExtraLaneArtifact(configuredExtraFabricDriverLaneRoot, runtimeModPath)
+                                    ?: error("Fabric driver lane runtime mod is missing: $runtimeModPath")
+                            stageDistributionPath(runtimeMod, outputRoot, runtimeModPath)
+                        }
                 }
             }
         }

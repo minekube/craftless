@@ -936,6 +936,94 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `prepared runtime includes packaged fabric lane runtime mods`() =
+        withHttpClient { http ->
+            val workspace = Files.createTempDirectory("craftless-packaged-runtime-mods-workspace")
+            val distribution = Files.createTempDirectory("craftless-packaged-runtime-mods-distribution")
+            val olderDriverMod = distribution.resolve("mods/fabric-1.20.6/craftless-driver-fabric.jar")
+            val navigationRuntime = distribution.resolve("mods/fabric-1.20.6/runtime/navigation-runtime.jar")
+            val navigationNestedRuntime = distribution.resolve("mods/fabric-1.20.6/runtime/navigation-nested-runtime.jar")
+            Files.createDirectories(navigationRuntime.parent)
+            Files.writeString(olderDriverMod, "older-driver-mod")
+            Files.writeString(navigationRuntime, "navigation-runtime")
+            Files.writeString(navigationNestedRuntime, "navigation-nested-runtime")
+            val manifest = distribution.resolve("driver-mods.json")
+            Files.writeString(
+                manifest,
+                """
+                {
+                  "entries": [
+                    {
+                      "loader": "FABRIC",
+                      "minecraftVersion": "1.20.6",
+                      "loaderVersion": "0.19.3",
+                      "fabricApiVersion": "0.100.8+1.20.6",
+                      "javaMajorVersion": 21,
+                      "mappingsFingerprint": "craftless-fabric-bindings-1-20-6",
+                      "path": "mods/fabric-1.20.6/craftless-driver-fabric.jar",
+                      "runtimeMods": [
+                        "mods/fabric-1.20.6/runtime/navigation-runtime.jar",
+                        "mods/fabric-1.20.6/runtime/navigation-nested-runtime.jar"
+                      ]
+                    }
+                  ]
+                }
+                """.trimIndent(),
+            )
+            val launcher = RecordingClientRuntimeLauncher()
+
+            LocalSessionApiServer
+                .inMemory(
+                    workspaceRoot = workspace,
+                    cacheMetadataFetcher = preparedRuntimeMetadataFetcherWithOlderLane(),
+                    clientRuntimeLauncher = launcher,
+                    clientRuntimeDriverModProvider =
+                        ConfiguredClientRuntimeDriverModProvider(
+                            environment =
+                                mapOf(
+                                    ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_DRIVER_MOD_MANIFEST to
+                                        manifest.toString(),
+                                ),
+                        ),
+                ).use { server ->
+                    server.start()
+
+                    val response =
+                        http.post(server.url("/clients")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "id": "alice",
+                                  "version": "1.20.6",
+                                  "loader": "FABRIC",
+                                  "loaderVersion": "0.19.3",
+                                  "profile": { "kind": "OFFLINE", "name": "Alice" }
+                                }
+                                """.trimIndent(),
+                            )
+                        }
+
+                    assertEquals(HttpStatusCode.Created, response.status)
+                    val stagedModContents =
+                        launcher
+                            .launches
+                            .single()
+                            .launch
+                            .mods
+                            .map { handle -> Files.readString(workspace.resolve(handle)) }
+                    assertEquals(
+                        listOf("older-driver-mod", "navigation-runtime", "navigation-nested-runtime"),
+                        stagedModContents.filter {
+                            it == "older-driver-mod" ||
+                                it == "navigation-runtime" ||
+                                it == "navigation-nested-runtime"
+                        },
+                    )
+                }
+        }
+
+    @Test
     fun `client creation rejects missing latest fabric driver lane before binary downloads`() =
         withHttpClient { http ->
             val workspace = Files.createTempDirectory("craftless-latest-lane-preflight")

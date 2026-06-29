@@ -53,7 +53,7 @@ class WorkspaceClientRuntimeDriverFactory(
                     loaderVersion = loaderVersion,
                 ),
             )
-        val driverMod = driverModProvider.modFor(driverModRequest)
+        val driverMods = driverModProvider.modsFor(driverModRequest)
         val cache =
             cachePreparationService
                 .prepare(
@@ -62,7 +62,7 @@ class WorkspaceClientRuntimeDriverFactory(
                         loader = request.loader,
                         loaderVersion = loaderVersion,
                     ),
-                ).withConfiguredDriverMod(driverMod)
+                ).withConfiguredDriverMods(driverMods)
         val files = request.instanceFiles()
         val launch = launcher.launch(request, cache, files, root, attachEnvironment)
         return PreparedClientRuntime(
@@ -91,28 +91,31 @@ class WorkspaceClientRuntimeDriverFactory(
         return driverModProvider.preferredLoaderVersion(directRequest.copy(minecraftVersion = resolvedVersion))
     }
 
-    private fun CachePrepareResult.withConfiguredDriverMod(driverMod: Path?): CachePrepareResult {
-        val source = driverMod?.toAbsolutePath()?.normalize() ?: return this
-        require(Files.isRegularFile(source)) { "configured Craftless driver mod does not exist: $source" }
-        val handle = "cache/mods/craftless/${source.sha256Hex()}.jar"
-        val target = root.resolveHandleOrPath(handle)
-        Files.createDirectories(target.parent)
-        if (source != target) {
-            Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING)
-        }
-        val artifact =
-            CachePreparedArtifact(
-                kind = CachePreparedArtifactKind.FABRIC_MOD,
-                handle = handle,
-                source = source.toUri().toString(),
-                status = CachePreparedArtifactStatus.CACHED,
-            )
-        val augmentedArtifacts = artifacts + artifact
+    private fun CachePrepareResult.withConfiguredDriverMods(driverMods: ClientRuntimeDriverMods): CachePrepareResult {
+        val sources = driverMods.all().map { it.toAbsolutePath().normalize() }
+        if (sources.isEmpty()) return this
+        val preparedMods =
+            sources.distinct().map { source ->
+                require(Files.isRegularFile(source)) { "configured Craftless runtime mod does not exist: $source" }
+                val handle = "cache/mods/craftless/${source.sha256Hex()}.jar"
+                val target = root.resolveHandleOrPath(handle)
+                Files.createDirectories(target.parent)
+                if (source != target) {
+                    Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING)
+                }
+                CachePreparedArtifact(
+                    kind = CachePreparedArtifactKind.FABRIC_MOD,
+                    handle = handle,
+                    source = source.toUri().toString(),
+                    status = CachePreparedArtifactStatus.CACHED,
+                )
+            }
+        val augmentedArtifacts = artifacts + preparedMods
         return copy(
             artifacts = augmentedArtifacts,
             launch =
                 launch.copy(
-                    mods = (launch.mods + handle).distinct(),
+                    mods = (launch.mods + preparedMods.map { it.handle }).distinct(),
                 ),
         )
     }
@@ -136,7 +139,22 @@ data class ClientDriverAttachEnvironment(
 fun interface ClientRuntimeDriverModProvider {
     fun modFor(request: ClientRuntimeDriverModRequest): Path?
 
+    fun modsFor(request: ClientRuntimeDriverModRequest): ClientRuntimeDriverMods = ClientRuntimeDriverMods(primary = modFor(request))
+
     fun preferredLoaderVersion(request: ClientRuntimeDriverModRequest): String? = null
+}
+
+data class ClientRuntimeDriverMods(
+    val primary: Path?,
+    val runtimeMods: List<Path> = emptyList(),
+) {
+    init {
+        runtimeMods.forEach { mod ->
+            require(mod.toString().isNotBlank()) { "runtime mod path must not be blank" }
+        }
+    }
+
+    fun all(): List<Path> = listOfNotNull(primary) + runtimeMods
 }
 
 data class ClientRuntimeDriverModRequest(
@@ -171,21 +189,28 @@ class ConfiguredClientRuntimeDriverModProvider(
     }
 
     override fun modFor(request: ClientRuntimeDriverModRequest): Path? {
+        return modsFor(request).primary
+    }
+
+    override fun modsFor(request: ClientRuntimeDriverModRequest): ClientRuntimeDriverMods {
         val manifestPath = configuredManifestPath()
         if (manifestPath != null) {
-            return manifestModFor(request, manifestPath)
+            return manifestModsFor(request, manifestPath)
                 ?: if (request.loader == Loader.FABRIC) {
                     throw IllegalArgumentException(
                         "driver mod manifest has no Fabric entry for " +
                             request.runtimeIdentityLabel(),
                     )
                 } else {
-                    null
+                    ClientRuntimeDriverMods(primary = null)
                 }
         }
         return when (request.loader) {
-            Loader.FABRIC -> environment[CRAFTLESS_FABRIC_DRIVER_MOD]?.takeIf { it.isNotBlank() }?.let(Path::of)
-            else -> null
+            Loader.FABRIC ->
+                ClientRuntimeDriverMods(
+                    primary = environment[CRAFTLESS_FABRIC_DRIVER_MOD]?.takeIf { it.isNotBlank() }?.let(Path::of),
+                )
+            else -> ClientRuntimeDriverMods(primary = null)
         }
     }
 
@@ -196,10 +221,10 @@ class ConfiguredClientRuntimeDriverModProvider(
             ?.toAbsolutePath()
             ?.normalize()
 
-    private fun manifestModFor(
+    private fun manifestModsFor(
         request: ClientRuntimeDriverModRequest,
         manifestPath: Path,
-    ): Path? {
+    ): ClientRuntimeDriverMods? {
         val entry =
             manifestEntriesFor(request, manifestPath)
                 .filter { entry -> entry.matches(request) }
@@ -208,8 +233,10 @@ class ConfiguredClientRuntimeDriverModProvider(
                         .thenBy { entry -> entry.runtimeIdentitySpecificity() },
                 )
                 ?: return null
-        val path = Path.of(entry.path)
-        return if (path.isAbsolute) path.normalize() else manifestPath.parent.resolve(path).normalize()
+        return ClientRuntimeDriverMods(
+            primary = entry.path.resolveManifestEntryPath(manifestPath),
+            runtimeMods = entry.runtimeMods.map { runtimeMod -> runtimeMod.resolveManifestEntryPath(manifestPath) },
+        )
     }
 
     private fun manifestEntriesFor(
@@ -245,6 +272,7 @@ private data class ConfiguredDriverModManifestEntry(
     val javaMajorVersion: Int? = null,
     val mappingsFingerprint: String? = null,
     val path: String,
+    val runtimeMods: List<String> = emptyList(),
 ) {
     fun matches(request: ClientRuntimeDriverModRequest): Boolean =
         (loaderVersion == request.loaderVersion || loaderVersion == null) &&
@@ -253,6 +281,11 @@ private data class ConfiguredDriverModManifestEntry(
             optionalMatches(mappingsFingerprint, request.mappingsFingerprint)
 
     fun runtimeIdentitySpecificity(): Int = listOfNotNull(loaderVersion, fabricApiVersion, javaMajorVersion, mappingsFingerprint).size
+}
+
+private fun String.resolveManifestEntryPath(manifestPath: Path): Path {
+    val path = Path.of(this)
+    return if (path.isAbsolute) path.normalize() else manifestPath.parent.resolve(path).normalize()
 }
 
 private fun <T> optionalMatches(

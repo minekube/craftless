@@ -5,7 +5,6 @@ import com.minekube.craftless.driver.api.DriverOperationInvocation
 import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.NavigationGoal
 import com.minekube.craftless.protocol.NavigationProgressEvent
-import com.minekube.craftless.protocol.NavigationTaskRequest
 import com.minekube.craftless.protocol.NavigationTaskState
 import com.minekube.craftless.protocol.NavigationTaskStatus
 import com.minekube.craftless.protocol.RuntimeAvailabilityState
@@ -35,10 +34,11 @@ class FabricNavigationDiscoveryTest {
                     ),
             ).discover(navigationContext())
 
-        assertEquals(listOf("navigation", "task"), graph.resources.map { it.id })
+        assertEquals(listOf("navigation"), graph.resources.map { it.id })
         assertTrue(graph.operations.any { it.id == "navigation.plan" })
         assertTrue(graph.operations.any { it.id == "navigation.follow" })
-        assertTrue(graph.operations.any { it.id == "task.run" })
+        assertFalse(graph.operations.any { it.id.startsWith("task.") })
+        assertFalse(graph.events.any { it.id.startsWith("task.") })
         assertEquals(
             RuntimeAvailabilityState.UNAVAILABLE,
             graph.operations
@@ -73,12 +73,11 @@ class FabricNavigationDiscoveryTest {
             ).discover(navigationContext())
 
         val operation = graph.operations.single { it.id == "navigation.plan" }
-        val taskRun = graph.operations.single { it.id == "task.run" }
 
         assertEquals(RuntimeAvailabilityState.AVAILABLE, operation.availability.state)
         assertEquals(null, operation.availability.reason)
-        assertEquals(RuntimeAvailabilityState.UNAVAILABLE, taskRun.availability.state)
-        assertEquals("task-executor-unavailable", taskRun.availability.reason)
+        assertFalse(graph.resources.any { it.id == "task" })
+        assertFalse(graph.operations.any { it.id.startsWith("task.") })
         assertFalse(graph.toString().contains("baritone", ignoreCase = true))
         assertFalse(graph.toString().contains("swarmbot", ignoreCase = true))
     }
@@ -124,7 +123,7 @@ class FabricNavigationDiscoveryTest {
         assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
         assertEquals("pathfinder-unavailable", result.message)
         assertTrue("navigation.default" in adapters.adapterKeys())
-        assertTrue("task.executor" in adapters.adapterKeys())
+        assertFalse("task.executor" in adapters.adapterKeys())
         assertFalse("goto" in driverMethodNames)
         assertFalse("mine" in driverMethodNames)
         assertFalse("killCow" in driverMethodNames)
@@ -183,27 +182,15 @@ class FabricNavigationDiscoveryTest {
     }
 
     @Test
-    fun `fabric backend task adapter keeps generic tasks unavailable without executor`() {
+    fun `fabric backend does not expose task namespace as public generated operations`() {
         val backend = FabricDriverBackend.metadataOnly()
         val adapters = backend.operationAdapters("alice")
-        val operations = backend.runtimeGraph("alice").operations.associateBy { it.id }
-        val request = NavigationTaskRequest(task = "task.generic.obtain-materials")
+        val graph = backend.runtimeGraph("alice")
 
-        val runResult =
-            adapters.invoke(
-                DriverOperationInvocation(
-                    clientId = "alice",
-                    operation = operations.getValue("task.run"),
-                    arguments =
-                        mapOf(
-                            "request" to Json.encodeToJsonElement(NavigationTaskRequest.serializer(), request),
-                        ),
-                ),
-            )
-        assertEquals(DriverActionStatus.UNSUPPORTED, runResult.status)
-        assertEquals("task.run", runResult.action)
-        assertEquals("task-executor-unavailable", runResult.message)
-        assertFalse(runResult.data.toString().contains("task.survival", ignoreCase = true))
+        assertFalse(graph.resources.any { it.id == "task" })
+        assertFalse(graph.operations.any { it.id.startsWith("task.") })
+        assertFalse(graph.events.any { it.id.startsWith("task.") })
+        assertFalse("task.executor" in adapters.adapterKeys())
     }
 }
 

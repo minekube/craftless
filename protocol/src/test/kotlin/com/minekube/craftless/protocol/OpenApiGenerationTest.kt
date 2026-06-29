@@ -500,7 +500,6 @@ class OpenApiGenerationTest {
                                     ),
                                 ),
                         ),
-                        RuntimeResourceNode("task", RuntimeAvailability.available()),
                     ),
                 operations =
                     listOf(
@@ -520,31 +519,6 @@ class OpenApiGenerationTest {
                             result = RuntimeSchema("object", required = true),
                             availability = RuntimeAvailability.available(),
                         ),
-                        RuntimeOperationNode(
-                            id = "task.run",
-                            resource = "task",
-                            adapter = "task.executor",
-                            arguments = mapOf("request" to RuntimeSchema("object", required = true)),
-                            result = RuntimeSchema("object", required = true),
-                            availability = RuntimeAvailability.available(),
-                        ),
-                        RuntimeOperationNode(
-                            id = "task.status",
-                            resource = "task",
-                            adapter = "task.executor",
-                            arguments = mapOf("task" to RuntimeSchema("string", required = true)),
-                            result = RuntimeSchema("object", required = true),
-                            availability = RuntimeAvailability.available(),
-                        ),
-                    ),
-                events =
-                    listOf(
-                        RuntimeEventNode(
-                            id = "task.progress",
-                            resource = "task",
-                            payload = RuntimeSchema.objectSchema(),
-                            availability = RuntimeAvailability.available(),
-                        ),
                     ),
             )
 
@@ -552,13 +526,13 @@ class OpenApiGenerationTest {
         val encoded = Json.encodeToString(OpenApiDocument.serializer(), document)
 
         assertEquals(
-            listOf("navigation.follow", "navigation.plan", "task.run", "task.status"),
+            listOf("navigation.follow", "navigation.plan"),
             document.actions.map { it.id },
         )
-        assertEquals(listOf("navigation", "task"), document.resources.map { it.id })
+        assertEquals(listOf("navigation"), document.resources.map { it.id })
         assertEquals("/clients/{id}/navigation:plan", document.paths.keys.single { it.endsWith("navigation:plan") })
-        assertEquals("/clients/{id}/task:run", document.paths.keys.single { it.endsWith("task:run") })
-        assertEquals(listOf("task.progress"), document.events.map { it.id })
+        assertFalse(document.paths.keys.any { it.contains("/task:") })
+        assertFalse(document.events.any { it.id.startsWith("task.") })
         assertFalse(encoded.contains("baritone", ignoreCase = true))
         assertFalse(encoded.contains("swarmbot", ignoreCase = true))
     }

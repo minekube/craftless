@@ -651,7 +651,7 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `fabric recipe bridge does not compile against version-specific recipe display types`() {
+    fun `fabric recipe bridge uses remapped recipe APIs instead of named reflection strings`() {
         val root = repositoryRoot()
         val backend =
             Files.readString(
@@ -663,20 +663,34 @@ class FabricDriverModuleTest {
             )
         val mixins =
             Files.readString(root.resolve("driver-fabric/src/main/resources/craftless-driver-fabric.mixins.json"))
-        val forbidden =
+        val forbiddenCompiledTypes =
             listOf(
-                "NetworkRecipeId",
-                "RecipeDisplayEntry",
-                "RecipeFinder",
-                "AbstractCraftingScreenHandler",
-                "net.minecraft.recipe.display",
                 "ClientRecipeBookAccessor",
             )
+        val forbiddenNamedReflection =
+            listOf(
+                "\"net.minecraft.recipe\"",
+                "\"Recipe\" + \"Finder\"",
+                "\"populate\" + \"Recipe\" + \"Finder\"",
+                "\"populate\" + \"Recipes\"",
+                "\"getAll\" + \"Recipes\"",
+                "\"isCraftable\"",
+                "\"click\" + \"Recipe\"",
+                "\"on\" + \"Recipe\" + \"Displayed\"",
+                "\"result\"",
+                "\"craftingStation\"",
+                "\"ingredient\"",
+                "\"fuel\"",
+            )
 
-        forbidden.forEach { token ->
+        forbiddenCompiledTypes.forEach { token ->
             assertFalse(backend.contains(token), "backend contains $token")
             assertFalse(projection.contains(token), "projection contains $token")
             assertFalse(mixins.contains(token), "mixin config contains $token")
+        }
+        forbiddenNamedReflection.forEach { token ->
+            assertFalse(backend.contains(token), "backend contains named recipe reflection token $token")
+            assertFalse(projection.contains(token), "projection contains named recipe reflection token $token")
         }
     }
 
@@ -1090,6 +1104,16 @@ class FabricDriverModuleTest {
         assertTrue(buildScript.contains("720_000L"))
         assertTrue(buildScript.contains("2_700_000L"))
         assertTrue(buildScript.contains("?: \"600000\""))
+    }
+
+    @Test
+    fun `fabric client smoke can disable default server item provisioning`() {
+        val buildScript = Files.readString(repositoryRoot().resolve("driver-fabric/build.gradle.kts"))
+
+        assertTrue(buildScript.contains("CRAFTLESS_DISABLE_SMOKE_PROVISIONING"))
+        assertTrue(buildScript.contains("fabricSmokeProvisioningDisabled"))
+        assertTrue(buildScript.contains("!fabricSmokeProvisioningDisabled"))
+        assertTrue(buildScript.contains("\"CRAFTLESS_SMOKE_PROVISION_ITEM_ID\", \"minecraft:iron_sword\""))
     }
 
     @Test
@@ -2465,6 +2489,10 @@ class FabricDriverModuleTest {
         assertEquals("string", unavailableQuery.arguments["category"]?.type)
         assertEquals("object", unavailableQuery.arguments["target"]?.type)
         assertEquals("object", unavailableQuery.result.type)
+        val blockResultSchema = requireNotNull(unavailableQuery.result.properties["blocks"]?.items)
+        assertEquals("boolean", blockResultSchema.properties["collectable"]?.type)
+        assertEquals("string", blockResultSchema.properties["material"]?.type)
+        assertEquals("boolean", blockResultSchema.properties["requires-tool"]?.type)
         assertEquals(DriverActionStatus.UNSUPPORTED, unavailableResult.status)
         assertEquals("client-not-connected", unavailableResult.message)
 
@@ -2515,7 +2543,7 @@ class FabricDriverModuleTest {
                     operation = blockQuery,
                     arguments =
                         mapOf(
-                            "radius" to JsonPrimitive(8.0),
+                            "radius" to JsonPrimitive(64.0),
                             "limit" to JsonPrimitive(5),
                             "category" to JsonPrimitive("log"),
                         ),

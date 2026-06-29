@@ -163,12 +163,14 @@ CL-06 is now closed. Local release gates passed after CL-05, including lint,
 architecture checks, CI, package build, Docker smoke, install smoke,
 latest/current packaged lane probe, representative older packaged lane probe,
 and `git diff --check`.
-Continue with CL-07: final honest survival gameplay must be driven through
-public generated API/CLI only, with generated OpenAPI as authority and no
-server-provisioned inventory, static scenario action, creative shortcut,
-direct in-process call, or human movement shortcut.
-CL-07 now has a spec and implementation plan. The next work is to implement a
-rerunnable final gameplay probe that uses the packaged CLI and live generated
-OpenAPI, writes public action/state/SSE artifacts, and fails with
-`missing-generic-primitive:*` instead of adding scenario shortcuts when a
-required generic primitive is absent.
+CL-07 is now closed. The final packaged public gameplay probe drives a real
+Minecraft `1.21.6` client through generated per-client OpenAPI and JSON-RPC
+invoke only, with server provisioning disabled. It sends chat, discovers and
+collects a runtime log, crafts and equips planks from a discovered live recipe,
+uses a plank through `world.block.interact`, selects a same-level runtime entity
+from public player/entity positions, navigates to it, and attacks it with
+`hit:true`. The probe keeps `/actions` and `/resources` as projection evidence,
+rejects `task.*`/scenario shortcuts, and records final evidence in
+`docs/superpowers/evidence/2026-06-28-final-public-gameplay.md`.
+Continue with CL-08: rerun focused final guards after the CL-07 edits, then
+commit, push `main`, and verify the worktree is clean.

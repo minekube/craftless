@@ -93,6 +93,63 @@ class ConfiguredClientRuntimeDriverModProviderTest {
     }
 
     @Test
+    fun `manifest resolves private runtime mods for selected fabric lane`() {
+        val root = Files.createTempDirectory("craftless-driver-mod-manifest-runtime-mods")
+        val manifestMod = root.resolve("mods/fabric-1.20.6/craftless-driver-fabric.jar")
+        val navigationRuntime = root.resolve("mods/fabric-1.20.6/runtime/navigation-runtime.jar")
+        val navigationNestedRuntime = root.resolve("mods/fabric-1.20.6/runtime/navigation-nested-runtime.jar")
+        Files.createDirectories(navigationRuntime.parent)
+        Files.writeString(manifestMod, "manifest-driver")
+        Files.writeString(navigationRuntime, "navigation-runtime")
+        Files.writeString(navigationNestedRuntime, "navigation-nested-runtime")
+        val manifest = root.resolve("driver-mods.json")
+        Files.writeString(
+            manifest,
+            """
+            {
+              "entries": [
+                {
+                  "loader": "FABRIC",
+                  "minecraftVersion": "1.20.6",
+                  "loaderVersion": "0.19.3",
+                  "path": "mods/fabric-1.20.6/craftless-driver-fabric.jar",
+                  "runtimeMods": [
+                    "mods/fabric-1.20.6/runtime/navigation-runtime.jar",
+                    "mods/fabric-1.20.6/runtime/navigation-nested-runtime.jar"
+                  ]
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+        val provider =
+            ConfiguredClientRuntimeDriverModProvider(
+                environment =
+                    mapOf(
+                        ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_DRIVER_MOD_MANIFEST to manifest.toString(),
+                    ),
+            )
+
+        val selected =
+            provider.modsFor(
+                ClientRuntimeDriverModRequest(
+                    loader = Loader.FABRIC,
+                    minecraftVersion = "1.20.6",
+                    loaderVersion = "0.19.3",
+                ),
+            )
+
+        assertEquals(manifestMod.toAbsolutePath().normalize(), selected.primary?.toAbsolutePath()?.normalize())
+        assertEquals(
+            listOf(
+                navigationRuntime.toAbsolutePath().normalize(),
+                navigationNestedRuntime.toAbsolutePath().normalize(),
+            ),
+            selected.runtimeMods.map { it.toAbsolutePath().normalize() },
+        )
+    }
+
+    @Test
     fun `manifest fabric api mismatch rejects runtime identity`() {
         val root = Files.createTempDirectory("craftless-driver-mod-manifest-fabric-api")
         val manifestMod = root.resolve("mods/craftless-driver-fabric-1.21.6.jar")

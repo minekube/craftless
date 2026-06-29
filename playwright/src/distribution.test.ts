@@ -32,6 +32,7 @@ describe("distribution surface", () => {
     expect(cliBuild).toContain("renderDriverModManifest");
     expect(cliBuild).toContain("JsonSlurper");
     expect(cliBuild).toContain("stageFabricDriverLaneArtifacts");
+    expect(cliBuild).toContain("runtimeMods");
     expect(cliBuild).toContain("fabric-current-remap-jar");
     expect(cliBuild).toContain("driver-lane-artifacts");
     expect(cliBuild).toContain("distributionPath");
@@ -61,6 +62,16 @@ describe("distribution surface", () => {
     expect(mise).toContain("-Pcraftless.fabric.distributionPath=mods/fabric-1.20.6/craftless-driver-fabric.jar");
     expect(mise).toContain("-Pcraftless.extraFabricDriverLaneRoot=build/driver-lanes");
     expect(mise).toContain("mods/fabric-1.20.6/craftless-driver-fabric.jar");
+    expect(mise).not.toContain("mods/fabric-1.20.6/runtime/");
+    expect(mise).toContain("mods/fabric-1.21.6/runtime/");
+    expect(mise).toContain(":driver-fabric:preparePathfinderRuntime");
+    expect(mise).toContain("-Pcraftless.fabric.runtimeMods=");
+    expect(mise).toContain("baritone-api-fabric-");
+    expect(mise).toContain("nether-pathfinder-");
+    expect(mise).toContain("tar -tf cli/build/distributions/craftless-*.tar | grep -q '/mods/fabric-1.21.6/runtime/baritone-api-fabric-");
+    expect(mise).toContain("tar -xOf cli/build/distributions/craftless-*.tar '*/driver-mods.json' | grep -q 'runtimeMods'");
+    expect(mise).toContain("jar tf cli/build/distributions/craftless-*.zip | grep -q '/mods/fabric-1.21.6/runtime/baritone-api-fabric-");
+    expect(mise).toContain("unzip -p cli/build/distributions/craftless-*.zip '*/driver-mods.json' | grep -q 'runtimeMods'");
     expect(mise).toContain("minecraftVersion");
     expect(mise).toContain("1.20.6");
   });
@@ -128,6 +139,42 @@ describe("distribution surface", () => {
     expect(script).toContain("mise exec -- bun");
     expect(script).not.toContain("task.survival");
     expect(script).not.toContain(":driver-fabric:runClient");
+  });
+
+  test("final public gameplay probe uses generated public surfaces only", () => {
+    const mise = read(".mise.toml");
+    const script = read("scripts/final-public-gameplay-probe.sh");
+
+    expect(mise).toContain("[tasks.final-public-gameplay-probe]");
+    expect(mise).toContain("CRAFTLESS_DISABLE_SMOKE_PROVISIONING=1");
+    expect(mise).toContain("CRAFTLESS_SMOKE_MINECRAFT_VERSION=1.21.6");
+    expect(mise).toContain("$PWD/scripts/final-public-gameplay-probe.sh");
+    expect(mise).not.toContain("CRAFTLESS_SMOKE_PROVISION_ITEM_ID=");
+    expect(script).toContain("GET /clients/{id}/openapi.json authority");
+    expect(script).toContain("missing-generic-primitive:");
+    expect(script).toContain("player.chat");
+    expect(script).toContain("inventory.query");
+    expect(script).toContain("world.block.break");
+    expect(script).toContain("navigation.plan");
+    expect(script).toContain("navigation.follow");
+    expect(script).toContain('radius: 64');
+    expect(script).toContain("materialDropPosition");
+    expect(script).toContain('category: "collectable"');
+    expect(script).toContain("recipe-query-after-material");
+    expect(script).toContain("recipe.craft");
+    expect(script).toContain("craftingRecipe");
+    expect(script).toContain("attempt === 1 ? 64 : 16");
+    expect(script).toContain("entity-query-target-attempt");
+    expect(script).toContain("entity-search-player");
+    expect(script).toContain("verticalDelta");
+    expect(script).toContain("entityNavigationBlocker");
+    expect(script).toContain("entity.attack");
+    expect(script).not.toContain("setTimeout(resolve, 1500));\nconst afterBreakInventory");
+    expect(script).not.toContain("task.survival");
+    expect(script).not.toContain("kill.cow");
+    expect(script).not.toContain("find.tree");
+    expect(script).not.toContain("craft.sword");
+    expect(script).not.toContain("/give");
   });
 
   test("Dockerfile copies a built CLI distribution instead of building Craftless", () => {

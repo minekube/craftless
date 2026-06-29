@@ -304,7 +304,26 @@ private fun blockQueryResultSchema(): RuntimeSchema =
                 "origin" to RuntimeSchema.objectSchema(),
                 "radius" to RuntimeSchema("number"),
                 "count" to RuntimeSchema("integer"),
-                "blocks" to RuntimeSchema("array", items = RuntimeSchema.objectSchema()),
+                "blocks" to
+                    RuntimeSchema(
+                        "array",
+                        items =
+                            RuntimeSchema(
+                                "object",
+                                properties =
+                                    mapOf(
+                                        "handle" to RuntimeSchema("string"),
+                                        "category" to RuntimeSchema("string"),
+                                        "material" to RuntimeSchema("string"),
+                                        "collectable" to RuntimeSchema("boolean"),
+                                        "requires-tool" to RuntimeSchema("boolean"),
+                                        "replaceable" to RuntimeSchema("boolean"),
+                                        "distance" to RuntimeSchema("number"),
+                                        "position" to RuntimeSchema.objectSchema(),
+                                        "faces" to RuntimeSchema("array", items = RuntimeSchema.objectSchema()),
+                                    ),
+                            ),
+                    ),
                 "reason" to RuntimeSchema("string"),
             ),
     )

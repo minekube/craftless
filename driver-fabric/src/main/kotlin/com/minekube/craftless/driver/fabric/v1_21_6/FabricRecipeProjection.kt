@@ -9,36 +9,52 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import net.minecraft.item.ItemStack
+import net.minecraft.resource.featuretoggle.FeatureSet
+import net.minecraft.world.World
 import java.lang.reflect.InvocationTargetException
 
 internal fun craftlessRecipeRecord(
     entry: Any,
     craftable: Boolean,
+    world: World?,
 ): JsonObject =
     craftlessRecipeRecord(
-        recipe = entry.toCraftlessRecipeProjection(),
+        recipe = entry.toCraftlessRecipeProjection(world),
         craftable = craftable,
     )
 
-internal fun Any.craftlessOutputItems(): List<CraftlessRecipeItem> =
+internal fun Any.craftlessOutputItems(world: World?): List<CraftlessRecipeItem> =
     craftlessDisplayObject()
-        ?.invokeNoArg("result")
-        ?.toCraftlessRecipeItems()
+        .toCraftlessRecipeOutputDisplay()
+        ?.toCraftlessRecipeItems(world)
         ?: emptyList()
 
 internal fun Any.craftlessRecipeHandleKey(): String =
     craftlessIdObject()
-        ?.invokeNoArg("index")
+        .craftlessNetworkRecipeIndex()
         ?.toString()
-        ?: craftlessIdObject()?.toString().orEmpty()
+        .orEmpty()
 
-internal fun Any.craftlessIdObject(): Any? = invokeNoArg("id")
+internal fun Any.craftlessIdObject(): Any = recordValue(0) ?: this
 
-internal fun Any.craftlessDisplayObject(): Any? =
-    invokeNoArg("display")
-        ?: invokeNoArg("value")
+internal fun Any.craftlessDisplayObject(): Any = recordValue(1) ?: this
 
-internal fun Any.craftlessIsEnabled(features: Any?): Boolean = features == null || invokeBoolean("isEnabled", features) ?: true
+internal fun Any.craftlessIsEnabled(features: FeatureSet?): Boolean =
+    features == null ||
+        javaClass.methods
+            .firstOrNull { method ->
+                method.parameterCount == 1 &&
+                    method.returnType == Boolean::class.javaPrimitiveType &&
+                    method.parameterTypes[0].isInstance(features)
+            }?.let { method ->
+                try {
+                    method.invoke(this, features) as? Boolean
+                } catch (_: IllegalAccessException) {
+                    null
+                } catch (_: InvocationTargetException) {
+                    null
+                }
+            } ?: true
 
 internal fun craftlessRecipeRecord(
     recipe: CraftlessRecipeProjection,
@@ -130,58 +146,82 @@ internal fun JsonObject.matchesCraftlessRecipeQuery(
     return true
 }
 
-private fun Any.toCraftlessRecipeProjection(): CraftlessRecipeProjection {
+private fun Any.toCraftlessRecipeProjection(world: World?): CraftlessRecipeProjection {
     val display = craftlessDisplayObject()
     return CraftlessRecipeProjection(
         handle = craftlessRecipeHandleKey(),
-        kind = display?.toCraftlessRecipeKind() ?: "recipe",
-        outputs = display?.invokeNoArg("result")?.toCraftlessRecipeItems().orEmpty(),
+        kind = display.toCraftlessRecipeKind(),
+        outputs = display.toCraftlessRecipeOutputDisplay()?.toCraftlessRecipeItems(world).orEmpty(),
         ingredients =
             display
-                ?.toCraftlessIngredientDisplays()
-                .orEmpty()
-                .flatMap { ingredient -> ingredient.toCraftlessRecipeItems() },
-        station = display?.invokeNoArg("craftingStation")?.toCraftlessRecipeItems()?.firstOrNull(),
+                .toCraftlessIngredientDisplays()
+                .flatMap { ingredient -> ingredient.toCraftlessRecipeItems(world) },
+        station = display.toCraftlessCraftingStationDisplay()?.toCraftlessRecipeItems(world)?.firstOrNull(),
     )
 }
 
-private fun Any.toCraftlessRecipeKind(): String {
-    val name = javaClass.simpleName
-    return when {
-        name.contains("Shaped") -> "shaped-crafting"
-        name.contains("Shapeless") -> "shapeless-crafting"
-        name.contains("Furnace") || name.contains("Smelting") || name.contains("Blasting") || name.contains("Smoking") -> "furnace"
+private fun Any.toCraftlessRecipeKind(): String =
+    when (javaClass.recordComponents?.size) {
+        5 -> "shaped-crafting"
+        3 -> "shapeless-crafting"
+        6 -> "furnace"
         else -> "recipe"
     }
-}
 
 private fun Any.toCraftlessIngredientDisplays(): List<Any> =
-    invokeNoArg("ingredients")
-        .asIterable()
-        ?.toList()
-        ?: listOfNotNull(invokeNoArg("ingredient"), invokeNoArg("fuel"))
+    when (javaClass.recordComponents?.size) {
+        5 -> (recordValue(2).asIterable()?.toList() ?: listOfNotNull(recordValue(0), recordValue(1), recordValue(2)))
+        3 -> recordValue(0).asIterable()?.toList() ?: listOfNotNull(recordValue(0))
+        6 -> listOfNotNull(recordValue(0), recordValue(1))
+        else -> emptyList()
+    }
 
-private fun Any.toCraftlessRecipeItems(): List<CraftlessRecipeItem> {
+private fun Any.toCraftlessRecipeOutputDisplay(): Any? =
+    when (javaClass.recordComponents?.size) {
+        5 -> recordValue(3)
+        3 -> recordValue(1)
+        6 -> recordValue(2)
+        else -> null
+    }
+
+private fun Any.toCraftlessCraftingStationDisplay(): Any? =
+    when (javaClass.recordComponents?.size) {
+        5 -> recordValue(4)
+        3 -> recordValue(2)
+        6 -> recordValue(3)
+        else -> null
+    }
+
+private fun Any.toCraftlessRecipeItems(
+    world: World? = null,
+    depth: Int = 0,
+): List<CraftlessRecipeItem> {
+    if (depth > 5) {
+        return emptyList()
+    }
     if (this is ItemStack) {
         return listOf(toCraftlessRecipeItem()).filterNot { item -> item.label.isBlank() }
     }
-    val stack = invokeNoArg("stack") as? ItemStack
-    if (stack != null) {
-        return listOf(stack.toCraftlessRecipeItem()).filterNot { item -> item.label.isBlank() }
-    }
-    val itemStack = invokeNoArg("item")?.invokeNoArg("value")?.invokeNoArg("getDefaultStack") as? ItemStack
-    if (itemStack != null) {
-        return listOf(itemStack.toCraftlessRecipeItem()).filterNot { item -> item.label.isBlank() }
-    }
-    val contents = invokeNoArg("contents").asIterable()
-    if (contents != null) {
-        return contents.flatMap { content -> content.toCraftlessRecipeItems() }.filterNot { item -> item.label.isBlank() }
-    }
-    val input = invokeNoArg("input")
-    if (input != null) {
-        return input.toCraftlessRecipeItems().filterNot { item -> item.label.isBlank() }
-    }
-    return emptyList()
+    noArgItemStackResults()
+        .firstOrNull()
+        ?.let { stack -> return listOf(stack.toCraftlessRecipeItem()).filterNot { item -> item.label.isBlank() } }
+    return javaClass
+        .recordComponents
+        .orEmpty()
+        .mapNotNull { component ->
+            try {
+                component.accessor.invoke(this)
+            } catch (_: IllegalAccessException) {
+                null
+            } catch (_: InvocationTargetException) {
+                null
+            }
+        }
+        .flatMap { value ->
+            value.asIterable()?.flatMap { element -> element.toCraftlessRecipeItems(world, depth + 1) }
+                ?: value.toCraftlessRecipeItems(world, depth + 1)
+        }
+        .filterNot { item -> item.label.isBlank() }
 }
 
 internal data class CraftlessRecipeItem(
@@ -209,6 +249,45 @@ internal fun Any?.asIterable(): Iterable<Any>? =
         is Iterable<*> -> filterNotNull()
         else -> null
     }
+
+internal fun Any.recordValue(index: Int): Any? =
+    try {
+        javaClass.recordComponents?.getOrNull(index)?.accessor?.invoke(this)
+    } catch (_: IllegalAccessException) {
+        null
+    } catch (_: InvocationTargetException) {
+        null
+    }
+
+internal fun Any?.craftlessNetworkRecipeIndex(): Int? =
+    this
+        ?.javaClass
+        ?.recordComponents
+        ?.singleOrNull { component -> component.type == Int::class.javaPrimitiveType }
+        ?.let { component ->
+            try {
+                component.accessor.invoke(this) as? Int
+            } catch (_: IllegalAccessException) {
+                null
+            } catch (_: InvocationTargetException) {
+                null
+            }
+        }
+
+private fun Any.noArgItemStackResults(): List<ItemStack> =
+    javaClass.methods
+        .asSequence()
+        .filter { method -> method.parameterCount == 0 && method.returnType == ItemStack::class.java }
+        .mapNotNull { method ->
+            try {
+                method.invoke(this) as? ItemStack
+            } catch (_: IllegalAccessException) {
+                null
+            } catch (_: InvocationTargetException) {
+                null
+            }
+        }
+        .toList()
 
 internal fun Any.invokeNoArg(name: String): Any? =
     try {

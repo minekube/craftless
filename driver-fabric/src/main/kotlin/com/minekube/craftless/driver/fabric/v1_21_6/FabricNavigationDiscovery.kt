@@ -1,7 +1,6 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
 import com.minekube.craftless.protocol.RuntimeAvailability
-import com.minekube.craftless.protocol.RuntimeEventNode
 import com.minekube.craftless.protocol.RuntimeOperationNode
 import com.minekube.craftless.protocol.RuntimeResourceNode
 import com.minekube.craftless.protocol.RuntimeSchema
@@ -12,9 +11,6 @@ internal object FabricNavigationOperationIds {
     const val PLAN = "navigation.plan"
     const val FOLLOW = "navigation.follow"
     const val STOP = "navigation.stop"
-    const val TASK_RUN = "task.run"
-    const val TASK_STATUS = "task.status"
-    const val TASK_PROGRESS = "task.progress"
 }
 
 internal class FabricNavigationDiscovery(
@@ -36,7 +32,6 @@ internal class FabricNavigationDiscovery(
                 pathfinderAvailable -> RuntimeAvailability.available()
                 else -> RuntimeAvailability.unavailable(PATHFINDER_PROBE_UNAVAILABLE)
             }
-        val taskAvailability = RuntimeAvailability.unavailable("task-executor-unavailable")
         val sourceEvidence =
             detectedPathfinders
                 .takeIf { it.isNotEmpty() }
@@ -57,11 +52,6 @@ internal class FabricNavigationDiscovery(
                         availability = navigationAvailability,
                         sourceEvidence = sourceEvidence,
                     ),
-                    RuntimeResourceNode(
-                        id = "task",
-                        availability = taskAvailability,
-                        sourceEvidence = sourceEvidence,
-                    ),
                 ),
             operations =
                 listOf(
@@ -79,25 +69,6 @@ internal class FabricNavigationDiscovery(
                         id = FabricNavigationOperationIds.STOP,
                         availability = operationAvailability,
                     ),
-                    taskOperation(
-                        id = FabricNavigationOperationIds.TASK_RUN,
-                        arguments = mapOf("request" to RuntimeSchema("object", required = true)),
-                        availability = taskAvailability,
-                    ),
-                    taskOperation(
-                        id = FabricNavigationOperationIds.TASK_STATUS,
-                        arguments = mapOf("task" to RuntimeSchema("string", required = true)),
-                        availability = taskAvailability,
-                    ),
-                ),
-            events =
-                listOf(
-                    RuntimeEventNode(
-                        id = FabricNavigationOperationIds.TASK_PROGRESS,
-                        resource = "task",
-                        payload = RuntimeSchema.objectSchema(),
-                        availability = taskAvailability,
-                    ),
                 ),
         )
     }
@@ -112,20 +83,6 @@ private fun navigationOperation(
         id = id,
         resource = "navigation",
         adapter = "navigation.default",
-        arguments = arguments,
-        result = RuntimeSchema.objectSchema(),
-        availability = availability,
-    )
-
-private fun taskOperation(
-    id: String,
-    arguments: Map<String, RuntimeSchema> = emptyMap(),
-    availability: RuntimeAvailability,
-): RuntimeOperationNode =
-    RuntimeOperationNode(
-        id = id,
-        resource = "task",
-        adapter = "task.executor",
         arguments = arguments,
         result = RuntimeSchema.objectSchema(),
         availability = availability,
