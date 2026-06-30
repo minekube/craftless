@@ -150,7 +150,7 @@ describe("distribution surface", () => {
 
     expect(mise).toContain("[tasks.final-public-gameplay-probe]");
     expect(mise).toContain("CRAFTLESS_DISABLE_SMOKE_PROVISIONING=1");
-    expect(mise).toContain("CRAFTLESS_SMOKE_MINECRAFT_VERSION=1.21.6");
+    expect(mise).toContain("CRAFTLESS_SMOKE_MINECRAFT_VERSION=latest-release");
     expect(mise).toContain("$PWD/scripts/final-public-gameplay-probe.sh");
     expect(mise).not.toContain("CRAFTLESS_SMOKE_PROVISION_ITEM_ID=");
     expect(script).toContain("GET /clients/{id}/openapi.json authority");
@@ -232,7 +232,7 @@ describe("distribution surface", () => {
     expect(config.packages["."]["release-type"]).toBe("simple");
     expect(config.packages["."]["include-v-in-tag"]).toBe(true);
     expect(config.packages["."]["include-component-in-tag"]).toBe(false);
-    expect(manifest["."]).toBe("0.1.2");
+    expect(manifest["."]).toBe("0.2.0");
     expect(changelog).toContain("Release Please");
   });
 

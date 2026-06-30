@@ -6,6 +6,7 @@ build/
 */build/
 driver-fabric/run/
 driver-fabric/logs/
+driver-fabric-official/logs/
 docs-site/.next/
 docs-site/.source/
 docs-site/node_modules/
