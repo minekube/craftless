@@ -64,6 +64,18 @@ The run uploaded `fabric-support-matrix-reports` as artifact `8022012394`,
 preserving packaged probe reports for the supported Fabric rows.
 
 ```sh
+gh run watch 28546872180 --repo minekube/craftless --exit-status
+```
+
+Result: passed. After the matrix task was changed to generate row probes from
+`/versions/support-targets`, the manual `fabric support matrix` workflow
+completed successfully on main in 11m0s:
+<https://github.com/minekube/craftless/actions/runs/28546872180>.
+
+The run uploaded `fabric-support-matrix-reports` as artifact `8022429625`,
+including the generated `probe-jobs.json` plan and row artifacts.
+
+```sh
 git diff --check
 ```
 
