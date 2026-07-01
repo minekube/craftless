@@ -173,8 +173,11 @@ describe("distribution surface", () => {
     expect(script).not.toContain("task.survival");
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).toContain("schedule:");
+    expect(workflow).toContain("Install Minecraft runtime packages");
+    expect(workflow).toContain("xvfb");
     expect(workflow).toContain("mise run packaged-fabric-supported-matrix-probe");
-    expect(workflow).toContain("build/craftless-packaged-current-lane-probe/artifacts");
+    expect(workflow).toContain("if-no-files-found: warn");
+    expect(workflow).toContain("build/craftless-packaged-current-lane-probe");
   });
 
   test("final public gameplay probe uses generated public surfaces only", () => {

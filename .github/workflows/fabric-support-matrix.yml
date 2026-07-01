@@ -19,13 +19,37 @@ jobs:
         with:
           install: true
           cache: true
+      - name: Install Minecraft runtime packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libasound2t64 \
+            libatk-bridge2.0-0 \
+            libatk1.0-0 \
+            libcairo2 \
+            libcups2 \
+            libdbus-1-3 \
+            libdrm2 \
+            libgbm1 \
+            libgtk-3-0 \
+            libnss3 \
+            libx11-6 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxext6 \
+            libxfixes3 \
+            libxrandr2 \
+            libxtst6 \
+            xauth \
+            xvfb
       - name: Run supported Fabric matrix probes
         run: mise run packaged-fabric-supported-matrix-probe
       - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: fabric-support-matrix-reports
+          if-no-files-found: warn
           path: |
-            build/craftless-packaged-latest-current-probe/artifacts
-            build/craftless-packaged-current-lane-probe/artifacts
-            build/craftless-packaged-representative-older-probe/artifacts
+            build/craftless-packaged-latest-current-probe
+            build/craftless-packaged-current-lane-probe
+            build/craftless-packaged-representative-older-probe
