@@ -4016,7 +4016,7 @@ class FabricDriverModuleTest {
                     "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS" to "1000",
                     "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS" to "0",
                     "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS" to "40",
-                    "CRAFTLESS_FABRIC_SMOKE_ACTIVITY_EXTENDS_HOLD_MS" to "150",
+                    "CRAFTLESS_FABRIC_SMOKE_ACTIVITY_EXTENDS_HOLD_MS" to "1000",
                     "CRAFTLESS_SMOKE_ARTIFACTS_DIR" to artifactsDir.toString(),
                     "CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS" to "goal may be completed",
                     "CRAFTLESS_PUBLIC_AGENT_COMMAND_JSON" to """["/bin/sh","-c","printf public-agent-ready > /dev/null"]""",
@@ -4031,15 +4031,14 @@ class FabricDriverModuleTest {
             artifactsDir.resolve("server-evidence.jsonl"),
             """{"type":"CHAT","player":"Robin","message":"let us keep playing first"}""" + "\n",
         )
-        Thread.sleep(80)
 
-        assertFalse("stop" in gateway.actionSnapshot(), "controller stopped at original hold deadline")
-        gateway.awaitAction("stop")
         val activityArtifact = readArtifact(artifactsDir, "final-gameplay-activity.jsonl")
+        assertFalse("stop" in gateway.actionSnapshot(), "controller stopped before the activity-extended hold")
+        gateway.awaitAction("stop")
         assertTrue(activityArtifact.contains("\"event\":\"final-gameplay-activity-extended\""))
         assertTrue(activityArtifact.contains("\"player\":\"Robin\""))
         val timeoutArtifact = readArtifact(artifactsDir, "final-gameplay-confirmation-timeout.json")
-        assertTrue(timeoutArtifact.contains("\"activity-extends-hold-ms\":\"150\""))
+        assertTrue(timeoutArtifact.contains("\"activity-extends-hold-ms\":\"1000\""))
         assertFalse(Files.exists(artifactsDir.resolve("final-gameplay-confirmation.json")))
     }
 

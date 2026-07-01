@@ -434,6 +434,7 @@ data class FabricClientSmokeController(
         baseUrl: String,
         pollInterval: Duration,
     ) {
+        var observedChatLine = latestChatEvidenceLine()
         runReadyNotificationCommand(baseUrl)
         val phrase = confirmationChatContains?.takeIf { it.isNotBlank() }
         if (phrase == null && !readyNotificationReminder.isPositive()) {
@@ -444,7 +445,6 @@ data class FabricClientSmokeController(
         var deadline = System.nanoTime() + holdAfterActions.inWholeNanoseconds
         val reminderIntervalNanos = readyNotificationReminder.takeIf { it.isPositive() }?.inWholeNanoseconds
         var nextReminderAt = reminderIntervalNanos?.let { System.nanoTime() + it }
-        var observedChatLine = latestChatEvidenceLine()
         while (System.nanoTime() < deadline) {
             if (phrase != null) {
                 findConfirmationEvidence(phrase)?.let { evidence ->
