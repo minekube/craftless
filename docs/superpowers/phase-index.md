@@ -230,9 +230,15 @@ adapter task.
 Phase 196 makes the default daemon-managed presentation enforceable at process
 launch. `presentation.window = NONE` prefixes the Minecraft client command with
 Craftless's virtual-display wrapper when one is configured or when Linux
-`xvfb-run` is available; hosts without an available wrapper launch directly
-instead of failing before Minecraft starts. `presentation.window = VISIBLE`
-bypasses any wrapper. `presentation.audio =
-MUTED` continues to materialize Minecraft sound categories at `0.0`, and
-`DEFAULT` audio leaves options untouched. Evidence:
+`xvfb-run` is available. `presentation.window = VISIBLE` bypasses any wrapper.
+`presentation.audio = MUTED` continues to materialize Minecraft sound
+categories at `0.0`, and `DEFAULT` audio leaves options untouched. Evidence:
 `docs/superpowers/evidence/2026-06-29-windowless-muted-defaults.md`.
+Phase 197 fixes the false-headless fallback found on macOS. A
+`presentation.window = NONE` launch now fails before process start and before
+instance file materialization when no windowless launcher strategy is
+available, returning an actionable `/clients` bad request instead of opening a
+visible Minecraft window. The HeadlessMC research note keeps the durable lesson:
+valid no-window strategies are a virtual display or LWJGL/offscreen
+instrumentation, not a normal client launch. Evidence:
+`docs/superpowers/evidence/2026-07-01-headless-presentation-truth.md`.

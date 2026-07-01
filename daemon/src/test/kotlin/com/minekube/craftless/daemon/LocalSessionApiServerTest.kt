@@ -78,6 +78,7 @@ import java.net.ServerSocket
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
+import kotlin.test.assertFailsWith
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -682,6 +683,52 @@ class LocalSessionApiServerTest {
                             }.handle
                     assertTrue(launch.launch.mods.contains(driverHandle))
                     assertEquals("craftless-driver-mod", Files.readString(workspace.resolve(driverHandle)))
+                }
+        }
+
+    @Test
+    fun `server rejects default windowless client creation when no windowless wrapper is available`() =
+        withHttpClient { http ->
+            val workspace = Files.createTempDirectory("craftless-windowless-requires-wrapper")
+            val driverMod = Files.createTempFile("craftless-driver-fabric", ".jar")
+            Files.writeString(driverMod, "craftless-driver-mod")
+
+            LocalSessionApiServer
+                .inMemory(
+                    workspaceRoot = workspace,
+                    cacheMetadataFetcher = preparedRuntimeMetadataFetcher(),
+                    clientRuntimeLauncher = ProcessClientRuntimeLauncher(windowlessCommandPrefix = emptyList()),
+                    clientRuntimeDriverModProvider =
+                        ConfiguredClientRuntimeDriverModProvider(
+                            environment =
+                                mapOf(
+                                    ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_FABRIC_DRIVER_MOD to
+                                        driverMod.toString(),
+                                ),
+                        ),
+                ).use { server ->
+                    server.start()
+
+                    val response =
+                        http.post(server.url("/clients")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "id": "alice",
+                                  "version": "1.21.6",
+                                  "loader": "FABRIC",
+                                  "profile": { "kind": "OFFLINE", "name": "Alice" }
+                                }
+                                """.trimIndent(),
+                            )
+                        }
+
+                    val body = response.bodyAsText()
+                    assertEquals(HttpStatusCode.BadRequest, response.status)
+                    assertTrue(body.contains("windowless presentation requires a windowless launcher strategy"))
+                    assertTrue(body.contains("presentation.window=VISIBLE"))
+                    assertFalse(Files.exists(workspace.resolve("instances/alice-1.21.6-fabric/minecraft/options.txt")))
                 }
         }
 
@@ -1421,7 +1468,7 @@ class LocalSessionApiServerTest {
     }
 
     @Test
-    fun `process client runtime launcher runs directly when no windowless wrapper is available`() {
+    fun `process client runtime launcher rejects windowless request when no windowless wrapper is available`() {
         val workspace = Files.createTempDirectory("craftless-process-direct-windowless-runtime")
         val marker = workspace.resolve("launched.txt")
         val javaExecutable = workspace.resolve("cache/runtimes/java-runtime-gamma/image/bin/java")
@@ -1434,6 +1481,9 @@ class LocalSessionApiServerTest {
             """.trimIndent(),
         )
         javaExecutable.toFile().setExecutable(true, true)
+        val modHandle = "cache/mods/fabric/fabric-api.jar"
+        Files.createDirectories(workspace.resolve("cache/mods/fabric"))
+        Files.writeString(workspace.resolve(modHandle), "fabric-api-jar")
         val arguments = workspace.resolve("cache/prepared/1.21.6-fabric-0.17.2.launch.json")
         Files.createDirectories(arguments.parent)
         Files.writeString(
@@ -1447,46 +1497,45 @@ class LocalSessionApiServerTest {
             """.trimIndent(),
         )
 
-        val launch =
-            ProcessClientRuntimeLauncher(windowlessCommandPrefix = emptyList()).launch(
-                request =
-                    CreateClientRequest(
-                        id = "alice",
-                        version = "1.21.6",
-                        loader = Loader.FABRIC,
-                        profile = Profile.offline("Alice"),
-                    ),
-                prepared =
-                    CachePrepareResult(
-                        minecraftVersion = "1.21.6",
-                        loader = Loader.FABRIC,
-                        loaderVersion = "0.17.2",
-                        cacheRoot = "cache",
-                        minecraftVersionRoot = "cache/minecraft/versions/1.21.6",
-                        loaderRoot = "cache/loaders/fabric/1.21.6/0.17.2",
-                        runtimeRoot = "cache/runtimes",
-                        manifest = "cache/prepared/1.21.6-fabric-0.17.2.json",
-                        status = CachePrepareStatus.PREPARED,
-                        artifacts = emptyList(),
-                        launch =
-                            CacheLaunchPlan(
-                                classpath = listOf("cache/minecraft/versions/1.21.6/client.jar"),
-                                mods = emptyList(),
-                                javaExecutable = "cache/runtimes/java-runtime-gamma/image/bin/java",
-                                arguments = "cache/prepared/1.21.6-fabric-0.17.2.launch.json",
-                            ),
-                    ),
-                files = InstanceFiles.forInstance("alice-1.21.6-fabric"),
-                workspaceRoot = workspace,
-            )
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                ProcessClientRuntimeLauncher(windowlessCommandPrefix = emptyList()).launch(
+                    request =
+                        CreateClientRequest(
+                            id = "alice",
+                            version = "1.21.6",
+                            loader = Loader.FABRIC,
+                            profile = Profile.offline("Alice"),
+                        ),
+                    prepared =
+                        CachePrepareResult(
+                            minecraftVersion = "1.21.6",
+                            loader = Loader.FABRIC,
+                            loaderVersion = "0.17.2",
+                            cacheRoot = "cache",
+                            minecraftVersionRoot = "cache/minecraft/versions/1.21.6",
+                            loaderRoot = "cache/loaders/fabric/1.21.6/0.17.2",
+                            runtimeRoot = "cache/runtimes",
+                            manifest = "cache/prepared/1.21.6-fabric-0.17.2.json",
+                            status = CachePrepareStatus.PREPARED,
+                            artifacts = emptyList(),
+                            launch =
+                                CacheLaunchPlan(
+                                    classpath = listOf("cache/minecraft/versions/1.21.6/client.jar"),
+                                    mods = listOf(modHandle),
+                                    javaExecutable = "cache/runtimes/java-runtime-gamma/image/bin/java",
+                                    arguments = "cache/prepared/1.21.6-fabric-0.17.2.launch.json",
+                                ),
+                        ),
+                    files = InstanceFiles.forInstance("alice-1.21.6-fabric"),
+                    workspaceRoot = workspace,
+                )
+            }
 
-        assertEquals(ClientRuntimeLaunchStatus.LAUNCHED, launch.status)
-        assertTrue(requireNotNull(launch.process).waitFor(2, TimeUnit.SECONDS))
-        assertTrue(launch.command.first().endsWith("/java-runtime-gamma/image/bin/java"))
-        assertTrue(waitForRegularFile(marker))
-        val invoked = Files.readString(marker)
-        assertTrue(invoked.contains("test.minecraft.Main"))
-        assertTrue(invoked.contains("--username Alice"))
+        assertTrue(error.message.orEmpty().contains("windowless presentation requires"))
+        assertFalse(Files.exists(marker))
+        assertFalse(Files.exists(workspace.resolve("instances/alice-1.21.6-fabric/minecraft/mods/fabric-api.jar")))
+        assertFalse(Files.exists(workspace.resolve("instances/alice-1.21.6-fabric/minecraft/options.txt")))
     }
 
     @Test

@@ -160,3 +160,5 @@ Required negative proof:
   `docs/superpowers/evidence/2026-06-29-screenshot-api.md`.
 - Phase 196:
   `docs/superpowers/evidence/2026-06-29-windowless-muted-defaults.md`.
+- Phase 197:
+  `docs/superpowers/evidence/2026-07-01-headless-presentation-truth.md`.

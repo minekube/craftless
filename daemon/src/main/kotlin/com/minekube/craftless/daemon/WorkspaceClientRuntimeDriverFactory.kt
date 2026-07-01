@@ -387,10 +387,10 @@ class ProcessClientRuntimeLauncher(
         workspaceRoot: Path,
         attachEnvironment: ClientDriverAttachEnvironment?,
     ): ClientRuntimeLaunch {
-        materializeLaunchMods(prepared.launch, files, workspaceRoot)
-        materializePresentationOptions(request, files, workspaceRoot)
         val command = launchCommand(request, prepared.launch, files, workspaceRoot)
         val effectiveCommand = command.withPresentationWindow(request.presentation.window)
+        materializeLaunchMods(prepared.launch, files, workspaceRoot)
+        materializePresentationOptions(request, files, workspaceRoot)
         val logs = workspaceRoot.resolve(files.logs).normalize()
         Files.createDirectories(logs)
         val log = logs.resolve("client.log")
@@ -416,7 +416,13 @@ class ProcessClientRuntimeLauncher(
     private fun List<String>.withPresentationWindow(window: ClientWindowMode): List<String> =
         when (window) {
             ClientWindowMode.VISIBLE -> this
-            ClientWindowMode.NONE -> windowlessCommandPrefix + this
+            ClientWindowMode.NONE -> {
+                require(windowlessCommandPrefix.isNotEmpty()) {
+                    "windowless presentation requires a windowless launcher strategy; " +
+                        "configure CRAFTLESS_WINDOWLESS_WRAPPER or create the client with presentation.window=VISIBLE"
+                }
+                windowlessCommandPrefix + this
+            }
         }
 
     private fun materializeLaunchMods(

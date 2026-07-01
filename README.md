@@ -41,7 +41,10 @@ export CRAFTLESS=http://127.0.0.1:8080
 ```
 
 Create an API-first client. By default, Craftless derives an offline profile
-from `id`, starts the Minecraft client windowless, and mutes game audio:
+from `id`, requests a windowless Minecraft client, and mutes game audio. A
+windowless launch requires a real windowless strategy such as Linux `xvfb-run`
+or `CRAFTLESS_WINDOWLESS_WRAPPER`; use `presentation[window]=VISIBLE` when you
+want a local window:
 
 ```sh
 craftless api /clients --api "$CRAFTLESS" \
