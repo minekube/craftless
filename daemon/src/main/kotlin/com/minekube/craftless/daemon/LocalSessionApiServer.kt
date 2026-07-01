@@ -40,6 +40,7 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -215,7 +216,11 @@ class LocalSessionApiServer private constructor(
                         is UnsupportedClientRuntimeTarget ->
                             call.respondJson(
                                 HttpStatusCode.BadRequest,
-                                ErrorResponse("UNSUPPORTED_RUNTIME_TARGET", error.message ?: error.reason.name),
+                                ErrorResponse(
+                                    code = "UNSUPPORTED_RUNTIME_TARGET",
+                                    message = error.message ?: error.reason.name,
+                                    details = error.details(),
+                                ),
                             )
                         else -> call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
                     }
@@ -991,7 +996,24 @@ data class EventSubscription(
 data class ErrorResponse(
     val code: String,
     val message: String,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val details: JsonObject? = null,
 )
+
+private fun UnsupportedClientRuntimeTarget.details(): JsonObject =
+    buildJsonObject {
+        put("reason", reason.name)
+        put("loader", request.loader.name)
+        put("minecraftVersion", request.minecraftVersion)
+        request.loaderVersion?.let { loaderVersion -> put("loaderVersion", loaderVersion) }
+        request.fabricApiVersion?.let { fabricApiVersion -> put("fabricApiVersion", fabricApiVersion) }
+        request.javaMajorVersion?.let { javaMajorVersion -> put("javaMajorVersion", javaMajorVersion) }
+        request.mappingsFingerprint?.let { mappingsFingerprint -> put("mappingsFingerprint", mappingsFingerprint) }
+        put(
+            "availableLoaderVersions",
+            JsonArray(availableLoaderVersions.map { loaderVersion -> JsonPrimitive(loaderVersion) }),
+        )
+    }
 
 @Serializable
 data class ConnectRequest(

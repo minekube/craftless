@@ -178,3 +178,5 @@ Required negative proof:
   `docs/superpowers/evidence/2026-07-02-fabric-loader-request-rejection.md`.
 - Phase 205:
   `docs/superpowers/evidence/2026-07-02-game-scoped-fabric-loader-matrix.md`.
+- Phase 206:
+  `docs/superpowers/evidence/2026-07-02-structured-runtime-target-error.md`.

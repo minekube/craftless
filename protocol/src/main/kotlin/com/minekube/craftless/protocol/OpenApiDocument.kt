@@ -741,6 +741,26 @@ private fun errorSchema(): OpenApiSchema =
             mapOf(
                 "code" to OpenApiSchema(type = "string"),
                 "message" to OpenApiSchema(type = "string"),
+                "details" to
+                    OpenApiSchema(
+                        type = "object",
+                        properties =
+                            mapOf(
+                                "reason" to OpenApiSchema(type = "string"),
+                                "loader" to OpenApiSchema(type = "string"),
+                                "minecraftVersion" to OpenApiSchema(type = "string"),
+                                "loaderVersion" to OpenApiSchema(type = "string"),
+                                "fabricApiVersion" to OpenApiSchema(type = "string"),
+                                "javaMajorVersion" to OpenApiSchema(type = "integer"),
+                                "mappingsFingerprint" to OpenApiSchema(type = "string"),
+                                "availableLoaderVersions" to
+                                    OpenApiSchema(
+                                        type = "array",
+                                        items = OpenApiSchema(type = "string"),
+                                    ),
+                            ),
+                        additionalProperties = true,
+                    ),
             ),
         required = listOf("code", "message"),
     )

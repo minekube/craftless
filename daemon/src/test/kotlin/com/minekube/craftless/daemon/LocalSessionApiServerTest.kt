@@ -1329,6 +1329,18 @@ class LocalSessionApiServerTest {
                     assertError(body, "UNSUPPORTED_RUNTIME_TARGET", "NO_COMPATIBLE_FABRIC_LOADER")
                     assertError(body, "UNSUPPORTED_RUNTIME_TARGET", "1.21.6")
                     assertError(body, "UNSUPPORTED_RUNTIME_TARGET", "0.19.2")
+                    val error = Json.parseToJsonElement(body).jsonObject
+                    val details = requireNotNull(error["details"]?.jsonObject) { body }
+                    assertEquals("NO_COMPATIBLE_FABRIC_LOADER", details["reason"]?.jsonPrimitive?.content)
+                    assertEquals("FABRIC", details["loader"]?.jsonPrimitive?.content)
+                    assertEquals("1.21.6", details["minecraftVersion"]?.jsonPrimitive?.content)
+                    assertEquals("0.19.2", details["loaderVersion"]?.jsonPrimitive?.content)
+                    assertEquals(
+                        listOf("0.17.2", "0.16.14"),
+                        details["availableLoaderVersions"]
+                            ?.jsonArray
+                            ?.map { version -> version.jsonPrimitive.content },
+                    )
                     assertEquals(emptyList(), launcher.launches)
                 }
         }

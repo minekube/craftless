@@ -313,3 +313,11 @@ metadata fanout. Wildcard driver lanes still project onto compatible loader
 versions, but not onto loaders Fabric does not advertise for that game.
 Evidence:
 `docs/superpowers/evidence/2026-07-02-game-scoped-fabric-loader-matrix.md`.
+Phase 206 makes unsupported runtime target errors structured. `/clients`
+`UNSUPPORTED_RUNTIME_TARGET` responses now keep `code` and `message` while
+adding `details.reason`, requested runtime identity fields, and
+`availableLoaderVersions`, and the stable OpenAPI error schema describes the
+optional details object. Agents no longer need to parse the human message to
+understand Fabric matrix rejection reasons.
+Evidence:
+`docs/superpowers/evidence/2026-07-02-structured-runtime-target-error.md`.

@@ -182,8 +182,8 @@ data class ClientRuntimeDriverModRequest(
 
 class UnsupportedClientRuntimeTarget(
     val reason: FabricSupportReason,
-    request: ClientRuntimeDriverModRequest,
-    availableLoaderVersions: List<String>,
+    val request: ClientRuntimeDriverModRequest,
+    val availableLoaderVersions: List<String>,
 ) : RuntimeException(
         buildString {
             append(reason.name)

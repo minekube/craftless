@@ -1146,6 +1146,10 @@ class OpenApiGenerationTest {
         assertEquals(listOf("code", "message"), schema.required)
         assertEquals("string", schema.properties["code"]?.type)
         assertEquals("string", schema.properties["message"]?.type)
+        val details = requireNotNull(schema.properties["details"])
+        assertEquals("object", details.type)
+        assertTrue("reason" in details.properties)
+        assertEquals("string", details.properties["reason"]?.type)
     }
 
     private fun assertEventListSchema(schema: OpenApiSchema) {
