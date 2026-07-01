@@ -276,9 +276,9 @@ Verified product surfaces include:
   invocation, and event streaming;
 - release workflow, install script, Docker runtime image, packaged CLI
   distribution, and reusable GitHub Action;
-- Latest/current `26.2` and representative older `1.20.6` packaged lanes are verified
-  with generated OpenAPI, projections, SSE, JSON-RPC, and `craftless api`
-  invocation evidence;
+- Latest/current `26.2`, current `1.21.6`, and representative older `1.20.6`
+  packaged lanes are verified with generated OpenAPI, projections, SSE,
+  JSON-RPC, and `craftless api` invocation evidence;
 - final public gameplay evidence using generated public APIs only, with server
   provisioning disabled and no static survival macro.
 

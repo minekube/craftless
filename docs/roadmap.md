@@ -51,9 +51,9 @@ Craftless currently has:
   driver mod, Docker runtime image, and reusable GitHub Action;
 - repo-local agent skill guidance for using generated OpenAPI, actions,
   resources, SSE, and public-state verification;
-- packaged latest/current `26.2` and representative older `1.20.6` product
-  lane evidence under the same create, attach, connect, generated OpenAPI,
-  projection, SSE, JSON-RPC, and `craftless api` gates;
+- packaged latest/current `26.2`, current `1.21.6`, and representative older
+  `1.20.6` product lane evidence under the same create, attach, connect,
+  generated OpenAPI, projection, SSE, JSON-RPC, and `craftless api` gates;
 - local server, Fabric client, compatibility, distribution, Docker, installer,
   and final public gameplay evidence under `docs/superpowers/evidence/`.
 
@@ -65,12 +65,12 @@ collected materials, crafted and equipped a `Wooden Sword`, found Cows through
 `Leather`, and the Cow with `alive:false`, without server-provisioned
 inventory or static survival shortcuts.
 
-Multi-version work now has two packaged product-lane proofs. Active runtime
+Multi-version work now has three packaged product-lane proofs. Active runtime
 paths resolve Mojang `latest-release` / `latest-snapshot` aliases before cache,
-Java runtime, launch, and driver-mod lane selection. Latest/current `26.2` and
-representative older `1.20.6` have runnable packaged evidence through the same
-public API/CLI gates. Future versions still need the same evidence before they
-become supported product lanes.
+Java runtime, launch, and driver-mod lane selection. Latest/current `26.2`,
+current `1.21.6`, and representative older `1.20.6` have runnable packaged
+evidence through the same public API/CLI gates. Future versions still need the
+same evidence before they become supported product lanes.
 
 ## Completion Definition
 

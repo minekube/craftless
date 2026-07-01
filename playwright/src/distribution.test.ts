@@ -144,6 +144,39 @@ describe("distribution surface", () => {
     expect(script).not.toContain(":driver-fabric:runClient");
   });
 
+  test("packaged supported Fabric matrix probes all supported rows", () => {
+    const mise = read(".mise.toml");
+    const script = read("scripts/packaged-fabric-lane-probe.sh");
+    const workflow = read(".github/workflows/fabric-support-matrix.yml");
+
+    expect(mise).toContain("[tasks.packaged-current-lane-probe]");
+    expect(mise).toContain("CRAFTLESS_SMOKE_MINECRAFT_VERSION=1.21.6");
+    expect(mise).toContain("CRAFTLESS_PACKAGED_FABRIC_VERSION=1.21.6");
+    expect(mise).toContain("CRAFTLESS_PACKAGED_FABRIC_LOADER_VERSION=0.19.3");
+    expect(mise).toContain("CRAFTLESS_PACKAGED_FABRIC_LABEL=current-lane");
+    expect(mise).toContain("$PWD/scripts/packaged-fabric-lane-probe.sh");
+    expect(mise).toContain("[tasks.packaged-fabric-supported-matrix-probe]");
+    expect(mise).toContain("mise run packaged-latest-current-probe");
+    expect(mise).toContain("mise run packaged-current-lane-probe");
+    expect(mise).toContain("mise run packaged-representative-older-probe");
+    expect(script).toContain("CRAFTLESS_PACKAGED_FABRIC_VERSION is required");
+    expect(script).toContain("CRAFTLESS_PACKAGED_FABRIC_LOADER_VERSION");
+    expect(script).toContain("supervisor-openapi.json");
+    expect(script).toContain("client-openapi-connected.json");
+    expect(script).toContain("client-rpc-invoke-generated.json");
+    expect(script).toContain("client-cli-invoke-generated.log");
+    expect(script).toContain("x-craftless-actions");
+    expect(script).toContain('!action.id.startsWith("task.")');
+    expect(script).toContain('method: "invoke"');
+    expect(script).toContain('api "/clients/$CLIENT_ID:run"');
+    expect(script).not.toContain(":driver-fabric:runClient");
+    expect(script).not.toContain("task.survival");
+    expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).toContain("schedule:");
+    expect(workflow).toContain("mise run packaged-fabric-supported-matrix-probe");
+    expect(workflow).toContain("build/craftless-packaged-current-lane-probe/artifacts");
+  });
+
   test("final public gameplay probe uses generated public surfaces only", () => {
     const mise = read(".mise.toml");
     const script = read("scripts/final-public-gameplay-probe.sh");
@@ -321,7 +354,7 @@ describe("distribution surface", () => {
     expect(readme).toContain("Release Please opens or updates the release PR");
     expect(readme).not.toContain("setup-craftless@v0.1.0");
     expect(readme).toContain("Minecraft artifacts are downloaded into the workspace at runtime");
-    expect(readme).toContain("Latest/current `26.2` and representative older `1.20.6` packaged lanes are verified");
+    expect(readme).toContain("Latest/current `26.2`, current `1.21.6`, and representative older `1.20.6`");
     expect(readme).not.toContain("gameplay actions still empty");
     expect(readme).not.toContain("final completion still requires a refreshed run after latest/current compatibility work");
     expect(readme.toLowerCase()).not.toContain("homebrew");

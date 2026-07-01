@@ -164,3 +164,5 @@ Required negative proof:
   `docs/superpowers/evidence/2026-07-01-headless-presentation-truth.md`.
 - Phase 198:
   `docs/superpowers/evidence/2026-07-01-fabric-support-targets.md`.
+- Phase 199:
+  `docs/superpowers/evidence/2026-07-01-fabric-supported-matrix-proof.md`.

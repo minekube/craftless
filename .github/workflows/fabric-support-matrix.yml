@@ -1,0 +1,31 @@
+name: fabric support matrix
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "43 5 * * 1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  supported-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v4
+        with:
+          install: true
+          cache: true
+      - name: Run supported Fabric matrix probes
+        run: mise run packaged-fabric-supported-matrix-probe
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: fabric-support-matrix-reports
+          path: |
+            build/craftless-packaged-latest-current-probe/artifacts
+            build/craftless-packaged-current-lane-probe/artifacts
+            build/craftless-packaged-representative-older-probe/artifacts

@@ -250,3 +250,11 @@ one or more packaged driver lanes or unsupported with `NO_DRIVER_MOD`. This is
 reporting and rejection clarity, not a claim that unlisted targets launch.
 Evidence:
 `docs/superpowers/evidence/2026-07-01-fabric-support-targets.md`.
+Phase 199 adds the first supported-matrix proof gate. A generic packaged
+Fabric lane probe now drives a configured lane through public Craftless
+surfaces, `packaged-current-lane-probe` covers the packaged `1.21.6` row, and
+`packaged-fabric-supported-matrix-probe` composes the `26.2`, `1.21.6`, and
+`1.20.6` packaged lane probes. A scheduled/manual GitHub workflow can run the
+full supported matrix without making every push launch all Minecraft clients.
+Evidence:
+`docs/superpowers/evidence/2026-07-01-fabric-supported-matrix-proof.md`.
