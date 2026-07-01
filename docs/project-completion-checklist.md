@@ -37,22 +37,23 @@ Status legend:
 
 | Field | State |
 | --- | --- |
-| Active gate | All CL gates closed |
-| Current state | All CL gates are closed. Phase 190 scheduled Release Please automation is implemented and verified. |
-| Latest product proof | `mise run final-public-gameplay-probe` passed for Minecraft `1.21.6` with server provisioning disabled. Artifacts are under `driver-fabric/build/craftless-final-gameplay/artifacts/`. |
-| Latest CI truth | `mise run ci` passed after Phase 190 scheduled Release Please automation. |
+| Active gate | Post-completion Fabric version-matrix support proof |
+| Current state | All original CL gates are closed. Phases 198-206 add the support matrix, supported-row probe workflow, runtime-target create rejection, game-scoped Fabric Loader compatibility, and structured `UNSUPPORTED_RUNTIME_TARGET` details. Release `v0.3.0` is published. |
+| Latest product proof | `mise run final-public-gameplay-probe` passed for Minecraft `1.21.6` with server provisioning disabled. Fabric matrix evidence now includes `/versions/support-targets`, packaged supported-row probing, and machine-readable unsupported runtime rejection evidence. |
+| Latest CI truth | `mise run docs-site-verify` passed on the current docs refresh; GitHub release-please run `28555365427` completed successfully for `v0.3.0`; prior main CI/docs runs for the Phase 206 head were green before the release commit. |
 | Current blocker | None known. |
-| Next commands | Commit Phase 190 and push `main`, then confirm a clean branch state. |
+| Next commands | Continue the full Fabric matrix proof goal: every discoverable Fabric runtime row must either be supported and probe-verified through public Craftless surfaces or rejected with a structured actionable reason. |
 
 ## Next Work
 
 | Step | Status | Done When | Evidence Or Command |
 | --- | --- | --- | --- |
-| 1. Full local CI from corrected worktree | [x] | `mise run ci` exits `0` after the final checklist and ktlint corrections. | `mise run ci` passed. |
-| 2. Whitespace guard | [x] | Patch has no whitespace errors. | `git diff --check` passed. |
-| 3. Publish final corrections | [x] | Final CI/checklist fixes are committed and pushed to `main`. | `2eb73033 chore: close final checklist corrections`; `git push origin main` |
-| 4. Clean pushed tree | [x] | Local branch is not ahead and no files are dirty. | `git status --short --branch` printed `## main...origin/main` after pushing `2eb73033`. |
-| 5. Goal closure | [x] | All repo-side gates are ready for the active goal to be marked complete after final audit status. | Final audit status command required before `update_goal(status=complete)`. |
+| 1. Original CL completion gates | [x] | CL-01 through CL-08 remain closed with evidence. | Evidence index below. |
+| 2. Release current matrix work | [x] | The release PR for post-completion Fabric matrix work is merged and the GitHub release exists. | `v0.3.0` published at `https://github.com/minekube/craftless/releases/tag/v0.3.0`; tag/main commit `98d94fbb504e598196b8b09f395f3fd7250fd26f`. |
+| 3. Fabric support matrix visibility | [x] | The supervisor exposes discovered Fabric game/loader/runtime support rows and explicit unsupported reasons. | Phases 198, 200, 201, 203, and 205 evidence below. |
+| 4. Unsupported runtime rejection clarity | [x] | Unsupported create-client requests fail before launch with a public code and structured actionable details. | Phases 202, 204, and 206 evidence below. |
+| 5. Docs and hosted OpenAPI snapshot freshness | [x] | README, roadmap, active checklist, and docs-site OpenAPI snapshot reflect release `v0.3.0`, `/versions/support-targets`, and structured unsupported runtime errors. | `mise run docs-site-verify` passed; `docs-site/openapi/craftless-supervisor.json` regenerated. |
+| 6. Full Fabric matrix proof | [~] | Every discoverable Fabric runtime row is either supported and probe-verified through public Craftless surfaces or rejected with a structured actionable reason. | Supported-row probe exists from Phase 199; full breadth remains the active goal. |
 
 ## Completion Gates
 

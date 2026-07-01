@@ -49,11 +49,21 @@ Craftless currently has:
 - bridge code treated as evidence infrastructure only;
 - release workflow, install script, packaged CLI distribution with the Fabric
   driver mod, Docker runtime image, and reusable GitHub Action;
+- hosted Fumadocs API documentation on Cloudflare Workers at
+  `https://craftless.minekube.com`;
 - repo-local agent skill guidance for using generated OpenAPI, actions,
   resources, SSE, and public-state verification;
 - packaged latest/current `26.2`, current `1.21.6`, and representative older
   `1.20.6` product lane evidence under the same create, attach, connect,
   generated OpenAPI, projection, SSE, JSON-RPC, and `craftless api` gates;
+- a supervisor Fabric compatibility matrix at
+  `GET /versions/support-targets` that joins discovered Fabric Minecraft
+  targets, game-scoped Fabric Loader metadata, and packaged Craftless driver
+  lanes, with explicit supported rows and unsupported reasons;
+- create-client rejection for unsupported Fabric runtime targets through
+  `UNSUPPORTED_RUNTIME_TARGET` plus structured `details`, so callers can
+  distinguish missing driver rows, incompatible driver rows, and
+  non-compatible Fabric Loader requests without launching a client;
 - local server, Fabric client, compatibility, distribution, Docker, installer,
   and final public gameplay evidence under `docs/superpowers/evidence/`.
 
@@ -65,12 +75,15 @@ collected materials, crafted and equipped a `Wooden Sword`, found Cows through
 `Leather`, and the Cow with `alive:false`, without server-provisioned
 inventory or static survival shortcuts.
 
-Multi-version work now has three packaged product-lane proofs. Active runtime
-paths resolve Mojang `latest-release` / `latest-snapshot` aliases before cache,
-Java runtime, launch, and driver-mod lane selection. Latest/current `26.2`,
-current `1.21.6`, and representative older `1.20.6` have runnable packaged
-evidence through the same public API/CLI gates. Future versions still need the
-same evidence before they become supported product lanes.
+Multi-version work now has three packaged product-lane proofs plus a
+machine-readable Fabric compatibility matrix. Active runtime paths resolve
+Mojang `latest-release` / `latest-snapshot` aliases before cache, Java runtime,
+launch, and driver-mod lane selection. Latest/current `26.2`, current
+`1.21.6`, and representative older `1.20.6` have runnable packaged evidence
+through the same public API/CLI gates. Future Fabric Minecraft and Loader
+combinations must appear in `/versions/support-targets` as either supported
+with a driver lane and probe evidence, or unsupported with an actionable
+machine-readable reason before client launch.
 
 ## Completion Definition
 
@@ -240,10 +253,10 @@ Goal: make the Fabric driver robust across real client states.
   perception, and driver errors.
 - Expand real Fabric client version support only after the target lane has
   cache preparation, Java runtime selection, Fabric Loader/API resolution,
-  launch metadata, compatibility matrix, and smoke evidence. Unsupported lanes
-  discovered through `latest-release` and representative older-version probes
-  remain historical diagnostics until then; active runtime code must not
-  maintain static unsupported lane catalogs.
+  launch metadata, compatibility matrix, and smoke evidence. Unsupported
+  Minecraft/Fabric Loader combinations must be surfaced through
+  `/versions/support-targets` and `UNSUPPORTED_RUNTIME_TARGET` details, not
+  hidden in static unsupported lane catalogs.
 
 Verification gate:
 

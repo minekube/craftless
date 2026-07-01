@@ -650,7 +650,8 @@
                             "type": "string",
                             "enum": [
                               "NO_DRIVER_MOD",
-                              "NO_COMPATIBLE_DRIVER_MOD"
+                              "NO_COMPATIBLE_DRIVER_MOD",
+                              "NO_COMPATIBLE_FABRIC_LOADER"
                             ],
                             "nullable": true
                           },
@@ -744,7 +745,8 @@
                                   "type": "string",
                                   "enum": [
                                     "NO_DRIVER_MOD",
-                                    "NO_COMPATIBLE_DRIVER_MOD"
+                                    "NO_COMPATIBLE_DRIVER_MOD",
+                                    "NO_COMPATIBLE_FABRIC_LOADER"
                                   ],
                                   "nullable": true
                                 },
@@ -975,6 +977,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -1080,6 +1115,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -1177,6 +1245,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -1589,6 +1690,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -1853,6 +1987,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -2045,6 +2212,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -2233,6 +2433,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -2255,6 +2488,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -2460,6 +2726,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -2482,6 +2781,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -2504,6 +2836,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -2610,6 +2975,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -2728,6 +3126,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -2770,6 +3201,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -2792,6 +3256,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -2860,6 +3357,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -2882,6 +3412,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -2904,6 +3467,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -3164,6 +3760,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [
@@ -3235,6 +3864,39 @@
                     },
                     "message": {
                       "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "required": [

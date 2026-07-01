@@ -93,7 +93,7 @@ curl -N "$CRAFTLESS/clients/bot/events:stream"
 Install a specific release:
 
 ```sh
-CRAFTLESS_VERSION=v0.2.0 \
+CRAFTLESS_VERSION=v0.3.0 \
 CRAFTLESS_INSTALL_DIR="$HOME/.local/bin" \
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/minekube/craftless/main/install.sh)"
 ```
@@ -113,7 +113,7 @@ jobs:
   minecraft:
     runs-on: ubuntu-latest
     steps:
-      - uses: minekube/craftless/.github/actions/setup-craftless@v0.2.0
+      - uses: minekube/craftless/.github/actions/setup-craftless@v0.3.0
         id: craftless
         with:
           start: "true"
@@ -249,14 +249,26 @@ When omitted, client creation and cache preparation default to
 `latest-release`. Use `latest-release` or `latest-snapshot` for Mojang aliases,
 or pin a concrete Minecraft version when a run must be reproducible.
 
-Discover runtime and loader targets through the supervisor API before pinning:
+Discover runtime and loader support through the supervisor API before pinning:
 
 ```sh
+craftless api /versions/support-targets --api "$CRAFTLESS"
 craftless api /versions/runtime-targets --api "$CRAFTLESS"
 craftless api /versions/loader-targets --api "$CRAFTLESS"
 craftless api /versions/loaders --api "$CRAFTLESS"
 craftless api /versions/driver-mods --api "$CRAFTLESS"
 ```
+
+`/versions/support-targets` is the compatibility view agents should consult
+first. It joins discovered Fabric Minecraft targets, game-scoped Fabric Loader
+metadata, and the packaged Craftless driver manifest. Supported rows include
+loader/runtime identity and driver-lane metadata; unsupported rows include
+machine-readable reasons such as `NO_DRIVER_MOD`,
+`NO_COMPATIBLE_DRIVER_MOD`, or `NO_COMPATIBLE_FABRIC_LOADER`.
+
+Client creation rejects unsupported Fabric runtime requests before launch with
+`UNSUPPORTED_RUNTIME_TARGET` and structured `details`, so callers can choose a
+supported row without parsing the human message.
 
 Java selection is part of the product runtime. Craftless evaluates configured,
 managed, mise, and system runtime providers against Minecraft version
@@ -279,6 +291,10 @@ Verified product surfaces include:
 - Latest/current `26.2`, current `1.21.6`, and representative older `1.20.6`
   packaged lanes are verified with generated OpenAPI, projections, SSE,
   JSON-RPC, and `craftless api` invocation evidence;
+- Fabric version support is exposed as a matrix at
+  `GET /versions/support-targets`; supported runtime rows are probeable through
+  the packaged matrix workflow, and unsupported runtime requests fail closed
+  before launch with machine-readable reasons;
 - final public gameplay evidence using generated public APIs only, with server
   provisioning disabled and no static survival macro.
 
