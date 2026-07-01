@@ -254,6 +254,7 @@ data class FabricSupportRuntimeTargetDescriptor(
 enum class FabricSupportReason {
     NO_DRIVER_MOD,
     NO_COMPATIBLE_DRIVER_MOD,
+    NO_COMPATIBLE_FABRIC_LOADER,
 }
 
 @Serializable

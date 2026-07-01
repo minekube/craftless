@@ -187,7 +187,12 @@ class UnsupportedClientRuntimeTarget(
 ) : RuntimeException(
         buildString {
             append(reason.name)
-            append(": no Craftless driver lane supports ")
+            append(": ")
+            if (reason == FabricSupportReason.NO_COMPATIBLE_FABRIC_LOADER) {
+                append("Fabric metadata does not list a compatible loader for ")
+            } else {
+                append("no Craftless driver lane supports ")
+            }
             append(request.runtimeIdentityLabel())
             if (availableLoaderVersions.isNotEmpty()) {
                 append("; available Fabric loader versions for this Minecraft target: ")

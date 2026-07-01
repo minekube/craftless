@@ -174,3 +174,5 @@ Required negative proof:
   `docs/superpowers/evidence/2026-07-02-runtime-target-create-rejection.md`.
 - Phase 203:
   `docs/superpowers/evidence/2026-07-02-wildcard-fabric-loader-matrix.md`.
+- Phase 204:
+  `docs/superpowers/evidence/2026-07-02-fabric-loader-request-rejection.md`.

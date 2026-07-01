@@ -13,6 +13,7 @@ import com.minekube.craftless.protocol.CachePreparedArtifact
 import com.minekube.craftless.protocol.CachePreparedArtifactKind
 import com.minekube.craftless.protocol.CachePreparedArtifactStatus
 import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
+import com.minekube.craftless.protocol.FabricSupportReason
 import com.minekube.craftless.protocol.JavaRuntimeSelection
 import com.minekube.craftless.protocol.JavaRuntimeSelectionStatus
 import com.minekube.craftless.protocol.Loader
@@ -294,7 +295,7 @@ class CachePreparationService(
         if (request.loader != Loader.FABRIC) return null
         val loaderVersionsUrl = fabricLoaderVersionsUrl(request.minecraftVersion)
         val loaderVersions = metadataFetcher.fetchText(loaderVersionsUrl)
-        val loaderVersion = loaderVersions.compatibleFabricLoaderVersion(request.loaderVersion)
+        val loaderVersion = loaderVersions.compatibleFabricLoaderVersion(request)
         val profileUrl = fabricLoaderProfileUrl(request.minecraftVersion, loaderVersion)
         val fabricApi =
             metadataFetcher
@@ -656,7 +657,7 @@ private fun String.clientLoggingConfig(minecraftVersion: String): MinecraftLoggi
     )
 }
 
-private fun String.compatibleFabricLoaderVersion(requestedLoaderVersion: String?): String {
+private fun String.compatibleFabricLoaderVersion(request: CachePrepareRequest): String {
     val versions =
         Json
             .parseToJsonElement(this)
@@ -669,9 +670,18 @@ private fun String.compatibleFabricLoaderVersion(requestedLoaderVersion: String?
                     stable = loader["stable"]?.jsonPrimitive?.booleanOrNull == true,
                 )
             }
-    requestedLoaderVersion?.let { requested ->
+    request.loaderVersion?.let { requested ->
         return versions.firstOrNull { it.version == requested }?.version
-            ?: error("fabric loader version $requested is not compatible with this minecraft version")
+            ?: throw UnsupportedClientRuntimeTarget(
+                reason = FabricSupportReason.NO_COMPATIBLE_FABRIC_LOADER,
+                request =
+                    ClientRuntimeDriverModRequest(
+                        loader = request.loader,
+                        minecraftVersion = request.minecraftVersion,
+                        loaderVersion = request.loaderVersion,
+                    ),
+                availableLoaderVersions = versions.map { version -> version.version },
+            )
     }
     return versions.firstOrNull { it.stable }?.version
         ?: versions.firstOrNull()?.version

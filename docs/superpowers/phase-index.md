@@ -295,3 +295,11 @@ emitting an extra null-loader supported row and marking concrete loaders
 unsupported.
 Evidence:
 `docs/superpowers/evidence/2026-07-02-wildcard-fabric-loader-matrix.md`.
+Phase 204 makes non-discoverable Fabric Loader requests machine-readable.
+When `/clients` asks for a Fabric Loader version that Fabric metadata does not
+list for the requested Minecraft target, cache preparation now throws
+`UnsupportedClientRuntimeTarget` with `NO_COMPATIBLE_FABRIC_LOADER`, so the
+public response is `UNSUPPORTED_RUNTIME_TARGET` instead of a generic bad
+request and no Minecraft process launches.
+Evidence:
+`docs/superpowers/evidence/2026-07-02-fabric-loader-request-rejection.md`.
