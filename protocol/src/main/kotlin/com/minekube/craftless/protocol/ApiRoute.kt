@@ -104,7 +104,7 @@ class ApiRouteCatalog(
             "Lists Craftless driver mod runtime lanes available to this daemon distribution or configured environment. Use this to understand which packaged driver artifacts can satisfy Minecraft, loader, Fabric API, Java, and mapping runtime identity."
 
         private const val SUPPORT_TARGETS_DESCRIPTION =
-            "Lists every Fabric Minecraft target known to Fabric metadata with Craftless support status from the configured driver mod lanes. Use this before creating clients to distinguish supported targets from unsupported targets that have no compatible driver lane."
+            "Lists every Fabric Minecraft target known to Fabric metadata with Craftless support status and explicit loader/runtime target rows from the configured driver mod lanes. Use this before creating clients to distinguish supported runtime identities from unsupported targets that have no compatible driver lane."
 
         private const val CACHE_PREPARE_DESCRIPTION =
             "Prepares Craftless-owned cache and launch material for a Minecraft version and loader before a client is created. This resolves metadata, artifacts, libraries, assets, native paths, and launch inputs without exposing launcher internals."

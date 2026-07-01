@@ -614,7 +614,7 @@
           "versions"
         ],
         "summary": "List support targets",
-        "description": "Lists every Fabric Minecraft target known to Fabric metadata with Craftless support status from the configured driver mod lanes. Use this before creating clients to distinguish supported targets from unsupported targets that have no compatible driver lane.",
+        "description": "Lists every Fabric Minecraft target known to Fabric metadata with Craftless support status and explicit loader/runtime target rows from the configured driver mod lanes. Use this before creating clients to distinguish supported runtime identities from unsupported targets that have no compatible driver lane.",
         "responses": {
           "200": {
             "content": {
@@ -704,6 +704,100 @@
                                 "runtimeMods"
                               ]
                             }
+                          },
+                          "runtimeTargets": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "loader": {
+                                  "type": "string",
+                                  "enum": [
+                                    "FABRIC",
+                                    "VANILLA",
+                                    "NEOFORGE",
+                                    "FORGE",
+                                    "QUILT"
+                                  ]
+                                },
+                                "loaderVersion": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "javaMajorVersion": {
+                                  "type": "integer",
+                                  "nullable": true
+                                },
+                                "mappingsFingerprint": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "supported": {
+                                  "type": "boolean"
+                                },
+                                "reason": {
+                                  "type": "string",
+                                  "enum": [
+                                    "NO_DRIVER_MOD"
+                                  ],
+                                  "nullable": true
+                                },
+                                "driverMod": {
+                                  "type": "object",
+                                  "properties": {
+                                    "loader": {
+                                      "type": "string",
+                                      "enum": [
+                                        "FABRIC",
+                                        "VANILLA",
+                                        "NEOFORGE",
+                                        "FORGE",
+                                        "QUILT"
+                                      ]
+                                    },
+                                    "minecraftVersion": {
+                                      "type": "string"
+                                    },
+                                    "loaderVersion": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "fabricApiVersion": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "javaMajorVersion": {
+                                      "type": "integer",
+                                      "nullable": true
+                                    },
+                                    "mappingsFingerprint": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "path": {
+                                      "type": "string"
+                                    },
+                                    "runtimeMods": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  },
+                                  "required": [
+                                    "loader",
+                                    "minecraftVersion",
+                                    "path",
+                                    "runtimeMods"
+                                  ],
+                                  "nullable": true
+                                }
+                              },
+                              "required": [
+                                "loader",
+                                "supported"
+                              ]
+                            }
                           }
                         },
                         "required": [
@@ -711,7 +805,8 @@
                           "stable",
                           "loader",
                           "supported",
-                          "driverMods"
+                          "driverMods",
+                          "runtimeTargets"
                         ]
                       }
                     },

@@ -177,6 +177,7 @@ describe("distribution surface", () => {
     expect(script).not.toContain("task.survival");
     expect(matrixScript).toContain("/versions/runtime-targets");
     expect(matrixScript).toContain("/versions/support-targets");
+    expect(matrixScript).toContain("target.runtimeTargets");
     expect(matrixScript).toContain("CRAFTLESS_PACKAGED_MATRIX_DISCOVERY_ONLY");
     expect(matrixScript).toContain("driver-mods.json");
     expect(matrixScript).toContain("support-target-validation-error.json");

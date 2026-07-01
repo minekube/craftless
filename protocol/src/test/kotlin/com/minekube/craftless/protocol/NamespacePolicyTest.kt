@@ -880,6 +880,7 @@ class NamespacePolicyTest {
                 "build",
                 ".craftless",
                 ".craftless-connect-debug",
+                ".craftless-connect-debug-latest",
                 ".gradle",
                 ".git",
                 ".kotlin",

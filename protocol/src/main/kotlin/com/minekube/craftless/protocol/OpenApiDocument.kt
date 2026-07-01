@@ -945,6 +945,11 @@ private fun fabricSupportTargetListResponse(): OpenApiResponse =
                                                             type = "array",
                                                             items = driverModVersionDescriptorSchema(),
                                                         ),
+                                                    "runtimeTargets" to
+                                                        OpenApiSchema(
+                                                            type = "array",
+                                                            items = fabricSupportRuntimeTargetDescriptorSchema(),
+                                                        ),
                                                 ),
                                             required =
                                                 listOf(
@@ -953,6 +958,7 @@ private fun fabricSupportTargetListResponse(): OpenApiResponse =
                                                     "loader",
                                                     "supported",
                                                     "driverMods",
+                                                    "runtimeTargets",
                                                 ),
                                         ),
                                 ),
@@ -961,6 +967,27 @@ private fun fabricSupportTargetListResponse(): OpenApiResponse =
                     required = listOf("targets"),
                 ),
             ),
+    )
+
+private fun fabricSupportRuntimeTargetDescriptorSchema(): OpenApiSchema =
+    OpenApiSchema(
+        type = "object",
+        properties =
+            mapOf(
+                "loader" to OpenApiSchema(type = "string", enumValues = Loader.entries.map { it.name }),
+                "loaderVersion" to OpenApiSchema(type = "string", nullable = true),
+                "javaMajorVersion" to OpenApiSchema(type = "integer", nullable = true),
+                "mappingsFingerprint" to OpenApiSchema(type = "string", nullable = true),
+                "supported" to OpenApiSchema(type = "boolean"),
+                "reason" to
+                    OpenApiSchema(
+                        type = "string",
+                        enumValues = FabricSupportReason.entries.map { it.name },
+                        nullable = true,
+                    ),
+                "driverMod" to driverModVersionDescriptorSchema().copy(nullable = true),
+            ),
+        required = listOf("loader", "supported"),
     )
 
 private fun driverModVersionDescriptorSchema(): OpenApiSchema =

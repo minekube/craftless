@@ -360,6 +360,14 @@ class OpenApiGenerationTest {
         val supportSchema = requireNotNull(document.paths["/versions/support-targets"]?.get?.okSchema())
         assertEquals(listOf("targets"), supportSchema.required)
         assertEquals("array", supportSchema.properties["targets"]?.type)
+        val supportItem = requireNotNull(supportSchema.properties["targets"]?.items)
+        assertEquals("array", supportItem.properties["runtimeTargets"]?.type)
+        val runtimeTarget = requireNotNull(supportItem.properties["runtimeTargets"]?.items)
+        assertEquals("boolean", runtimeTarget.properties["supported"]?.type)
+        assertEquals("string", runtimeTarget.properties["loaderVersion"]?.type)
+        assertEquals(true, runtimeTarget.properties["loaderVersion"]?.nullable)
+        assertEquals("integer", runtimeTarget.properties["javaMajorVersion"]?.type)
+        assertEquals(true, runtimeTarget.properties["javaMajorVersion"]?.nullable)
     }
 
     @Test

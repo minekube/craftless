@@ -70,6 +70,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -362,8 +363,18 @@ class LocalSessionApiServerTest {
                     assertEquals(true, supported["supported"]?.jsonPrimitive?.boolean)
                     val driverMod = supported["driverMods"]?.jsonArray?.single()?.jsonObject
                     assertEquals("0.19.3", driverMod?.get("loaderVersion")?.jsonPrimitive?.content)
+                    val runtimeTarget = supported["runtimeTargets"]?.jsonArray?.single()?.jsonObject
+                    assertEquals(true, runtimeTarget?.get("supported")?.jsonPrimitive?.boolean)
+                    assertEquals("FABRIC", runtimeTarget?.get("loader")?.jsonPrimitive?.content)
+                    assertEquals("0.19.3", runtimeTarget?.get("loaderVersion")?.jsonPrimitive?.content)
+                    assertEquals(25, runtimeTarget?.get("javaMajorVersion")?.jsonPrimitive?.int)
+                    assertEquals("craftless-fabric-official-26-2", runtimeTarget?.get("mappingsFingerprint")?.jsonPrimitive?.content)
                     assertEquals(false, unsupported["supported"]?.jsonPrimitive?.boolean)
                     assertEquals("NO_DRIVER_MOD", unsupported["reason"]?.jsonPrimitive?.content)
+                    val unsupportedRuntimeTarget = unsupported["runtimeTargets"]?.jsonArray?.single()?.jsonObject
+                    assertEquals(false, unsupportedRuntimeTarget?.get("supported")?.jsonPrimitive?.boolean)
+                    assertEquals("NO_DRIVER_MOD", unsupportedRuntimeTarget?.get("reason")?.jsonPrimitive?.content)
+                    assertEquals("FABRIC", unsupportedRuntimeTarget?.get("loader")?.jsonPrimitive?.content)
                 }
             }
         }

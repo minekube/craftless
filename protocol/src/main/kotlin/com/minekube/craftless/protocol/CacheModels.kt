@@ -235,6 +235,18 @@ data class FabricSupportTargetDescriptor(
     val supported: Boolean,
     val reason: FabricSupportReason? = null,
     val driverMods: List<DriverModVersionDescriptor> = emptyList(),
+    val runtimeTargets: List<FabricSupportRuntimeTargetDescriptor> = emptyList(),
+)
+
+@Serializable
+data class FabricSupportRuntimeTargetDescriptor(
+    val loader: Loader = Loader.FABRIC,
+    val loaderVersion: String? = null,
+    val javaMajorVersion: Int? = null,
+    val mappingsFingerprint: String? = null,
+    val supported: Boolean,
+    val reason: FabricSupportReason? = null,
+    val driverMod: DriverModVersionDescriptor? = null,
 )
 
 @Serializable

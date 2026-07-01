@@ -94,38 +94,51 @@ function clientIdFor(label) {
 
 const manifestFabricMods = (manifest.entries ?? []).filter((entry) => entry.loader === "FABRIC");
 const manifestSignatures = new Set(manifestFabricMods.map(signature));
-const supportedTargets = (supportTargets.targets ?? []).filter((target) => target.supported === true);
-const supportedMods = supportedTargets.flatMap((target) => target.driverMods ?? []);
+const runtimeTargetRows = (supportTargets.targets ?? []).flatMap((target) =>
+  (target.runtimeTargets ?? []).map((runtimeTarget) => ({ target, runtimeTarget })),
+);
+const supportedRuntimeTargetRows = runtimeTargetRows.filter(({ runtimeTarget }) => runtimeTarget.supported === true);
+const supportedMods = supportedRuntimeTargetRows.map(({ runtimeTarget }) => runtimeTarget.driverMod).filter(Boolean);
 const supportedSignatures = new Set(supportedMods.map(signature));
 
 const missingFromApi = [...manifestSignatures].filter((item) => !supportedSignatures.has(item));
 const extraFromApi = [...supportedSignatures].filter((item) => !manifestSignatures.has(item));
 const invalidTargets = (supportTargets.targets ?? []).filter((target) => {
   const mods = target.driverMods ?? [];
+  const runtimeTargets = target.runtimeTargets ?? [];
   return (target.supported === true && mods.length === 0) ||
-    (target.supported !== true && (!target.reason || mods.length > 0));
+    (target.supported === true && runtimeTargets.filter((runtimeTarget) => runtimeTarget.supported === true).length === 0) ||
+    (target.supported !== true && (!target.reason || mods.length > 0)) ||
+    (target.supported !== true && runtimeTargets.some((runtimeTarget) => runtimeTarget.supported === true || !runtimeTarget.reason));
+});
+const invalidRuntimeTargets = runtimeTargetRows.filter(({ runtimeTarget }) => {
+  return (runtimeTarget.supported === true && !runtimeTarget.driverMod) ||
+    (runtimeTarget.supported !== true && !runtimeTarget.reason);
 });
 
-if (missingFromApi.length > 0 || extraFromApi.length > 0 || invalidTargets.length > 0) {
+if (missingFromApi.length > 0 || extraFromApi.length > 0 || invalidTargets.length > 0 || invalidRuntimeTargets.length > 0) {
   await fs.writeFile(
     path.join(artifactsDir, "support-target-validation-error.json"),
-    `${JSON.stringify({ missingFromApi, extraFromApi, invalidTargets }, null, 2)}\n`,
+    `${JSON.stringify({ missingFromApi, extraFromApi, invalidTargets, invalidRuntimeTargets }, null, 2)}\n`,
   );
-  throw new Error("packaged /versions/support-targets does not match packaged Fabric driver mod manifest");
+  throw new Error("packaged /versions/support-targets runtimeTargets do not match packaged Fabric driver mod manifest");
 }
 
 const latestRelease = runtimeTargets.latest?.release ?? null;
 const baseLabelCounts = new Map();
-for (const mod of supportedMods) {
-  const baseLabel = labelFor(mod.minecraftVersion, latestRelease);
+for (const { target, runtimeTarget } of supportedRuntimeTargetRows) {
+  const mod = runtimeTarget.driverMod;
+  const targetVersion = mod?.minecraftVersion ?? target.minecraftVersion;
+  const baseLabel = labelFor(targetVersion, latestRelease);
   baseLabelCounts.set(baseLabel, (baseLabelCounts.get(baseLabel) ?? 0) + 1);
 }
-const jobs = supportedMods.map((mod, index) => {
-  const targetVersion = mod.minecraftVersion;
+const jobs = supportedRuntimeTargetRows.map(({ target, runtimeTarget }, index) => {
+  const mod = runtimeTarget.driverMod;
+  const targetVersion = mod?.minecraftVersion ?? target.minecraftVersion;
   const requestVersion = targetVersion === latestRelease ? "latest-release" : targetVersion;
   const baseLabel = labelFor(targetVersion, latestRelease);
   const label = baseLabelCounts.get(baseLabel) > 1 ?
-    `${baseLabel}-loader-${sanitize(mod.loaderVersion ?? "default")}-${index}` :
+    `${baseLabel}-loader-${sanitize(runtimeTarget.loaderVersion ?? "default")}-${index}` :
     baseLabel;
   return {
     index,
@@ -133,9 +146,10 @@ const jobs = supportedMods.map((mod, index) => {
     clientId: clientIdFor(label),
     targetVersion,
     requestVersion,
-    loaderVersion: mod.loaderVersion ?? "",
-    javaMajorVersion: mod.javaMajorVersion ?? "",
+    loaderVersion: runtimeTarget.loaderVersion ?? "",
+    javaMajorVersion: runtimeTarget.javaMajorVersion ?? "",
     daemonPort: 18090 + index,
+    runtimeTarget,
     driverMod: mod,
   };
 });

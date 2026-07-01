@@ -260,3 +260,13 @@ supported driver-mod descriptor. A scheduled/manual GitHub workflow can run the
 full supported matrix without making every push launch all Minecraft clients.
 Evidence:
 `docs/superpowers/evidence/2026-07-01-fabric-supported-matrix-proof.md`.
+Phase 200 makes the support matrix more explicit for the larger full Fabric
+compatibility goal. `GET /versions/support-targets` now includes
+`runtimeTargets` rows that describe each supported loader/runtime identity
+with loader version, Java major version, mappings fingerprint, support status,
+and matching driver mod. Unsupported Fabric game targets include an
+unsupported runtime row with `NO_DRIVER_MOD`. The packaged matrix runner now
+validates and probes supported rows from `target.runtimeTargets` instead of
+inferring them from `driverMods`.
+Evidence:
+`docs/superpowers/evidence/2026-07-01-fabric-runtime-target-support.md`.

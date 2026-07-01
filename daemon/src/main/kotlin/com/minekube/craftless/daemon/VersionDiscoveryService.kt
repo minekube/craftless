@@ -1,5 +1,6 @@
 package com.minekube.craftless.daemon
 
+import com.minekube.craftless.protocol.DriverModVersionDescriptor
 import com.minekube.craftless.protocol.DriverModVersionListResult
 import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
 import com.minekube.craftless.protocol.FabricGameVersionDescriptor
@@ -7,6 +8,7 @@ import com.minekube.craftless.protocol.FabricGameVersionListResult
 import com.minekube.craftless.protocol.FabricLoaderVersionDescriptor
 import com.minekube.craftless.protocol.FabricLoaderVersionListResult
 import com.minekube.craftless.protocol.FabricSupportReason
+import com.minekube.craftless.protocol.FabricSupportRuntimeTargetDescriptor
 import com.minekube.craftless.protocol.FabricSupportTargetDescriptor
 import com.minekube.craftless.protocol.FabricSupportTargetListResult
 import com.minekube.craftless.protocol.Loader
@@ -65,8 +67,30 @@ class VersionDiscoveryService(
                         supported = matches.isNotEmpty(),
                         reason = if (matches.isEmpty()) FabricSupportReason.NO_DRIVER_MOD else null,
                         driverMods = matches,
+                        runtimeTargets = matches.runtimeTargets(),
                     )
                 },
+        )
+    }
+}
+
+private fun List<DriverModVersionDescriptor>.runtimeTargets(): List<FabricSupportRuntimeTargetDescriptor> {
+    if (isEmpty()) {
+        return listOf(
+            FabricSupportRuntimeTargetDescriptor(
+                supported = false,
+                reason = FabricSupportReason.NO_DRIVER_MOD,
+            ),
+        )
+    }
+    return map { driverMod ->
+        FabricSupportRuntimeTargetDescriptor(
+            loader = driverMod.loader,
+            loaderVersion = driverMod.loaderVersion,
+            javaMajorVersion = driverMod.javaMajorVersion,
+            mappingsFingerprint = driverMod.mappingsFingerprint,
+            supported = true,
+            driverMod = driverMod,
         )
     }
 }
