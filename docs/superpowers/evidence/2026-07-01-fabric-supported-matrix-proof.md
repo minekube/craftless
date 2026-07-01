@@ -16,17 +16,28 @@ Result: passed. The task list includes:
 
 ```sh
 bash -n scripts/packaged-fabric-lane-probe.sh
+bash -n scripts/packaged-fabric-supported-matrix-probe.sh
 ```
 
 Result: passed.
+
+```sh
+CRAFTLESS_PACKAGED_MATRIX_DISCOVERY_ONLY=1 \
+CRAFTLESS_PACKAGED_MATRIX_TIMEOUT_MS=120000 \
+bash scripts/packaged-fabric-supported-matrix-probe.sh
+```
+
+Result: passed. The generated `probe-jobs.json` contained three jobs discovered
+from the packaged API: `26.2` requested through `latest-release`, `1.21.6`, and
+`1.20.6`.
 
 ```sh
 mise exec -- bun test playwright/src/distribution.test.ts
 ```
 
 Result: passed. The distribution tests assert the generic packaged Fabric lane
-probe, the `1.21.6` current-lane task, the supported-matrix task, and the
-scheduled/manual GitHub workflow.
+probe, the `1.21.6` current-lane task, the API-discovered supported-matrix
+runner, and the scheduled/manual GitHub workflow.
 
 ```sh
 mise run docs-site-verify
@@ -60,11 +71,13 @@ Result: passed.
 
 ## Current Scope
 
-The supported-matrix task currently composes:
-
-- `mise run packaged-latest-current-probe` for `26.2`;
-- `mise run packaged-current-lane-probe` for `1.21.6`;
-- `mise run packaged-representative-older-probe` for `1.20.6`.
+The supported-matrix task now starts the packaged daemon, reads
+`/versions/runtime-targets` and `/versions/support-targets`, validates the
+reported supported Fabric driver-mod descriptors against packaged
+`driver-mods.json`, writes a generated probe job plan, and invokes the generic
+packaged Fabric lane probe for each supported descriptor. On July 1, 2026, that
+generated plan covered the supported packaged rows for `26.2`, `1.21.6`, and
+`1.20.6`.
 
 This proves the automation surface for every currently supported packaged row
 reported by `/versions/support-targets`. The larger goal remains open: every

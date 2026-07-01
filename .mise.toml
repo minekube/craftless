@@ -234,11 +234,10 @@ run = [
 ]
 
 [tasks.packaged-fabric-supported-matrix-probe]
-description = "Run packaged probes for every currently supported Fabric target"
+description = "Discover and run packaged probes for every currently supported Fabric target"
 run = [
-    "mise run packaged-latest-current-probe",
-    "mise run packaged-current-lane-probe",
-    "mise run packaged-representative-older-probe",
+    "mise run package-cli",
+    "CRAFTLESS_PACKAGED_MATRIX_JAVA_25_EXECUTABLE=$HOME/.local/share/mise/installs/java/temurin-25.0.3+9.0.LTS/bin/java bash scripts/packaged-fabric-supported-matrix-probe.sh",
 ]
 
 [tasks.final-public-gameplay-probe]

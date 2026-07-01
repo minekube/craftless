@@ -4,7 +4,7 @@
 
 **Goal:** Add automated product-surface proof for every currently supported Fabric support-target row.
 
-**Architecture:** Reuse the existing packaged Fabric smoke harness and add one generic packaged Fabric lane probe script. Wire a `1.21.6` current-lane task and a supported-matrix task that runs the latest/current, current, and representative older probes. Guard the distribution surface with Playwright tests and record evidence in docs.
+**Architecture:** Reuse the existing packaged Fabric smoke harness and add one generic packaged Fabric lane probe script. Wire a `1.21.6` current-lane task and a supported-matrix task that discovers supported rows from the packaged daemon, validates them against `driver-mods.json`, and runs the generic lane probe for each supported descriptor. Guard the distribution surface with Playwright tests and record evidence in docs.
 
 **Tech Stack:** Bash, Bun eval snippets, Gradle/mise task orchestration, GitHub Actions, Playwright/Bun tests.
 
@@ -62,16 +62,22 @@ attach, connect, expose generated OpenAPI, and invoke a generated action.
 
 - [x] **Step 1: Add `packaged-fabric-supported-matrix-probe`**
 
-Add a mise task that runs:
+Add a mise task that packages the CLI and runs
+`scripts/packaged-fabric-supported-matrix-probe.sh`. The script must start the
+packaged daemon, fetch `/versions/runtime-targets` and
+`/versions/support-targets`, validate supported rows against the packaged
+`driver-mods.json`, write `probe-jobs.json`, and run
+`scripts/packaged-fabric-lane-probe.sh` for each supported driver-mod
+descriptor.
 
 ```sh
-mise run packaged-latest-current-probe
-mise run packaged-current-lane-probe
-mise run packaged-representative-older-probe
+mise run package-cli
+bash scripts/packaged-fabric-supported-matrix-probe.sh
 ```
 
 Expected result: every currently supported packaged Fabric support target has
-an automated product-surface probe.
+an automated product-surface probe generated from the public support-target
+contract.
 
 - [x] **Step 2: Add the scheduled/manual workflow**
 
@@ -81,7 +87,8 @@ Create `.github/workflows/fabric-support-matrix.yml` with:
 - a cron schedule;
 - Ubuntu runner with mise;
 - `mise run packaged-fabric-supported-matrix-probe`;
-- artifact upload for the three probe artifact directories.
+- artifact upload for the generated matrix root and the historical named probe
+  artifact directories.
 
 ### Task 3: Distribution Guards And Evidence
 
@@ -98,6 +105,8 @@ Add tests that assert:
 - `.mise.toml` contains `packaged-current-lane-probe`;
 - `.mise.toml` contains `CRAFTLESS_PACKAGED_FABRIC_VERSION=1.21.6`;
 - `.mise.toml` contains `packaged-fabric-supported-matrix-probe`;
+- `scripts/packaged-fabric-supported-matrix-probe.sh` fetches
+  `/versions/support-targets` and writes `probe-jobs.json`;
 - `.github/workflows/fabric-support-matrix.yml` runs
   `mise run packaged-fabric-supported-matrix-probe`.
 

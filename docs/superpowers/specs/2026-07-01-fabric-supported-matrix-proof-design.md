@@ -4,18 +4,19 @@
 
 `GET /versions/support-targets` now reports every Fabric Minecraft target as
 supported or unsupported. That makes the matrix visible, but support rows must
-also have automated product-surface proof. The current packaged distribution
-has supported driver lanes for `26.2`, `1.21.6`, and `1.20.6`; the repository
-already has product probes for latest/current `26.2` and representative older
-`1.20.6`, but the packaged `1.21.6` current lane is not a named matrix probe.
+also have automated product-surface proof and that proof must stay aligned with
+the packaged API contract as driver lanes are added. The current packaged
+distribution has supported driver lanes for `26.2`, `1.21.6`, and `1.20.6`.
 
 ## Goals
 
 - Add an automated packaged `1.21.6` Fabric lane probe that creates, attaches,
   connects, reads generated per-client OpenAPI/actions/resources, invokes a
   generated action, and records artifacts through public Craftless surfaces.
-- Add a matrix task that runs the packaged probes for every currently
-  supported Fabric target.
+- Add a matrix task that discovers supported Fabric rows from the packaged
+  daemon's `/versions/support-targets` response, validates that response
+  against the packaged driver manifest, and runs a packaged probe for every
+  supported driver-mod descriptor.
 - Add a scheduled/manual GitHub workflow for the supported Fabric matrix.
 - Keep unsupported Fabric targets explicit through `NO_DRIVER_MOD`; do not
   claim unsupported rows launch.
@@ -33,8 +34,8 @@ already has product probes for latest/current `26.2` and representative older
 
 - `mise run packaged-current-lane-probe` exists and targets Minecraft `1.21.6`
   with Fabric Loader `0.19.3`.
-- `mise run packaged-fabric-supported-matrix-probe` exists and runs the
-  supported packaged probes for `26.2`, `1.21.6`, and `1.20.6`.
+- `mise run packaged-fabric-supported-matrix-probe` exists and runs a generated
+  supported-row probe plan from `/versions/support-targets`.
 - `.github/workflows/fabric-support-matrix.yml` runs the matrix task on
   `workflow_dispatch` and a cron schedule.
 - Playwright distribution tests assert the new task and workflow are present.

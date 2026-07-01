@@ -50,9 +50,11 @@ jobs:
           name: fabric-support-matrix-reports
           if-no-files-found: warn
           path: |
+            build/craftless-packaged-fabric-supported-matrix
             build/craftless-packaged-latest-current-probe
             build/craftless-packaged-current-lane-probe
             build/craftless-packaged-representative-older-probe
+            driver-fabric/build/craftless-packaged-fabric-supported-matrix
             driver-fabric/build/craftless-packaged-latest-current-probe
             driver-fabric/build/craftless-packaged-current-lane-probe
             driver-fabric/build/craftless-packaged-representative-older-probe

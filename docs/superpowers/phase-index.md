@@ -253,8 +253,10 @@ Evidence:
 Phase 199 adds the first supported-matrix proof gate. A generic packaged
 Fabric lane probe now drives a configured lane through public Craftless
 surfaces, `packaged-current-lane-probe` covers the packaged `1.21.6` row, and
-`packaged-fabric-supported-matrix-probe` composes the `26.2`, `1.21.6`, and
-`1.20.6` packaged lane probes. A scheduled/manual GitHub workflow can run the
+`packaged-fabric-supported-matrix-probe` now discovers supported rows from the
+packaged daemon's `/versions/support-targets`, validates that response against
+the packaged driver manifest, and runs the generic lane probe for each
+supported driver-mod descriptor. A scheduled/manual GitHub workflow can run the
 full supported matrix without making every push launch all Minecraft clients.
 Evidence:
 `docs/superpowers/evidence/2026-07-01-fabric-supported-matrix-proof.md`.

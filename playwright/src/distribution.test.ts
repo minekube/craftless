@@ -147,6 +147,7 @@ describe("distribution surface", () => {
   test("packaged supported Fabric matrix probes all supported rows", () => {
     const mise = read(".mise.toml");
     const script = read("scripts/packaged-fabric-lane-probe.sh");
+    const matrixScript = read("scripts/packaged-fabric-supported-matrix-probe.sh");
     const workflow = read(".github/workflows/fabric-support-matrix.yml");
 
     expect(mise).toContain("[tasks.packaged-current-lane-probe]");
@@ -159,9 +160,8 @@ describe("distribution surface", () => {
     expect(mise).toContain("CRAFTLESS_PACKAGED_FABRIC_LABEL=current-lane");
     expect(mise).toContain("$PWD/scripts/packaged-fabric-lane-probe.sh");
     expect(mise).toContain("[tasks.packaged-fabric-supported-matrix-probe]");
-    expect(mise).toContain("mise run packaged-latest-current-probe");
-    expect(mise).toContain("mise run packaged-current-lane-probe");
-    expect(mise).toContain("mise run packaged-representative-older-probe");
+    expect(mise).toContain("bash scripts/packaged-fabric-supported-matrix-probe.sh");
+    expect(mise).toContain("CRAFTLESS_PACKAGED_MATRIX_JAVA_25_EXECUTABLE");
     expect(script).toContain("CRAFTLESS_PACKAGED_FABRIC_VERSION is required");
     expect(script).toContain("CRAFTLESS_PACKAGED_FABRIC_LOADER_VERSION");
     expect(script).toContain("supervisor-openapi.json");
@@ -175,12 +175,24 @@ describe("distribution surface", () => {
     expect(script).toContain('api "/clients/$CLIENT_ID:run"');
     expect(script).not.toContain(":driver-fabric:runClient");
     expect(script).not.toContain("task.survival");
+    expect(matrixScript).toContain("/versions/runtime-targets");
+    expect(matrixScript).toContain("/versions/support-targets");
+    expect(matrixScript).toContain("CRAFTLESS_PACKAGED_MATRIX_DISCOVERY_ONLY");
+    expect(matrixScript).toContain("driver-mods.json");
+    expect(matrixScript).toContain("support-target-validation-error.json");
+    expect(matrixScript).toContain("probe-jobs.json");
+    expect(matrixScript).toContain("probe-jobs.tsv");
+    expect(matrixScript).toContain("CRAFTLESS_PACKAGED_FABRIC_VERSION=$REQUEST_VERSION");
+    expect(matrixScript).toContain("CRAFTLESS_PACKAGED_FABRIC_LOADER_VERSION=$LOADER_VERSION");
+    expect(matrixScript).toContain("CRAFTLESS_SMOKE_ACTION_COMMAND_JSON=[\\\"$ROOT/scripts/packaged-fabric-lane-probe.sh\\\"]");
+    expect(matrixScript).toContain(":driver-fabric:fabricClientSmoke");
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).toContain("schedule:");
     expect(workflow).toContain("Install Minecraft runtime packages");
     expect(workflow).toContain("xvfb");
     expect(workflow).toContain("mise run packaged-fabric-supported-matrix-probe");
     expect(workflow).toContain("if-no-files-found: warn");
+    expect(workflow).toContain("build/craftless-packaged-fabric-supported-matrix");
     expect(workflow).toContain("build/craftless-packaged-current-lane-probe");
     expect(workflow).toContain("driver-fabric/build/craftless-packaged-current-lane-probe");
   });
