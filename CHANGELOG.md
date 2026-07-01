@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.3.0](https://github.com/minekube/craftless/compare/v0.2.0...v0.3.0) (2026-07-01)
+
+
+### Features
+
+* expose Fabric loader matrix rows ([222c7c9](https://github.com/minekube/craftless/commit/222c7c915092329e5364a227e401099a71475d93))
+* expose Fabric runtime support targets ([6511765](https://github.com/minekube/craftless/commit/6511765d36bd35594b24d2159971c000dd244a89))
+* report Fabric support targets ([22babb5](https://github.com/minekube/craftless/commit/22babb51e3b781ae28a76294f6a947c965f03429))
+
+
+### Bug Fixes
+
+* align Fabric matrix with game loader metadata ([011f356](https://github.com/minekube/craftless/commit/011f356dab416bcbc18e7a613939594bbc8ae5e8))
+* align wildcard Fabric lanes with support matrix ([3f20335](https://github.com/minekube/craftless/commit/3f20335ba1d06b43f0a0aac189af123a1ebdd5b4))
+* allow Fabric API patch drift for driver lanes ([c797980](https://github.com/minekube/craftless/commit/c7979806c7b7b4b48f41ddff243ab5ba78457df3))
+* avoid final gameplay activity hold race ([4a5be72](https://github.com/minekube/craftless/commit/4a5be729e8b1e040ad40e751543dea39cad8205e))
+* fail closed for unavailable headless launches ([a3a620f](https://github.com/minekube/craftless/commit/a3a620f3c13cc3a2928c8d5ca392917a5acdae44))
+* limit Fabric matrix loader metadata fanout ([6b338a1](https://github.com/minekube/craftless/commit/6b338a1cfa54a2c6f683f14055f9ad0cdd9c9f7e))
+* reject undiscovered Fabric loader targets ([dd192f6](https://github.com/minekube/craftless/commit/dd192f65f35a85fd3efc8c60543d8031cda778f0))
+* reject unsupported Fabric runtime targets ([b082490](https://github.com/minekube/craftless/commit/b082490d137debece7ed5810b2726585535aed15))
+* structure Fabric runtime target errors ([d19f9e0](https://github.com/minekube/craftless/commit/d19f9e0ca445a972d2f8626cba416b6a78c290df))
+
 ## [0.2.0](https://github.com/minekube/craftless/compare/v0.1.2...v0.2.0) (2026-06-29)
 
 
