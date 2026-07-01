@@ -22,6 +22,7 @@ import com.minekube.craftless.protocol.ClientWindowMode
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.DriverModVersionDescriptor
 import com.minekube.craftless.protocol.DriverModVersionListResult
+import com.minekube.craftless.protocol.FabricSupportReason
 import com.minekube.craftless.protocol.InstanceFiles
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
@@ -179,6 +180,22 @@ data class ClientRuntimeDriverModRequest(
     }
 }
 
+class UnsupportedClientRuntimeTarget(
+    val reason: FabricSupportReason,
+    request: ClientRuntimeDriverModRequest,
+    availableLoaderVersions: List<String>,
+) : RuntimeException(
+        buildString {
+            append(reason.name)
+            append(": no Craftless driver lane supports ")
+            append(request.runtimeIdentityLabel())
+            if (availableLoaderVersions.isNotEmpty()) {
+                append("; available Fabric loader versions for this Minecraft target: ")
+                append(availableLoaderVersions.joinToString(", "))
+            }
+        },
+    )
+
 object NoClientRuntimeDriverModProvider : ClientRuntimeDriverModProvider {
     override fun modFor(request: ClientRuntimeDriverModRequest): Path? = null
 }
@@ -201,10 +218,7 @@ class ConfiguredClientRuntimeDriverModProvider(
         if (manifestPath != null) {
             return manifestModsFor(request, manifestPath)
                 ?: if (request.loader == Loader.FABRIC) {
-                    throw IllegalArgumentException(
-                        "driver mod manifest has no Fabric entry for " +
-                            request.runtimeIdentityLabel(),
-                    )
+                    throw unsupportedRuntimeTarget(request, manifestPath)
                 } else {
                     ClientRuntimeDriverMods(primary = null)
                 }
@@ -282,6 +296,23 @@ class ConfiguredClientRuntimeDriverModProvider(
                 entry.loader == request.loader &&
                     entry.minecraftVersion == request.minecraftVersion
             }
+    }
+
+    private fun unsupportedRuntimeTarget(
+        request: ClientRuntimeDriverModRequest,
+        manifestPath: Path,
+    ): UnsupportedClientRuntimeTarget {
+        val entries = manifestEntriesFor(request, manifestPath)
+        return UnsupportedClientRuntimeTarget(
+            reason =
+                if (entries.isEmpty()) {
+                    FabricSupportReason.NO_DRIVER_MOD
+                } else {
+                    FabricSupportReason.NO_COMPATIBLE_DRIVER_MOD
+                },
+            request = request,
+            availableLoaderVersions = entries.mapNotNull { entry -> entry.loaderVersion }.distinct().sorted(),
+        )
     }
 
     companion object {

@@ -279,3 +279,11 @@ keeps the larger all-Fabric compatibility goal honest by making unsupported
 loader/runtime combinations visible instead of implicit.
 Evidence:
 `docs/superpowers/evidence/2026-07-01-fabric-loader-runtime-matrix.md`.
+Phase 202 aligns create-client rejection with the Fabric runtime matrix.
+`POST /clients` now converts configured Fabric driver-lane misses into the
+public `UNSUPPORTED_RUNTIME_TARGET` error before launch, carrying
+`NO_DRIVER_MOD` or `NO_COMPATIBLE_DRIVER_MOD` in the message so agents and API
+callers can distinguish unsupported Minecraft targets from unsupported loader
+runtime identities.
+Evidence:
+`docs/superpowers/evidence/2026-07-02-runtime-target-create-rejection.md`.

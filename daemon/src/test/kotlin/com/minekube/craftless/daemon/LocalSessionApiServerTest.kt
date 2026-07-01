@@ -887,6 +887,73 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `prepared runtime rejects unsupported Fabric loader lane with matrix reason`() =
+        withHttpClient { http ->
+            val workspace = Files.createTempDirectory("craftless-driver-mod-unsupported-loader-lane")
+            val distribution = Files.createTempDirectory("craftless-driver-mod-unsupported-loader-distribution")
+            val driverMod = distribution.resolve("mods/manifest-driver.jar")
+            Files.createDirectories(driverMod.parent)
+            Files.writeString(driverMod, "manifest-driver-mod")
+            val manifest = distribution.resolve("driver-mods.json")
+            Files.writeString(
+                manifest,
+                """
+                {
+                  "entries": [
+                    {
+                      "loader": "FABRIC",
+                      "minecraftVersion": "1.21.6",
+                      "loaderVersion": "0.17.2",
+                      "path": "mods/manifest-driver.jar"
+                    }
+                  ]
+                }
+                """.trimIndent(),
+            )
+            val launcher = RecordingClientRuntimeLauncher()
+
+            LocalSessionApiServer
+                .inMemory(
+                    workspaceRoot = workspace,
+                    cacheMetadataFetcher = preparedRuntimeMetadataFetcher(),
+                    clientRuntimeLauncher = launcher,
+                    clientRuntimeDriverModProvider =
+                        ConfiguredClientRuntimeDriverModProvider(
+                            environment =
+                                mapOf(
+                                    ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_DRIVER_MOD_MANIFEST to
+                                        manifest.toString(),
+                                ),
+                        ),
+                ).use { server ->
+                    server.start()
+
+                    val response =
+                        http.post(server.url("/clients")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "id": "alice",
+                                  "version": "1.21.6",
+                                  "loader": "FABRIC",
+                                  "loaderVersion": "0.16.14",
+                                  "profile": { "kind": "OFFLINE", "name": "Alice" }
+                                }
+                                """.trimIndent(),
+                            )
+                        }
+
+                    assertEquals(HttpStatusCode.BadRequest, response.status)
+                    val body = response.bodyAsText()
+                    assertError(body, "UNSUPPORTED_RUNTIME_TARGET", "NO_COMPATIBLE_DRIVER_MOD")
+                    assertError(body, "UNSUPPORTED_RUNTIME_TARGET", "1.21.6")
+                    assertError(body, "UNSUPPORTED_RUNTIME_TARGET", "0.16.14")
+                    assertEquals(emptyList(), launcher.launches)
+                }
+        }
+
+    @Test
     fun `prepared runtime defaults loader version from driver mod provider preference`() =
         withHttpClient { http ->
             val workspace = Files.createTempDirectory("craftless-driver-mod-preferred-loader-lane")

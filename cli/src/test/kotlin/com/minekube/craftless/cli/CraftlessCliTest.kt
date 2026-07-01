@@ -841,7 +841,8 @@ class CraftlessCliTest {
 
         assertEquals(0, exit)
         assertEquals(400, createStatus, createBody)
-        assertTrue(createBody.contains("driver mod manifest"), createBody)
+        assertTrue(createBody.contains("UNSUPPORTED_RUNTIME_TARGET"), createBody)
+        assertTrue(createBody.contains("NO_COMPATIBLE_DRIVER_MOD"), createBody)
         assertTrue(!Files.exists(workspace.resolve("cache/mods/craftless")))
     }
 

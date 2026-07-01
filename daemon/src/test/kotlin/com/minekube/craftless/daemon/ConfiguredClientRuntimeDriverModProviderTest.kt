@@ -1,5 +1,6 @@
 package com.minekube.craftless.daemon
 
+import com.minekube.craftless.protocol.FabricSupportReason
 import com.minekube.craftless.protocol.Loader
 import java.nio.file.Files
 import kotlin.test.Test
@@ -272,7 +273,7 @@ class ConfiguredClientRuntimeDriverModProviderTest {
             )
 
         val error =
-            assertFailsWith<IllegalArgumentException> {
+            assertFailsWith<UnsupportedClientRuntimeTarget> {
                 provider.modFor(
                     ClientRuntimeDriverModRequest(
                         loader = Loader.FABRIC,
@@ -283,7 +284,7 @@ class ConfiguredClientRuntimeDriverModProviderTest {
                 )
             }
 
-        assertTrue(error.message?.contains("driver mod manifest") == true)
+        assertEquals(FabricSupportReason.NO_COMPATIBLE_DRIVER_MOD, error.reason)
         assertTrue(error.message?.contains("1.21.6") == true)
         assertTrue(error.message?.contains("0.17.2") == true)
         assertTrue(error.message?.contains("0.128.2+1.21.7") == true)
@@ -321,7 +322,7 @@ class ConfiguredClientRuntimeDriverModProviderTest {
             )
 
         val error =
-            assertFailsWith<IllegalArgumentException> {
+            assertFailsWith<UnsupportedClientRuntimeTarget> {
                 provider.modFor(
                     ClientRuntimeDriverModRequest(
                         loader = Loader.FABRIC,
@@ -332,7 +333,7 @@ class ConfiguredClientRuntimeDriverModProviderTest {
                 )
             }
 
-        assertTrue(error.message?.contains("driver mod manifest") == true)
+        assertEquals(FabricSupportReason.NO_COMPATIBLE_DRIVER_MOD, error.reason)
         assertTrue(error.message?.contains("javaMajorVersion=21") == true)
     }
 
@@ -370,7 +371,7 @@ class ConfiguredClientRuntimeDriverModProviderTest {
             )
 
         val error =
-            assertFailsWith<IllegalArgumentException> {
+            assertFailsWith<UnsupportedClientRuntimeTarget> {
                 provider.modFor(
                     ClientRuntimeDriverModRequest(
                         loader = Loader.FABRIC,
@@ -380,7 +381,7 @@ class ConfiguredClientRuntimeDriverModProviderTest {
                 )
             }
 
-        assertTrue(error.message?.contains("driver mod manifest") == true)
+        assertEquals(FabricSupportReason.NO_DRIVER_MOD, error.reason)
         assertTrue(error.message?.contains("1.21.7") == true)
         assertTrue(error.message?.contains("0.17.2") == true)
     }

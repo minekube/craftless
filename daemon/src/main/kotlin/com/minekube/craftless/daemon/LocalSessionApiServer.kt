@@ -211,7 +211,14 @@ class LocalSessionApiServer private constructor(
                         )
                     call.respondJson(HttpStatusCode.Created, client)
                 }.getOrElse { error ->
-                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                    when (error) {
+                        is UnsupportedClientRuntimeTarget ->
+                            call.respondJson(
+                                HttpStatusCode.BadRequest,
+                                ErrorResponse("UNSUPPORTED_RUNTIME_TARGET", error.message ?: error.reason.name),
+                            )
+                        else -> call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                    }
                 }
             }
             post("/clients/{id}:attach") {

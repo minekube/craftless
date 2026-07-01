@@ -170,3 +170,5 @@ Required negative proof:
   `docs/superpowers/evidence/2026-07-01-fabric-runtime-target-support.md`.
 - Phase 201:
   `docs/superpowers/evidence/2026-07-01-fabric-loader-runtime-matrix.md`.
+- Phase 202:
+  `docs/superpowers/evidence/2026-07-02-runtime-target-create-rejection.md`.
