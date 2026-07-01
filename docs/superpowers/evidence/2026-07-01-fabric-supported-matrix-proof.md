@@ -42,6 +42,17 @@ Result: passed. This included lint, unused-check/detekt, Gradle tests,
 packaged Craftless CLI smoke, and Playwright tests.
 
 ```sh
+gh run watch 28545512512 --repo minekube/craftless --exit-status
+```
+
+Result: passed. The manual `fabric support matrix` workflow completed
+successfully on main in 16m29s:
+<https://github.com/minekube/craftless/actions/runs/28545512512>.
+
+The run uploaded `fabric-support-matrix-reports` as artifact `8022012394`,
+preserving packaged probe reports for the supported Fabric rows.
+
+```sh
 git diff --check
 ```
 
