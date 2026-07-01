@@ -57,13 +57,16 @@ class VersionDiscoveryService(
         coroutineScope {
             val gameVersions = listFabricGameVersions().versions
             val loaderVersions = listFabricLoaderVersions().versions
-            val compatibleLoaderVersionsByGameVersion = compatibleLoaderVersionsByGameVersion(gameVersions)
             val driverMods = listDriverModVersions()
             val fabricDriverModsByMinecraftVersion =
                 driverMods
                     .entries
                     .filter { entry -> entry.loader == Loader.FABRIC }
                     .groupBy { entry -> entry.minecraftVersion }
+            val compatibleLoaderVersionsByGameVersion =
+                compatibleLoaderVersionsByGameVersion(
+                    gameVersions.filter { version -> version.version in fabricDriverModsByMinecraftVersion },
+                )
             FabricSupportTargetListResult(
                 source = driverMods.source,
                 targets =
@@ -72,7 +75,9 @@ class VersionDiscoveryService(
                         val runtimeTargets =
                             matches.runtimeTargets(
                                 loaderVersions = loaderVersions,
-                                compatibleLoaderVersions = compatibleLoaderVersionsByGameVersion.getValue(version.version),
+                                compatibleLoaderVersions =
+                                    compatibleLoaderVersionsByGameVersion[version.version]
+                                        ?: loaderVersions,
                             )
                         FabricSupportTargetDescriptor(
                             minecraftVersion = version.version,

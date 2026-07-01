@@ -611,6 +611,103 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `support targets do not fetch game loader metadata for targets without driver rows`() =
+        withHttpClient { http ->
+            val root = Files.createTempDirectory("craftless-version-discovery-no-driver-loader-fetch")
+            val manifest = root.resolve("driver-mods.json")
+            Files.writeString(
+                manifest,
+                """
+                {
+                  "entries": [
+                    {
+                      "loader": "FABRIC",
+                      "minecraftVersion": "1.21.6",
+                      "loaderVersion": "0.17.2",
+                      "javaMajorVersion": 21,
+                      "mappingsFingerprint": "craftless-fabric-current",
+                      "path": "mods/fabric-1.21.6/craftless-driver-fabric.jar"
+                    }
+                  ]
+                }
+                """.trimIndent(),
+            )
+            val metadataFetcher =
+                ServerStaticCacheMetadataFetcher(
+                    mapOf(
+                        MINECRAFT_VERSION_INDEX_URL to
+                            """
+                            {
+                              "latest": {
+                                "release": "1.21.6",
+                                "snapshot": "26.3-snapshot-1"
+                              },
+                              "versions": [
+                                {
+                                  "id": "1.21.6",
+                                  "type": "release",
+                                  "url": "https://metadata.test/1.21.6.json"
+                                },
+                                {
+                                  "id": "26.3-snapshot-1",
+                                  "type": "snapshot",
+                                  "url": "https://metadata.test/26.3-snapshot-1.json"
+                                }
+                              ]
+                            }
+                            """.trimIndent(),
+                        "$FABRIC_META_BASE_URL/versions/game" to
+                            """
+                            [
+                              { "version": "1.21.6", "stable": true },
+                              { "version": "26.3-snapshot-1", "stable": false }
+                            ]
+                            """.trimIndent(),
+                        "$FABRIC_META_BASE_URL/versions/loader" to
+                            """
+                            [
+                              { "loader": { "version": "0.17.2", "stable": true } },
+                              { "loader": { "version": "0.16.14", "stable": true } }
+                            ]
+                            """.trimIndent(),
+                        "$FABRIC_META_BASE_URL/versions/loader/1.21.6" to
+                            """
+                            [
+                              { "loader": { "version": "0.17.2", "stable": true } }
+                            ]
+                            """.trimIndent(),
+                    ),
+                )
+            fakeLocalSessionApiServer(
+                cacheMetadataFetcher = metadataFetcher,
+                clientRuntimeDriverModProvider =
+                    ConfiguredClientRuntimeDriverModProvider(
+                        environment =
+                            mapOf(
+                                ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_DRIVER_MOD_MANIFEST to manifest.toString(),
+                            ),
+                    ),
+            ).use { server ->
+                server.start()
+
+                val response = http.get(server.url("/versions/support-targets"))
+                val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+                val targets = body["targets"]?.jsonArray?.map { it.jsonObject }.orEmpty()
+                val unsupported = targets.single { it["minecraftVersion"]?.jsonPrimitive?.content == "26.3-snapshot-1" }
+                val unsupportedRuntimeTargets = unsupported["runtimeTargets"]?.jsonArray?.map { it.jsonObject }.orEmpty()
+
+                assertEquals(HttpStatusCode.OK, response.status)
+                assertEquals(false, unsupported["supported"]?.jsonPrimitive?.boolean)
+                assertEquals("NO_DRIVER_MOD", unsupported["reason"]?.jsonPrimitive?.content)
+                assertEquals(2, unsupportedRuntimeTargets.size)
+                unsupportedRuntimeTargets.forEach { runtimeTarget ->
+                    assertEquals(false, runtimeTarget["supported"]?.jsonPrimitive?.boolean)
+                    assertEquals("NO_DRIVER_MOD", runtimeTarget["reason"]?.jsonPrimitive?.content)
+                }
+            }
+        }
+
+    @Test
     fun `server prepares instance file directories under configured workspace`() =
         withHttpClient { http ->
             val workspace = Files.createTempDirectory("craftless-server-client-files")

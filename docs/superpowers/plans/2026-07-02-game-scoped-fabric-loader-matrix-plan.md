@@ -10,7 +10,9 @@ used by cache preparation and client creation.
 - [x] Add a failing daemon API regression where Fabric's global loader list
   includes `0.19.2`, but `/versions/loader/1.21.6` lists only `0.17.2`.
 - [x] Change `VersionDiscoveryService` to fetch game-scoped loader metadata for
-  each Fabric game target with bounded concurrency.
+  Fabric game targets with configured driver rows, using bounded concurrency.
+- [x] Keep no-driver targets classified from the global loader list and driver
+  manifest instead of fetching unnecessary per-game loader metadata.
 - [x] Generate runtime rows from the union of global loader versions,
   game-scoped loader versions, and explicit manifest loader versions.
 - [x] Mark loaders absent from game-scoped metadata as

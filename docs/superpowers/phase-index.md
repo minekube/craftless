@@ -305,9 +305,11 @@ Evidence:
 `docs/superpowers/evidence/2026-07-02-fabric-loader-request-rejection.md`.
 Phase 205 aligns the support matrix with game-scoped Fabric Loader metadata.
 `GET /versions/support-targets` now fetches `/versions/loader/{minecraftVersion}`
-for each Fabric game target and marks globally listed loader versions that are
-absent from that game-scoped metadata as `NO_COMPATIBLE_FABRIC_LOADER` instead
-of supported. Wildcard driver lanes still project onto compatible loader
+for Fabric game targets with configured driver rows and marks globally listed
+loader versions that are absent from that game-scoped metadata as
+`NO_COMPATIBLE_FABRIC_LOADER` instead of supported. Targets without driver rows
+remain explicit `NO_DRIVER_MOD` rows without unnecessary per-game loader
+metadata fanout. Wildcard driver lanes still project onto compatible loader
 versions, but not onto loaders Fabric does not advertise for that game.
 Evidence:
 `docs/superpowers/evidence/2026-07-02-game-scoped-fabric-loader-matrix.md`.
