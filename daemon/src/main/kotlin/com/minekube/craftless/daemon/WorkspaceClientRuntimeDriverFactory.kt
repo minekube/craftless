@@ -261,6 +261,7 @@ class ConfiguredClientRuntimeDriverModProvider(
                 .filter { entry -> entry.matches(request) }
                 .maxWithOrNull(
                     compareBy<ConfiguredDriverModManifestEntry> { entry -> if (entry.loaderVersion == request.loaderVersion) 1 else 0 }
+                        .thenBy { entry -> entry.fabricApiExactness(request) }
                         .thenBy { entry -> entry.runtimeIdentitySpecificity() },
                 )
                 ?: return null
@@ -307,11 +308,14 @@ private data class ConfiguredDriverModManifestEntry(
 ) {
     fun matches(request: ClientRuntimeDriverModRequest): Boolean =
         (loaderVersion == request.loaderVersion || loaderVersion == null) &&
-            optionalMatches(fabricApiVersion, request.fabricApiVersion) &&
+            fabricApiMatches(fabricApiVersion, request.fabricApiVersion, request.minecraftVersion) &&
             optionalMatches(javaMajorVersion, request.javaMajorVersion) &&
             optionalMatches(mappingsFingerprint, request.mappingsFingerprint)
 
     fun runtimeIdentitySpecificity(): Int = listOfNotNull(loaderVersion, fabricApiVersion, javaMajorVersion, mappingsFingerprint).size
+
+    fun fabricApiExactness(request: ClientRuntimeDriverModRequest): Int =
+        if (fabricApiVersion != null && fabricApiVersion == request.fabricApiVersion) 1 else 0
 }
 
 private fun String.resolveManifestEntryPath(manifestPath: Path): Path {
@@ -323,6 +327,18 @@ private fun <T> optionalMatches(
     manifestValue: T?,
     requestValue: T?,
 ): Boolean = manifestValue == null || requestValue == null || manifestValue == requestValue
+
+private fun fabricApiMatches(
+    manifestValue: String?,
+    requestValue: String?,
+    minecraftVersion: String,
+): Boolean {
+    if (manifestValue == null || requestValue == null || manifestValue == requestValue) return true
+    return manifestValue.fabricApiMinecraftTarget() == minecraftVersion &&
+        requestValue.fabricApiMinecraftTarget() == minecraftVersion
+}
+
+private fun String.fabricApiMinecraftTarget(): String? = substringAfterLast('+', missingDelimiterValue = "").takeIf { it.isNotBlank() }
 
 private fun ClientRuntimeDriverModRequest.runtimeIdentityLabel(): String =
     buildString {

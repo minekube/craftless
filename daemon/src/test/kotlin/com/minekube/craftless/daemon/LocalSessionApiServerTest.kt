@@ -1238,13 +1238,15 @@ class LocalSessionApiServerTest {
         }
 
     @Test
-    fun `client creation rejects missing latest fabric driver lane before binary downloads`() =
+    fun `client creation accepts latest fabric api patch drift for packaged latest lane`() =
         withHttpClient { http ->
-            val workspace = Files.createTempDirectory("craftless-latest-lane-preflight")
-            val distribution = Files.createTempDirectory("craftless-latest-lane-preflight-distribution")
+            val workspace = Files.createTempDirectory("craftless-latest-lane-drift")
+            val distribution = Files.createTempDirectory("craftless-latest-lane-drift-distribution")
             val currentDriverMod = distribution.resolve("mods/craftless-driver-fabric.jar")
-            Files.createDirectories(currentDriverMod.parent)
+            val latestDriverMod = distribution.resolve("mods/fabric-26.2/craftless-driver-fabric-official.jar")
+            Files.createDirectories(latestDriverMod.parent)
             Files.writeString(currentDriverMod, "current-driver-mod")
+            Files.writeString(latestDriverMod, "latest-driver-mod")
             val manifest = distribution.resolve("driver-mods.json")
             Files.writeString(
                 manifest,
@@ -1258,6 +1260,14 @@ class LocalSessionApiServerTest {
                       "fabricApiVersion": "0.128.2+1.21.6",
                       "javaMajorVersion": 21,
                       "path": "mods/craftless-driver-fabric.jar"
+                    },
+                    {
+                      "loader": "FABRIC",
+                      "minecraftVersion": "26.2",
+                      "loaderVersion": "0.19.3",
+                      "fabricApiVersion": "0.153.0+26.2",
+                      "javaMajorVersion": 25,
+                      "path": "mods/fabric-26.2/craftless-driver-fabric-official.jar"
                     }
                   ]
                 }
@@ -1297,14 +1307,17 @@ class LocalSessionApiServerTest {
                             )
                         }
 
-                    assertEquals(HttpStatusCode.BadRequest, response.status)
-                    val body = response.bodyAsText()
-                    assertTrue(body.contains("driver mod manifest has no Fabric entry for 26.2 0.19.3"))
-                    assertTrue(body.contains("fabricApiVersion=0.153.0+26.2"))
-                    assertTrue(body.contains("javaMajorVersion=25"))
-                    assertEquals(emptyList(), launcher.launches)
-                    assertEquals(emptyList(), metadataFetcher.binaryFetches)
-                    assertFalse(Files.exists(workspace.resolve("cache/assets/objects")))
+                    assertEquals(HttpStatusCode.Created, response.status, response.bodyAsText())
+                    val launch = launcher.launches.single()
+                    val driverHandle =
+                        launch.prepared.artifacts
+                            .single { artifact ->
+                                artifact.kind == CachePreparedArtifactKind.FABRIC_MOD &&
+                                    artifact.source == latestDriverMod.toUri().toString()
+                            }.handle
+                    assertTrue(launch.launch.mods.contains(driverHandle))
+                    assertEquals("latest-driver-mod", Files.readString(workspace.resolve(driverHandle)))
+                    assertTrue(metadataFetcher.binaryFetches.contains(SERVER_LATEST_TEST_FABRIC_API_JAR_URL))
                 }
         }
 
@@ -2901,7 +2914,7 @@ private class RecordingServerStaticCacheMetadataFetcher(
 
 private const val SERVER_DEFAULT_TEST_FABRIC_API_VERSION = "0.129.0+1.21.6"
 private const val SERVER_OLDER_TEST_FABRIC_API_VERSION = "0.100.8+1.20.6"
-private const val SERVER_LATEST_TEST_FABRIC_API_VERSION = "0.153.0+26.2"
+private const val SERVER_LATEST_TEST_FABRIC_API_VERSION = "0.154.0+26.2"
 private const val SERVER_DEFAULT_TEST_FABRIC_API_METADATA_URL =
     "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml"
 private const val SERVER_DEFAULT_TEST_FABRIC_API_JAR_URL =
@@ -2909,7 +2922,7 @@ private const val SERVER_DEFAULT_TEST_FABRIC_API_JAR_URL =
 private const val SERVER_OLDER_TEST_FABRIC_API_JAR_URL =
     "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/0.100.8+1.20.6/fabric-api-0.100.8+1.20.6.jar"
 private const val SERVER_LATEST_TEST_FABRIC_API_JAR_URL =
-    "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/0.153.0+26.2/fabric-api-0.153.0+26.2.jar"
+    "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/0.154.0+26.2/fabric-api-0.154.0+26.2.jar"
 
 private fun serverDefaultTestFabricApiMetadata(): String =
     """
@@ -3334,12 +3347,7 @@ private fun preparedRuntimeMetadataFetcherWithLatestRelease26(): RecordingServer
             assetIndexUrl to
                 """
                 {
-                  "objects": {
-                    "minecraft/sounds/example.ogg": {
-                      "hash": "0123456789abcdef0123456789abcdef01234567",
-                      "size": 1
-                    }
-                  }
+                  "objects": {}
                 }
                 """.trimIndent(),
             loaderVersionsUrl to """[{ "loader": { "version": "0.19.3", "stable": true } }]""",
@@ -3376,8 +3384,6 @@ private fun preparedRuntimeMetadataFetcherWithLatestRelease26(): RecordingServer
                 javaExecutableUrl to serverFakeJavaBytes("25.0.3"),
                 latestFabricLoaderJarUrl to "latest-fabric-loader-jar".encodeToByteArray(),
                 SERVER_LATEST_TEST_FABRIC_API_JAR_URL to "latest-fabric-api-jar".encodeToByteArray(),
-                "https://resources.download.minecraft.net/01/0123456789abcdef0123456789abcdef01234567" to
-                    "a".encodeToByteArray(),
             ),
     )
 }

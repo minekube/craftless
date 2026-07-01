@@ -197,8 +197,52 @@ class ConfiguredClientRuntimeDriverModProviderTest {
     }
 
     @Test
-    fun `manifest fabric api mismatch rejects runtime identity`() {
+    fun `manifest accepts fabric api patch drift for same minecraft target`() {
         val root = Files.createTempDirectory("craftless-driver-mod-manifest-fabric-api")
+        val manifestMod = root.resolve("mods/craftless-driver-fabric-1.21.6.jar")
+        Files.createDirectories(manifestMod.parent)
+        Files.writeString(manifestMod, "manifest-driver")
+        val manifest = root.resolve("driver-mods.json")
+        Files.writeString(
+            manifest,
+            """
+            {
+              "entries": [
+                {
+                  "loader": "FABRIC",
+                  "minecraftVersion": "1.21.6",
+                  "loaderVersion": "0.17.2",
+                  "fabricApiVersion": "0.127.0+1.21.6",
+                  "path": "mods/craftless-driver-fabric-1.21.6.jar"
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+        val provider =
+            ConfiguredClientRuntimeDriverModProvider(
+                environment =
+                    mapOf(
+                        ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_DRIVER_MOD_MANIFEST to manifest.toString(),
+                    ),
+            )
+
+        val selected =
+            provider.modFor(
+                ClientRuntimeDriverModRequest(
+                    loader = Loader.FABRIC,
+                    minecraftVersion = "1.21.6",
+                    loaderVersion = "0.17.2",
+                    fabricApiVersion = "0.128.2+1.21.6",
+                ),
+            )
+
+        assertEquals(manifestMod.toAbsolutePath().normalize(), selected?.toAbsolutePath()?.normalize())
+    }
+
+    @Test
+    fun `manifest fabric api minecraft target mismatch rejects runtime identity`() {
+        val root = Files.createTempDirectory("craftless-driver-mod-manifest-fabric-api-minecraft")
         val manifestMod = root.resolve("mods/craftless-driver-fabric-1.21.6.jar")
         Files.createDirectories(manifestMod.parent)
         Files.writeString(manifestMod, "manifest-driver")
@@ -234,7 +278,7 @@ class ConfiguredClientRuntimeDriverModProviderTest {
                         loader = Loader.FABRIC,
                         minecraftVersion = "1.21.6",
                         loaderVersion = "0.17.2",
-                        fabricApiVersion = "0.128.2+1.21.6",
+                        fabricApiVersion = "0.128.2+1.21.7",
                     ),
                 )
             }
@@ -242,7 +286,7 @@ class ConfiguredClientRuntimeDriverModProviderTest {
         assertTrue(error.message?.contains("driver mod manifest") == true)
         assertTrue(error.message?.contains("1.21.6") == true)
         assertTrue(error.message?.contains("0.17.2") == true)
-        assertTrue(error.message?.contains("0.128.2+1.21.6") == true)
+        assertTrue(error.message?.contains("0.128.2+1.21.7") == true)
     }
 
     @Test
