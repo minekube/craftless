@@ -15,6 +15,11 @@ import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
 import com.minekube.craftless.protocol.MinecraftVersionListResult
 import com.minekube.craftless.protocol.minecraftVersionList
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonArray
@@ -48,76 +53,104 @@ class VersionDiscoveryService(
 
     fun listDriverModVersions(): DriverModVersionListResult = driverModProvider.driverModVersions()
 
-    suspend fun listFabricSupportTargets(): FabricSupportTargetListResult {
-        val gameVersions = listFabricGameVersions().versions
-        val loaderVersions = listFabricLoaderVersions().versions
-        val driverMods = listDriverModVersions()
-        val fabricDriverModsByMinecraftVersion =
-            driverMods
-                .entries
-                .filter { entry -> entry.loader == Loader.FABRIC }
-                .groupBy { entry -> entry.minecraftVersion }
-        return FabricSupportTargetListResult(
-            source = driverMods.source,
-            targets =
-                gameVersions.map { version ->
-                    val matches = fabricDriverModsByMinecraftVersion[version.version].orEmpty()
-                    val runtimeTargets = matches.runtimeTargets(loaderVersions)
-                    FabricSupportTargetDescriptor(
-                        minecraftVersion = version.version,
-                        stable = version.stable,
-                        supported = runtimeTargets.any { it.supported },
-                        reason = if (runtimeTargets.none { it.supported }) matches.unsupportedReason() else null,
-                        driverMods = matches,
-                        runtimeTargets = runtimeTargets,
-                    )
-                },
-        )
-    }
+    suspend fun listFabricSupportTargets(): FabricSupportTargetListResult =
+        coroutineScope {
+            val gameVersions = listFabricGameVersions().versions
+            val loaderVersions = listFabricLoaderVersions().versions
+            val compatibleLoaderVersionsByGameVersion = compatibleLoaderVersionsByGameVersion(gameVersions)
+            val driverMods = listDriverModVersions()
+            val fabricDriverModsByMinecraftVersion =
+                driverMods
+                    .entries
+                    .filter { entry -> entry.loader == Loader.FABRIC }
+                    .groupBy { entry -> entry.minecraftVersion }
+            FabricSupportTargetListResult(
+                source = driverMods.source,
+                targets =
+                    gameVersions.map { version ->
+                        val matches = fabricDriverModsByMinecraftVersion[version.version].orEmpty()
+                        val runtimeTargets =
+                            matches.runtimeTargets(
+                                loaderVersions = loaderVersions,
+                                compatibleLoaderVersions = compatibleLoaderVersionsByGameVersion.getValue(version.version),
+                            )
+                        FabricSupportTargetDescriptor(
+                            minecraftVersion = version.version,
+                            stable = version.stable,
+                            supported = runtimeTargets.any { it.supported },
+                            reason = if (runtimeTargets.none { it.supported }) matches.unsupportedReason(runtimeTargets) else null,
+                            driverMods = matches,
+                            runtimeTargets = runtimeTargets,
+                        )
+                    },
+            )
+        }
+
+    private suspend fun compatibleLoaderVersionsByGameVersion(
+        gameVersions: List<FabricGameVersionDescriptor>,
+    ): Map<String, List<FabricLoaderVersionDescriptor>> =
+        coroutineScope {
+            val semaphore = Semaphore(FABRIC_SUPPORT_TARGET_METADATA_CONCURRENCY)
+            gameVersions
+                .map { version ->
+                    async {
+                        version.version to
+                            semaphore.withPermit {
+                                metadataFetcher
+                                    .fetchText(fabricLoaderVersionsUrl(version.version))
+                                    .parseFabricLoaderVersions()
+                            }
+                    }
+                }.awaitAll()
+                .toMap()
+        }
 }
 
 private fun List<DriverModVersionDescriptor>.runtimeTargets(
     loaderVersions: List<FabricLoaderVersionDescriptor>,
+    compatibleLoaderVersions: List<FabricLoaderVersionDescriptor>,
 ): List<FabricSupportRuntimeTargetDescriptor> {
     val fabricDriverMods = filter { driverMod -> driverMod.loader == Loader.FABRIC }
     val driverModsByLoaderVersion = fabricDriverMods.groupBy { it.loaderVersion }
     val wildcardDriverMods = driverModsByLoaderVersion[null].orEmpty()
-    val runtimeTargets =
-        loaderVersions.map { loaderVersion ->
-            val driverMod = driverModsByLoaderVersion[loaderVersion.version].orEmpty().firstOrNull() ?: wildcardDriverMods.firstOrNull()
-            if (driverMod == null) {
-                return@map FabricSupportRuntimeTargetDescriptor(
-                    loaderVersion = loaderVersion.version,
-                    loaderStable = loaderVersion.stable,
-                    supported = false,
-                    reason = unsupportedReason(),
-                )
-            }
-            FabricSupportRuntimeTargetDescriptor(
-                loader = driverMod.loader,
-                loaderVersion = loaderVersion.version,
-                loaderStable = loaderVersion.stable,
-                javaMajorVersion = driverMod.javaMajorVersion,
-                mappingsFingerprint = driverMod.mappingsFingerprint,
-                supported = true,
-                driverMod = driverMod,
+    val loaderVersionsByVersion = loaderVersions.associateBy { loaderVersion -> loaderVersion.version }
+    val compatibleLoaderVersionsByVersion = compatibleLoaderVersions.associateBy { loaderVersion -> loaderVersion.version }
+    val runtimeLoaderVersions =
+        (
+            loaderVersions.map { loaderVersion -> loaderVersion.version } +
+                compatibleLoaderVersions.map { loaderVersion -> loaderVersion.version } +
+                fabricDriverMods.mapNotNull { driverMod -> driverMod.loaderVersion }
+        ).distinct()
+    return runtimeLoaderVersions.map { version ->
+        val loaderVersion = compatibleLoaderVersionsByVersion[version]
+        val discoveredLoaderVersion = loaderVersionsByVersion[version]
+        if (loaderVersion == null) {
+            return@map FabricSupportRuntimeTargetDescriptor(
+                loaderVersion = version,
+                loaderStable = discoveredLoaderVersion?.stable,
+                supported = false,
+                reason = FabricSupportReason.NO_COMPATIBLE_FABRIC_LOADER,
             )
         }
-    val loaderVersionSet = loaderVersions.map { it.version }.toSet()
-    val manifestOnlyTargets =
-        fabricDriverMods
-            .filter { driverMod -> driverMod.loaderVersion != null && driverMod.loaderVersion !in loaderVersionSet }
-            .map { driverMod ->
-                FabricSupportRuntimeTargetDescriptor(
-                    loader = driverMod.loader,
-                    loaderVersion = driverMod.loaderVersion,
-                    javaMajorVersion = driverMod.javaMajorVersion,
-                    mappingsFingerprint = driverMod.mappingsFingerprint,
-                    supported = true,
-                    driverMod = driverMod,
-                )
-            }
-    return runtimeTargets + manifestOnlyTargets
+        val driverMod = driverModsByLoaderVersion[version].orEmpty().firstOrNull() ?: wildcardDriverMods.firstOrNull()
+        if (driverMod == null) {
+            return@map FabricSupportRuntimeTargetDescriptor(
+                loaderVersion = version,
+                loaderStable = loaderVersion.stable,
+                supported = false,
+                reason = unsupportedReason(),
+            )
+        }
+        FabricSupportRuntimeTargetDescriptor(
+            loader = driverMod.loader,
+            loaderVersion = version,
+            loaderStable = loaderVersion.stable,
+            javaMajorVersion = driverMod.javaMajorVersion,
+            mappingsFingerprint = driverMod.mappingsFingerprint,
+            supported = true,
+            driverMod = driverMod,
+        )
+    }
 }
 
 private fun List<DriverModVersionDescriptor>.unsupportedReason(): FabricSupportReason =
@@ -126,6 +159,15 @@ private fun List<DriverModVersionDescriptor>.unsupportedReason(): FabricSupportR
     } else {
         FabricSupportReason.NO_COMPATIBLE_DRIVER_MOD
     }
+
+private fun List<DriverModVersionDescriptor>.unsupportedReason(
+    runtimeTargets: List<FabricSupportRuntimeTargetDescriptor>,
+): FabricSupportReason =
+    runtimeTargets
+        .mapNotNull { target -> target.reason }
+        .distinct()
+        .singleOrNull()
+        ?: unsupportedReason()
 
 private fun String.parseFabricGameVersions(): List<FabricGameVersionDescriptor> =
     Json
@@ -150,3 +192,7 @@ private fun String.parseFabricLoaderVersions(): List<FabricLoaderVersionDescript
                 stable = loader["stable"]?.jsonPrimitive?.boolean ?: false,
             )
         }
+
+private fun fabricLoaderVersionsUrl(minecraftVersion: String): String = "$FABRIC_META_BASE_URL/versions/loader/$minecraftVersion"
+
+private const val FABRIC_SUPPORT_TARGET_METADATA_CONCURRENCY = 8

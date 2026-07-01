@@ -307,6 +307,20 @@ class LocalSessionApiServerTest {
                               { "loader": { "version": "0.19.2", "stable": false } }
                             ]
                             """.trimIndent(),
+                        "$FABRIC_META_BASE_URL/versions/loader/26.2" to
+                            """
+                            [
+                              { "loader": { "version": "0.19.3", "stable": true } },
+                              { "loader": { "version": "0.19.2", "stable": false } }
+                            ]
+                            """.trimIndent(),
+                        "$FABRIC_META_BASE_URL/versions/loader/26.3-snapshot-1" to
+                            """
+                            [
+                              { "loader": { "version": "0.19.3", "stable": true } },
+                              { "loader": { "version": "0.19.2", "stable": false } }
+                            ]
+                            """.trimIndent(),
                     ),
                 )
             fakeLocalSessionApiServer(
@@ -447,6 +461,13 @@ class LocalSessionApiServerTest {
                               { "loader": { "version": "0.16.14", "stable": true } }
                             ]
                             """.trimIndent(),
+                        "$FABRIC_META_BASE_URL/versions/loader/1.21.6" to
+                            """
+                            [
+                              { "loader": { "version": "0.17.2", "stable": true } },
+                              { "loader": { "version": "0.16.14", "stable": true } }
+                            ]
+                            """.trimIndent(),
                     ),
                 )
             fakeLocalSessionApiServer(
@@ -487,6 +508,105 @@ class LocalSessionApiServerTest {
                     setOf("0.17.2", "0.16.14"),
                     runtimeTargets.map { runtimeTarget -> runtimeTarget["loaderVersion"]?.jsonPrimitive?.content }.toSet(),
                 )
+            }
+        }
+
+    @Test
+    fun `support targets reject globally listed loader versions missing from game metadata`() =
+        withHttpClient { http ->
+            val root = Files.createTempDirectory("craftless-version-discovery-game-loader")
+            val manifest = root.resolve("driver-mods.json")
+            Files.writeString(
+                manifest,
+                """
+                {
+                  "entries": [
+                    {
+                      "loader": "FABRIC",
+                      "minecraftVersion": "1.21.6",
+                      "javaMajorVersion": 21,
+                      "mappingsFingerprint": "craftless-fabric-wildcard",
+                      "path": "mods/fabric-1.21.6/craftless-driver-fabric.jar"
+                    }
+                  ]
+                }
+                """.trimIndent(),
+            )
+            val metadataFetcher =
+                ServerStaticCacheMetadataFetcher(
+                    mapOf(
+                        MINECRAFT_VERSION_INDEX_URL to
+                            """
+                            {
+                              "latest": {
+                                "release": "1.21.6",
+                                "snapshot": "26.3-snapshot-1"
+                              },
+                              "versions": [
+                                {
+                                  "id": "1.21.6",
+                                  "type": "release",
+                                  "url": "https://metadata.test/1.21.6.json"
+                                }
+                              ]
+                            }
+                            """.trimIndent(),
+                        "$FABRIC_META_BASE_URL/versions/game" to
+                            """
+                            [
+                              { "version": "1.21.6", "stable": true }
+                            ]
+                            """.trimIndent(),
+                        "$FABRIC_META_BASE_URL/versions/loader" to
+                            """
+                            [
+                              { "loader": { "version": "0.19.2", "stable": true } },
+                              { "loader": { "version": "0.17.2", "stable": true } }
+                            ]
+                            """.trimIndent(),
+                        "$FABRIC_META_BASE_URL/versions/loader/1.21.6" to
+                            """
+                            [
+                              { "loader": { "version": "0.17.2", "stable": true } }
+                            ]
+                            """.trimIndent(),
+                    ),
+                )
+            fakeLocalSessionApiServer(
+                cacheMetadataFetcher = metadataFetcher,
+                clientRuntimeDriverModProvider =
+                    ConfiguredClientRuntimeDriverModProvider(
+                        environment =
+                            mapOf(
+                                ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_DRIVER_MOD_MANIFEST to manifest.toString(),
+                            ),
+                    ),
+            ).use { server ->
+                server.start()
+
+                val response = http.get(server.url("/versions/support-targets"))
+                val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+                val target = body["targets"]?.jsonArray?.single()?.jsonObject
+                val runtimeTargets =
+                    target
+                        ?.get("runtimeTargets")
+                        ?.jsonArray
+                        ?.map { it.jsonObject }
+                        .orEmpty()
+
+                assertEquals(HttpStatusCode.OK, response.status)
+                assertEquals(true, target?.get("supported")?.jsonPrimitive?.boolean)
+                val compatible = runtimeTargets.single { it["loaderVersion"]?.jsonPrimitive?.content == "0.17.2" }
+                assertEquals(true, compatible["supported"]?.jsonPrimitive?.boolean)
+                assertEquals("FABRIC", compatible["loader"]?.jsonPrimitive?.content)
+                assertEquals(21, compatible["javaMajorVersion"]?.jsonPrimitive?.int)
+                val incompatible = runtimeTargets.single { it["loaderVersion"]?.jsonPrimitive?.content == "0.19.2" }
+                assertEquals(false, incompatible["supported"]?.jsonPrimitive?.boolean)
+                assertEquals(
+                    "NO_COMPATIBLE_FABRIC_LOADER",
+                    incompatible["reason"]?.jsonPrimitive?.content,
+                )
+                assertTrue(incompatible["driverMod"] == null || incompatible["driverMod"] is JsonNull)
             }
         }
 
