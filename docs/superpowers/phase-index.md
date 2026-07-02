@@ -343,3 +343,11 @@ README and file-management docs also use the API-only cache route form
 `craftless api /cache:prepare` instead of removed cache shortcut commands.
 Evidence:
 `docs/superpowers/evidence/2026-07-02-session-019f121c-cli-help.md`.
+Phase 209 retires the obsolete bridge evidence path from active build and
+packaging. The `bridge-hmc` module and `HmcBridgeDriverBackend` are removed,
+`driver-runtime` no longer depends on the bridge, the Fabric driver package no
+longer nests it, and active docs now describe the bridge path as retired rather
+than lifecycle-only retained evidence. A protocol policy guard prevents the
+retired bridge wiring from returning to active source/build files.
+Evidence:
+`docs/superpowers/evidence/2026-07-02-hmc-bridge-retirement.md`.

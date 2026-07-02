@@ -14,14 +14,57 @@ class NamespacePolicyTest {
     fun `repository policy scanner sees sibling modules`() {
         val violations =
             repositoryContentViolations(
-                include = { path -> path.name == "HmcBridgeDriverBackend.kt" },
+                include = { path -> path.name == "FabricDriverBackend.kt" },
             ) { contents ->
-                contents.contains("class HmcBridgeDriverBackend")
+                contents.contains("class FabricDriverBackend")
             }
 
         assertTrue(
-            violations.contains("driver-runtime/src/main/kotlin/com/minekube/craftless/driver/runtime/HmcBridgeDriverBackend.kt"),
+            violations.contains("driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverBackend.kt"),
             "Repository policy scanner must inspect sibling modules from Gradle module test tasks",
+        )
+    }
+
+    @Test
+    fun `active build retires hmc bridge wiring`() {
+        val root = repositoryRoot()
+        val activeFiles =
+            listOf(
+                "settings.gradle.kts",
+                "driver-runtime/build.gradle.kts",
+                "driver-fabric/build.gradle.kts",
+            )
+        val forbidden =
+            listOf(
+                "bridge-" + "hmc",
+                "Hmc" + "BridgeBackend",
+                "Hmc" + "BridgeDriverBackend",
+                "craftless-driver-" + "bridge",
+                "bridge-" + "evidence",
+            )
+
+        val violations =
+            activeFiles.flatMap { relative ->
+                val contents = Files.readString(root.resolve(relative))
+                forbidden
+                    .filter(contents::contains)
+                    .map { token -> "$relative contains $token" }
+            } +
+                repositoryContentViolations(
+                    include = { path ->
+                        path.pathString.contains("/src/main/") &&
+                            (path.name.endsWith(".kt") || path.name.endsWith(".kts"))
+                    },
+                ) { contents ->
+                    contents.contains("Hmc" + "BridgeBackend") ||
+                        contents.contains("Hmc" + "BridgeDriverBackend") ||
+                        contents.contains("craftless-driver-" + "bridge") ||
+                        contents.contains("bridge-" + "evidence")
+                }
+
+        assertTrue(
+            violations.isEmpty(),
+            "Obsolete retired bridge code must not remain in active source/build wiring:\n${violations.joinToString("\n")}",
         )
     }
 
@@ -355,7 +398,6 @@ class NamespacePolicyTest {
                 "include(project(\":driver-api\"))",
                 "include(project(\":driver-runtime\"))",
                 "include(project(\":daemon\"))",
-                "include(project(\":bridge-hmc\"))",
                 "include(\"io.ktor:ktor-client-core-jvm:3.5.0\")",
                 "include(\"io.ktor:ktor-client-cio-jvm:3.5.0\")",
                 "include(\"io.ktor:ktor-server-core-jvm:3.5.0\")",

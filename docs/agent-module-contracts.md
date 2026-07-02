@@ -25,9 +25,9 @@ Do not document removed TypeScript SDK or other inactive legacy surfaces as
 active implementation. Use `minekube.com` and `com.minekube.craftless` for
 public domain/package references.
 
-Describe the bridge as evidence infrastructure only, not as a gameplay action
-adapter. Gameplay examples must use the generated Fabric runtime graph/OpenAPI
-path, not HMC bridge helpers.
+Describe the earlier bridge evidence path as retired from active build and
+packaging. Gameplay examples must use the generated Fabric runtime
+graph/OpenAPI path, not legacy bridge helpers.
 
 Describe multi-version support as version-agnostic system work first:
 manifests, Java/runtime selection, Fabric Loader/API resolution, driver mod
@@ -115,8 +115,8 @@ Keep runtime adapters version-neutral. Minecraft/Fabric version divergence
 should arrive as runtime metadata, capability graph nodes, compatibility lane
 decisions, or backend-specific adapters, not duplicated session mechanics.
 
-Keep bridge details internal. Public results, events, actions, and errors must
-stay Craftless-owned. The bridge backend is evidence infrastructure only.
+Public results, events, actions, and errors must stay Craftless-owned. Do not
+reintroduce retired bridge adapters into runtime or packaged product paths.
 
 Runtime should route stable lifecycle calls, expose the graph, and dispatch
 generic invocations. Do not compensate for a weak backend by adding
@@ -252,25 +252,6 @@ must do it as an outside user or agent through OpenAPI/actions/resources,
 JSON-RPC/SSE, and `craftless api` calls.
 
 Verification: `mise exec -- gradle :testkit:test`.
-
-## `bridge-hmc/`
-
-`bridge-hmc/` is temporary evidence infrastructure for launching and
-controlling real clients before the Fabric driver is complete.
-
-Never expose HeadlessMC or HMC-Specifics command strings as public API names,
-JSON fields, CLI verbs, SDK methods, or docs contracts.
-
-Do not use bridge behavior to justify product API shape, version support, or
-gameplay completion. If a bridge smoke discovers a useful primitive, move the
-product work into the Fabric runtime graph, generated OpenAPI, and generic
-invocation path.
-
-Keep real-client smoke tests opt-in and guarded by environment variables.
-Default tests must not download Minecraft/server artifacts or launch a real
-client.
-
-Verification: `mise exec -- gradle :bridge-hmc:test`.
 
 ## `playwright/`
 

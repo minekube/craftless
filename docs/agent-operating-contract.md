@@ -234,8 +234,9 @@ tests.
   the generic reflection/mapping/registry/callback/screen/handler discovery
   and projection system first.
 - Module names and Minecraft versions are not public API.
-- The bridge backend is evidence infrastructure only. Do not present it as the
-  final automation driver, and do not route gameplay through it.
+- The earlier bridge evidence path is retired from active build and package
+  wiring. Do not reintroduce launch-bridge adapters as public or packaged
+  product behavior.
 
 ## Module Map
 
@@ -246,7 +247,6 @@ tests.
 - `driver-api/`: stable JVM driver contract and driver-facing DTOs.
 - `driver-runtime/`: adapters from `DriverSession` to concrete backends.
 - `driver-fabric/`: Fabric/Loom driver module.
-- `bridge-hmc/`: evidence-only bridge code.
 - `cli/`: adaptive `craftless` CLI.
 - `testkit/`: fake clients, fake sessions, fixtures, and test helpers.
 - `playwright/`: Bun-powered helper tests and external fixtures.

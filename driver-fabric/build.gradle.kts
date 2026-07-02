@@ -74,7 +74,6 @@ dependencies {
     include(project(":driver-fabric-attach"))
     include(project(":driver-fabric-discovery"))
     include(project(":daemon"))
-    include(project(":bridge-hmc"))
     include("io.ktor:ktor-client-core-jvm:3.5.0")
     include("io.ktor:ktor-client-cio-jvm:3.5.0")
     include("io.ktor:ktor-server-core-jvm:3.5.0")

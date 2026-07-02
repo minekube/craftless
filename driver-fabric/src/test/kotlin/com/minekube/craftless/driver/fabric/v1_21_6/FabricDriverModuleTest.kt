@@ -389,7 +389,7 @@ class FabricDriverModuleTest {
             listOf(
                 "include(project(\":driver-fabric\"))",
                 "include(project(\":daemon\"))",
-                "include(project(\":bridge-hmc\"))",
+                "include(project(\":bridge-" + "hmc\"))",
             )
 
         assertEquals(

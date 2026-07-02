@@ -27,6 +27,5 @@ include(
     "driver-fabric-official",
     "testkit",
     "daemon",
-    "bridge-hmc",
     "cli",
 )

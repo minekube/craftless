@@ -1,6 +1,5 @@
 package com.minekube.craftless.driver.runtime
 
-import com.minekube.craftless.bridge.hmc.HmcBridgeBackend
 import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.api.DriverActionArgument
 import com.minekube.craftless.driver.api.DriverActionAvailability
@@ -22,18 +21,11 @@ import com.minekube.craftless.protocol.RuntimeResourceNode
 import com.minekube.craftless.protocol.RuntimeSchema
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
-import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class BackendDriverSessionTest {
-    private fun repositoryRoot(): Path =
-        generateSequence(Path.of("").toAbsolutePath()) { path -> path.parent }
-            .first { path -> Files.exists(path.resolve("settings.gradle.kts")) }
-
     @Test
     fun `runtime driver session delegates automation actions to a backend`() {
         val backend = RecordingDriverBackend()
@@ -251,95 +243,6 @@ class BackendDriverSessionTest {
 
         assertEquals("object", action.arguments.getValue("filter").type)
         assertEquals("object", data.type)
-    }
-
-    @Test
-    fun `hmc bridge backend is lifecycle only and exposes no gameplay actions`() {
-        val backend = HmcBridgeDriverBackend(HmcBridgeBackend.dryRun())
-
-        assertEquals(
-            DriverBackendAction.CONNECT,
-            backend.connect("alice", ConnectionTarget(host = "127.0.0.1", port = 25565)).action,
-        )
-        assertEquals(emptyList(), backend.actions("alice"))
-        assertEquals("craftless-driver-bridge", backend.runtimeMetadata("alice").driver)
-        assertEquals("bridge-evidence", backend.runtimeMetadata("alice").permissionsFingerprint)
-
-        val chat =
-            backend.invoke(
-                "alice",
-                DriverActionInvocation(
-                    action = "player.chat",
-                    arguments = mapOf("message" to JsonPrimitive("hello as action")),
-                ),
-            )
-        val move =
-            backend.invoke(
-                "alice",
-                DriverActionInvocation(
-                    action = "player.move",
-                    arguments = mapOf("forward" to JsonPrimitive(true), "ticks" to JsonPrimitive(20)),
-                ),
-            )
-
-        assertEquals(DriverActionStatus.UNSUPPORTED, chat.status)
-        assertEquals("unsupported action player.chat", chat.message)
-        assertEquals(DriverActionStatus.UNSUPPORTED, move.status)
-        assertEquals("unsupported action player.move", move.message)
-        assertEquals(DriverBackendAction.STOP, backend.stop("alice").action)
-    }
-
-    @Test
-    fun `hmc bridge backend has no static gameplay action catalog`() {
-        val backendSource =
-            Files.readString(
-                repositoryRoot().resolve(
-                    "driver-runtime/src/main/kotlin/com/minekube/craftless/driver/runtime/HmcBridgeDriverBackend.kt",
-                ),
-            )
-
-        assertFalse(backendSource.contains("bridgePlayer"))
-        assertFalse(backendSource.contains("player.chat"))
-        assertFalse(backendSource.contains("player.move"))
-        assertFalse(backendSource.contains("MoveIntent"))
-    }
-
-    @Test
-    fun `hmc bridge backend keeps unsupported player action errors craftless owned`() {
-        val backend = HmcBridgeDriverBackend(HmcBridgeBackend.dryRun())
-
-        val result =
-            backend.invoke(
-                "alice",
-                DriverActionInvocation(
-                    action = "player.chat",
-                    arguments = mapOf("message" to JsonPrimitive("hello")),
-                ),
-            )
-
-        assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
-        assertEquals("unsupported action player.chat", result.message)
-        assertTrue(result.message?.contains("bridge", ignoreCase = true) == false)
-        assertTrue(result.message?.contains("hmc", ignoreCase = true) == false)
-    }
-
-    @Test
-    fun `hmc bridge backend keeps unsupported action errors craftless owned`() {
-        val backend = HmcBridgeDriverBackend(HmcBridgeBackend.dryRun())
-
-        val result =
-            backend.invoke(
-                "alice",
-                DriverActionInvocation(
-                    action = "world.scan",
-                    arguments = emptyMap(),
-                ),
-            )
-
-        assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
-        assertEquals("unsupported action world.scan", result.message)
-        assertTrue(result.message?.contains("bridge", ignoreCase = true) == false)
-        assertTrue(result.message?.contains("hmc", ignoreCase = true) == false)
     }
 }
 

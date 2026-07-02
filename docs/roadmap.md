@@ -46,7 +46,8 @@ Craftless currently has:
   player query/look/raycast, inventory query/equip, block break/interact,
   entity query/attack, recipe query/craft, screen query, world time query,
   navigation plan/follow/stop, and event streaming;
-- bridge code treated as evidence infrastructure only;
+- the earlier bridge evidence path retired from active build and packaged
+  driver wiring;
 - release workflow, install script, packaged CLI distribution with the Fabric
   driver mod, Docker runtime image, and reusable GitHub Action;
 - hosted Fumadocs API documentation on Cloudflare Workers at

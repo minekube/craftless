@@ -392,13 +392,13 @@ describe("distribution surface", () => {
     expect(readme).toContain("without server-provisioned inventory");
   });
 
-  test("README presents generated API as product path and bridge as lifecycle evidence", () => {
+  test("README presents generated API as product path and retired bridge path", () => {
     const readme = read("README.md");
 
     expect(readme).toContain("generated per-client OpenAPI");
     expect(readme).toContain("runtime capability graph");
-    expect(readme).toContain("lifecycle/launch evidence only");
-    expect(readme).toContain("not a gameplay adapter");
+    expect(readme).toContain("retired from active build and package");
+    expect(readme).toContain("not in a legacy launch adapter");
     expect(readme).not.toContain("HeadlessMC command");
     expect(readme).not.toContain("HMC-Specifics command");
   });

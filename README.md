@@ -174,10 +174,9 @@ Craftless keeps the runtime shape deliberately thin:
 6. **Adaptive consumers** such as the CLI and agents fetch live specs instead
    of shipping static gameplay catalogs.
 
-The HMC bridge code is lifecycle/launch evidence only. It is not the product
-path for chat, movement, inventory, world, entity, screen, or building
-behavior. It is not a gameplay adapter. Gameplay breadth belongs in the Fabric
-runtime capability graph and generated per-client OpenAPI.
+The earlier bridge evidence path is retired from active build and package
+wiring. Gameplay breadth belongs in the Fabric runtime capability graph and
+generated per-client OpenAPI, not in a legacy launch adapter.
 
 ## Agent Contract
 

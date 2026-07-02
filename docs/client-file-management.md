@@ -131,5 +131,5 @@ Use these checks when changing file-management contracts:
 mise exec -- gradle :protocol:test --tests com.minekube.craftless.protocol.ClientModelsTest --tests com.minekube.craftless.protocol.NamespacePolicyTest
 mise exec -- gradle :daemon:test --tests com.minekube.craftless.daemon.ClientSessionServiceTest
 mise exec -- gradle :cli:test --tests com.minekube.craftless.cli.CraftlessCliTest
-rg -n "Prism|PrismLauncher|MultiMC|MMC|instance\\.cfg|mmc-pack|patches/|ManagedPack" protocol/src/main daemon/src/main cli/src/main driver-api/src/main driver-runtime/src/main driver-fabric/src/main bridge-hmc/src/main testkit/src/main --glob '!**/build/**' --glob '!driver-fabric/run/**'
+rg -n "Prism|PrismLauncher|MultiMC|MMC|instance\\.cfg|mmc-pack|patches/|ManagedPack" protocol/src/main daemon/src/main cli/src/main driver-api/src/main driver-runtime/src/main driver-fabric/src/main testkit/src/main --glob '!**/build/**' --glob '!driver-fabric/run/**'
 ```
