@@ -321,3 +321,13 @@ optional details object. Agents no longer need to parse the human message to
 understand Fabric matrix rejection reasons.
 Evidence:
 `docs/superpowers/evidence/2026-07-02-structured-runtime-target-error.md`.
+Phase 207 follows up on Craftless friction observed in Codex session
+`019f121c-6725-7aa3-85b2-c7bbe08ccd40`. The session used Craftless as an
+external real-client join probe and had to guess `--method POST` because
+`craftless api /clients --help` only showed the default `GET` operation on a
+route that also creates clients. Ambiguous `craftless api <endpoint> --help`
+now lists every matching OpenAPI operation when no method or body hint was
+provided, so `/clients` help shows both list and create semantics, fields, enum
+values, defaults, and descriptions.
+Evidence:
+`docs/superpowers/evidence/2026-07-02-session-019f121c-cli-help.md`.

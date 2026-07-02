@@ -145,7 +145,9 @@ craftless api /clients/bot/player:chat --method POST --help --api "$CRAFTLESS"
 
 Use `craftless api <endpoint>` for supervisor and per-client routes. Help,
 parameters, request fields, enums, and descriptions are inferred from the
-daemon's OpenAPI schemas.
+daemon's OpenAPI schemas. When an endpoint has multiple methods, such as
+`/clients`, `--help` lists each matching OpenAPI operation so agents can choose
+the right `--method` without guessing.
 
 ## How Craftless Works
 

@@ -49,11 +49,17 @@ internal class ApiCli(
         return runCatching {
             kotlinx.coroutines.runBlocking {
                 httpClientFactory(env).use { http ->
-                    val operation = loadOperation(http, api, endpoint, method)
                     if (args.contains("--help")) {
-                        stdout(operation?.help(endpoint, method) ?: "Route: $method ${endpoint.pathOnly()}")
+                        val operations =
+                            if (args.hasExplicitRequestMethod() || args.hasBodyHint()) {
+                                listOfNotNull(loadOperation(http, api, endpoint, method))
+                            } else {
+                                loadOperations(http, api, endpoint)
+                            }
+                        stdout(operations.help(endpoint, method))
                         return@runBlocking 0
                     }
+                    val operation = loadOperation(http, api, endpoint, method)
                     val body = args.requestBody(operation?.operation?.requestBody)
                     val response =
                         if (method == "GET") {
@@ -107,6 +113,21 @@ internal class ApiCli(
         return client.matchOperation(endpoint.pathOnly(), method)
     }
 
+    private suspend fun loadOperations(
+        http: HttpClient,
+        api: String,
+        endpoint: String,
+    ): List<MatchedOperation> {
+        val supervisor = http.loadOpenApi("${api.trimEnd('/')}/openapi.json")
+        val supervisorMatches = supervisor.matchOperations(endpoint.pathOnly())
+        if (supervisorMatches.isNotEmpty()) {
+            return supervisorMatches
+        }
+        val clientId = endpoint.clientId() ?: return emptyList()
+        val client = http.loadOpenApi("${api.trimEnd('/')}/clients/$clientId/openapi.json")
+        return client.matchOperations(endpoint.pathOnly())
+    }
+
     private suspend fun HttpClient.loadOpenApi(url: String): OpenApiDocument {
         val response = get(url)
         val body = response.bodyAsText()
@@ -129,12 +150,29 @@ internal class ApiCli(
             }
         }
 
+    private fun OpenApiDocument.matchOperations(endpoint: String): List<MatchedOperation> =
+        paths.entries.flatMap { (path, operations) ->
+            if (!path.matchesEndpoint(endpoint)) {
+                emptyList()
+            } else {
+                operations.operations().map { (method, operation) ->
+                    MatchedOperation(method = method, path = path, operation = operation)
+                }
+            }
+        }
+
     private fun OpenApiPath.operation(method: String): OpenApiOperation? =
         when (method) {
             "GET" -> get
             "POST" -> post
             else -> null
         }
+
+    private fun OpenApiPath.operations(): List<Pair<String, OpenApiOperation>> =
+        listOfNotNull(
+            get?.let { "GET" to it },
+            post?.let { "POST" to it },
+        )
 
     private fun String.matchesEndpoint(endpoint: String): Boolean {
         if (this == endpoint) {
@@ -164,6 +202,10 @@ internal class ApiCli(
         (optionValue("--method") ?: optionValue("-X") ?: if (fields().isNotEmpty() || optionValue("--input") != null) "POST" else "GET")
             .uppercase()
             .also { method -> require(method == "GET" || method == "POST") { "--method must be GET or POST" } }
+
+    private fun List<String>.hasExplicitRequestMethod(): Boolean = optionValue("--method") != null || optionValue("-X") != null
+
+    private fun List<String>.hasBodyHint(): Boolean = fields().isNotEmpty() || optionValue("--input") != null
 
     private fun List<String>.requestBody(requestBody: OpenApiRequestBody?): JsonObject? {
         optionValue("--input")?.let { input ->
@@ -235,7 +277,6 @@ internal class ApiCli(
 
     private fun MatchedOperation.help(
         endpoint: String,
-        method: String,
     ): String =
         buildString {
             appendLine("Route: $method $path")
@@ -249,6 +290,16 @@ internal class ApiCli(
                 }
             }
         }.trimEnd()
+
+    private fun List<MatchedOperation>.help(
+        endpoint: String,
+        fallbackMethod: String,
+    ): String =
+        when (size) {
+            0 -> "Route: $fallbackMethod ${endpoint.pathOnly()}"
+            1 -> single().help(endpoint)
+            else -> joinToString("\n\n") { it.help(endpoint) }
+        }
 
     private fun OpenApiSchema.describeFields(prefix: String = ""): List<String> =
         properties.flatMap { (name, schema) ->

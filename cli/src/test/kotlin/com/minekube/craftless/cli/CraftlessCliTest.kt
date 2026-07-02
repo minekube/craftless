@@ -325,6 +325,32 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `api help shows every matching method when route is ambiguous`() {
+        RecordingCreateApiServer().use { server ->
+            val output = StringBuilder()
+            val errors = StringBuilder()
+
+            val exit =
+                CraftlessCli.run(
+                    listOf("api", "/clients", "--help", "--api", server.url),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
+
+            assertEquals(0, exit, errors.toString())
+            val help = output.toString()
+            assertTrue(help.contains("Route: GET /clients"))
+            assertTrue(help.contains("Route: POST /clients"))
+            assertTrue(help.contains("Lists daemon-managed client processes"))
+            assertTrue(help.contains("launches a new daemon-managed real Minecraft Java client process"))
+            assertTrue(help.contains("Usage: craftless api /clients --method GET [flags]"))
+            assertTrue(help.contains("Usage: craftless api /clients --method POST [flags]"))
+            assertTrue(help.contains("id string required"))
+            assertTrue(help.contains("loader string required enum=FABRIC|VANILLA|NEOFORGE|FORGE|QUILT"))
+        }
+    }
+
+    @Test
     fun `api posts generic run body with nested action args`() {
         val output = StringBuilder()
 
