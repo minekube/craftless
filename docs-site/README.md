@@ -31,12 +31,13 @@ Deploy manually from `docs-site/` when authenticated with Cloudflare:
 mise exec -- bun run deploy
 ```
 
-The `docs-site` GitHub Actions workflow builds and deploys on pushes to
-`main`. The repository secret `CLOUDFLARE_API_TOKEN` must have Workers Scripts
-Write and Account Settings Read scoped to the Cloudflare account, plus Workers
-Routes Write and Zone Read scoped to the `minekube.com` zone. Wrangler
-attaches the Worker to `craftless.minekube.com` through the custom domain route
-in `wrangler.jsonc`. Preview URLs remain enabled on the Worker for ad-hoc
+The `docs-site` GitHub Actions workflow builds and verifies on pushes to
+`main`. It deploys to Cloudflare Workers only when the repository secret
+`CLOUDFLARE_API_TOKEN` is present. That token must have Workers Scripts Write
+and Account Settings Read scoped to the Cloudflare account, plus Workers Routes
+Write and Zone Read scoped to the `minekube.com` zone. Wrangler attaches the
+Worker to `craftless.minekube.com` through the custom domain route in
+`wrangler.jsonc`. Preview URLs remain enabled on the Worker for ad-hoc
 Wrangler version uploads.
 
 If the repository secret ever needs to be recreated, create the Cloudflare

@@ -286,7 +286,7 @@ describe("distribution surface", () => {
     expect(config.packages["."]["release-type"]).toBe("simple");
     expect(config.packages["."]["include-v-in-tag"]).toBe(true);
     expect(config.packages["."]["include-component-in-tag"]).toBe(false);
-    expect(manifest["."]).toBe("0.2.0");
+    expect(manifest["."]).toBe("0.3.0");
     expect(changelog).toContain("Release Please");
   });
 
@@ -369,9 +369,9 @@ describe("distribution surface", () => {
 
     expect(readme).toContain("## Quickstart");
     expect(readme).toContain("curl -fsSL https://raw.githubusercontent.com/minekube/craftless/main/install.sh");
-    expect(readme).toContain("CRAFTLESS_VERSION=v0.2.0");
+    expect(readme).toContain("CRAFTLESS_VERSION=v0.3.0");
     expect(readme).toContain("docker run");
-    expect(readme).toContain("minekube/craftless/.github/actions/setup-craftless@v0.2.0");
+    expect(readme).toContain("minekube/craftless/.github/actions/setup-craftless@v0.3.0");
     expect(readme).toContain("Release Please opens or updates the release PR");
     expect(readme).not.toContain("setup-craftless@v0.1.0");
     expect(readme).toContain("Minecraft artifacts are downloaded into the workspace at runtime");
