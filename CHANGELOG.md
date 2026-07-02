@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.4](https://github.com/minekube/craftless/compare/v0.3.3...v0.3.4) (2026-07-02)
+
+
+### Bug Fixes
+
+* **ci:** build release images on native runners ([4323905](https://github.com/minekube/craftless/commit/4323905e372f3845a3660f3bd5ce5702026fe93e))
+
 ## [0.3.3](https://github.com/minekube/craftless/compare/v0.3.2...v0.3.3) (2026-07-02)
 
 
