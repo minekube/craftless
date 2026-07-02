@@ -3304,6 +3304,8 @@ class LocalSessionApiServerTest {
                         val body = response.bodyAsText()
                         assertEquals(HttpStatusCode.OK, response.status)
                         assertFalse(body.contains("client.connected"))
+                        assertTrue(body.contains("client.connect.unobserved"))
+                        assertTrue(body.contains("connect requested for alice to localhost:25565 but no connected state was observed"))
                     }
                 }
         }

@@ -12,6 +12,10 @@ Relevant Craftless friction observed in the session:
 - It had to discover manually that `/clients` has both `GET` and `POST`
   operations, because `craftless api /clients --help` defaulted to the `GET`
   operation unless `--method POST` was supplied.
+- After a connect request, the real client could remain `RUNNING` with
+  resources still unavailable as `client-not-connected`; callers had to infer
+  from logs that Minecraft had attempted to connect but Craftless had not
+  observed a connected state.
 - Later Craftless behavior already addressed the other major ambiguity from the
   same session: field-bearing `craftless api /clients -F ...` infers `POST`,
   `POST /clients` descriptions explicitly warn that it launches a new real
@@ -36,6 +40,13 @@ Actual invocation semantics are unchanged: `-F`, `--field`, `-f`,
 `--raw-field`, or `--input` still infer `POST`, while body-less invocation still
 defaults to `GET`.
 
+`POST /clients/{id}:connect` now also records
+`client.connect.unobserved` when the driver accepts a connect request but the
+client state remains non-connected. The response still reports the truthful
+client state, but `/clients/{id}/events` and `/clients/{id}/events:stream`
+give agents a machine-readable breadcrumb instead of making them infer the
+failed observation from external process logs.
+
 ## Verification
 
 ```sh
@@ -47,6 +58,19 @@ ambiguous route help, then passed after multi-operation help was implemented.
 
 ```sh
 mise exec -- gradle :cli:test
+```
+
+Result: passed.
+
+```sh
+mise exec -- gradle :daemon:test --tests 'com.minekube.craftless.daemon.LocalSessionApiServerTest.server does not emit connected event for unobserved connect'
+```
+
+Result: passed. The test first failed because unobserved connects emitted no
+diagnostic event, then passed after adding `client.connect.unobserved`.
+
+```sh
+mise exec -- gradle :daemon:test
 ```
 
 Result: passed.

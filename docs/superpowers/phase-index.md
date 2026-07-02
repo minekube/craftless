@@ -328,6 +328,9 @@ external real-client join probe and had to guess `--method POST` because
 route that also creates clients. Ambiguous `craftless api <endpoint> --help`
 now lists every matching OpenAPI operation when no method or body hint was
 provided, so `/clients` help shows both list and create semantics, fields, enum
-values, defaults, and descriptions.
+values, defaults, and descriptions. Connect requests that are accepted but do
+not reach an observed connected state now emit `client.connect.unobserved`, so
+agents no longer have to infer that state from external Minecraft or proxy
+logs.
 Evidence:
 `docs/superpowers/evidence/2026-07-02-session-019f121c-cli-help.md`.

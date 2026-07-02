@@ -309,6 +309,15 @@ class LocalSessionApiServer private constructor(
                                 client = client.id,
                                 message = "connected ${client.id} to ${request.host}:${request.port}",
                             )
+                    } else {
+                        events +=
+                            SessionEvent(
+                                type = "client.connect.unobserved",
+                                client = client.id,
+                                message =
+                                    "connect requested for ${client.id} to ${request.host}:${request.port} " +
+                                        "but no connected state was observed",
+                            )
                     }
                     call.respondJson(HttpStatusCode.OK, client)
                 }.getOrElse { error ->
