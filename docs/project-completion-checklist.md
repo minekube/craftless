@@ -38,9 +38,9 @@ Status legend:
 | Field | State |
 | --- | --- |
 | Active gate | Post-completion Fabric version-matrix support proof |
-| Current state | All original CL gates are closed. Phases 198-206 add the support matrix, supported-row probe workflow, runtime-target create rejection, game-scoped Fabric Loader compatibility, and structured `UNSUPPORTED_RUNTIME_TARGET` details. Phases 207-208 improve ambiguous `craftless api` help, unobserved-connect diagnostics, default daemon workspaces, and stale cache CLI docs after session `019f121c` exposed those agent friction points. Phase 209 retires the obsolete bridge evidence path from active build and packaging. Release `v0.3.2` is published. |
+| Current state | All original CL gates are closed. Phases 198-206 add the support matrix, supported-row probe workflow, runtime-target create rejection, game-scoped Fabric Loader compatibility, and structured `UNSUPPORTED_RUNTIME_TARGET` details. Phases 207-208 improve ambiguous `craftless api` help, unobserved-connect diagnostics, default daemon workspaces, and stale cache CLI docs after session `019f121c` exposed those agent friction points. Phase 209 retires the obsolete bridge evidence path from active build and packaging. Phase 210 refreshes the active release truth and guards the checklist against falling behind the Release Please manifest. Release `v0.3.4` is published. |
 | Latest product proof | `mise run final-public-gameplay-probe` passed for Minecraft `1.21.6` with server provisioning disabled. Fabric matrix evidence now includes `/versions/support-targets`, packaged supported-row probing, and machine-readable unsupported runtime rejection evidence. |
-| Latest CI truth | Phase 209 local `mise run ci` and `mise run docs-site-verify` passed. The latest published release before Phase 209 is `v0.3.2`; docs-site deploy still requires `CLOUDFLARE_API_TOKEN`. |
+| Latest CI truth | Phase 210 local `mise run ci`, `mise run docs-site-verify`, and `git diff --check` passed. The release-truth guard proves this checklist names the current Release Please manifest tag. Release `v0.3.4` is published at `https://github.com/minekube/craftless/releases/tag/v0.3.4`; docs-site deploy still requires `CLOUDFLARE_API_TOKEN`. |
 | Current blocker | Automatic docs deployment is not enabled until the GitHub repository gets `CLOUDFLARE_API_TOKEN`; the live Cloudflare site still returns HTTP 200 from the previous deployment. |
 | Next commands | Add `CLOUDFLARE_API_TOKEN` to enable automatic docs deploys, then continue the full Fabric matrix proof goal: every discoverable Fabric runtime row must either be supported and probe-verified through public Craftless surfaces or rejected with a structured actionable reason. |
 
@@ -49,7 +49,7 @@ Status legend:
 | Step | Status | Done When | Evidence Or Command |
 | --- | --- | --- | --- |
 | 1. Original CL completion gates | [x] | CL-01 through CL-08 remain closed with evidence. | Evidence index below. |
-| 2. Release current matrix work | [x] | The release PRs for post-completion Fabric matrix and agent-friction work are merged and GitHub releases exist. | Latest published release before Phase 209: `v0.3.2` at `https://github.com/minekube/craftless/releases/tag/v0.3.2`. |
+| 2. Release current matrix work | [x] | The release PRs for post-completion Fabric matrix, agent-friction, bridge-retirement, and native release image work are merged and GitHub releases exist. | Current published release: `v0.3.4` at `https://github.com/minekube/craftless/releases/tag/v0.3.4`; Phase 210 guard keeps this row aligned with `.release-please-manifest.json`. |
 | 3. Fabric support matrix visibility | [x] | The supervisor exposes discovered Fabric game/loader/runtime support rows and explicit unsupported reasons. | Phases 198, 200, 201, 203, and 205 evidence below. |
 | 4. Unsupported runtime rejection clarity | [x] | Unsupported create-client requests fail before launch with a public code and structured actionable details. | Phases 202, 204, and 206 evidence below. |
 | 5. Docs and hosted OpenAPI snapshot freshness | [x] | README, roadmap, active checklist, and docs-site OpenAPI snapshot reflect current generated API direction, `/versions/support-targets`, structured unsupported runtime errors, and retired bridge wiring. | Phase 209 evidence includes `mise run docs-site-verify`. |
@@ -187,3 +187,5 @@ Required negative proof:
   `docs/superpowers/evidence/2026-07-02-session-019f121c-cli-help.md`.
 - Phase 209:
   `docs/superpowers/evidence/2026-07-02-hmc-bridge-retirement.md`.
+- Phase 210:
+  `docs/superpowers/evidence/2026-07-02-release-truth-cleanup.md`.

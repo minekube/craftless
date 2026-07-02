@@ -72,6 +72,7 @@ not grow with every completed phase.
 - Phase 187: final public gameplay.
 - Phase 188: tiny-agent lifecycle defaults.
 - Phase 189: generated route CLI and daemon naming.
+- Phase 210: active release truth cleanup.
 
 ## Current Direction
 
@@ -351,3 +352,10 @@ than lifecycle-only retained evidence. A protocol policy guard prevents the
 retired bridge wiring from returning to active source/build files.
 Evidence:
 `docs/superpowers/evidence/2026-07-02-hmc-bridge-retirement.md`.
+Phase 210 cleans up stale active release truth. The completion checklist now
+names the current Release Please manifest tag and published GitHub release,
+and the distribution test suite fails if the checklist falls behind
+`.release-please-manifest.json` again. This is a handoff-surface cleanup only;
+the larger Fabric matrix proof remains the active open support goal.
+Evidence:
+`docs/superpowers/evidence/2026-07-02-release-truth-cleanup.md`.

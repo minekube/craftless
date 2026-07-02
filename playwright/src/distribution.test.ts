@@ -294,6 +294,16 @@ describe("distribution surface", () => {
     expect(changelog).toContain("Release Please");
   });
 
+  test("active completion checklist names the current published release", () => {
+    const manifest = JSON.parse(read(".release-please-manifest.json"));
+    const checklist = read("docs/project-completion-checklist.md");
+    const currentReleaseTag = `v${manifest["."]}`;
+
+    expect(checklist).toContain(currentReleaseTag);
+    expect(checklist).not.toContain("Release `v0.3.2` is published.");
+    expect(checklist).not.toContain("Latest published release before Phase 209: `v0.3.2`");
+  });
+
   test("Fumadocs site is a Cloudflare Workers product surface with previews", () => {
     const mise = read(".mise.toml");
     const packageJson = JSON.parse(read("docs-site/package.json"));
