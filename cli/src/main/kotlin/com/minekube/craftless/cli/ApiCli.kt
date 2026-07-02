@@ -275,9 +275,7 @@ internal class ApiCli(
             current?.properties?.get(part) ?: current?.items?.takeIf { part.toIntOrNull() != null }
         }
 
-    private fun MatchedOperation.help(
-        endpoint: String,
-    ): String =
+    private fun MatchedOperation.help(endpoint: String): String =
         buildString {
             appendLine("Route: $method $path")
             operation.summary?.let { appendLine(it) }

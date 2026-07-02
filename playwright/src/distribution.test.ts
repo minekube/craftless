@@ -409,7 +409,8 @@ describe("distribution surface", () => {
     const fileManagement = read("docs/client-file-management.md");
 
     expect(readme).toContain('"version": "latest-release"');
-    expect(readme).toContain("--mc latest-release");
+    expect(readme).toContain("/cache:prepare");
+    expect(readme).toContain("minecraftVersion=latest-release");
     expect(fileManagement).toContain("latest-release");
     expect(fileManagement).toContain("latest-snapshot");
     expect(roadmap).not.toContain("current latest `26.2`");
