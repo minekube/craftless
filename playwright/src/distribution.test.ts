@@ -108,6 +108,10 @@ describe("distribution surface", () => {
     expect(script).toContain("client-generated-action-selected.json");
     expect(script).toContain("client-rpc-invoke-generated.json");
     expect(script).toContain("client-cli-invoke-generated.log");
+    expect(script).toContain("CLIENT_INSTANCE_MARKER=");
+    expect(script).toContain("client-stop-processes.log");
+    expect(script).toContain("wait_for_client_exit");
+    expect(script).toContain('$0 !~ /awk -v marker/');
     expect(script).toContain("x-craftless-actions");
     expect(script).toContain('!action.id.startsWith("task.")');
     expect(script).toContain('method: "invoke"');

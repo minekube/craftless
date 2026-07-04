@@ -11,6 +11,8 @@ import java.util.concurrent.TimeUnit
 
 internal interface OfficialFabricClientConnector {
     fun connect(target: ConnectionTarget): Boolean
+
+    fun stop(): Boolean
 }
 
 internal class MinecraftOfficialFabricClientConnector(
@@ -19,6 +21,11 @@ internal class MinecraftOfficialFabricClientConnector(
     override fun connect(target: ConnectionTarget): Boolean =
         runCatching {
             connectOnClient(clientProvider(), target)
+        }.getOrDefault(false)
+
+    override fun stop(): Boolean =
+        runCatching {
+            stopOnClient(clientProvider())
         }.getOrDefault(false)
 
     private fun connectOnClient(
@@ -53,6 +60,25 @@ internal class MinecraftOfficialFabricClientConnector(
             false,
             null,
         )
+        return true
+    }
+
+    private fun stopOnClient(client: Minecraft): Boolean {
+        if (client.isSameThread) {
+            return scheduleStop(client)
+        }
+        val result = CompletableFuture<Boolean>()
+        client.execute {
+            runCatching {
+                scheduleStop(client)
+            }.onSuccess(result::complete)
+                .onFailure(result::completeExceptionally)
+        }
+        return result.get(CONNECT_SCHEDULE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+    }
+
+    private fun scheduleStop(client: Minecraft): Boolean {
+        client.stop()
         return true
     }
 

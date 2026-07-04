@@ -181,6 +181,8 @@ class OfficialFabricSharedRuntimeMetadataTest {
                             observedTargets += target
                             return true
                         }
+
+                        override fun stop(): Boolean = false
                     },
             )
 
@@ -192,6 +194,46 @@ class OfficialFabricSharedRuntimeMetadataTest {
         val message = result.message.orEmpty()
         assertTrue(message.contains("official-test"))
         assertTrue(message.contains("127.0.0.1:25565"))
+    }
+
+    @Test
+    fun `official backend stop delegates to lifecycle connector`() {
+        var stopCalls = 0
+        val backend =
+            OfficialFabricDriverBackend(
+                runtimeMetadataProvider =
+                    FabricRuntimeMetadataProvider { clientId ->
+                        SnapshotFabricRuntimeMetadataProvider(
+                            FabricRuntimeMetadataSnapshot(
+                                loaderVersion = "0.19.3",
+                                driver = "craftless-driver-fabric-official",
+                                driverVersion = "0.1.0-SNAPSHOT",
+                                mappings = "craftless-official-bindings-26-2",
+                                installedModsFingerprint = fabricRuntimeFingerprint("mods", listOf("test-mod@1.0.0")),
+                                registryFingerprint = "registries:not-discovered",
+                                serverFeatureFingerprint = "server-features:not-connected",
+                                permissionsFingerprint = "permissions:local-client",
+                            ),
+                        ).runtimeMetadata(clientId)
+                    },
+                clientStateProvider = OfficialFabricClientStateProvider { FabricClientStateGraphSnapshot.disconnected() },
+                clientConnector =
+                    object : OfficialFabricClientConnector {
+                        override fun connect(target: ConnectionTarget): Boolean = false
+
+                        override fun stop(): Boolean {
+                            stopCalls += 1
+                            return true
+                        }
+                    },
+            )
+
+        val result = backend.stop("official-test")
+
+        assertEquals(1, stopCalls)
+        assertEquals(DriverBackendAction.STOP, result.action)
+        assertTrue(result.observed)
+        assertTrue(result.message.orEmpty().contains("official-test"))
     }
 
     @Test
