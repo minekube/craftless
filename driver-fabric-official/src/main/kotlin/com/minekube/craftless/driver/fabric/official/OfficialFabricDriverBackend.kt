@@ -137,11 +137,20 @@ internal class OfficialFabricDriverBackend(
         )
     }
 
-    override fun stop(clientId: String): DriverBackendResult =
-        DriverBackendResult(
+    override fun stop(clientId: String): DriverBackendResult {
+        val observed = clientConnector.stop()
+        val outcome =
+            if (observed) {
+                "scheduled official lane client stop"
+            } else {
+                "official lane client stop could not be scheduled"
+            }
+        return DriverBackendResult(
             action = DriverBackendAction.STOP,
-            message = "stopped official lane probe backend for $clientId",
+            message = "$outcome for $clientId",
+            observed = observed,
         )
+    }
 }
 
 internal fun officialFabricRuntimeMetadataProvider(

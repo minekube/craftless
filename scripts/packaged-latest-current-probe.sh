@@ -12,6 +12,9 @@ DAEMON_PORT="${CRAFTLESS_PACKAGED_LATEST_DAEMON_PORT:-18084}"
 TIMEOUT_MS="${CRAFTLESS_PACKAGED_LATEST_TIMEOUT_MS:-300000}"
 API="http://127.0.0.1:$DAEMON_PORT"
 GENERATED_ACTION_ID=""
+CLIENT_INSTANCE_MARKER="instances/$CLIENT_ID-latest-release-fabric"
+STOP_ISSUED=0
+STOP_PROCESS_TIMEOUT_SECONDS="${CRAFTLESS_PACKAGED_LATEST_STOP_PROCESS_TIMEOUT_SECONDS:-30}"
 
 mkdir -p "$ARTIFACTS_DIR" "$WORKSPACE"
 test -x "$CRAFTLESS_BIN"
@@ -19,10 +22,33 @@ cp "$ROOT/build/docker/craftless/driver-mods.json" "$ARTIFACTS_DIR/packaged-driv
 
 DAEMON_PID=""
 
+running_client_pids() {
+  ps -eo pid=,command= | awk -v marker="$CLIENT_INSTANCE_MARKER" '$0 ~ marker && $0 !~ /awk -v marker/ { print $1 }'
+}
+
+wait_for_client_exit() {
+  local deadline=$((SECONDS + STOP_PROCESS_TIMEOUT_SECONDS))
+  local pids=""
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    pids="$(running_client_pids || true)"
+    if [ -z "$pids" ]; then
+      : > "$ARTIFACTS_DIR/client-stop-processes.log"
+      return 0
+    fi
+    sleep 1
+  done
+  pids="$(running_client_pids || true)"
+  printf '%s\n' "$pids" > "$ARTIFACTS_DIR/client-stop-processes.log"
+  printf 'timed out waiting for stopped client process marker %s; remaining pids: %s\n' "$CLIENT_INSTANCE_MARKER" "$pids" >&2
+  return 1
+}
+
 cleanup() {
   set +e
   if [ -n "$DAEMON_PID" ]; then
-    "$CRAFTLESS_BIN" api "/clients/$CLIENT_ID:stop" --api "$API" -X POST > "$ARTIFACTS_DIR/client-stop.log" 2>&1
+    if [ "$STOP_ISSUED" != "1" ]; then
+      "$CRAFTLESS_BIN" api "/clients/$CLIENT_ID:stop" --api "$API" -X POST > "$ARTIFACTS_DIR/client-stop.log" 2>&1
+    fi
     kill "$DAEMON_PID" >/dev/null 2>&1
     wait "$DAEMON_PID" >/dev/null 2>&1
   fi
@@ -262,3 +288,7 @@ const summary = {
 };
 await fs.writeFile(path.join(artifactsDir, "packaged-probe-summary.json"), `${JSON.stringify(summary, null, 2)}\n`);
 '
+
+"$CRAFTLESS_BIN" api "/clients/$CLIENT_ID:stop" --api "$API" -X POST > "$ARTIFACTS_DIR/client-stop.log" 2>&1
+STOP_ISSUED=1
+wait_for_client_exit
