@@ -76,6 +76,40 @@ tasks.processResources {
     }
 }
 
+val generatedOfficialFabricDriverLaneCatalog = layout.buildDirectory.file("generated/driver-lanes/fabric-driver-lanes.json")
+
+tasks.register("writeOfficialFabricDriverLaneCatalog") {
+    group = "build"
+    description = "Generates the packaged official Fabric latest/current driver lane catalog."
+
+    outputs.file(generatedOfficialFabricDriverLaneCatalog)
+
+    doLast {
+        val output = generatedOfficialFabricDriverLaneCatalog.get().asFile
+        output.parentFile.mkdirs()
+        output.writeText(
+            """
+            {
+              "entries": [
+                {
+                  "loader": "FABRIC",
+                  "minecraftVersion": "26.2",
+                  "loaderVersion": "0.19.3",
+                  "path": "mods/fabric-26.2/craftless-driver-fabric-official.jar",
+                  "providerId": "fabric-26-2-official-lane",
+                  "artifactKey": "fabric-26-2-official-jar",
+                  "fabricApiVersion": "0.153.0+26.2",
+                  "javaMajorVersion": 25,
+                  "mappingsFingerprint": "craftless-fabric-official-26-2",
+                  "distributionPath": "mods/fabric-26.2/craftless-driver-fabric-official.jar"
+                }
+              ]
+            }
+            """.trimIndent() + "\n",
+        )
+    }
+}
+
 tasks.register<JavaExec>("officialFabricAttachProbe") {
     group = "verification"
     description = "Opt-in official Fabric latest/current launch and self-attach probe."

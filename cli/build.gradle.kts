@@ -1,5 +1,6 @@
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
+import org.gradle.jvm.tasks.Jar
 import java.nio.file.Path
 
 plugins {
@@ -27,6 +28,7 @@ application {
 }
 
 val fabricDriverProject = project(":driver-fabric")
+val officialFabricDriverProject = project(":driver-fabric-official")
 val fabricDriverArtifactStagingDir = layout.buildDirectory.dir("generated/driver-lane-artifacts")
 val extraFabricDriverLaneRoot =
     providers.gradleProperty("craftless.extraFabricDriverLaneRoot").map { path ->
@@ -92,14 +94,19 @@ fun extraFabricDriverLaneCatalogFiles(root: File?): List<File> =
 
 fun mergedCatalogEntries(
     primaryCatalog: File,
+    builtInCatalogs: List<File>,
     extraRoot: File?,
 ): List<Map<*, *>> {
     val primary = JsonSlurper().parse(primaryCatalog) as Map<*, *>
+    val builtIns =
+        builtInCatalogs.flatMap { catalogFile ->
+            catalogEntries(JsonSlurper().parse(catalogFile) as Map<*, *>)
+        }
     val extras =
         extraFabricDriverLaneCatalogFiles(extraRoot).flatMap { catalogFile ->
             catalogEntries(JsonSlurper().parse(catalogFile) as Map<*, *>)
         }
-    return catalogEntries(primary) + extras
+    return catalogEntries(primary) + builtIns + extras
 }
 
 fun renderDriverModManifest(entries: List<Map<*, *>>): String {
@@ -151,18 +158,29 @@ gradle.projectsEvaluated {
     val fabricDriverLaneCatalogTask = fabricDriverProject.tasks.named("writeFabricDriverLaneCatalog")
     val fabricDriverLaneCatalog =
         fabricDriverProject.layout.buildDirectory.file("generated/driver-lanes/fabric-driver-lanes.json")
+    val officialFabricDriverJar = officialFabricDriverProject.tasks.named<Jar>("jar")
+    val officialFabricDriverLaneCatalogTask = officialFabricDriverProject.tasks.named("writeOfficialFabricDriverLaneCatalog")
+    val officialFabricDriverLaneCatalog =
+        officialFabricDriverProject.layout.buildDirectory.file("generated/driver-lanes/fabric-driver-lanes.json")
     val configuredExtraFabricDriverLaneRoot = extraFabricDriverLaneRoot.orNull?.asFile
     val driverModManifest =
         tasks.register("writeDriverModManifest") {
             val outputFile = layout.buildDirectory.file("generated/driver-mods/driver-mods.json")
             dependsOn(fabricDriverLaneCatalogTask)
+            dependsOn(officialFabricDriverLaneCatalogTask)
             inputs.file(fabricDriverLaneCatalog)
+            inputs.file(officialFabricDriverLaneCatalog)
             configuredExtraFabricDriverLaneRoot?.let { root -> inputs.dir(root).optional() }
             outputs.file(outputFile)
 
             doLast {
                 val output = outputFile.get().asFile
-                val entries = mergedCatalogEntries(fabricDriverLaneCatalog.get().asFile, configuredExtraFabricDriverLaneRoot)
+                val entries =
+                    mergedCatalogEntries(
+                        fabricDriverLaneCatalog.get().asFile,
+                        listOf(officialFabricDriverLaneCatalog.get().asFile),
+                        configuredExtraFabricDriverLaneRoot,
+                    )
                 output.parentFile.mkdirs()
                 output.writeText(renderDriverModManifest(entries))
             }
@@ -171,15 +189,24 @@ gradle.projectsEvaluated {
         tasks.register("stageFabricDriverLaneArtifacts") {
             dependsOn(fabricDriverLaneCatalogTask)
             dependsOn(fabricDriverRemapJar)
+            dependsOn(officialFabricDriverLaneCatalogTask)
+            dependsOn(officialFabricDriverJar)
             inputs.file(fabricDriverLaneCatalog)
+            inputs.file(officialFabricDriverLaneCatalog)
             inputs.files(fabricDriverRemapJar)
+            inputs.files(officialFabricDriverJar)
             configuredExtraFabricDriverLaneRoot?.let { root -> inputs.dir(root).optional() }
             outputs.dir(fabricDriverArtifactStagingDir)
 
             doLast {
                 val outputRoot = fabricDriverArtifactStagingDir.get().asFile
                 outputRoot.deleteRecursively()
-                val entries = mergedCatalogEntries(fabricDriverLaneCatalog.get().asFile, configuredExtraFabricDriverLaneRoot)
+                val entries =
+                    mergedCatalogEntries(
+                        fabricDriverLaneCatalog.get().asFile,
+                        listOf(officialFabricDriverLaneCatalog.get().asFile),
+                        configuredExtraFabricDriverLaneRoot,
+                    )
                 entries.forEach { entry ->
                     val artifactKey = requiredCatalogString(entry, "artifactKey")
                     val distributionPath = validatedDistributionPath(requiredCatalogString(entry, "distributionPath"))
@@ -187,6 +214,13 @@ gradle.projectsEvaluated {
                         when (artifactKey) {
                             "fabric-current-remap-jar" ->
                                 fabricDriverRemapJar
+                                    .get()
+                                    .outputs
+                                    .files
+                                    .singleFile
+
+                            "fabric-26-2-official-jar" ->
+                                officialFabricDriverJar
                                     .get()
                                     .outputs
                                     .files
@@ -205,6 +239,30 @@ gradle.projectsEvaluated {
                                     ?: error("Fabric driver lane runtime mod is missing: $runtimeModPath")
                             stageDistributionPath(runtimeMod, outputRoot, runtimeModPath)
                         }
+                }
+            }
+        }
+    val verifyInstallDistDriverLanes =
+        tasks.register("verifyInstallDistDriverLanes") {
+            dependsOn("installDist")
+            inputs.file(layout.buildDirectory.file("install/craftless/driver-mods.json"))
+            inputs.file(layout.buildDirectory.file("install/craftless/mods/fabric-26.2/craftless-driver-fabric-official.jar"))
+
+            doLast {
+                val installRoot =
+                    layout.buildDirectory
+                        .dir("install/craftless")
+                        .get()
+                        .asFile
+                        .toPath()
+                val manifest = installRoot.resolve("driver-mods.json").toFile()
+                check(manifest.isFile) { "installed Craftless distribution is missing driver-mods.json" }
+                val entries = catalogEntries(JsonSlurper().parse(manifest) as Map<*, *>)
+                val versions = entries.map { entry -> requiredCatalogString(entry, "minecraftVersion") }.toSet()
+                check("1.21.6" in versions) { "installed Craftless distribution is missing the current Fabric driver lane" }
+                check("26.2" in versions) { "installed Craftless distribution is missing the latest official Fabric driver lane" }
+                check(installRoot.resolve("mods/fabric-26.2/craftless-driver-fabric-official.jar").toFile().isFile) {
+                    "installed Craftless distribution is missing the latest official Fabric driver jar"
                 }
             }
         }
@@ -231,5 +289,9 @@ gradle.projectsEvaluated {
     tasks.named("installDist") {
         dependsOn(stageFabricDriverLaneArtifacts)
         dependsOn(driverModManifest)
+    }
+
+    tasks.named("check") {
+        dependsOn(verifyInstallDistDriverLanes)
     }
 }
