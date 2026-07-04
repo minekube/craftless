@@ -6,6 +6,7 @@ CRAFTLESS_BIN="$ROOT/build/docker/craftless/bin/craftless"
 ARTIFACTS_DIR="${CRAFTLESS_SMOKE_ARTIFACTS_DIR:-$ROOT/build/craftless-packaged-latest-current-probe/artifacts}"
 WORKSPACE="${CRAFTLESS_PACKAGED_LATEST_WORKSPACE:-$ROOT/build/craftless-packaged-latest-current-probe/workspace}"
 CLIENT_ID="${CRAFTLESS_PACKAGED_LATEST_CLIENT_ID:-latest-current}"
+PRESENTATION_WINDOW="${CRAFTLESS_PACKAGED_LATEST_PRESENTATION_WINDOW:-NONE}"
 SERVER_PORT="${CRAFTLESS_SMOKE_SERVER_PORT:?CRAFTLESS_SMOKE_SERVER_PORT is required}"
 DAEMON_PORT="${CRAFTLESS_PACKAGED_LATEST_DAEMON_PORT:-18084}"
 TIMEOUT_MS="${CRAFTLESS_PACKAGED_LATEST_TIMEOUT_MS:-300000}"
@@ -60,6 +61,7 @@ CRAFTLESS_HTTP_REQUEST_TIMEOUT_MS="$TIMEOUT_MS" \
   -F loader=FABRIC \
   -F "profile[kind]=OFFLINE" \
   -F "profile[name]=LatestCurrent" \
+  -F "presentation[window]=$PRESENTATION_WINDOW" \
   > "$ARTIFACTS_DIR/clients-create-latest-release.log" 2>&1
 
 API="$API" CLIENT_ID="$CLIENT_ID" TIMEOUT_MS="$TIMEOUT_MS" mise exec -- bun --eval '
