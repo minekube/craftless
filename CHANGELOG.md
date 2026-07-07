@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.5](https://github.com/minekube/craftless/compare/v0.3.4...v0.3.5) (2026-07-06)
+
+
+### Bug Fixes
+
+* include latest official lane in cli install ([93ae19e](https://github.com/minekube/craftless/commit/93ae19e5902dd89eb7379cf12c073dd2f2d48bf9))
+* stop official fabric clients ([#13](https://github.com/minekube/craftless/issues/13)) ([7d9eb87](https://github.com/minekube/craftless/commit/7d9eb870ed51c79015d370f2f5d327167e74dee4))
+
 ## [0.3.4](https://github.com/minekube/craftless/compare/v0.3.3...v0.3.4) (2026-07-02)
 
 
