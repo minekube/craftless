@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.6](https://github.com/minekube/craftless/compare/v0.3.5...v0.3.6) (2026-07-27)
+
+
+### Bug Fixes
+
+* decouple historical release assets from latest image ([#14](https://github.com/minekube/craftless/issues/14)) ([6159f02](https://github.com/minekube/craftless/commit/6159f020727bdb71da98c777cad27f77e171deae))
+
 ## [0.3.5](https://github.com/minekube/craftless/compare/v0.3.4...v0.3.5) (2026-07-06)
 
 
