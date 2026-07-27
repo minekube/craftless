@@ -311,6 +311,16 @@ describe("distribution surface", () => {
     expect(workflow).not.toContain("imagetools");
     expect(workflow).not.toContain("REGISTRY_IMAGE");
 
+    // The repair path must never gain a general test-bypass. A mechanism that
+    // can skip a tag's own tests is a durable supply-chain capability that
+    // will be reached for again, by someone with less context, on a tag whose
+    // failing test does test software. `mise run ci` runs unconditionally and
+    // there is no input that can turn it off.
+    expect(workflow).not.toMatch(/skip[-_](test|tests|ci|verify|checks)/i);
+    expect(workflow).not.toMatch(/build[-_]only/i);
+    const inputNames = [...workflow.matchAll(/^ {6}(\w+):$/gm)].map((m) => m[1]);
+    expect(inputNames).toEqual(["release_tag"]);
+
     // Repair fills holes and proves the landed result; it never edits release
     // metadata and never trusts its own upload step.
     expect(workflow).not.toContain("softprops/action-gh-release");
@@ -330,6 +340,24 @@ describe("distribution surface", () => {
     expect(doc).toContain("playwright/src/distribution.test.ts");
     expect(doc).toContain('expect(manifest["."]).toBe("0.3.0")');
     expect(doc).toContain("What this does not fix");
+
+    // These releases are empty because someone shipped a guard that cannot
+    // pass - a check that exercises no product code - NOT because the software
+    // is bad or a build broke. Wording that implies otherwise misrepresents
+    // shipped releases to users, so the honest sentence is pinned here.
+    // Prose wraps across lines, so compare on normalised whitespace.
+    const prose = doc.replace(/\s+/g, " ");
+
+    expect(prose).toContain(
+      "the software is fine; the release carries no downloadable build because a " +
+        "self-invalidating metadata guard in that tag prevents a clean rebuild",
+    );
+    expect(prose).toContain("Do not describe them as failing quality checks");
+
+    // The repair path must never gain a general test-bypass; the only shape
+    // ever allowed is one named metadata test excluded with evidence.
+    expect(prose).toContain("The repair path never gains a general test-bypass");
+    expect(prose).toContain("named exclusion with evidence");
   });
 
   test("scheduled Release Please workflow creates release tags from main changes", () => {

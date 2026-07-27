@@ -363,9 +363,11 @@ the latest `v*` release. Merging that PR creates the next `vX.Y.Z` tag, and
 Release Please's `trigger-release` job dispatches the `release` workflow on it,
 which builds CLI archives, checksums, Docker image, and GitHub release notes.
 
-To repair a release that published without assets, or to understand why
-`v0.2.0`, `v0.3.0` and `v0.3.1` are permanently unrepairable, see
-[Release troubleshooting](docs/release-troubleshooting.md).
+Some older releases carry no downloadable build. The software at those tags is
+fine; a self-invalidating metadata guard inside the tag prevents a clean
+rebuild, so the release cannot be repopulated. See
+[Release troubleshooting](docs/release-troubleshooting.md) for which releases,
+the proof, and how to repair a release that can be rebuilt.
 
 ## Docs
 

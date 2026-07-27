@@ -112,14 +112,21 @@ answer is "the release commit, and only the release commit", the test needs to
 be release-please-managed or dynamic, or it will quietly cost the next release
 its assets.
 
-## Permanently unrepairable releases
+## Releases that cannot be rebuilt
 
-`v0.2.0`, `v0.3.0` and `v0.3.1` publish no assets and **never will**. This is
-not a backlog item; do not attempt to repair them.
+`v0.2.0`, `v0.3.0` and `v0.3.1` publish no downloadable build and never will.
+This is not a backlog item; do not attempt to repair them.
 
-Each of those tags carries a test that asserts the release-please manifest still
-holds the *previous* version - the exact version the release commit at that tag
-just bumped. `playwright/src/distribution.test.ts` at each tag:
+**Read the reason precisely, because the obvious reading is wrong.** The
+software at these tags is fine. Nothing about the product failed, no test found
+a defect, and no build is broken. Each release carries no downloadable build
+because a **self-invalidating metadata guard inside that tag prevents a clean
+rebuild** - a check that tests nothing about the software and cannot pass under
+any circumstances.
+
+The guard asserts that `.release-please-manifest.json` still holds the
+*previous* version - the exact version the release commit at that tag just
+bumped. `playwright/src/distribution.test.ts` at each tag:
 
 | Tag | `.release-please-manifest.json` | The tag's own assertion |
 | --- | --- | --- |
@@ -127,29 +134,58 @@ just bumped. `playwright/src/distribution.test.ts` at each tag:
 | `v0.3.0` | `{".": "0.3.0"}` | `expect(manifest["."]).toBe("0.2.0")` |
 | `v0.3.1` | `{".": "0.3.1"}` | `expect(manifest["."]).toBe("0.3.0")` |
 
-So `mise run ci` is red at those tags, deterministically, forever - it fails
-before anything is built. That is not a flake and not an environment problem; it
-is what the tagged source says. It is also what actually killed the manual
-`release.yml` dispatch for `v0.3.1`
+The assertion compares one bookkeeping file against a hard-coded number. It
+exercises no product code, so it can report nothing about product quality. It
+was already false at the instant the tag was cut, and it will be false forever.
+That is what stops `mise run ci`, before anything is built - which is also what
+killed the manual `release.yml` dispatch for `v0.3.1`
 ([run 28568835457](https://github.com/minekube/craftless/actions/runs/28568835457)).
+
+So the accurate sentence about these releases is: *the software is fine; the
+release carries no downloadable build because a self-invalidating metadata guard
+in that tag prevents a clean rebuild.* Do not describe them as failing quality
+checks, failing tests, or having a broken build. They did not fail review - they
+inherited an unpassable check, which is the same defect class this document
+exists to eliminate.
 
 The guard was made dynamic by `1eb7240 fix(ci): make release version guard
 dynamic` and has been `expect(manifest["."]).toMatch(/^\d+\.\d+\.\d+$/)` since
-`v0.3.2`, so no later tag has this problem.
+`v0.3.2`, so no later tag inherits this exact assertion.
 
-`v0.3.5` is a different case and is **not** in this list. It is red at itself
-for the Phase 210 reason above, which is a fixable defect fixed on `main` - not
-an assertion that can never hold. Repairing it still requires deciding whether
-the repair may build with `mise run package-cli` (which runs ~40 artifact
-assertions against tagged source) without the repo-wide `mise run ci` that the
-tag's own checklist row fails. That is a provenance-standard call, not an
-engineering one, and it is not settled here.
+Repairing these three would mean either rewriting a published tag or bypassing
+the tag's own test run. Both are worse than an honest empty release: a release
+page that says "no assets", with the reason recorded here, is accurate, while a
+rewritten tag breaks the one guarantee a tag makes. The reason is the useful
+artifact, which is why it is recorded rather than worked around.
 
-Repairing the three tags above would mean either rewriting a published tag or
-publishing artifacts that skipped the tag's own gate. Both are worse than an honest empty
-release: a release page that says "no assets" is accurate, while a rewritten tag
-breaks the one guarantee a tag makes. The reason is the useful artifact here,
-which is why it is recorded rather than worked around.
+### `v0.3.5`, and the standing rule for repairs
+
+`v0.3.5` is the same shape from a different guard - the Phase 210 release-truth
+check above - and the same honest sentence applies: the software is fine, and
+the release carries no downloadable build because a self-invalidating metadata
+guard in that tag prevents a clean rebuild. It differs from the three above only
+in that the guard is fixable, and is fixed on `main`.
+
+Two rules govern any attempt to repair it:
+
+1. **The repair path never gains a general test-bypass.** No `skip_tests` input,
+   no "build-only" mode, no flag that runs `mise run package-cli` without the
+   tag's test run. A repair mechanism that can skip a tag's own tests is a
+   durable supply-chain capability that will be reached for again, by someone
+   with less context, on a tag where the failing test *does* test software. The
+   answer to that is no, permanently - which is why `release-repair.yml` runs
+   the full `mise run ci` and offers no way around it.
+2. **The only acceptable narrower shape is a named exclusion with evidence**,
+   and only for `v0.3.5`. That means: run the build and every test that exercises
+   the software, and treat exactly **one specifically-named metadata test** as
+   not-applicable-for-repair, accompanied by the proof that it is deterministically
+   red for bookkeeping reasons rather than software reasons. One named test, with
+   evidence - not a category, not a pattern, not a flag.
+
+If the repair cannot be expressed that narrowly, the answer is no and `v0.3.5`
+stays empty-with-reason. **All four craftless releases standing as
+empty-with-reason is a fully acceptable end state**, and a better one than a
+repair path that can silently skip tests.
 
 ## What this does not fix
 
