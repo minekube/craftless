@@ -72,8 +72,8 @@ CLI command.
 - A test that asserts on the release version must be Release Please-managed
   (`extra-files`) or dynamic. A version assertion that the release commit itself
   invalidates makes that tag red at itself forever, which fails the release
-  workflow's verify step and publishes an empty release. This has already cost
-  four releases. See `docs/release-troubleshooting.md`.
+  workflow's verify step and publishes an empty release. See
+  `docs/release-troubleshooting.md`.
 - Live status claims must be fresh. Before saying a server, daemon, client, or
   Minecraft process is running, stopped, connected, or broken, re-check the
   live process/API state in the same turn and treat older agent transcripts,

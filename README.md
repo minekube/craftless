@@ -97,7 +97,7 @@ curl -N "$CRAFTLESS/clients/bot/events:stream"
 Install a specific release:
 
 ```sh
-CRAFTLESS_VERSION=v0.3.0 \
+CRAFTLESS_VERSION=v0.3.4 \
 CRAFTLESS_INSTALL_DIR="$HOME/.local/bin" \
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/minekube/craftless/main/install.sh)"
 ```
@@ -117,7 +117,7 @@ jobs:
   minecraft:
     runs-on: ubuntu-latest
     steps:
-      - uses: minekube/craftless/.github/actions/setup-craftless@v0.3.0
+      - uses: minekube/craftless/.github/actions/setup-craftless@v0.3.4
         id: craftless
         with:
           start: "true"
