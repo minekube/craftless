@@ -69,6 +69,11 @@ CLI command.
   custom HTTP method enums in product code.
 - The CLI binary is `craftless` and must stay adaptive from `/openapi.json`,
   `/clients/{id}/openapi.json`, and `/clients/{id}/actions` for gameplay.
+- A test that asserts on the release version must be Release Please-managed
+  (`extra-files`) or dynamic. A version assertion that the release commit itself
+  invalidates makes that tag red at itself forever, which fails the release
+  workflow's verify step and publishes an empty release. This has already cost
+  four releases. See `docs/release-troubleshooting.md`.
 - Live status claims must be fresh. Before saying a server, daemon, client, or
   Minecraft process is running, stopped, connected, or broken, re-check the
   live process/API state in the same turn and treat older agent transcripts,
@@ -80,3 +85,10 @@ Craftless uses `com.minekube.craftless` and `minekube.com`. Use `mise` for all
 repo tooling, including Bun. Do not use npm, npx, yarn, pnpm, or globally
 installed Node tooling in repo workflows. Push directly to `main` when asked.
 Preserve unrelated user work.
+
+## Maintaining this file
+
+Keep this file for knowledge useful to almost every future agent session in this project.
+Do not repeat what the codebase already shows; point to the authoritative file or command instead.
+Prefer rewriting or pruning existing entries over appending new ones.
+When updating this file, preserve this bar for all agents and keep entries concise.

@@ -118,10 +118,47 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish runtime image manifest
+      # `:latest` is a live pointer. Re-running this workflow at an older tag -
+      # to repair that release, or to hotfix an older line - would otherwise
+      # drag `:latest` backwards and silently downgrade everyone pulling it.
+      # Ask GitHub which release is newest rather than sorting tag names, which
+      # would order v0.10.0 before v0.9.0.
+      #
+      # For a normal release this is always true, so the published tag set is
+      # unchanged. When it is false the pointer is merely left where it is -
+      # stale, never regressed, and visible on the next release.
+      - name: Resolve whether this tag is the newest release
+        id: newest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
+
+          NEWEST=$(gh release list --repo "$GITHUB_REPOSITORY" --exclude-drafts --limit 100 \
+            --json tagName,isLatest --jq '[.[] | select(.isLatest)] | first | .tagName // ""')
+          echo "GitHub reports the newest release as: ${NEWEST:-<none>}"
+          echo "This run publishes: $GITHUB_REF_NAME"
+
+          if [ -n "$NEWEST" ] && [ "$NEWEST" = "$GITHUB_REF_NAME" ]; then
+            echo "is_newest=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_newest=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish runtime image manifest
+        env:
+          IS_NEWEST: ${{ steps.newest.outputs.is_newest }}
+        run: |
+          set -euo pipefail
+
+          TAGS=(--tag "${REGISTRY_IMAGE}:${GITHUB_REF_NAME}")
+          if [ "$IS_NEWEST" = "true" ]; then
+            TAGS+=(--tag "${REGISTRY_IMAGE}:latest")
+          else
+            echo "::notice::${GITHUB_REF_NAME} is not the newest release; leaving ${REGISTRY_IMAGE}:latest where it is."
+          fi
+
           docker buildx imagetools create \
-            --tag "${REGISTRY_IMAGE}:${GITHUB_REF_NAME}" \
-            --tag "${REGISTRY_IMAGE}:latest" \
+            "${TAGS[@]}" \
             "${REGISTRY_IMAGE}:${GITHUB_REF_NAME}-amd64" \
             "${REGISTRY_IMAGE}:${GITHUB_REF_NAME}-arm64"

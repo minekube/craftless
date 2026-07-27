@@ -5,7 +5,13 @@
       "package-name": "craftless",
       "changelog-path": "CHANGELOG.md",
       "include-component-in-tag": false,
-      "include-v-in-tag": true
+      "include-v-in-tag": true,
+      "extra-files": [
+        {
+          "type": "generic",
+          "path": "docs/project-completion-checklist.md"
+        }
+      ]
     }
   }
 }

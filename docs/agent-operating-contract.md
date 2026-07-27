@@ -269,3 +269,8 @@ tests.
 - Before claiming a code change is complete, run focused tests and then
   `mise run ci` when practical.
 - For docs-only edits, run at least `git diff --check`.
+- Releases publish through Release Please, its `trigger-release` dispatch, and
+  the tag-driven `release` workflow. `ghcr.io/minekube/craftless:latest` moves
+  only for the newest release, and `release-repair.yml` holds no registry
+  credential by design so it cannot move it at all. Read
+  `docs/release-troubleshooting.md` before touching any release workflow.

@@ -10,6 +10,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write # to dispatch release.yml on the freshly created tag
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -19,8 +20,36 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      release_created: ${{ steps.release-please.outputs.release_created }}
+      tag_name: ${{ steps.release-please.outputs.tag_name }}
     steps:
       - uses: googleapis/release-please-action@v4
+        id: release-please
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  # release-please pushes the v* tag with GITHUB_TOKEN, and GitHub's
+  # anti-recursion safeguard means a GITHUB_TOKEN tag push does NOT fire
+  # release.yml's `push: tags: ["v*"]` trigger. Without this job the tag and
+  # the GitHub Release exist but release.yml never runs, so the release is
+  # published with zero assets and no container image - which is exactly how
+  # every craftless release from v0.2.0 onward ended up empty unless a human
+  # remembered to dispatch release.yml by hand.
+  #
+  # Dispatching release.yml on the new tag closes the loop without a PAT.
+  trigger-release:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch release.yml on the new tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          set -euo pipefail
+          echo "Dispatching release.yml at $TAG_NAME"
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG_NAME"

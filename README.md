@@ -359,9 +359,13 @@ CRAFTLESS_FINAL_GAMEPLAY=1 mise exec -- gradle :driver-fabric:fabricFinalGamepla
 
 Release Please opens or updates the release PR on pushes to `main`, manual
 dispatch, and the weekly scheduled check when releasable changes exist since
-the latest `v*` release. Merging that PR creates the next `vX.Y.Z` tag; the
-tag-driven `release` workflow builds CLI archives, checksums, Docker image, and
-GitHub release notes.
+the latest `v*` release. Merging that PR creates the next `vX.Y.Z` tag, and
+Release Please's `trigger-release` job dispatches the `release` workflow on it,
+which builds CLI archives, checksums, Docker image, and GitHub release notes.
+
+To repair a release that published without assets, or to understand why
+`v0.2.0`, `v0.3.0` and `v0.3.1` are permanently unrepairable, see
+[Release troubleshooting](docs/release-troubleshooting.md).
 
 ## Docs
 
@@ -369,6 +373,7 @@ GitHub release notes.
 - [API reference](https://craftless.minekube.com/docs/api-reference)
 - [Product positioning](docs/product-positioning.md)
 - [Client file management](docs/client-file-management.md)
+- [Release troubleshooting](docs/release-troubleshooting.md)
 - [Agent skills](docs/agent-skills.md)
 - [Roadmap](docs/roadmap.md)
 - [Final gameplay runbook](docs/final-gameplay-runbook.md)
