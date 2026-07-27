@@ -23,18 +23,19 @@ runs - a green-looking release with zero assets and no image. Every craftless
 release from `v0.2.0` onward that carries assets got them because a human
 remembered to dispatch `release.yml` by hand.
 
-## `:latest` only ever moves forward
+## The current release workflow protects the live image pointer
 
-`ghcr.io/minekube/craftless:latest` is a live pointer. `release.yml` asks GitHub
-which release is newest (`gh release list --json isLatest`, not a tag-name sort,
-which would order `v0.10.0` before `v0.9.0`) and only adds the `:latest` tag to
-the manifest when the tag being published *is* that newest release.
+`ghcr.io/minekube/craftless:latest` is a live pointer. The `release.yml` on
+`main` asks GitHub which release is newest (`gh release list --json isLatest`,
+not a tag-name sort, which would order `v0.10.0` before `v0.9.0`) and only adds
+the `:latest` tag to the manifest when the tag being published *is* that
+newest release.
 
 For a normal release the condition is true by construction, so the published tag
-set is unchanged. When it is false - re-running `release.yml` at an older tag -
-the pointer is left where it is. That failure direction is deliberate: a stale
-`:latest` is visible and self-correcting on the next release, a regressed
-`:latest` silently downgrades every consumer.
+set is unchanged. When a workflow carrying this gate sees a tag that is not the
+newest release, the pointer is left where it is. That failure direction is
+deliberate: a stale `:latest` is visible and self-correcting on the next release,
+a regressed `:latest` silently downgrades every consumer.
 
 ## Repairing a release that published empty
 
@@ -67,20 +68,28 @@ finally re-reads the *published* release from the API to prove a real archive is
 downloadable. A repair that reports success on an empty release would be the
 original bug one level up.
 
-### Moving the container image after a repair
+## Image movement is outside release repair
 
-Deliberately a separate step, in this order:
+`release-repair.yml` publishes ASSETS ONLY. It holds no registry credential and
+requests no registry scope, so it structurally cannot move
+`ghcr.io/minekube/craftless:latest`. A repaired release gets its downloadable
+build back; the container image is untouched and stays where it is.
 
-1. Repair the assets. Confirm the run's `Verify published release assets` step
-   passed.
-2. Smoke the real artifact - install from the published tarball and exercise it.
-3. Only then dispatch `release.yml` on that tag to build and publish the runtime
-   image. `:latest` moves only if that tag is the newest release.
+A historical tag's image move cannot be performed by dispatching that tag's
+own `release.yml`. GitHub compiles a `workflow_dispatch` run from the workflow
+file **at the dispatched ref**, so an old tag runs its own pre-change file,
+which retags `:latest` unconditionally - a production downgrade. The evidence
+is in the historical workflow files: `v0.3.2`'s `release.yml` tags `:latest`
+inside the build-push step (line 78), while `v0.3.4` and `v0.3.5` carry an
+unconditional `--tag "${REGISTRY_IMAGE}:latest"` in the imagetools step (line
+125). The newest-release gate added by this change exists only on `main`, so
+only tags cut after it merges carry it.
 
-Step 3 re-publishes the release assets as a side effect of `release.yml`'s
-`release` job. That is harmless - it is the same tagged source producing the
-same archive names - but it is why the image move is worth doing knowingly
-rather than as a reflex.
+Moving the image for an old tag would require a separately authorized,
+credential-holding workflow on the default branch that checks out the tag and
+applies the newest-release oracle. That is deliberately not built here. It
+is a durable production-mutating capability and needs its own scoped decision;
+it must not be arrived at by attrition through a runbook step.
 
 ## The release commit must not invalidate its own gate
 

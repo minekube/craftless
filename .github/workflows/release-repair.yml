@@ -20,9 +20,9 @@ name: release-repair
 #      "guarded against" here - it is unrepresentable. The safety is a
 #      capability boundary, not an `if:` somebody can get wrong.
 #
-# Moving the container image is therefore a deliberate, separate step that
-# happens only after the repaired assets are verified. See
-# docs/release-troubleshooting.md.
+# This workflow publishes assets only. Moving the container image for a
+# historical tag requires a separately authorized capability that is not built
+# here. See docs/release-troubleshooting.md.
 
 on:
   workflow_dispatch:
@@ -339,5 +339,5 @@ jobs:
           echo "OK: $RELEASE_TAG publishes $BUILD_COUNT CLI archive(s) of $ASSET_COUNT assets;"
           echo "OK: SHA256SUMS resolves to all of them and $REQUIRED_TAR downloads (HTTP $PROBE_CODE)."
           echo "NOTE: the container image was NOT touched. This workflow holds no registry"
-          echo "NOTE: credential. Moving ghcr.io/minekube/craftless:latest is a separate,"
-          echo "NOTE: post-smoke step - see docs/release-troubleshooting.md."
+          echo "NOTE: credential. Moving it requires a separately authorized, credential-holding capability"
+          echo "NOTE: that this workflow cannot perform; see docs/release-troubleshooting.md."

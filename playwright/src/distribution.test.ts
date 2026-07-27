@@ -358,6 +358,23 @@ describe("distribution surface", () => {
     // ever allowed is one named metadata test excluded with evidence.
     expect(prose).toContain("The repair path never gains a general test-bypass");
     expect(prose).toContain("named exclusion with evidence");
+
+    expect(doc).not.toContain("### Moving the container image after a repair");
+    expect(doc).not.toContain("Only then dispatch `release.yml` on that tag");
+    expect(prose).toContain("release-repair.yml` publishes ASSETS ONLY");
+    expect(prose).toContain(
+      "cannot be performed by dispatching that tag's own `release.yml`",
+    );
+    expect(prose).toContain(
+      "v0.3.2`'s `release.yml` tags `:latest` inside the build-push step (line 78)",
+    );
+    expect(prose).toContain(
+      "v0.3.4` and `v0.3.5` carry an unconditional `--tag \"${REGISTRY_IMAGE}:latest\"` in the imagetools step (line 125)",
+    );
+    expect(prose).toContain(
+      "separately authorized, credential-holding workflow on the default branch",
+    );
+    expect(prose).toContain("deliberately not built here");
   });
 
   test("scheduled Release Please workflow creates release tags from main changes", () => {
