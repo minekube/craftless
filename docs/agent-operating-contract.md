@@ -269,3 +269,6 @@ tests.
 - Before claiming a code change is complete, run focused tests and then
   `mise run ci` when practical.
 - For docs-only edits, run at least `git diff --check`.
+- Release workflow safety and repair procedures are owned by
+  `docs/release-troubleshooting.md`; read it before touching a release
+  workflow.

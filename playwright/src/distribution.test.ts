@@ -276,6 +276,107 @@ describe("distribution surface", () => {
     expect(workflow).toContain("ghcr.io/minekube/craftless");
   });
 
+  test("release workflow only moves the latest image tag forward", () => {
+    const workflow = read(".github/workflows/release.yml");
+
+    // `:latest` is a live pointer. Re-running this workflow at an older tag
+    // must not drag it backwards, so the retag is gated on GitHub's own
+    // newest-release answer rather than on a tag-name sort.
+    expect(workflow).toContain("gh release list");
+    expect(workflow).toContain("isLatest");
+    expect(workflow).toContain("is_newest");
+    expect(workflow).toContain('if [ "$IS_NEWEST" = "true" ]; then');
+    expect(workflow).toContain('TAGS+=(--tag "${REGISTRY_IMAGE}:latest")');
+    expect(workflow).not.toContain('--tag "${REGISTRY_IMAGE}:latest" \\');
+  });
+
+  test("release repair workflow rebuilds tagged source without registry credentials", () => {
+    const workflow = read(".github/workflows/release-repair.yml");
+
+    expect(exists(".github/workflows/release-repair.yml")).toBe(true);
+    expect(workflow).toContain("release_tag");
+    expect(workflow).toContain("required: true");
+    expect(workflow).toContain("ref: ${{ inputs.release_tag }}");
+    expect(workflow).toContain("mise run ci");
+    expect(workflow).toContain("mise run package-cli");
+    expect(workflow).toContain("gh release upload");
+
+    // The safety of the repair path is a capability boundary, not a
+    // condition: with no registry credential and no packages: write, moving
+    // ghcr.io/minekube/craftless:latest backwards is unrepresentable here.
+    // If any of these ever appear, the whole property is gone.
+    expect(workflow).toContain("contents: write");
+    expect(workflow).not.toContain("packages: write");
+    expect(workflow).not.toContain("docker/login-action");
+    expect(workflow).not.toContain("imagetools");
+    expect(workflow).not.toContain("REGISTRY_IMAGE");
+
+    // The repair path must never gain a general test-bypass. A mechanism that
+    // can skip a tag's own tests is a durable supply-chain capability that
+    // will be reached for again, by someone with less context, on a tag whose
+    // failing test does test software. `mise run ci` runs unconditionally and
+    // there is no input that can turn it off.
+    expect(workflow).not.toMatch(/skip[-_](test|tests|ci|verify|checks)/i);
+    expect(workflow).not.toMatch(/build[-_]only/i);
+    const inputNames = [...workflow.matchAll(/^ {6}(\w+):$/gm)].map((m) => m[1]);
+    expect(inputNames).toEqual(["release_tag"]);
+
+    // Repair fills holes and proves the landed result; it never edits release
+    // metadata and never trusts its own upload step.
+    expect(workflow).not.toContain("softprops/action-gh-release");
+    expect(workflow).toContain("Refuse to repair a complete release");
+    expect(workflow).toContain("Verify published release assets");
+  });
+
+  test("release troubleshooting doc records the permanently unrepairable tags", () => {
+    const doc = read("docs/release-troubleshooting.md");
+
+    for (const tag of ["v0.2.0", "v0.3.0", "v0.3.1"]) {
+      expect(doc).toContain(tag);
+    }
+    // The reason is the durable artifact, not the tag list: each tag's own
+    // test suite asserts the manifest still holds the previous version, so
+    // its gate is red at itself forever.
+    expect(doc).toContain("playwright/src/distribution.test.ts");
+    expect(doc).toContain('expect(manifest["."]).toBe("0.3.0")');
+    expect(doc).toContain("What this does not fix");
+
+    // These releases are empty because someone shipped a guard that cannot
+    // pass - a check that exercises no product code - NOT because the software
+    // is bad or a build broke. Wording that implies otherwise misrepresents
+    // shipped releases to users, so the honest sentence is pinned here.
+    // Prose wraps across lines, so compare on normalised whitespace.
+    const prose = doc.replace(/\s+/g, " ");
+
+    expect(prose).toContain(
+      "the software is fine; the release carries no downloadable build because a " +
+        "self-invalidating metadata guard in that tag prevents a clean rebuild",
+    );
+    expect(prose).toContain("Do not describe them as failing quality checks");
+
+    // The repair path must never gain a general test-bypass; the only shape
+    // ever allowed is one named metadata test excluded with evidence.
+    expect(prose).toContain("The repair path never gains a general test-bypass");
+    expect(prose).toContain("named exclusion with evidence");
+
+    expect(doc).not.toContain("### Moving the container image after a repair");
+    expect(doc).not.toContain("Only then dispatch `release.yml` on that tag");
+    expect(prose).toContain("release-repair.yml` publishes ASSETS ONLY");
+    expect(prose).toContain(
+      "cannot be performed by dispatching that tag's own `release.yml`",
+    );
+    expect(prose).toContain(
+      "v0.3.2`'s `release.yml` tags `:latest` inside the build-push step (line 78)",
+    );
+    expect(prose).toContain(
+      "v0.3.4` and `v0.3.5` carry an unconditional `--tag \"${REGISTRY_IMAGE}:latest\"` in the imagetools step (line 125)",
+    );
+    expect(prose).toContain(
+      "separately authorized, credential-holding workflow on the default branch",
+    );
+    expect(prose).toContain("deliberately not built here");
+  });
+
   test("scheduled Release Please workflow creates release tags from main changes", () => {
     const workflow = read(".github/workflows/release-please.yml");
     const config = JSON.parse(read("release-please-config.json"));
@@ -290,6 +391,16 @@ describe("distribution surface", () => {
     expect(workflow).toContain("config-file: release-please-config.json");
     expect(workflow).toContain("manifest-file: .release-please-manifest.json");
     expect(workflow).toContain("pull-requests: write");
+
+    // A GITHUB_TOKEN tag push does not fire release.yml's `push: tags:`
+    // trigger, so without this dispatch the tag exists and the release
+    // publishes empty. This is the bridge, not a convenience.
+    expect(workflow).toContain("actions: write");
+    expect(workflow).toContain("trigger-release:");
+    expect(workflow).toContain("release_created == 'true'");
+    expect(workflow).toContain("gh workflow run release.yml");
+    expect(workflow).toContain('--ref "$TAG_NAME"');
+
     expect(config.packages["."]["package-name"]).toBe("craftless");
     expect(config.packages["."]["release-type"]).toBe("simple");
     expect(config.packages["."]["include-v-in-tag"]).toBe(true);
@@ -306,6 +417,46 @@ describe("distribution surface", () => {
     expect(checklist).toContain(currentReleaseTag);
     expect(checklist).not.toContain("Release `v0.3.2` is published.");
     expect(checklist).not.toContain("Latest published release before Phase 209: `v0.3.2`");
+  });
+
+  test("Release Please bumps the checklist rows this guard asserts on", () => {
+    const config = JSON.parse(read("release-please-config.json"));
+    const checklist = read("docs/project-completion-checklist.md");
+
+    // Without this wiring the guard above is self-invalidating: the release
+    // commit bumps .release-please-manifest.json and nothing else, so the
+    // checklist names the PREVIOUS version and `mise run ci` is red at the
+    // tag it was cut from - which then fails release.yml's Verify step and
+    // publishes an empty release. That is exactly how v0.3.5 shipped with no
+    // assets, and the same shape that makes v0.2.0/v0.3.0/v0.3.1 permanently
+    // unrepairable. See docs/release-troubleshooting.md.
+    const extraFiles = config.packages["."]["extra-files"] ?? [];
+    expect(
+      extraFiles.some(
+        (entry: { type?: string; path?: string }) =>
+          entry.type === "generic" && entry.path === "docs/project-completion-checklist.md",
+      ),
+    ).toBe(true);
+
+    // Every checklist line naming the release tag must carry the annotation
+    // the generic updater keys on, or Release Please silently skips it.
+    const taggedLines = checklist
+      .split("\n")
+      .filter((line) => /Release `v\d+\.\d+\.\d+`|releases\/tag\/v\d+\.\d+\.\d+/.test(line));
+
+    expect(taggedLines.length).toBeGreaterThan(0);
+    for (const line of taggedLines) {
+      expect(line).toContain("x-release-please-version");
+    }
+
+    // The generic updater applies `line.replace(VERSION_REGEX, ...)` with a
+    // NON-global regex, so it rewrites only the FIRST version on a line. A row
+    // mentioning the tag twice (prose plus a .../releases/tag/vX.Y.Z URL) would
+    // half-update and go quietly stale. One version per annotated line.
+    for (const line of checklist.split("\n")) {
+      if (!line.includes("x-release-please-version")) continue;
+      expect(line.match(/\d+\.\d+\.\d+/g) ?? []).toHaveLength(1);
+    }
   });
 
   test("Fumadocs site is a Cloudflare Workers product surface with previews", () => {
@@ -384,12 +535,16 @@ describe("distribution surface", () => {
 
   test("README exposes install, Docker, and GitHub Actions quickstarts", () => {
     const readme = read("README.md");
+    const manifest = JSON.parse(read(".release-please-manifest.json"));
+    const currentReleaseTag = `v${manifest["."]}`;
 
     expect(readme).toContain("## Quickstart");
     expect(readme).toContain("curl -fsSL https://raw.githubusercontent.com/minekube/craftless/main/install.sh");
-    expect(readme).toContain("CRAFTLESS_VERSION=v0.3.0");
+    // The README install example must name the current release so future
+    // releases cannot leave users pinned to an older, empty release.
+    expect(readme).toContain(`CRAFTLESS_VERSION=${currentReleaseTag}`);
     expect(readme).toContain("docker run");
-    expect(readme).toContain("minekube/craftless/.github/actions/setup-craftless@v0.3.0");
+    expect(readme).toContain(`minekube/craftless/.github/actions/setup-craftless@${currentReleaseTag}`);
     expect(readme).toContain("Release Please opens or updates the release PR");
     expect(readme).not.toContain("setup-craftless@v0.1.0");
     expect(readme).toContain("Minecraft artifacts are downloaded into the workspace at runtime");

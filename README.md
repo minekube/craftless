@@ -96,11 +96,13 @@ curl -N "$CRAFTLESS/clients/bot/events:stream"
 
 Install a specific release:
 
+<!-- x-release-please-start-version -->
 ```sh
-CRAFTLESS_VERSION=v0.3.0 \
+CRAFTLESS_VERSION=v0.3.5 \
 CRAFTLESS_INSTALL_DIR="$HOME/.local/bin" \
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/minekube/craftless/main/install.sh)"
 ```
+<!-- x-release-please-end -->
 
 Run the Docker image:
 
@@ -112,12 +114,13 @@ docker run --rm -p 8080:8080 \
 
 Use Craftless from GitHub Actions:
 
+<!-- x-release-please-start-version -->
 ```yaml
 jobs:
   minecraft:
     runs-on: ubuntu-latest
     steps:
-      - uses: minekube/craftless/.github/actions/setup-craftless@v0.3.0
+      - uses: minekube/craftless/.github/actions/setup-craftless@v0.3.5
         id: craftless
         with:
           start: "true"
@@ -125,6 +128,7 @@ jobs:
 
       - run: curl -fsSL "${{ steps.craftless.outputs.api-url }}/openapi.json"
 ```
+<!-- x-release-please-end -->
 
 The installer writes the launcher symlink to `$HOME/.local/bin` by default.
 Set `CRAFTLESS_INSTALL_DIR` to use another directory. The installed
@@ -359,9 +363,15 @@ CRAFTLESS_FINAL_GAMEPLAY=1 mise exec -- gradle :driver-fabric:fabricFinalGamepla
 
 Release Please opens or updates the release PR on pushes to `main`, manual
 dispatch, and the weekly scheduled check when releasable changes exist since
-the latest `v*` release. Merging that PR creates the next `vX.Y.Z` tag; the
-tag-driven `release` workflow builds CLI archives, checksums, Docker image, and
-GitHub release notes.
+the latest `v*` release. Merging that PR creates the next `vX.Y.Z` tag, and
+Release Please's `trigger-release` job dispatches the `release` workflow on it,
+which builds CLI archives, checksums, Docker image, and GitHub release notes.
+
+Some older releases carry no downloadable build. The software at those tags is
+fine; a self-invalidating metadata guard inside the tag prevents a clean
+rebuild, so the release cannot be repopulated. See
+[Release troubleshooting](docs/release-troubleshooting.md) for which releases,
+the proof, and how to repair a release that can be rebuilt.
 
 ## Docs
 
@@ -369,6 +379,7 @@ GitHub release notes.
 - [API reference](https://craftless.minekube.com/docs/api-reference)
 - [Product positioning](docs/product-positioning.md)
 - [Client file management](docs/client-file-management.md)
+- [Release troubleshooting](docs/release-troubleshooting.md)
 - [Agent skills](docs/agent-skills.md)
 - [Roadmap](docs/roadmap.md)
 - [Final gameplay runbook](docs/final-gameplay-runbook.md)
