@@ -535,12 +535,16 @@ describe("distribution surface", () => {
 
   test("README exposes install, Docker, and GitHub Actions quickstarts", () => {
     const readme = read("README.md");
+    const manifest = JSON.parse(read(".release-please-manifest.json"));
+    const currentReleaseTag = `v${manifest["."]}`;
 
     expect(readme).toContain("## Quickstart");
     expect(readme).toContain("curl -fsSL https://raw.githubusercontent.com/minekube/craftless/main/install.sh");
-    expect(readme).toContain("CRAFTLESS_VERSION=v0.3.0");
+    // The README install example must name the current release so future
+    // releases cannot leave users pinned to an older, empty release.
+    expect(readme).toContain(`CRAFTLESS_VERSION=${currentReleaseTag}`);
     expect(readme).toContain("docker run");
-    expect(readme).toContain("minekube/craftless/.github/actions/setup-craftless@v0.3.0");
+    expect(readme).toContain(`minekube/craftless/.github/actions/setup-craftless@${currentReleaseTag}`);
     expect(readme).toContain("Release Please opens or updates the release PR");
     expect(readme).not.toContain("setup-craftless@v0.1.0");
     expect(readme).toContain("Minecraft artifacts are downloaded into the workspace at runtime");

@@ -96,11 +96,13 @@ curl -N "$CRAFTLESS/clients/bot/events:stream"
 
 Install a specific release:
 
+<!-- x-release-please-start-version -->
 ```sh
-CRAFTLESS_VERSION=v0.3.4 \
+CRAFTLESS_VERSION=v0.3.5 \
 CRAFTLESS_INSTALL_DIR="$HOME/.local/bin" \
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/minekube/craftless/main/install.sh)"
 ```
+<!-- x-release-please-end -->
 
 Run the Docker image:
 
@@ -112,12 +114,13 @@ docker run --rm -p 8080:8080 \
 
 Use Craftless from GitHub Actions:
 
+<!-- x-release-please-start-version -->
 ```yaml
 jobs:
   minecraft:
     runs-on: ubuntu-latest
     steps:
-      - uses: minekube/craftless/.github/actions/setup-craftless@v0.3.4
+      - uses: minekube/craftless/.github/actions/setup-craftless@v0.3.5
         id: craftless
         with:
           start: "true"
@@ -125,6 +128,7 @@ jobs:
 
       - run: curl -fsSL "${{ steps.craftless.outputs.api-url }}/openapi.json"
 ```
+<!-- x-release-please-end -->
 
 The installer writes the launcher symlink to `$HOME/.local/bin` by default.
 Set `CRAFTLESS_INSTALL_DIR` to use another directory. The installed
