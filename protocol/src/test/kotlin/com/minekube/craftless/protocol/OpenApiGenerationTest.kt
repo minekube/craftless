@@ -139,6 +139,7 @@ class OpenApiGenerationTest {
         assertEquals("client", operation.extensions["x-craftless-target"])
         assertEquals("action", operation.extensions["x-craftless-source"])
         assertEquals("run", operation.extensions["x-craftless-member"])
+        assertErrorSchema(requireNotNull(operation.errorSchema("502")))
         val schema =
             operation.requestBody
                 ?.content
@@ -177,6 +178,7 @@ class OpenApiGenerationTest {
         assertEquals("object", aliasBlockItemSchema?.type)
         assertEquals("string", aliasBlockItemSchema?.properties?.get("handle")?.type)
         assertEquals("string", aliasBlockItemSchema?.properties?.get("category")?.type)
+        assertErrorSchema(requireNotNull(document.paths["/clients/{id}/world:scan"]?.post?.errorSchema("502")))
 
         val aliasRequestSchema =
             document.paths["/clients/{id}/world:scan"]
@@ -1135,6 +1137,8 @@ class OpenApiGenerationTest {
         assertErrorSchema(requireNotNull(document.paths["/clients/{id}:run"]?.post?.errorSchema("400")))
         assertErrorSchema(requireNotNull(document.paths["/clients/{id}:run"]?.post?.errorSchema("404")))
         assertErrorSchema(requireNotNull(document.paths["/clients/{id}:run"]?.post?.errorSchema("409")))
+        assertErrorSchema(requireNotNull(document.paths["/clients/{id}:run"]?.post?.errorSchema("502")))
+        assertErrorSchema(requireNotNull(document.paths["/clients/{id}:rpc"]?.post?.errorSchema("502")))
         assertErrorSchema(requireNotNull(document.paths["/clients/{id}:stop"]?.post?.errorSchema("404")))
     }
 

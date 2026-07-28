@@ -37,6 +37,8 @@ import com.minekube.craftless.testkit.fakeDriverRuntimeMetadata
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
 import java.nio.file.Files
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -45,6 +47,39 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ClientSessionServiceTest {
+    @Test
+    fun `stale liveness observation cannot overwrite an attached driver state`() {
+        val launched = BlockingLivenessDriverSession("alice")
+        val service =
+            ClientSessionService.inMemory(
+                DriverSessionFactory { launched },
+            )
+        service.createClient(
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            ),
+        )
+        launched.blockNextObservation = true
+
+        var observed: ClientState? = null
+        val observer =
+            Thread {
+                observed = service.client("alice").state
+            }.also(Thread::start)
+
+        assertTrue(launched.observationStarted.await(5, TimeUnit.SECONDS))
+        service.attachDriver("alice", AttachedTestDriverSession("alice"))
+        launched.releaseObservation.countDown()
+        observer.join(5_000)
+
+        assertFalse(observer.isAlive)
+        assertEquals(ClientState.RUNNING, observed)
+        assertEquals(ClientState.RUNNING, service.client("alice").state)
+    }
+
     @Test
     fun `session service requires an explicit driver factory`() {
         val service = ClientSessionService.inMemory()
@@ -938,6 +973,28 @@ private class ChangingActionsBackend(
         clientId: String,
         invocation: DriverActionInvocation,
     ): DriverActionResult = DriverActionResult(invocation.action, DriverActionStatus.ACCEPTED)
+}
+
+private class BlockingLivenessDriverSession(
+    override val clientId: String,
+) : DriverSession by FakeDriverSession(clientId), ClientRuntimeLiveness {
+    val observationStarted = CountDownLatch(1)
+    val releaseObservation = CountDownLatch(1)
+    @Volatile var blockNextObservation: Boolean = false
+
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, liveState())
+
+    override fun liveState(): ClientState {
+        if (blockNextObservation) {
+            blockNextObservation = false
+            observationStarted.countDown()
+            check(releaseObservation.await(5, TimeUnit.SECONDS)) { "liveness observation was not released" }
+            return ClientState.FAILED
+        }
+        return ClientState.RUNNING
+    }
+
+    override fun failureMessage(): String? = "client $clientId runtime failed"
 }
 
 private class PreparedOnlyTestDriverSession(

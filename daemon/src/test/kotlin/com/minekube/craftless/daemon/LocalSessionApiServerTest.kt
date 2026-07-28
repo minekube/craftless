@@ -1097,6 +1097,46 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `runtime failure message keeps a bounded client log tail`() =
+        withHttpClient { http ->
+            val workspace = Files.createTempDirectory("craftless-client-runtime-large-log")
+            val launcher =
+                DyingClientRuntimeLauncher(
+                    exitCode = 1,
+                    logLine = "x".repeat(128 * 1024) + "\nlast meaningful line",
+                )
+
+            LocalSessionApiServer
+                .inMemory(
+                    workspaceRoot = workspace,
+                    cacheMetadataFetcher = preparedRuntimeMetadataFetcher(),
+                    clientRuntimeLauncher = launcher,
+                ).use { server ->
+                    server.start()
+
+                    val response =
+                        http.post(server.url("/clients")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "id": "alice",
+                                  "version": "1.21.6",
+                                  "loader": "FABRIC",
+                                  "profile": { "kind": "OFFLINE", "name": "Alice" }
+                                }
+                                """.trimIndent(),
+                            )
+                        }
+
+                    val body = response.bodyAsText()
+                    assertEquals(HttpStatusCode.BadGateway, response.status)
+                    assertTrue(body.contains("last meaningful line"), body)
+                    assertTrue(body.length < 70_000, "runtime failure response was not bounded: ${body.length}")
+                }
+        }
+
+    @Test
     fun `events observer receives a client failure discovered after startup`() =
         withHttpClient { http ->
             val driver = TransitioningRuntimeDriverSession("alice")

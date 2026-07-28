@@ -31,7 +31,9 @@ class ClientSessionService private constructor(
         require(request.version.isNotBlank()) { "minecraft version is required" }
         val profile = request.resolvedProfile()
         require(profile.name.length <= MAX_OFFLINE_PROFILE_NAME_LENGTH) { "offline profile name must be 16 characters or fewer" }
-        require(!clients.containsKey(request.id)) { "client ${request.id} already exists" }
+        synchronized(stateLock) {
+            require(!clients.containsKey(request.id)) { "client ${request.id} already exists" }
+        }
 
         val instance =
             Instance(
@@ -50,25 +52,46 @@ class ClientSessionService private constructor(
                 presentation = request.presentation,
                 state = ClientState.CREATED,
             )
-        clients[request.id] = client
-        drivers[request.id] = driver
-        return updateState(request.id, initialState)
+        return synchronized(stateLock) {
+            require(!clients.containsKey(request.id)) { "client ${request.id} already exists" }
+            clients[request.id] = client
+            drivers[request.id] = driver
+            updateStateLocked(request.id, initialState)
+        }
     }
 
-    fun listClients(): List<Client> = clients.keys.toList().map(::client)
+    fun listClients(): List<Client> {
+        val clientIds = synchronized(stateLock) { clients.keys.toList() }
+        return clientIds.map(::client)
+    }
 
     fun client(clientId: String): Client {
-        val client = clients[clientId] ?: error("client $clientId not found")
-        val liveness = drivers[clientId] as? ClientRuntimeLiveness ?: return client
+        val (client, driver) = synchronized(stateLock) {
+            val current = clients[clientId] ?: error("client $clientId not found")
+            current to drivers[clientId]
+        }
+        val liveness = driver as? ClientRuntimeLiveness ?: return synchronized(stateLock) {
+            clients[clientId] ?: error("client $clientId not found")
+        }
         val liveState = liveness.liveState()
-        return if (liveState == client.state) client else updateState(clientId, liveState)
+        return synchronized(stateLock) {
+            val current = clients[clientId] ?: error("client $clientId not found")
+            if (drivers[clientId] !== driver) {
+                return@synchronized current
+            }
+            if (liveState == client.state) current else updateStateLocked(clientId, liveState)
+        }
     }
 
     /** The reason a client runtime died on its own, when the daemon owns its process. */
-    fun runtimeFailure(clientId: String): String? = (drivers[clientId] as? ClientRuntimeLiveness)?.failureMessage()
+    fun runtimeFailure(clientId: String): String? {
+        val driver = synchronized(stateLock) { drivers[clientId] }
+        return (driver as? ClientRuntimeLiveness)?.failureMessage()
+    }
 
     fun observeAllClients() {
-        clients.keys.toList().forEach(::client)
+        val clientIds = synchronized(stateLock) { clients.keys.toList() }
+        clientIds.forEach(::client)
     }
 
     fun onClientFailed(listener: (Client) -> Unit) {
@@ -77,33 +100,57 @@ class ClientSessionService private constructor(
         }
     }
 
-    fun driverFor(clientId: String): DriverSession = drivers[clientId] ?: error("client $clientId not found")
+    fun driverFor(clientId: String): DriverSession = synchronized(stateLock) {
+        drivers[clientId] ?: error("client $clientId not found")
+    }
 
     fun attachDriver(
         clientId: String,
         driver: DriverSession,
     ): Client {
-        require(clients.containsKey(clientId)) { "client $clientId not found" }
         require(driver.clientId == clientId) { "attached driver client id must match $clientId" }
-        drivers[clientId] = driver
-        return updateState(clientId, driver.snapshot().state)
+        synchronized(stateLock) {
+            require(clients.containsKey(clientId)) { "client $clientId not found" }
+        }
+        val state = driver.snapshot().state
+        return synchronized(stateLock) {
+            require(clients.containsKey(clientId)) { "client $clientId not found" }
+            drivers[clientId] = driver
+            updateStateLocked(clientId, state)
+        }
     }
 
     fun connectClient(
         clientId: String,
         target: ConnectionTarget,
     ): Client {
-        val snapshot = driverFor(clientId).connect(target)
-        return updateState(clientId, snapshot.state)
+        val driver = driverFor(clientId)
+        val snapshot = driver.connect(target)
+        return synchronized(stateLock) {
+            if (drivers[clientId] !== driver) {
+                clients[clientId] ?: error("client $clientId not found")
+            } else {
+                updateStateLocked(clientId, snapshot.state)
+            }
+        }
     }
 
     fun stopClient(clientId: String): Client {
-        val snapshot = driverFor(clientId).stop()
-        return updateState(clientId, snapshot.state)
+        val driver = driverFor(clientId)
+        val snapshot = driver.stop()
+        return synchronized(stateLock) {
+            if (drivers[clientId] !== driver) {
+                clients[clientId] ?: error("client $clientId not found")
+            } else {
+                updateStateLocked(clientId, snapshot.state)
+            }
+        }
     }
 
     fun routesFor(clientId: String): List<ApiRoute> {
-        require(clients.containsKey(clientId)) { "client $clientId not found" }
+        synchronized(stateLock) {
+            require(clients.containsKey(clientId)) { "client $clientId not found" }
+        }
         return openApiFor(clientId).toApiRoutes(clientId)
     }
 
@@ -135,20 +182,18 @@ class ClientSessionService private constructor(
         ): ClientSessionService = ClientSessionService(driverFactory, fileStore)
     }
 
-    private fun updateState(
+    private fun updateStateLocked(
         clientId: String,
         state: ClientState,
     ): Client {
-        return synchronized(stateLock) {
-            val current = clients[clientId] ?: error("client $clientId not found")
-            if (current.state == state) return@synchronized current
-            val updated = current.copy(state = state)
-            clients[clientId] = updated
-            if (state == ClientState.FAILED && failedClients.add(clientId)) {
-                clientFailureListeners.forEach { listener -> listener(updated) }
-            }
-            updated
+        val current = clients[clientId] ?: error("client $clientId not found")
+        if (current.state == state) return current
+        val updated = current.copy(state = state)
+        clients[clientId] = updated
+        if (state == ClientState.FAILED && failedClients.add(clientId)) {
+            clientFailureListeners.forEach { listener -> listener(updated) }
         }
+        return updated
     }
 }
 

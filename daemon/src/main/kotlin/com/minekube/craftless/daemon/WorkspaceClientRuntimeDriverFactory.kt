@@ -28,10 +28,12 @@ import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import java.nio.file.StandardOpenOption
 import java.security.MessageDigest
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -723,18 +725,22 @@ private fun clientRuntimeFailureMessage(
     }
 
 private fun Path.tailLines(limit: Int): List<String> =
-    runCatching {
+    runCatching<List<String>> {
         if (limit <= 0) return@runCatching emptyList()
-        val lines = ArrayDeque<String>(limit)
-        Files.newBufferedReader(this, StandardCharsets.UTF_8).useLines { source ->
-            source
+        Files.newByteChannel(this, StandardOpenOption.READ).use { channel ->
+            val fileSize = channel.size()
+            val windowSize = minOf(fileSize, CLIENT_LOG_TAIL_BYTES.toLong()).toInt()
+            val bytes = ByteArray(windowSize)
+            channel.position(fileSize - windowSize)
+            val buffer = ByteBuffer.wrap(bytes)
+            while (buffer.hasRemaining()) {
+                if (channel.read(buffer) <= 0) break
+            }
+            String(bytes, StandardCharsets.UTF_8)
+                .split('\n')
                 .filter { line -> line.isNotBlank() }
-                .forEach { line ->
-                    if (lines.size == limit) lines.removeFirst()
-                    lines.addLast(line)
-                }
+                .takeLast(limit)
         }
-        lines.toList()
     }.getOrDefault(emptyList())
 
 private fun PreparedClientRuntime.stopProcess() {
@@ -838,6 +844,7 @@ private val mutedSoundOptionKeys = mutedSoundOptions.keys
 private const val PROCESS_STOP_TIMEOUT_SECONDS = 2L
 private const val DEFAULT_CLIENT_STARTUP_PROBE_MILLIS = 8_000L
 private const val CLIENT_LOG_TAIL_LINES = 12
+private const val CLIENT_LOG_TAIL_BYTES = 64 * 1024
 private const val CLIENT_LOG_FILE_NAME = "client.log"
 private const val FABRIC_NO_GUI_PROPERTY = "fabric.noGui"
 const val CRAFTLESS_CLIENT_STARTUP_PROBE_MS: String = "CRAFTLESS_CLIENT_STARTUP_PROBE_MS"
