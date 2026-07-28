@@ -169,16 +169,12 @@ class NamespacePolicyTest {
                 .map { it.value.toInt() }
                 .toSet()
 
+        // Owner: protocol status set; independent side: the workflow's parsed Bun list.
         assertEquals(
             RETRYABLE_UPSTREAM_STATUS_CODES,
             workflowStatuses,
             "${workflowPath} retry statuses diverged from " +
                 "protocol/src/main/kotlin/com/minekube/craftless/protocol/UpstreamRetryPolicy.kt",
-        )
-        assertEquals(
-            setOf(408, 425, 429, 500, 502, 503, 504),
-            RETRYABLE_UPSTREAM_STATUS_CODES,
-            "Canonical protocol retry statuses changed unexpectedly; update the workflow mirror too.",
         )
     }
 

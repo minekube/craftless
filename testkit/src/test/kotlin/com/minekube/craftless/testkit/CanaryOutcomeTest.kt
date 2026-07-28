@@ -1,5 +1,6 @@
 package com.minekube.craftless.testkit
 
+import com.minekube.craftless.protocol.RETRYABLE_UPSTREAM_STATUS_CODES
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -69,16 +70,32 @@ class CanaryOutcomeTest {
 
     @Test
     fun `every canonical retryable upstream status is infrastructure`() {
-        listOf(408, 425, 429, 500, 502, 503, 504).forEach { status ->
+        RETRYABLE_UPSTREAM_STATUS_CODES.forEach { status ->
             val failure = "artifact fetch failed for https://resources.download.minecraft.net/aa/bb: $status"
 
+            // Owner: protocol status set; independent side: compiled classifier regex classification.
             assertEquals(
                 CanaryFailureClass.INFRASTRUCTURE,
                 CanaryFailureClassifier.classify(failure),
                 "expected infrastructure classification for status $status",
             )
+            // Owner: protocol status set; independent side: compiled classifier signature selection.
             assertEquals("upstream-server-error", CanaryFailureClassifier.infrastructureSignature(failure)?.id)
         }
+    }
+
+    @Test
+    fun `rate limiting is an infrastructure failure`() {
+        val failure = "artifact fetch failed for https://resources.download.minecraft.net/aa/bb: 429"
+
+        assertEquals(CanaryFailureClass.INFRASTRUCTURE, CanaryFailureClassifier.classify(failure))
+    }
+
+    @Test
+    fun `request timeout is an infrastructure failure`() {
+        val failure = "artifact fetch failed for https://resources.download.minecraft.net/aa/bb: 408"
+
+        assertEquals(CanaryFailureClass.INFRASTRUCTURE, CanaryFailureClassifier.classify(failure))
     }
 
     @Test

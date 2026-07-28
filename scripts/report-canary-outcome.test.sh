@@ -36,3 +36,5 @@ assert_unclassified
 
 run_reporter '{not-json'
 assert_unclassified
+
+printf 'canary reporter regression tests passed\n'

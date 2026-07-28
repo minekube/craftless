@@ -23,6 +23,10 @@ run = "mise exec -- gradle detekt"
 description = "Run the Playwright integration helper tests"
 run = "mise exec -- bun test playwright"
 
+[tasks.canary-reporter-test]
+description = "Verify canary outcome reporting for missing and malformed documents"
+run = "bash scripts/report-canary-outcome.test.sh"
+
 [tasks.docs-site-openapi]
 description = "Generate the supervisor OpenAPI snapshot consumed by the static docs site"
 run = "mise exec -- gradle :protocol:exportSupervisorOpenApi"
@@ -259,5 +263,6 @@ run = [
     "mise run unused-check",
     "mise exec -- gradle test",
     "mise run ci-craftless-smoke",
+    "mise run canary-reporter-test",
     "mise exec -- bun test playwright",
 ]
