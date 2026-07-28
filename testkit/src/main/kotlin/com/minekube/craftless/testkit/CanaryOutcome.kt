@@ -1,5 +1,6 @@
 package com.minekube.craftless.testkit
 
+import com.minekube.craftless.protocol.RETRYABLE_UPSTREAM_STATUS_CODES
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -131,7 +132,7 @@ object CanaryFailureClassifier {
             "resources\\.download\\.minecraft\\.net|libraries\\.minecraft\\.net|" +
             "meta\\.fabricmc\\.net|maven\\.fabricmc\\.net|repo1\\.maven\\.org|services\\.gradle\\.org"
 
-    private const val RETRYABLE_STATUS_CODES = "429|500|502|503|504"
+    private val retryableStatusPattern = RETRYABLE_UPSTREAM_STATUS_CODES.joinToString("|")
 
     private const val TRANSPORT_FAULTS =
         "Connection reset|Connection refused|Broken pipe|Read timed out|" +
@@ -172,8 +173,8 @@ object CanaryFailureClassifier {
                 description = "Upstream host answered with a retryable server error status",
                 pattern =
                     Regex(
-                        "(?:$UPSTREAM_HOSTS)[^\\n]*\\b(?:$RETRYABLE_STATUS_CODES)\\b|" +
-                            "\\b(?:$RETRYABLE_STATUS_CODES)\\b[^\\n]*(?:$UPSTREAM_HOSTS)",
+                        "(?:$UPSTREAM_HOSTS)[^\\n]*\\b(?:$retryableStatusPattern)\\b|" +
+                            "\\b(?:$retryableStatusPattern)\\b[^\\n]*(?:$UPSTREAM_HOSTS)",
                     ),
             ),
             CanaryInfrastructureSignature(

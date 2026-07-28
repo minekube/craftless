@@ -16,6 +16,8 @@ import kotlin.concurrent.thread
 import kotlin.io.path.readLines
 import kotlin.io.path.writeText
 
+private const val DEFAULT_OUTPUT_DRAIN_TIMEOUT_MILLIS = 10_000L
+
 data class LocalServerFixture(
     val root: Path,
     val port: Int,
@@ -167,6 +169,7 @@ data class LocalServerLayout(
         maxHeap: String = "1G",
         readinessTimeoutMillis: Long = 120_000,
         shutdownTimeoutMillis: Long = 10_000,
+        outputDrainTimeoutMillis: Long = DEFAULT_OUTPUT_DRAIN_TIMEOUT_MILLIS,
     ): LocalMinecraftServerHandle {
         require(Files.exists(serverJar)) { "minecraft server jar does not exist: $serverJar" }
         require(Files.exists(javaExecutable)) { "java executable does not exist: $javaExecutable" }
@@ -174,6 +177,7 @@ data class LocalServerLayout(
         require(maxHeap.isNotBlank()) { "minecraft server maximum heap is required" }
         require(readinessTimeoutMillis > 0) { "minecraft server readiness timeout must be positive" }
         require(shutdownTimeoutMillis > 0) { "minecraft server shutdown timeout must be positive" }
+        require(outputDrainTimeoutMillis > 0) { "minecraft server output drain timeout must be positive" }
         val javaPath = javaExecutable.toAbsolutePath().normalize()
         val serverJarPath = serverJar.toAbsolutePath().normalize()
         Files.writeString(eulaFile, "eula=true\n", CREATE)
@@ -225,6 +229,7 @@ data class LocalServerLayout(
             outputReader = outputReader,
             output = output,
             shutdownTimeoutMillis = shutdownTimeoutMillis,
+            outputDrainTimeoutMillis = outputDrainTimeoutMillis,
             liveEvidenceCount = liveEvidenceCount,
         )
     }
@@ -283,6 +288,7 @@ class LocalMinecraftServerHandle internal constructor(
     private val outputReader: Thread,
     private val output: MutableList<String>,
     private val shutdownTimeoutMillis: Long,
+    private val outputDrainTimeoutMillis: Long,
     private val liveEvidenceCount: AtomicInteger,
 ) {
     private var collected = false
@@ -355,7 +361,11 @@ class LocalMinecraftServerHandle internal constructor(
             }
         }
 
-        outputReader.join(OUTPUT_DRAIN_TIMEOUT_MILLIS)
+        outputReader.join(outputDrainTimeoutMillis)
+        if (outputReader.isAlive) {
+            val drainFailure = "minecraft server output reader did not finish draining after ${outputDrainTimeoutMillis}ms"
+            cleanupFailure = listOfNotNull(cleanupFailure, drainFailure).joinToString("; ")
+        }
         layout.persistProcessOutput(output.snapshot(), importEvidence = false)
         collected = true
         return LocalServerProcessResult(
@@ -367,7 +377,6 @@ class LocalMinecraftServerHandle internal constructor(
 
     private companion object {
         const val FORCED_TERMINATION_TIMEOUT_MILLIS = 10_000L
-        const val OUTPUT_DRAIN_TIMEOUT_MILLIS = 10_000L
     }
 }
 

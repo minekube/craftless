@@ -6,6 +6,7 @@ import kotlin.io.path.isDirectory
 import kotlin.io.path.name
 import kotlin.io.path.pathString
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
@@ -144,6 +145,40 @@ class NamespacePolicyTest {
             violations.isEmpty(),
             "JavaScript helper files must stay in playwright/ and not recreate a TypeScript SDK:\n" +
                 violations.joinToString("\n"),
+        )
+    }
+
+    @Test
+    fun `workflow retry statuses stay aligned with the canonical protocol policy`() {
+        val root = repositoryRoot()
+        val workflowPath = root.resolve(".github/workflows/latest-fabric-canary.yml")
+        val workflow = Files.readString(workflowPath)
+        val match =
+            Regex("""const\s+RETRYABLE_UPSTREAM_STATUS_CODES\s*=\s*new Set\(\[([^]]*)]\)""")
+                .find(workflow)
+
+        assertTrue(
+            match != null,
+            "${workflowPath} must declare the language-boundary retry list checked against " +
+                "protocol/src/main/kotlin/com/minekube/craftless/protocol/UpstreamRetryPolicy.kt",
+        )
+
+        val workflowStatuses =
+            Regex("""\d+""")
+                .findAll(requireNotNull(match).groupValues[1])
+                .map { it.value.toInt() }
+                .toSet()
+
+        assertEquals(
+            RETRYABLE_UPSTREAM_STATUS_CODES,
+            workflowStatuses,
+            "${workflowPath} retry statuses diverged from " +
+                "protocol/src/main/kotlin/com/minekube/craftless/protocol/UpstreamRetryPolicy.kt",
+        )
+        assertEquals(
+            setOf(408, 425, 429, 500, 502, 503, 504),
+            RETRYABLE_UPSTREAM_STATUS_CODES,
+            "Canonical protocol retry statuses changed unexpectedly; update the workflow mirror too.",
         )
     }
 

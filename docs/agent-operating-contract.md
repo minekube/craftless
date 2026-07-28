@@ -273,14 +273,18 @@ result must always say *what kind* of failure it was.
   signature list and is the single place that classifies. Signatures are narrow
   and **anything unrecognised is a product failure**: a false product alarm
   costs an investigation, a false infrastructure label hides a version break.
+- `protocol/` owns `RETRYABLE_UPSTREAM_STATUS_CODES`; daemon and testkit read
+  that set directly. The workflow's Bun helper is a language-boundary mirror,
+  and `NamespacePolicyTest` must fail if either side drifts.
 - Teardown runs after every product assertion has been decided and can never
   invert a pass. A server that overruns its shutdown budget is recorded as
   `cleanupFailure` on the outcome document and surfaced as a warning; it is
   never swallowed and never turns a passing run red.
 - Do not make the canary quieter by loosening assertions, catching-and-
   continuing around product steps, or retrying product operations. Retry only
-  genuinely transient upstream I/O. The goal is a red that is *specific*, not a
-  red that is *rare*.
+  genuinely transient upstream I/O. Permanent 4xx responses stay fatal; only
+  explicitly transient statuses retry. The goal is a red that is *specific*,
+  not a red that is *rare*.
 - Every run writes `canary-outcome.json` next to its artifacts. Upload probe
   `logs/` as well as `artifacts/`, or a teardown failure cannot be diagnosed
   afterwards.

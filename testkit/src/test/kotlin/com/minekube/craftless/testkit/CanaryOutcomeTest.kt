@@ -68,6 +68,20 @@ class CanaryOutcomeTest {
     }
 
     @Test
+    fun `every canonical retryable upstream status is infrastructure`() {
+        listOf(408, 425, 429, 500, 502, 503, 504).forEach { status ->
+            val failure = "artifact fetch failed for https://resources.download.minecraft.net/aa/bb: $status"
+
+            assertEquals(
+                CanaryFailureClass.INFRASTRUCTURE,
+                CanaryFailureClassifier.classify(failure),
+                "expected infrastructure classification for status $status",
+            )
+            assertEquals("upstream-server-error", CanaryFailureClassifier.infrastructureSignature(failure)?.id)
+        }
+    }
+
+    @Test
     fun `a missing upstream artifact stays a product failure`() {
         // 404 from an upstream host is a real answer about the version, not a hiccup.
         val failure = "artifact fetch failed for https://resources.download.minecraft.net/aa/bb: 404"

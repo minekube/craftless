@@ -41,8 +41,8 @@ class KtorCacheMetadataFetcherTest {
 
     @Test
     fun `a missing artifact is not retried`() {
-        // "this version has no artifact" is a real answer about the version, not a
-        // hiccup. Retrying it would delay a genuine signal without ever fixing it.
+        // A permanent 4xx is a real answer about the version, not a hiccup. Retrying
+        // it would delay a genuine signal without ever fixing it.
         val attempts = AtomicInteger()
 
         withUpstream({

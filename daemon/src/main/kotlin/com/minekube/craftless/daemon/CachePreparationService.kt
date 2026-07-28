@@ -19,6 +19,7 @@ import com.minekube.craftless.protocol.JavaRuntimeSelectionStatus
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.MINECRAFT_JAVA_RUNTIME_INDEX_URL
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
+import com.minekube.craftless.protocol.RETRYABLE_UPSTREAM_STATUS_CODES
 import com.minekube.craftless.protocol.requireFileSafeCacheSegment
 import com.minekube.craftless.protocol.resolveMinecraftVersion
 import com.minekube.craftless.protocol.versionManifestUrl
@@ -606,8 +607,8 @@ class KtorCacheMetadataFetcher : CacheMetadataFetcher {
             }
             // Metadata and artifact fetches are idempotent GETs against upstream CDNs.
             // A single connect timeout to the Mojang asset CDN should not fail a whole
-            // cache preparation. Only transport faults and retryable statuses are retried:
-            // a 4xx stays fatal, because "this version has no artifact" is a real answer.
+            // cache preparation. Permanent 4xx stays fatal; only explicitly transient
+            // statuses retry, because "this version has no artifact" is a real answer.
             install(HttpRequestRetry) {
                 maxRetries = UPSTREAM_FETCH_MAX_RETRIES
                 retryIf { _, response -> response.status.value in RETRYABLE_UPSTREAM_STATUS_CODES }
@@ -618,7 +619,6 @@ class KtorCacheMetadataFetcher : CacheMetadataFetcher {
 
     private companion object {
         const val UPSTREAM_FETCH_MAX_RETRIES = 3
-        val RETRYABLE_UPSTREAM_STATUS_CODES = setOf(408, 425, 429, 500, 502, 503, 504)
     }
 }
 

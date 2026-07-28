@@ -34,6 +34,39 @@ async function readOutcome() {
   }
 }
 
+function isValidOutcome(value) {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  if (value.verdict !== "PASS" && value.verdict !== "FAIL") {
+    return false;
+  }
+  if (value.schemaVersion !== undefined && (!Number.isInteger(value.schemaVersion) || value.schemaVersion <= 0)) {
+    return false;
+  }
+  if (value.evidenceCount !== undefined && (!Number.isInteger(value.evidenceCount) || value.evidenceCount < 0)) {
+    return false;
+  }
+  for (const field of ["reason", "signature", "minecraftVersion", "cleanupFailure"]) {
+    if (value[field] !== undefined && value[field] !== null && typeof value[field] !== "string") {
+      return false;
+    }
+  }
+  if (value.diagnostics !== undefined &&
+      (!Array.isArray(value.diagnostics) || value.diagnostics.some((path) => typeof path !== "string"))) {
+    return false;
+  }
+  if (value.verdict === "PASS") {
+    return value.failureClass === undefined || value.failureClass === null;
+  }
+  return (
+    (value.failureClass === "PRODUCT" || value.failureClass === "INFRASTRUCTURE") &&
+    (value.phase === "SETUP" || value.phase === "PRODUCT" || value.phase === "TEARDOWN") &&
+    typeof value.reason === "string" &&
+    value.reason.trim().length > 0
+  );
+}
+
 async function probeLogTail(lines = 40) {
   if (!probeLogPath) {
     return "";
@@ -65,23 +98,22 @@ async function writeSummary(lines) {
 }
 
 const outcome = await readOutcome();
-const missingDocument = outcome === null;
-const documentSaysFailed = outcome?.verdict === "FAIL";
-const failed = documentSaysFailed || probeExitCode !== 0;
+const validOutcome = isValidOutcome(outcome);
+const documentSaysFailed = validOutcome && outcome.verdict === "FAIL";
+const documentSaysPassed = validOutcome && outcome.verdict === "PASS";
+const failed = !documentSaysPassed || probeExitCode !== 0;
 
 let failureClass = "";
 if (failed) {
-  failureClass = documentSaysFailed && outcome?.failureClass ? outcome.failureClass.toLowerCase() : "unclassified";
+  failureClass = documentSaysFailed && outcome.failureClass ? outcome.failureClass.toLowerCase() : "unclassified";
 }
 
 const verdict = failed ? "fail" : "pass";
-const version = outcome?.minecraftVersion ?? "unknown";
-const cleanupFailure = outcome?.cleanupFailure ?? "";
+const version = validOutcome && typeof outcome.minecraftVersion === "string" ? outcome.minecraftVersion : "unknown";
+const cleanupFailure = validOutcome && typeof outcome.cleanupFailure === "string" ? outcome.cleanupFailure : "";
 const reason = failed
-  ? (documentSaysFailed && outcome?.reason) ||
-    `probe exited with code ${probeExitCode} without recording a classified outcome${
-      missingDocument ? ` (no ${outcomePath})` : ""
-    }`
+  ? (documentSaysFailed && outcome.reason) ||
+    `probe exited with code ${probeExitCode} without recording a valid PASS/FAIL outcome (${outcomePath})`
   : "every product assertion passed";
 
 const singleLine = (value) => value.replace(/\s+/g, " ").trim();
@@ -101,13 +133,13 @@ const headline = !failed
       : "## Canary verdict: UNCLASSIFIED FAILURE -- treated as a product failure";
 
 const lines = [headline, "", `- Minecraft version under test: \`${version}\``, `- Reason: ${reason}`];
-if (outcome?.phase) {
+if (validOutcome && outcome.phase) {
   lines.push(`- Failed phase: \`${outcome.phase}\``);
 }
-if (outcome?.signature) {
+if (validOutcome && outcome.signature) {
   lines.push(`- Transient signature: \`${outcome.signature}\``);
 }
-if (typeof outcome?.evidenceCount === "number") {
+if (validOutcome && typeof outcome.evidenceCount === "number") {
   lines.push(`- Server evidence events: ${outcome.evidenceCount}`);
 }
 if (failureClass === "infrastructure") {
@@ -130,7 +162,7 @@ if (cleanupFailure) {
     "```",
   );
 }
-if (outcome?.diagnostics?.length) {
+if (validOutcome && Array.isArray(outcome.diagnostics) && outcome.diagnostics.length) {
   lines.push("", "### Diagnostics", "", ...outcome.diagnostics.map((path) => `- \`${path}\``));
 }
 if (failed) {

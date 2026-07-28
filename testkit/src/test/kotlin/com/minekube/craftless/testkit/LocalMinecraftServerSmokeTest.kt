@@ -1,7 +1,17 @@
 package com.minekube.craftless.testkit
 
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.io.OutputStream
+import java.io.PipedInputStream
+import java.io.PipedOutputStream
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.Collections
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.concurrent.thread
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -852,6 +862,70 @@ class LocalMinecraftServerSmokeTest {
         assertEquals(CanaryFailureClass.INFRASTRUCTURE, outcome.failureClass)
         assertEquals(CanaryPhase.SETUP, outcome.phase)
     }
+
+    @Test
+    fun `output drain failure is composed with shutdown overrun`() {
+        val layout = LocalServerFixture(createTempDirectory("craftless-output-drain"), port = 0).prepare()
+        val input = PipedInputStream()
+        val inputWriter = PipedOutputStream(input)
+        val output = Collections.synchronizedList(mutableListOf<String>())
+        val outputReader =
+            thread(name = "craftless-test-output-reader") {
+                input.bufferedReader().useLines { lines -> lines.forEach { output += it } }
+            }
+        val process = HangingOutputProcess(input)
+        val handle =
+            LocalMinecraftServerHandle(
+                layout = layout,
+                process = process,
+                outputReader = outputReader,
+                output = output,
+                shutdownTimeoutMillis = 1,
+                outputDrainTimeoutMillis = 25,
+                liveEvidenceCount = AtomicInteger(),
+            )
+
+        try {
+            val result = handle.stopAndCollect()
+            val cleanupFailure = requireNotNull(result.cleanupFailure)
+
+            assertTrue(cleanupFailure.contains("did not stop after 1ms"), cleanupFailure)
+            assertTrue(cleanupFailure.contains("output reader did not finish draining after 25ms"), cleanupFailure)
+        } finally {
+            inputWriter.close()
+            outputReader.join(1_000)
+        }
+    }
+}
+
+private class HangingOutputProcess(
+    private val input: InputStream,
+) : Process() {
+    private val output = ByteArrayOutputStream()
+    private var alive = true
+
+    override fun getOutputStream(): OutputStream = output
+
+    override fun getInputStream(): InputStream = input
+
+    override fun getErrorStream(): InputStream = ByteArrayInputStream(ByteArray(0))
+
+    override fun waitFor(): Int = 0
+
+    override fun waitFor(timeout: Long, unit: TimeUnit): Boolean = !alive
+
+    override fun exitValue(): Int = 0
+
+    override fun destroy() {
+        alive = false
+    }
+
+    override fun destroyForcibly(): Process {
+        alive = false
+        return this
+    }
+
+    override fun isAlive(): Boolean = alive
 }
 
 private fun waitUntilExists(
