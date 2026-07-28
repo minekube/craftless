@@ -140,6 +140,12 @@ packaged probes. And the run needed `--platform linux/amd64` on this arm64 host
 because Mojang ships client natives for `linux/x64` only, which is why the
 workflow runs on `ubuntu-latest`.
 
+The probe's narrow create retry is intentional: it retries only non-product
+artifact-resolution failures, including interrupted Mojang downloads that
+surface as `BAD_REQUEST` / `Not enough data available`; runtime failures and
+unsupported targets fail on the first attempt. Better daemon retry and error
+mapping for interrupted downloads remains a separate follow-up.
+
 ## Final Verification
 
 ```sh

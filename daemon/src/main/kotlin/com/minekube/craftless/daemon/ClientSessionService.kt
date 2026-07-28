@@ -118,13 +118,16 @@ class ClientSessionService private constructor(
     }
 
     fun client(clientId: String): Client {
-        val (client, driver) = synchronized(stateLock) {
-            val current = clients[clientId] ?: error("client $clientId not found")
-            current to drivers[clientId]
-        }
-        val liveness = driver as? ClientRuntimeLiveness ?: return synchronized(stateLock) {
-            clients[clientId] ?: error("client $clientId not found")
-        }
+        val (client, driver) =
+            synchronized(stateLock) {
+                val current = clients[clientId] ?: error("client $clientId not found")
+                current to drivers[clientId]
+            }
+        val liveness =
+            driver as? ClientRuntimeLiveness
+                ?: return synchronized(stateLock) {
+                    clients[clientId] ?: error("client $clientId not found")
+                }
         val liveState = liveness.liveState()
         return synchronized(stateLock) {
             val current = clients[clientId] ?: error("client $clientId not found")
@@ -152,9 +155,10 @@ class ClientSessionService private constructor(
         }
     }
 
-    fun driverFor(clientId: String): DriverSession = synchronized(stateLock) {
-        drivers[clientId] ?: error("client $clientId not found")
-    }
+    fun driverFor(clientId: String): DriverSession =
+        synchronized(stateLock) {
+            drivers[clientId] ?: error("client $clientId not found")
+        }
 
     fun attachDriver(
         clientId: String,
@@ -180,10 +184,11 @@ class ClientSessionService private constructor(
         clientId: String,
         target: ConnectionTarget,
     ): Client {
-        val (initialClient, currentDriver) = synchronized(stateLock) {
-            val current = observeCurrentRuntimeLocked(clientId)
-            current to drivers[clientId]
-        }
+        val (initialClient, currentDriver) =
+            synchronized(stateLock) {
+                val current = observeCurrentRuntimeLocked(clientId)
+                current to drivers[clientId]
+            }
         if (initialClient.state == ClientState.FAILED) return initialClient
         val driver = currentDriver ?: error("client $clientId not found")
         val snapshot = driver.connect(target)

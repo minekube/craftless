@@ -68,7 +68,8 @@ during startup, for example because a loader rejects the driver mod, the create
 call fails with `CLIENT_RUNTIME_FAILED` including the client log tail, and the
 client reports `state: FAILED` instead of `RUNNING`. Creation waits briefly for
 the process to survive startup; `CRAFTLESS_CLIENT_STARTUP_PROBE_MS` tunes that
-window and `0` returns as soon as the process is spawned.
+window and `0` returns as soon as the process is spawned. Failed clients cannot
+be attached or connected.
 
 Connect it to a Minecraft server:
 

@@ -1056,10 +1056,13 @@ private class ChangingActionsBackend(
 
 private class BlockingLivenessDriverSession(
     override val clientId: String,
-) : DriverSession by FakeDriverSession(clientId), ClientRuntimeLiveness {
+) : DriverSession by FakeDriverSession(clientId),
+    ClientRuntimeLiveness {
     val observationStarted = CountDownLatch(1)
     val releaseObservation = CountDownLatch(1)
+
     @Volatile var blockNextObservation: Boolean = false
+
     @Volatile var failed: Boolean = false
 
     override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, liveState())

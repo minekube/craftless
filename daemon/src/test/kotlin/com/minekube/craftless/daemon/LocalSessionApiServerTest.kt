@@ -3807,7 +3807,8 @@ private class DyingClientRuntimeLauncher(
 
 private class TransitioningRuntimeDriverSession(
     override val clientId: String,
-) : DriverSession by FakeDriverSession(clientId), ClientRuntimeLiveness {
+) : DriverSession by FakeDriverSession(clientId),
+    ClientRuntimeLiveness {
     var failed: Boolean = false
 
     override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, liveState())
@@ -3819,13 +3820,13 @@ private class TransitioningRuntimeDriverSession(
 
 private class ConnectFailingRuntimeDriverSession(
     override val clientId: String,
-) : DriverSession by FakeDriverSession(clientId), ClientRuntimeLiveness {
+) : DriverSession by FakeDriverSession(clientId),
+    ClientRuntimeLiveness {
     override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.RUNNING)
 
     override fun liveState(): ClientState = ClientState.RUNNING
 
-    override fun connect(target: ConnectionTarget): DriverClientSnapshot =
-        DriverClientSnapshot(clientId, ClientState.FAILED)
+    override fun connect(target: ConnectionTarget): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.FAILED)
 
     override fun failureMessage(): String = "client $clientId runtime failed while connecting"
 }
