@@ -1,12 +1,23 @@
 package com.minekube.craftless.testkit
 
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.io.OutputStream
+import java.io.PipedInputStream
+import java.io.PipedOutputStream
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.Collections
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.concurrent.thread
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class LocalMinecraftServerSmokeTest {
@@ -678,6 +689,246 @@ class LocalMinecraftServerSmokeTest {
         assertTrue(error.message?.contains("expected chat evidence") == true)
         assertEquals("stop\n", Files.readString(root.resolve("minecraft-server-stdin.txt")))
     }
+
+    @Test
+    fun `a server that refuses to stop cannot turn a passing product run red`() {
+        // Reproduces the 2026-07-27 canary: every product assertion passed and the run
+        // was still marked red because the Minecraft server outlived its shutdown budget.
+        val root = createTempDirectory("craftless-local-server-smoke-teardown-cannot-invert")
+        val fakeJava = root.resolve("fake-java")
+        val fakeServerJar = root.resolve("server.jar")
+        val actionCommand = root.resolve("smoke-action")
+        Files.writeString(fakeServerJar, "fake")
+        Files.writeString(
+            fakeJava,
+            """
+            #!/bin/sh
+            echo '[12:00:00] [Server thread/INFO]: Done (1.000s)! For help, type "help"'
+            echo '[12:00:01] [Server thread/INFO]: LatestCurrent joined the game'
+            echo '[12:00:02] [Server thread/INFO]: LatestCurrent left the game'
+            exec sleep 30
+            """.trimIndent() + "\n",
+        )
+        Files.writeString(
+            actionCommand,
+            """
+            #!/bin/sh
+            echo 'probe reached PLAYER_JOINED and every generated assertion passed'
+            """.trimIndent() + "\n",
+        )
+        assertTrue(fakeJava.toFile().setExecutable(true))
+        assertTrue(actionCommand.toFile().setExecutable(true))
+        val config =
+            LocalMinecraftServerSmokeConfig(
+                enabled = true,
+                root = root,
+                javaExecutable = fakeJava,
+                actionCommand = listOf(actionCommand.toString()),
+                actionTimeoutMillis = 10_000,
+                expectedPlayer = "LatestCurrent",
+                expectDisconnect = true,
+                readinessTimeoutMillis = 5_000,
+                shutdownTimeoutMillis = 1_000,
+            )
+
+        val result =
+            LocalMinecraftServerSmoke.runWithServer(
+                config = config,
+                provisionServerJar = { _, _ -> fakeServerJar },
+            )
+
+        assertEquals(LocalMinecraftServerSmokeStatus.RAN, result.status)
+        assertTrue(result.evidenceSummary.playerJoined)
+        assertTrue(result.evidenceSummary.playerDisconnected)
+
+        // The cleanup failure is recorded, not swallowed, and not treated as a verdict.
+        val cleanupFailure = requireNotNull(result.cleanupFailure)
+        assertTrue(cleanupFailure.contains("did not stop after 1000ms"), cleanupFailure)
+
+        val outcome = requireNotNull(result.outcome)
+        assertEquals(CanaryVerdict.PASS, outcome.verdict)
+        assertNull(outcome.failureClass)
+        assertEquals(cleanupFailure, outcome.cleanupFailure)
+        assertEquals(outcome, CanaryOutcome.read(root.resolve("artifacts").resolve(CanaryOutcome.FILE_NAME)))
+    }
+
+    @Test
+    fun `a failing product assertion is recorded as a product failure`() {
+        val root = createTempDirectory("craftless-local-server-smoke-product-failure")
+        val fakeJava = root.resolve("fake-java")
+        val fakeServerJar = root.resolve("server.jar")
+        val actionCommand = root.resolve("smoke-action")
+        Files.writeString(fakeServerJar, "fake")
+        writeFakeJava(fakeJava)
+        Files.writeString(
+            actionCommand,
+            """
+            #!/bin/sh
+            echo 'generated action world.time.query did not return ACCEPTED' >&2
+            exit 1
+            """.trimIndent() + "\n",
+        )
+        assertTrue(actionCommand.toFile().setExecutable(true))
+        val config =
+            LocalMinecraftServerSmokeConfig(
+                enabled = true,
+                root = root,
+                javaExecutable = fakeJava,
+                actionCommand = listOf(actionCommand.toString()),
+                actionTimeoutMillis = 10_000,
+                readinessTimeoutMillis = 5_000,
+                shutdownTimeoutMillis = 5_000,
+            )
+
+        assertFailsWith<IllegalStateException> {
+            LocalMinecraftServerSmoke.runWithServer(
+                config = config,
+                provisionServerJar = { _, _ -> fakeServerJar },
+            )
+        }
+
+        val outcome = CanaryOutcome.read(root.resolve("artifacts").resolve(CanaryOutcome.FILE_NAME))
+        assertEquals(CanaryVerdict.FAIL, outcome.verdict)
+        assertEquals(CanaryFailureClass.PRODUCT, outcome.failureClass)
+        assertEquals(CanaryPhase.PRODUCT, outcome.phase)
+        assertNull(outcome.signature)
+    }
+
+    @Test
+    fun `an upstream cdn timeout is recorded as an infrastructure failure`() {
+        // Reproduces the 2026-07-28 canary: the probe failed at create-client because the
+        // Mojang asset CDN did not answer. Same exit path as the product failure above,
+        // and it must not read as "the supported Minecraft lane broke".
+        val root = createTempDirectory("craftless-local-server-smoke-infrastructure-failure")
+        val fakeJava = root.resolve("fake-java")
+        val fakeServerJar = root.resolve("server.jar")
+        val actionCommand = root.resolve("smoke-action")
+        Files.writeString(fakeServerJar, "fake")
+        writeFakeJava(fakeJava)
+        Files.writeString(
+            actionCommand,
+            """
+            #!/bin/sh
+            printf '%s\n' '{"code":"BAD_REQUEST","message":"Connect timeout has expired [url=https://resources.download.minecraft.net/f0/f066613bca60316fdc9ae333e39c1c9fd8a06e4de, connect_timeout=15000 ms]"}' \
+              > "${'$'}CRAFTLESS_SMOKE_ARTIFACTS_DIR/clients-create-latest-release.log"
+            exit 1
+            """.trimIndent() + "\n",
+        )
+        assertTrue(actionCommand.toFile().setExecutable(true))
+        val config =
+            LocalMinecraftServerSmokeConfig(
+                enabled = true,
+                root = root,
+                javaExecutable = fakeJava,
+                actionCommand = listOf(actionCommand.toString()),
+                actionTimeoutMillis = 10_000,
+                readinessTimeoutMillis = 5_000,
+                shutdownTimeoutMillis = 5_000,
+            )
+
+        assertFailsWith<IllegalStateException> {
+            LocalMinecraftServerSmoke.runWithServer(
+                config = config,
+                provisionServerJar = { _, _ -> fakeServerJar },
+            )
+        }
+
+        val outcome = CanaryOutcome.read(root.resolve("artifacts").resolve(CanaryOutcome.FILE_NAME))
+        assertEquals(CanaryVerdict.FAIL, outcome.verdict)
+        assertEquals(CanaryFailureClass.INFRASTRUCTURE, outcome.failureClass)
+        assertEquals("upstream-connect-timeout", outcome.signature)
+    }
+
+    @Test
+    fun `harness setup failure is never reported as a product failure`() {
+        val root = createTempDirectory("craftless-local-server-smoke-setup-failure")
+        val config =
+            LocalMinecraftServerSmokeConfig(
+                enabled = true,
+                root = root,
+                readinessTimeoutMillis = 5_000,
+                shutdownTimeoutMillis = 5_000,
+            )
+
+        assertFailsWith<IllegalStateException> {
+            LocalMinecraftServerSmoke.runWithServer(
+                config = config,
+                provisionServerJar = { _, _ -> error("could not provision the harness server jar") },
+            )
+        }
+
+        val outcome = CanaryOutcome.read(root.resolve("artifacts").resolve(CanaryOutcome.FILE_NAME))
+        assertEquals(CanaryVerdict.FAIL, outcome.verdict)
+        assertEquals(CanaryFailureClass.INFRASTRUCTURE, outcome.failureClass)
+        assertEquals(CanaryPhase.SETUP, outcome.phase)
+    }
+
+    @Test
+    fun `output drain failure is composed with shutdown overrun`() {
+        val layout = LocalServerFixture(createTempDirectory("craftless-output-drain"), port = 0).prepare()
+        val input = PipedInputStream()
+        val inputWriter = PipedOutputStream(input)
+        val output = Collections.synchronizedList(mutableListOf<String>())
+        val outputReader =
+            thread(name = "craftless-test-output-reader") {
+                input.bufferedReader().useLines { lines -> lines.forEach { output += it } }
+            }
+        val process = HangingOutputProcess(input)
+        val handle =
+            LocalMinecraftServerHandle(
+                layout = layout,
+                process = process,
+                outputReader = outputReader,
+                output = output,
+                shutdownTimeoutMillis = 1,
+                outputDrainTimeoutMillis = 25,
+                liveEvidenceCount = AtomicInteger(),
+            )
+
+        try {
+            val result = handle.stopAndCollect()
+            val cleanupFailure = requireNotNull(result.cleanupFailure)
+
+            assertTrue(cleanupFailure.contains("did not stop after 1ms"), cleanupFailure)
+            assertTrue(cleanupFailure.contains("output reader did not finish draining after 25ms"), cleanupFailure)
+        } finally {
+            inputWriter.close()
+            outputReader.join(1_000)
+        }
+    }
+}
+
+private class HangingOutputProcess(
+    private val input: InputStream,
+) : Process() {
+    private val output = ByteArrayOutputStream()
+    private var alive = true
+
+    override fun getOutputStream(): OutputStream = output
+
+    override fun getInputStream(): InputStream = input
+
+    override fun getErrorStream(): InputStream = ByteArrayInputStream(ByteArray(0))
+
+    override fun waitFor(): Int = 0
+
+    override fun waitFor(
+        timeout: Long,
+        unit: TimeUnit,
+    ): Boolean = !alive
+
+    override fun exitValue(): Int = 0
+
+    override fun destroy() {
+        alive = false
+    }
+
+    override fun destroyForcibly(): Process {
+        alive = false
+        return this
+    }
+
+    override fun isAlive(): Boolean = alive
 }
 
 private fun waitUntilExists(

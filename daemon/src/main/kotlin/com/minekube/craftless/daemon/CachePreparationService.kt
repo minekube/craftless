@@ -19,11 +19,13 @@ import com.minekube.craftless.protocol.JavaRuntimeSelectionStatus
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.MINECRAFT_JAVA_RUNTIME_INDEX_URL
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
+import com.minekube.craftless.protocol.RETRYABLE_UPSTREAM_STATUS_CODES
 import com.minekube.craftless.protocol.requireFileSafeCacheSegment
 import com.minekube.craftless.protocol.resolveMinecraftVersion
 import com.minekube.craftless.protocol.versionManifestUrl
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsBytes
@@ -45,6 +47,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.ByteArrayInputStream
 import java.io.File
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
@@ -602,8 +605,43 @@ class KtorCacheMetadataFetcher : CacheMetadataFetcher {
                 socketTimeoutMillis = 60_000
                 requestTimeoutMillis = 120_000
             }
+            // Metadata and artifact fetches are idempotent GETs against upstream CDNs.
+            // A single connect timeout to the Mojang asset CDN should not fail a whole
+            // cache preparation. Permanent 4xx stays fatal; only explicitly transient
+            // statuses retry, because "this version has no artifact" is a real answer.
+            install(HttpRequestRetry) {
+                maxRetries = UPSTREAM_FETCH_MAX_RETRIES
+                retryIf { _, response -> response.status.value in RETRYABLE_UPSTREAM_STATUS_CODES }
+                retryOnExceptionIf { _, cause -> cause.isRetryableUpstreamFault() }
+                exponentialDelay(base = 2.0, maxDelayMs = 8_000)
+            }
         }
+
+    private companion object {
+        const val UPSTREAM_FETCH_MAX_RETRIES = 3
+    }
 }
+
+/**
+ * Transport-level faults worth another attempt.
+ *
+ * Ktor surfaces connect/socket/request timeouts as [IOException] subtypes, which is
+ * also what a reset or refused connection to a CDN edge looks like.
+ */
+internal fun Throwable.isRetryableUpstreamFault(): Boolean {
+    var cause: Throwable? = this
+    var depth = 0
+    while (cause != null && depth < MAX_RETRY_CAUSE_DEPTH) {
+        if (cause is IOException) {
+            return true
+        }
+        cause = cause.cause
+        depth += 1
+    }
+    return false
+}
+
+private const val MAX_RETRY_CAUSE_DEPTH = 8
 
 private fun String.clientJarDownload(minecraftVersion: String): DownloadArtifactMetadata =
     Json
