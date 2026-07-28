@@ -20,6 +20,7 @@ import com.minekube.craftless.protocol.JsonRpcResponse
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.Profile
 import com.minekube.craftless.testkit.LocalServerFixture
+import com.minekube.craftless.testkit.LocalServerProcessResult
 import com.minekube.craftless.testkit.MinecraftServerJarProvisioner
 import com.minekube.craftless.testkit.provisionMinecraftServerJar
 import io.ktor.client.HttpClient
@@ -61,10 +62,27 @@ private val probeJson =
 
 private const val OFFICIAL_PROBE_SERVER_CLEANUP_LOG = "server-cleanup.log"
 
-internal fun surfaceOfficialProbeCleanupFailure(
+internal fun runOfficialProbeCleanup(
     artifactsDir: Path,
-    cleanupFailure: String,
+    stopServer: () -> LocalServerProcessResult?,
+    stopCommand: () -> Unit,
 ) {
+    val cleanupFailures = mutableListOf<String>()
+    val serverTeardown = runCatching { stopServer() }
+    serverTeardown.getOrNull()?.cleanupFailure?.let(cleanupFailures::add)
+    serverTeardown.exceptionOrNull()?.let { failure ->
+        cleanupFailures += "official Fabric server teardown threw:\n${failure.stackTraceToString()}"
+    }
+    runCatching {
+        stopCommand()
+    }.exceptionOrNull()?.let { failure ->
+        cleanupFailures += "official Fabric client command teardown threw:\n${failure.stackTraceToString()}"
+    }
+    if (cleanupFailures.isEmpty()) {
+        return
+    }
+
+    val cleanupFailure = cleanupFailures.joinToString("\n")
     val artifactWriteFailure =
         runCatching {
             artifactsDir.createDirectories()
@@ -186,20 +204,11 @@ private class OfficialFabricAttachProbe(
                                 },
                         )
                     } finally {
-                        val cleanupFailures = mutableListOf<String>()
-                        val serverTeardown = runCatching { localServer?.stopAndCollect() }
-                        serverTeardown.getOrNull()?.cleanupFailure?.let(cleanupFailures::add)
-                        serverTeardown.exceptionOrNull()?.let { failure ->
-                            cleanupFailures += "official Fabric server teardown threw:\n${failure.stackTraceToString()}"
-                        }
-                        runCatching {
-                            command.stopAndWriteLog(config.artifactsDir.resolve("client-command.log"))
-                        }.exceptionOrNull()?.let { failure ->
-                            cleanupFailures += "official Fabric client command teardown threw:\n${failure.stackTraceToString()}"
-                        }
-                        if (cleanupFailures.isNotEmpty()) {
-                            surfaceOfficialProbeCleanupFailure(config.artifactsDir, cleanupFailures.joinToString("\n"))
-                        }
+                        runOfficialProbeCleanup(
+                            artifactsDir = config.artifactsDir,
+                            stopServer = { localServer?.stopAndCollect() },
+                            stopCommand = { command.stopAndWriteLog(config.artifactsDir.resolve("client-command.log")) },
+                        )
                     }
                 }
             }
