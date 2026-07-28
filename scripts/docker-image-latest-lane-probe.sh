@@ -79,16 +79,31 @@ teardown() {
   docker volume rm -f "$WORKSPACE_VOLUME" > /dev/null 2>&1
   docker network rm "$NETWORK" > /dev/null 2>&1
   # Verify the teardown instead of trusting it; a survivor corrupts the next run.
-  local leftovers
-  leftovers="$(docker ps -a --filter "name=^${PREFIX}-" --format '{{.Names}}')"
-  local volumes
-  volumes="$(docker volume ls --filter "name=^${WORKSPACE_VOLUME}$" --format '{{.Name}}')"
-  local networks
-  networks="$(docker network ls --filter "name=^${NETWORK}$" --format '{{.Name}}')"
-  printf 'containers: %s\nvolumes: %s\nnetworks: %s\n' "${leftovers:-none}" "${volumes:-none}" "${networks:-none}" \
-    > "$ARTIFACTS_DIR/teardown-verification.txt"
-  if [ -n "$leftovers$volumes$networks" ]; then
+  local inspection_failed=0
+  local leftovers leftovers_status=0
+  leftovers="$(docker ps -a --filter "name=^${PREFIX}-" --format '{{.Names}}' 2>&1)" || leftovers_status=$?
+  local volumes volumes_status=0
+  volumes="$(docker volume ls --filter "name=^${WORKSPACE_VOLUME}$" --format '{{.Name}}' 2>&1)" || volumes_status=$?
+  local networks networks_status=0
+  networks="$(docker network ls --filter "name=^${NETWORK}$" --format '{{.Name}}' 2>&1)" || networks_status=$?
+  if [ "$leftovers_status" -ne 0 ] || [ "$volumes_status" -ne 0 ] || [ "$networks_status" -ne 0 ]; then
+    inspection_failed=1
+  fi
+  local leftover_resources=0
+  if [ "$leftovers_status" -eq 0 ] && [ -n "$leftovers" ]; then leftover_resources=1; fi
+  if [ "$volumes_status" -eq 0 ] && [ -n "$volumes" ]; then leftover_resources=1; fi
+  if [ "$networks_status" -eq 0 ] && [ -n "$networks" ]; then leftover_resources=1; fi
+  {
+    printf 'inspection: %s\n' "$([ "$inspection_failed" -eq 0 ] && echo ok || echo failed)"
+    printf 'containers (exit %s): %s\n' "$leftovers_status" "${leftovers:-none}"
+    printf 'volumes (exit %s): %s\n' "$volumes_status" "${volumes:-none}"
+    printf 'networks (exit %s): %s\n' "$networks_status" "${networks:-none}"
+  } > "$ARTIFACTS_DIR/teardown-verification.txt"
+  if [ "$inspection_failed" -ne 0 ] || [ "$leftover_resources" -ne 0 ]; then
     echo "docker image lane probe left resources behind: $leftovers $volumes $networks" >&2
+    if [ "$inspection_failed" -ne 0 ]; then
+      echo "docker image lane probe teardown inspection failed" >&2
+    fi
     if [ "$probe_exit" -eq 0 ]; then
       probe_exit=1
     fi

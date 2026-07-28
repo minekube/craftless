@@ -79,7 +79,9 @@ class WorkspaceClientRuntimeDriverFactory(
             files = files,
             launch = launch,
         ).also { runtime ->
-            prepared[request.id] = runtime
+            synchronized(prepared) {
+                prepared[request.id] = runtime
+            }
         }
     }
 
@@ -129,7 +131,9 @@ class WorkspaceClientRuntimeDriverFactory(
     }
 
     override fun create(request: CreateClientRequest): DriverSession {
-        val runtime = prepared.remove(request.id) ?: error("client ${request.id} runtime was not prepared")
+        val runtime = synchronized(prepared) {
+            prepared.remove(request.id)
+        } ?: error("client ${request.id} runtime was not prepared")
         runtime.awaitStartupSettle(startupProbeMillis)
         return PreparedClientRuntimeDriverSession(
             clientId = request.id,

@@ -212,12 +212,18 @@ class LocalSessionApiServer private constructor(
             post("/clients") {
                 runCatching {
                     val request = json.decodeFromString<CreateClientRequest>(call.receiveText())
-                    workspaceRuntimeFactory?.prepare(
-                        request = request,
-                        cachePreparationService = cachePreparationService ?: error("cache workspace is not configured"),
-                        attachEnvironment = ClientDriverAttachEnvironment(request.id, url("")),
-                    )
-                    val client = service.createClient(request)
+                    val reservation = service.reserveClient(request.id)
+                    val client =
+                        try {
+                            workspaceRuntimeFactory?.prepare(
+                                request = request,
+                                cachePreparationService = cachePreparationService ?: error("cache workspace is not configured"),
+                                attachEnvironment = ClientDriverAttachEnvironment(request.id, url("")),
+                            )
+                            service.createClient(request, reservation)
+                        } finally {
+                            service.releaseClientReservation(reservation)
+                        }
                     if (client.state == ClientState.FAILED) {
                         throw FailedClientRuntime(clientRuntimeFailure(client.id))
                     }

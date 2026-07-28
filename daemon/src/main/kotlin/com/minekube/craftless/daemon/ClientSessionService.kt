@@ -16,24 +16,54 @@ import com.minekube.craftless.protocol.OpenApiResource
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import com.minekube.craftless.protocol.isCraftlessClientId
 
+internal class ClientCreationReservation internal constructor(
+    internal val clientId: String,
+)
+
 class ClientSessionService private constructor(
     private val driverFactory: DriverSessionFactory,
     private val fileStore: InstanceFileStore?,
 ) {
     private val clients = linkedMapOf<String, Client>()
     private val drivers = linkedMapOf<String, DriverSession>()
-    private val creatingClientIds = mutableSetOf<String>()
+    private val creatingClientReservations = mutableMapOf<String, ClientCreationReservation>()
     private val stateLock = Any()
     private val failedClients = mutableSetOf<String>()
     private val clientFailureListeners = mutableListOf<(Client) -> Unit>()
 
     fun createClient(request: CreateClientRequest): Client {
-        require(request.id.isCraftlessClientId()) { "client id must be a route-safe segment" }
-        require(request.version.isNotBlank()) { "minecraft version is required" }
-        val profile = request.resolvedProfile()
-        require(profile.name.length <= MAX_OFFLINE_PROFILE_NAME_LENGTH) { "offline profile name must be 16 characters or fewer" }
+        validateCreateRequest(request)
+        return createClient(request, reserveClient(request.id))
+    }
+
+    internal fun reserveClient(clientId: String): ClientCreationReservation {
+        require(clientId.isCraftlessClientId()) { "client id must be a route-safe segment" }
+        return synchronized(stateLock) {
+            require(!clients.containsKey(clientId) && !creatingClientReservations.containsKey(clientId)) {
+                "client $clientId already exists"
+            }
+            ClientCreationReservation(clientId).also { reservation ->
+                creatingClientReservations[clientId] = reservation
+            }
+        }
+    }
+
+    internal fun releaseClientReservation(reservation: ClientCreationReservation) {
         synchronized(stateLock) {
-            require(!clients.containsKey(request.id) && creatingClientIds.add(request.id)) { "client ${request.id} already exists" }
+            if (creatingClientReservations[reservation.clientId] === reservation) {
+                creatingClientReservations.remove(reservation.clientId)
+            }
+        }
+    }
+
+    internal fun createClient(
+        request: CreateClientRequest,
+        reservation: ClientCreationReservation,
+    ): Client {
+        validateCreateRequest(request)
+        require(reservation.clientId == request.id) { "client creation reservation does not match ${request.id}" }
+        synchronized(stateLock) {
+            require(creatingClientReservations[request.id] === reservation) { "client ${request.id} is not reserved" }
         }
 
         var registered = false
@@ -51,25 +81,30 @@ class ClientSessionService private constructor(
                 Client(
                     id = request.id,
                     instance = instance,
-                    profile = profile,
+                    profile = request.resolvedProfile(),
                     presentation = request.presentation,
                     state = ClientState.CREATED,
                 )
             return synchronized(stateLock) {
-                require(!clients.containsKey(request.id)) { "client ${request.id} already exists" }
+                require(creatingClientReservations[request.id] === reservation) { "client ${request.id} is not reserved" }
                 clients[request.id] = client
                 drivers[request.id] = driver
-                creatingClientIds.remove(request.id)
+                creatingClientReservations.remove(request.id)
                 registered = true
                 updateStateLocked(request.id, initialState)
             }
         } finally {
             if (!registered) {
-                synchronized(stateLock) {
-                    creatingClientIds.remove(request.id)
-                }
+                releaseClientReservation(reservation)
             }
         }
+    }
+
+    private fun validateCreateRequest(request: CreateClientRequest) {
+        require(request.id.isCraftlessClientId()) { "client id must be a route-safe segment" }
+        require(request.version.isNotBlank()) { "minecraft version is required" }
+        val profile = request.resolvedProfile()
+        require(profile.name.length <= MAX_OFFLINE_PROFILE_NAME_LENGTH) { "offline profile name must be 16 characters or fewer" }
     }
 
     fun listClients(): List<Client> {

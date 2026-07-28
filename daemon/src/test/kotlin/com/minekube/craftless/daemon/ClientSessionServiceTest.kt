@@ -141,6 +141,25 @@ class ClientSessionServiceTest {
     }
 
     @Test
+    fun `reserved client id is consumed by prepared client creation`() {
+        val service = ClientSessionService.inMemory(DriverSessionFactory { request -> AttachedTestDriverSession(request.id) })
+        val request =
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            )
+        val reservation = service.reserveClient(request.id)
+
+        val client = service.createClient(request, reservation)
+
+        assertEquals("alice", client.id)
+        assertEquals(ClientState.RUNNING, client.state)
+        assertFailsWith<IllegalArgumentException> { service.reserveClient(request.id) }
+    }
+
+    @Test
     fun `session service requires an explicit driver factory`() {
         val service = ClientSessionService.inMemory()
 

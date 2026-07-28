@@ -672,7 +672,7 @@ private fun ApiRoute.errorStatuses(): List<String> =
         path == "/cache:prepare" && method == "POST" -> listOf("400")
         path == "/cache:export" && method == "POST" -> listOf("400")
         path == "/cache:cleanup" && method == "POST" -> listOf("400")
-        path.endsWith(":attach") && method == "POST" -> listOf("400", "404", "502")
+        path.endsWith(":attach") && method == "POST" -> listOf("400", "404", "409", "502")
         path.endsWith(":connect") && method == "POST" -> listOf("400", "404", "409", "502")
         source == "action" && method == "POST" -> listOf("400", "404", "409", "502")
         path.endsWith(":run") && method == "POST" -> listOf("400", "404", "409", "502")

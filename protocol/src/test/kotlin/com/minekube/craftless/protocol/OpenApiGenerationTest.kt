@@ -1133,6 +1133,7 @@ class OpenApiGenerationTest {
         assertErrorSchema(requireNotNull(document.paths["/clients/{id}:connect"]?.post?.errorSchema("502")))
         assertErrorSchema(requireNotNull(document.paths["/clients/{id}:attach"]?.post?.errorSchema("400")))
         assertErrorSchema(requireNotNull(document.paths["/clients/{id}:attach"]?.post?.errorSchema("404")))
+        assertErrorSchema(requireNotNull(document.paths["/clients/{id}:attach"]?.post?.errorSchema("409")))
         assertErrorSchema(requireNotNull(document.paths["/clients/{id}:attach"]?.post?.errorSchema("502")))
         assertErrorSchema(requireNotNull(document.paths["/clients/{id}:run"]?.post?.errorSchema("400")))
         assertErrorSchema(requireNotNull(document.paths["/clients/{id}:run"]?.post?.errorSchema("404")))
