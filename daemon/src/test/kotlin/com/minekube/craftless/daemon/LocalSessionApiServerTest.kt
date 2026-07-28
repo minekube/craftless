@@ -1040,6 +1040,63 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `server reports a client whose runtime died at startup instead of running`() =
+        withHttpClient { http ->
+            val workspace = Files.createTempDirectory("craftless-client-runtime-failure")
+            val launcher =
+                DyingClientRuntimeLauncher(
+                    exitCode = 1,
+                    logLine =
+                        "Mod 'Craftless Driver Fabric 1.21.6 compiled lane' (craftless-driver-fabric) requires version " +
+                            "1.21.6 of 'Minecraft' (minecraft), but only the wrong version is present: 26.2!",
+                )
+
+            LocalSessionApiServer
+                .inMemory(
+                    workspaceRoot = workspace,
+                    cacheMetadataFetcher = preparedRuntimeMetadataFetcher(),
+                    clientRuntimeLauncher = launcher,
+                ).use { server ->
+                    server.start()
+
+                    val response =
+                        http.post(server.url("/clients")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "id": "alice",
+                                  "version": "1.21.6",
+                                  "loader": "FABRIC",
+                                  "profile": { "kind": "OFFLINE", "name": "Alice" }
+                                }
+                                """.trimIndent(),
+                            )
+                        }
+
+                    val body = response.bodyAsText()
+                    assertEquals(HttpStatusCode.BadGateway, response.status)
+                    assertTrue(body.contains("CLIENT_RUNTIME_FAILED"), body)
+                    assertTrue(body.contains("exited with code 1"), body)
+                    assertTrue(body.contains("only the wrong version is present: 26.2!"), body)
+
+                    val client = json.decodeFromString<Client>(http.get(server.url("/clients/alice")).bodyAsText())
+                    assertEquals(ClientState.FAILED, client.state)
+
+                    val connect =
+                        http.post(server.url("/clients/alice:connect")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"host":"127.0.0.1","port":25565}""")
+                        }
+                    assertEquals(HttpStatusCode.BadGateway, connect.status)
+
+                    val events = http.get(server.url("/events")).bodyAsText()
+                    assertTrue(events.contains("client.failed"), events)
+                    assertFalse(events.contains("client.created"), events)
+                }
+        }
+
+    @Test
     fun `server rejects default windowless client creation when no windowless wrapper is available`() =
         withHttpClient { http ->
             val workspace = Files.createTempDirectory("craftless-windowless-requires-wrapper")
@@ -1914,6 +1971,10 @@ class LocalSessionApiServerTest {
         val process = requireNotNull(launch.process)
         assertTrue(process.waitFor(2, TimeUnit.SECONDS))
         assertEquals(windowlessRunner.toString(), launch.command.first())
+        assertTrue(
+            launch.command.contains("-Dfabric.noGui=true"),
+            "a windowless Fabric client must fail instead of waiting on a loader error window: ${launch.command}",
+        )
         assertTrue(waitForRegularFile(windowlessMarker))
         val windowlessInvocation = Files.readString(windowlessMarker)
         assertTrue(windowlessInvocation.contains("-a"))
@@ -2128,6 +2189,10 @@ class LocalSessionApiServerTest {
         assertEquals(ClientRuntimeLaunchStatus.LAUNCHED, launch.status)
         assertTrue(requireNotNull(launch.process).waitFor(2, TimeUnit.SECONDS))
         assertTrue(launch.command.first().endsWith("/java-runtime-gamma/image/bin/java"))
+        assertFalse(
+            launch.command.contains("-Dfabric.noGui=true"),
+            "a visible client keeps its loader windows: ${launch.command}",
+        )
         assertTrue(waitForRegularFile(marker))
         assertFalse(Files.exists(workspace.resolve("windowless.txt")))
         assertFalse(Files.exists(workspace.resolve("instances/alice-1.21.6-fabric/minecraft/options.txt")))
@@ -3569,6 +3634,32 @@ private class RecordingClientRuntimeLauncher : ClientRuntimeLauncher {
                 attachEnvironment = attachEnvironment,
             )
         return ClientRuntimeLaunch(status = ClientRuntimeLaunchStatus.LAUNCHED, pid = 1234)
+    }
+}
+
+/** Launches a real process that exits immediately, the way a loader that rejects the driver mod does. */
+private class DyingClientRuntimeLauncher(
+    private val exitCode: Int,
+    private val logLine: String,
+) : ClientRuntimeLauncher {
+    override fun launch(
+        request: CreateClientRequest,
+        prepared: CachePrepareResult,
+        files: InstanceFiles,
+        workspaceRoot: Path,
+        attachEnvironment: ClientDriverAttachEnvironment?,
+    ): ClientRuntimeLaunch {
+        val logs = workspaceRoot.resolve(files.logs)
+        Files.createDirectories(logs)
+        Files.writeString(logs.resolve("client.log"), "$logLine\n")
+        val process = ProcessBuilder("/bin/sh", "-c", "exit $exitCode").start()
+        process.waitFor()
+        return ClientRuntimeLaunch(
+            status = ClientRuntimeLaunchStatus.LAUNCHED,
+            pid = process.pid(),
+            message = "launched client ${request.id}",
+            process = process,
+        )
     }
 }
 

@@ -63,6 +63,13 @@ curl -sS "$CRAFTLESS/clients" \
   -d '{"id":"bot","version": "latest-release","loader":"FABRIC"}'
 ```
 
+Client creation reports the runtime it actually got. If the launched client dies
+during startup, for example because a loader rejects the driver mod, the create
+call fails with `CLIENT_RUNTIME_FAILED` including the client log tail, and the
+client reports `state: FAILED` instead of `RUNNING`. Creation waits briefly for
+the process to survive startup; `CRAFTLESS_CLIENT_STARTUP_PROBE_MS` tunes that
+window and `0` returns as soon as the process is spawned.
+
 Connect it to a Minecraft server:
 
 ```sh
@@ -134,7 +141,10 @@ The installer writes the launcher symlink to `$HOME/.local/bin` by default.
 Set `CRAFTLESS_INSTALL_DIR` to use another directory. The installed
 distribution carries the current, representative older, and latest/current
 Fabric driver lanes, so `craftless daemon start` auto-discovers the packaged
-driver manifest unless `CRAFTLESS_FABRIC_DRIVER_MOD` is set explicitly.
+driver manifest unless `CRAFTLESS_FABRIC_DRIVER_MOD` is set explicitly. The
+Docker image carries the same lanes and leaves that variable unset, so every
+supported version resolves its own lane; setting it pins every client to one
+jar and is only for forcing a single custom driver build.
 Minecraft artifacts are downloaded into the workspace at runtime; client and
 server artifacts are resolved into the workspace and are not baked into the
 Docker image.

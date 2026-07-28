@@ -169,4 +169,10 @@ enum class ClientState {
     RUNNING,
     CONNECTED,
     STOPPED,
+
+    /**
+     * The client runtime exited on its own instead of being stopped through the API,
+     * for example when the loader rejects the driver mod at startup.
+     */
+    FAILED,
 }

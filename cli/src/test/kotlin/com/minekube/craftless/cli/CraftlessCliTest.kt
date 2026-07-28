@@ -1,5 +1,6 @@
 package com.minekube.craftless.cli
 
+import com.minekube.craftless.daemon.CRAFTLESS_CLIENT_STARTUP_PROBE_MS
 import com.minekube.craftless.daemon.CacheMetadataFetcher
 import com.minekube.craftless.daemon.DriverSessionFactory
 import com.minekube.craftless.protocol.ApiRouteCatalog
@@ -113,7 +114,12 @@ class CraftlessCliTest {
     private fun fakeWindowlessWrapperEnv(
         workspace: Path,
         env: Map<String, String> = emptyMap(),
-    ): Map<String, String> = env + ("CRAFTLESS_WINDOWLESS_WRAPPER" to fakeWindowlessWrapper(workspace).toString())
+    ): Map<String, String> =
+        env +
+            ("CRAFTLESS_WINDOWLESS_WRAPPER" to fakeWindowlessWrapper(workspace).toString()) +
+            // These tests assert driver mod selection, so creation does not need to wait
+            // for the fake client to survive a startup window.
+            (CRAFTLESS_CLIENT_STARTUP_PROBE_MS to "0")
 
     private fun fakeWindowlessWrapper(workspace: Path): Path {
         val wrapper = workspace.resolve("bin/craftless-test-windowless")
@@ -1171,7 +1177,14 @@ private fun cliFakeJavaBytes(version: String): ByteArray =
     """
     #!/usr/bin/env sh
     echo 'openjdk version "$version" 2026-04-21 LTS' >&2
+    case " ${'$'}* " in
+      *' -version '*|*' --version '*) exit 0 ;;
+    esac
+    # A launched client keeps running until Craftless stops it.
+    sleep ${FAKE_CLIENT_LIFETIME_SECONDS}
     """.trimIndent().encodeToByteArray()
+
+private const val FAKE_CLIENT_LIFETIME_SECONDS = 30
 
 private fun writeFakeJava(
     path: java.nio.file.Path,

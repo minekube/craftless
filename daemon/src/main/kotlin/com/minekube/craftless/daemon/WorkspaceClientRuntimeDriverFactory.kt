@@ -40,6 +40,7 @@ class WorkspaceClientRuntimeDriverFactory(
     private val workspaceRoot: Path,
     private val launcher: ClientRuntimeLauncher = ProcessClientRuntimeLauncher(),
     private val driverModProvider: ClientRuntimeDriverModProvider = ConfiguredClientRuntimeDriverModProvider(),
+    private val startupProbeMillis: Long = defaultStartupProbeMillis(),
 ) : DriverSessionFactory {
     private val root = workspaceRoot.toAbsolutePath().normalize()
     private val prepared = linkedMapOf<String, PreparedClientRuntime>()
@@ -127,9 +128,29 @@ class WorkspaceClientRuntimeDriverFactory(
 
     override fun create(request: CreateClientRequest): DriverSession {
         val runtime = prepared.remove(request.id) ?: error("client ${request.id} runtime was not prepared")
-        return PreparedClientRuntimeDriverSession(clientId = request.id, runtime = runtime)
+        runtime.awaitStartupSettle(startupProbeMillis)
+        return PreparedClientRuntimeDriverSession(
+            clientId = request.id,
+            runtime = runtime,
+            logFile = root.resolveHandleOrPath(runtime.files.logs).resolve(CLIENT_LOG_FILE_NAME),
+        )
     }
 }
+
+/**
+ * How long client creation waits for a freshly launched client runtime to survive startup.
+ *
+ * A loader that rejects the driver mod kills the process within the first seconds, so the
+ * create response reports that failure instead of an optimistic `RUNNING`. Set
+ * `CRAFTLESS_CLIENT_STARTUP_PROBE_MS=0` to return as soon as the process is spawned.
+ */
+fun defaultStartupProbeMillis(environment: Map<String, String> = System.getenv()): Long =
+    environment[CRAFTLESS_CLIENT_STARTUP_PROBE_MS]
+        ?.trim()
+        ?.takeIf { it.isNotBlank() }
+        ?.toLongOrNull()
+        ?.takeIf { it >= 0 }
+        ?: DEFAULT_CLIENT_STARTUP_PROBE_MILLIS
 
 data class ClientDriverAttachEnvironment(
     val clientId: String,
@@ -428,6 +449,19 @@ data class PreparedClientRuntime(
     val launch: ClientRuntimeLaunch,
 )
 
+/**
+ * A cheap, local check of whether a launched client runtime is still alive.
+ *
+ * Sessions that own an operating system process implement this so the daemon can report a
+ * client that died at startup instead of the state it was launched with. Attached in-client
+ * driver sessions do not implement it; their state comes from the driver itself.
+ */
+interface ClientRuntimeLiveness {
+    fun liveState(): ClientState
+
+    fun failureMessage(): String?
+}
+
 class ProcessClientRuntimeLauncher(
     environment: Map<String, String> = System.getenv(),
     private val windowlessCommandPrefix: List<String> = defaultWindowlessCommandPrefix(environment),
@@ -522,10 +556,26 @@ class ProcessClientRuntimeLauncher(
         val variables = request.clientLaunchVariables(files)
         return listOf(java) +
             arguments.jvm.resolveClientLaunchVariables(variables) +
+            request.windowlessLoaderProperties() +
             arguments.mainClass +
             arguments.game.resolveClientLaunchVariables(variables)
     }
 }
+
+/**
+ * A windowless client has a display nobody is looking at.
+ *
+ * Without this, a loader that rejects a mod opens an error window and waits for a
+ * human forever, so the client never attaches and never exits, and the daemon can
+ * only report the process it launched as still running. Failing loudly instead
+ * turns that hang into a client runtime failure the API can surface.
+ */
+private fun CreateClientRequest.windowlessLoaderProperties(): List<String> =
+    if (presentation.window == ClientWindowMode.NONE && loader == Loader.FABRIC) {
+        listOf("-D$FABRIC_NO_GUI_PROPERTY=true")
+    } else {
+        emptyList()
+    }
 
 internal fun defaultWindowlessCommandPrefix(
     environment: Map<String, String>,
@@ -562,8 +612,11 @@ private fun commandAvailable(
 private class PreparedClientRuntimeDriverSession(
     override val clientId: String,
     private val runtime: PreparedClientRuntime,
-) : DriverSession {
+    private val logFile: Path? = null,
+) : DriverSession,
+    ClientRuntimeLiveness {
     private var state = ClientState.RUNNING
+    private var failure: String? = null
     private val events =
         mutableListOf(
             DriverEvent(
@@ -573,7 +626,27 @@ private class PreparedClientRuntimeDriverSession(
             ),
         )
 
-    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, state)
+    override fun liveState(): ClientState {
+        if (state != ClientState.RUNNING) return state
+        val process = runtime.launch.process ?: return state
+        if (process.isAlive) return state
+        state = ClientState.FAILED
+        failure = clientRuntimeFailureMessage(clientId, process.exitValue(), logFile)
+        events +=
+            DriverEvent(
+                type = DriverEventType.ERROR,
+                client = clientId,
+                message = failure,
+            )
+        return state
+    }
+
+    override fun failureMessage(): String? {
+        liveState()
+        return failure
+    }
+
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, liveState())
 
     override fun connect(target: ConnectionTarget): DriverClientSnapshot = snapshot()
 
@@ -624,6 +697,38 @@ private data class ClientLaunchArgumentsFile(
 private fun CreateClientRequest.instanceFiles(): InstanceFiles = InstanceFiles.forInstance("$id-$version-${loader.name.lowercase()}")
 
 private fun PreparedClientRuntime.loaderVersion(): String = prepared.loaderVersion ?: prepared.loader.name.lowercase()
+
+private fun PreparedClientRuntime.awaitStartupSettle(startupProbeMillis: Long) {
+    if (startupProbeMillis <= 0) return
+    val process = launch.process ?: return
+    process.waitFor(startupProbeMillis, TimeUnit.MILLISECONDS)
+}
+
+private fun clientRuntimeFailureMessage(
+    clientId: String,
+    exitCode: Int,
+    logFile: Path?,
+): String =
+    buildString {
+        append("client ")
+        append(clientId)
+        append(" runtime exited with code ")
+        append(exitCode)
+        append(" before the in-client driver attached")
+        val tail = logFile?.tailLines(CLIENT_LOG_TAIL_LINES).orEmpty()
+        if (tail.isNotEmpty()) {
+            append("; last client log lines: ")
+            append(tail.joinToString(" | "))
+        }
+    }
+
+private fun Path.tailLines(limit: Int): List<String> =
+    runCatching {
+        Files
+            .readAllLines(this, StandardCharsets.UTF_8)
+            .filter { line -> line.isNotBlank() }
+            .takeLast(limit)
+    }.getOrDefault(emptyList())
 
 private fun PreparedClientRuntime.stopProcess() {
     val process = launch.process ?: return
@@ -724,6 +829,11 @@ private val mutedSoundOptions =
 private val mutedSoundOptionKeys = mutedSoundOptions.keys
 
 private const val PROCESS_STOP_TIMEOUT_SECONDS = 2L
+private const val DEFAULT_CLIENT_STARTUP_PROBE_MILLIS = 8_000L
+private const val CLIENT_LOG_TAIL_LINES = 12
+private const val CLIENT_LOG_FILE_NAME = "client.log"
+private const val FABRIC_NO_GUI_PROPERTY = "fabric.noGui"
+const val CRAFTLESS_CLIENT_STARTUP_PROBE_MS: String = "CRAFTLESS_CLIENT_STARTUP_PROBE_MS"
 private const val CRAFTLESS_CLIENT_ID = "CRAFTLESS_CLIENT_ID"
 private const val CRAFTLESS_DAEMON_URL = "CRAFTLESS_DAEMON_URL"
 private const val CRAFTLESS_WINDOWLESS_WRAPPER = "CRAFTLESS_WINDOWLESS_WRAPPER"

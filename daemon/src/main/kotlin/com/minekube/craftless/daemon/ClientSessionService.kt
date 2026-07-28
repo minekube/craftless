@@ -37,23 +37,31 @@ class ClientSessionService private constructor(
                 loader = request.loader,
             )
         fileStore?.prepare(instance.files)
+        val driver = driverFactory.create(request)
         val client =
             Client(
                 id = request.id,
                 instance = instance,
                 profile = profile,
                 presentation = request.presentation,
-                state = ClientState.RUNNING,
+                state = driver.snapshot().state,
             )
-        val driver = driverFactory.create(request)
         clients[request.id] = client
         drivers[request.id] = driver
         return client
     }
 
-    fun listClients(): List<Client> = clients.values.toList()
+    fun listClients(): List<Client> = clients.keys.toList().map(::client)
 
-    fun client(clientId: String): Client = clients[clientId] ?: error("client $clientId not found")
+    fun client(clientId: String): Client {
+        val client = clients[clientId] ?: error("client $clientId not found")
+        val liveness = drivers[clientId] as? ClientRuntimeLiveness ?: return client
+        val liveState = liveness.liveState()
+        return if (liveState == client.state) client else updateState(clientId, liveState)
+    }
+
+    /** The reason a client runtime died on its own, when the daemon owns its process. */
+    fun runtimeFailure(clientId: String): String? = (drivers[clientId] as? ClientRuntimeLiveness)?.failureMessage()
 
     fun driverFor(clientId: String): DriverSession = drivers[clientId] ?: error("client $clientId not found")
 
@@ -117,7 +125,8 @@ class ClientSessionService private constructor(
         clientId: String,
         state: ClientState,
     ): Client {
-        val updated = client(clientId).copy(state = state)
+        val current = clients[clientId] ?: error("client $clientId not found")
+        val updated = current.copy(state = state)
         clients[clientId] = updated
         return updated
     }

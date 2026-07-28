@@ -203,7 +203,10 @@ class LocalSessionApiServer private constructor(
                         cachePreparationService = cachePreparationService ?: error("cache workspace is not configured"),
                         attachEnvironment = ClientDriverAttachEnvironment(request.id, url("")),
                     )
-                    val client = service.createClient(request)
+                    val client = observedClient(service.createClient(request))
+                    if (client.state == ClientState.FAILED) {
+                        throw FailedClientRuntime(clientRuntimeFailure(client.id))
+                    }
                     events +=
                         SessionEvent(
                             type = "client.created",
@@ -213,6 +216,7 @@ class LocalSessionApiServer private constructor(
                     call.respondJson(HttpStatusCode.Created, client)
                 }.getOrElse { error ->
                     when (error) {
+                        is RouteFailure -> call.respondRouteFailure(error)
                         is UnsupportedClientRuntimeTarget ->
                             call.respondJson(
                                 HttpStatusCode.BadRequest,
@@ -247,17 +251,18 @@ class LocalSessionApiServer private constructor(
                 }.getOrElse { error ->
                     when (error) {
                         is MissingClient -> call.respondMissingClient(error)
+                        is RouteFailure -> call.respondRouteFailure(error)
                         else -> call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
                     }
                 }
             }
             get("/clients") {
-                call.respondJson(HttpStatusCode.OK, service.listClients())
+                call.respondJson(HttpStatusCode.OK, service.listClients().map(::observedClient))
             }
             get("/clients/{id}") {
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {
-                    call.respondJson(HttpStatusCode.OK, service.client(clientId))
+                    call.respondJson(HttpStatusCode.OK, observedClient(service.client(clientId)))
                 }.getOrElse { error ->
                     call.respondMissingClient(error)
                 }
@@ -611,6 +616,7 @@ class LocalSessionApiServer private constructor(
             cacheMetadataFetcher: CacheMetadataFetcher = KtorCacheMetadataFetcher(),
             clientRuntimeLauncher: ClientRuntimeLauncher = ProcessClientRuntimeLauncher(),
             clientRuntimeDriverModProvider: ClientRuntimeDriverModProvider = ConfiguredClientRuntimeDriverModProvider(),
+            clientStartupProbeMillis: Long = defaultStartupProbeMillis(),
         ): LocalSessionApiServer {
             val workspaceRuntimeFactory =
                 if (driverFactory == null && workspaceRoot != null) {
@@ -618,6 +624,7 @@ class LocalSessionApiServer private constructor(
                         workspaceRoot = workspaceRoot,
                         launcher = clientRuntimeLauncher,
                         driverModProvider = clientRuntimeDriverModProvider,
+                        startupProbeMillis = clientStartupProbeMillis,
                     )
                 } else {
                     null
@@ -703,6 +710,27 @@ class LocalSessionApiServer private constructor(
         return false
     }
 
+    private fun clientRuntimeFailure(clientId: String): String =
+        service.runtimeFailure(clientId) ?: "client $clientId runtime failed before the in-client driver attached"
+
+    /**
+     * Records a client runtime that died on its own, once, so agents watching events
+     * learn about it instead of only seeing a state field change.
+     */
+    private fun observedClient(client: Client): Client {
+        if (client.state == ClientState.FAILED &&
+            events.none { event -> event.type == "client.failed" && event.client == client.id }
+        ) {
+            events +=
+                SessionEvent(
+                    type = "client.failed",
+                    client = client.id,
+                    message = clientRuntimeFailure(client.id),
+                )
+        }
+        return client
+    }
+
     private suspend fun ApplicationCall.respondRouteFailure(error: RouteFailure) {
         respondJson(error.status, ErrorResponse(error.code, error.message ?: error.code))
     }
@@ -733,6 +761,9 @@ private fun ClientSessionService.requireActiveClient(clientId: String): Client {
         }
     if (client.state == ClientState.STOPPED) {
         throw StoppedClient("client $clientId is stopped")
+    }
+    if (client.state == ClientState.FAILED) {
+        throw FailedClientRuntime(runtimeFailure(clientId) ?: "client $clientId runtime failed")
     }
     return client
 }
@@ -954,6 +985,10 @@ private class DriverResultMismatch(
 private class StoppedClient(
     message: String,
 ) : RouteFailure(HttpStatusCode.Conflict, "STOPPED_CLIENT", message)
+
+private class FailedClientRuntime(
+    message: String,
+) : RouteFailure(HttpStatusCode.BadGateway, "CLIENT_RUNTIME_FAILED", message)
 
 @Serializable
 data class RuntimeVersion(

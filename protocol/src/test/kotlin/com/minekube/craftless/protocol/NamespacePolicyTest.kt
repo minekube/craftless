@@ -7,6 +7,7 @@ import kotlin.io.path.name
 import kotlin.io.path.pathString
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class NamespacePolicyTest {
@@ -379,11 +380,9 @@ class NamespacePolicyTest {
             mise.contains("grep -q '^fabric.mod.json$'"),
             "package-cli must verify the staged Fabric driver mod contains Fabric metadata",
         )
-        assertTrue(
-            dockerfile.contains(
-                "ENV CRAFTLESS_FABRIC_DRIVER_MOD=/opt/craftless/mods/craftless-driver-fabric.jar",
-            ),
-            "Docker runtime must point the daemon at the staged Fabric driver mod",
+        assertFalse(
+            dockerfile.lines().any { line -> line.trim().startsWith("ENV CRAFTLESS_FABRIC_DRIVER_MOD") },
+            "Docker runtime must not pin a single Fabric driver mod; the packaged driver manifest selects the lane per version",
         )
     }
 
