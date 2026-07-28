@@ -19,14 +19,14 @@ run_reporter() {
 }
 
 assert_unclassified() {
-  rg -q '^verdict<<ghadelim_verdict$' "$test_root/output"
-  rg -q '^fail$' "$test_root/output"
-  rg -q '^failure-class<<ghadelim_failure-class$' "$test_root/output"
-  rg -q '^unclassified$' "$test_root/output"
+  grep -q '^verdict<<ghadelim_verdict$' "$test_root/output"
+  grep -q '^fail$' "$test_root/output"
+  grep -q '^failure-class<<ghadelim_failure-class$' "$test_root/output"
+  grep -q '^unclassified$' "$test_root/output"
 }
 
 run_reporter '{"verdict":"PASS"}'
-rg -q '^pass$' "$test_root/output"
+grep -q '^pass$' "$test_root/output"
 
 run_reporter '{"minecraftVersion":"26.2"}'
 assert_unclassified
