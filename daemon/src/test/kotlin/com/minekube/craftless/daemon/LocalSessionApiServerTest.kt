@@ -988,6 +988,39 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `invalid create request does not launch a client runtime`() =
+        withHttpClient { http ->
+            val workspace = Files.createTempDirectory("craftless-invalid-create")
+            val launcher = RecordingClientRuntimeLauncher()
+            LocalSessionApiServer
+                .inMemory(
+                    workspaceRoot = workspace,
+                    cacheMetadataFetcher = preparedRuntimeMetadataFetcher(),
+                    clientRuntimeLauncher = launcher,
+                ).use { server ->
+                    server.start()
+
+                    val response =
+                        http.post(server.url("/clients")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "id": "alice",
+                                  "version": "1.21.6",
+                                  "loader": "FABRIC",
+                                  "profile": { "kind": "OFFLINE", "name": "${"A".repeat(17)}" }
+                                }
+                                """.trimIndent(),
+                            )
+                        }
+
+                    assertEquals(HttpStatusCode.BadRequest, response.status)
+                    assertTrue(launcher.launches.isEmpty())
+                }
+        }
+
+    @Test
     fun `prepared runtime launch plan includes configured craftless fabric driver mod`() =
         withHttpClient { http ->
             val workspace = Files.createTempDirectory("craftless-driver-mod-launch")

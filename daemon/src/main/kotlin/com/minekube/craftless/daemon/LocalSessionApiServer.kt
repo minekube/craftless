@@ -212,7 +212,7 @@ class LocalSessionApiServer private constructor(
             post("/clients") {
                 runCatching {
                     val request = json.decodeFromString<CreateClientRequest>(call.receiveText())
-                    val reservation = service.reserveClient(request.id)
+                    val reservation = service.reserveClient(request)
                     val client =
                         try {
                             workspaceRuntimeFactory?.prepare(

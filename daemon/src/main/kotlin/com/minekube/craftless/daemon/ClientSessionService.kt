@@ -36,6 +36,11 @@ class ClientSessionService private constructor(
         return createClient(request, reserveClient(request.id))
     }
 
+    internal fun reserveClient(request: CreateClientRequest): ClientCreationReservation {
+        validateCreateRequest(request)
+        return reserveClient(request.id)
+    }
+
     internal fun reserveClient(clientId: String): ClientCreationReservation {
         require(clientId.isCraftlessClientId()) { "client id must be a route-safe segment" }
         return synchronized(stateLock) {
