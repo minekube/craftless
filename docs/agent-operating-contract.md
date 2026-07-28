@@ -259,8 +259,9 @@ lane broke. An alarm that is red for unrelated reasons stops being read, so its
 result must always say *what kind* of failure it was.
 
 - A canary run reports one of four outcomes: pass, product failure,
-  infrastructure failure, or unclassified failure. Exactly one named verdict job
-  runs, so the class is readable from the run's job list without opening a log.
+  infrastructure failure, or unclassified failure. For a failed run, exactly
+  one named verdict job runs, so the class is readable from the run's job list
+  without opening a log.
 - **Product failure** means the probe reached Craftless and Craftless failed.
   This is the only outcome that says a supported version broke.
 - **Infrastructure failure** means the probe could not reach a verdict: an
@@ -285,9 +286,10 @@ result must always say *what kind* of failure it was.
   genuinely transient upstream I/O. Permanent 4xx responses stay fatal; only
   explicitly transient statuses retry. The goal is a red that is *specific*,
   not a red that is *rare*.
-- Every run writes `canary-outcome.json` next to its artifacts. Upload probe
-  `logs/` as well as `artifacts/`, or a teardown failure cannot be diagnosed
-  afterwards.
+- The probe writes `canary-outcome.json` next to its artifacts; if the probe job
+  fails before producing it, the reporter emits an unclassified failure instead
+  of treating the missing document as success. Upload probe `logs/` as well as
+  `artifacts/`, or a teardown failure cannot be diagnosed afterwards.
 
 ## Tooling
 

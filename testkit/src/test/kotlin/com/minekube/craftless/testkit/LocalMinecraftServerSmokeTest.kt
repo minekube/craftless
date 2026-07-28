@@ -912,7 +912,10 @@ private class HangingOutputProcess(
 
     override fun waitFor(): Int = 0
 
-    override fun waitFor(timeout: Long, unit: TimeUnit): Boolean = !alive
+    override fun waitFor(
+        timeout: Long,
+        unit: TimeUnit,
+    ): Boolean = !alive
 
     override fun exitValue(): Int = 0
 

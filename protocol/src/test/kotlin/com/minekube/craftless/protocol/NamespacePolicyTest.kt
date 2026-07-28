@@ -159,7 +159,7 @@ class NamespacePolicyTest {
 
         assertTrue(
             match != null,
-            "${workflowPath} must declare the language-boundary retry list checked against " +
+            "$workflowPath must declare the language-boundary retry list checked against " +
                 "protocol/src/main/kotlin/com/minekube/craftless/protocol/UpstreamRetryPolicy.kt",
         )
 
@@ -173,7 +173,7 @@ class NamespacePolicyTest {
         assertEquals(
             RETRYABLE_UPSTREAM_STATUS_CODES,
             workflowStatuses,
-            "${workflowPath} retry statuses diverged from " +
+            "$workflowPath retry statuses diverged from " +
                 "protocol/src/main/kotlin/com/minekube/craftless/protocol/UpstreamRetryPolicy.kt",
         )
     }
