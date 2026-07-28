@@ -37,6 +37,8 @@ import com.minekube.craftless.testkit.fakeDriverRuntimeMetadata
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
 import java.nio.file.Files
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -45,6 +47,118 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ClientSessionServiceTest {
+    @Test
+    fun `stale liveness observation cannot overwrite an attached driver state`() {
+        val launched = BlockingLivenessDriverSession("alice")
+        val service =
+            ClientSessionService.inMemory(
+                DriverSessionFactory { launched },
+            )
+        service.createClient(
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            ),
+        )
+        launched.blockNextObservation = true
+
+        var observed: ClientState? = null
+        val observer =
+            Thread {
+                observed = service.client("alice").state
+            }.also(Thread::start)
+
+        assertTrue(launched.observationStarted.await(5, TimeUnit.SECONDS))
+        service.attachDriver("alice", AttachedTestDriverSession("alice"))
+        launched.releaseObservation.countDown()
+        observer.join(5_000)
+
+        assertFalse(observer.isAlive)
+        assertEquals(ClientState.RUNNING, observed)
+        assertEquals(ClientState.RUNNING, service.client("alice").state)
+    }
+
+    @Test
+    fun `attach does not replace a runtime that fails before commit`() {
+        val launched = BlockingLivenessDriverSession("alice")
+        val service = ClientSessionService.inMemory(DriverSessionFactory { launched })
+        service.createClient(
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            ),
+        )
+        launched.failed = true
+
+        val result = service.attachDriver("alice", AttachedTestDriverSession("alice"))
+
+        assertEquals(ClientState.FAILED, result.state)
+        assertTrue(service.driverFor("alice") === launched)
+    }
+
+    @Test
+    fun `duplicate creation is rejected while the first runtime is starting`() {
+        val factoryStarted = CountDownLatch(1)
+        val releaseFactory = CountDownLatch(1)
+        var creations = 0
+        val factory =
+            DriverSessionFactory { request ->
+                creations += 1
+                factoryStarted.countDown()
+                check(releaseFactory.await(5, TimeUnit.SECONDS)) { "driver factory was not released" }
+                AttachedTestDriverSession(request.id)
+            }
+        val service = ClientSessionService.inMemory(factory)
+        val request =
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            )
+        var firstFailure: Throwable? = null
+        val first =
+            Thread {
+                try {
+                    service.createClient(request)
+                } catch (failure: Throwable) {
+                    firstFailure = failure
+                }
+            }.also(Thread::start)
+
+        assertTrue(factoryStarted.await(5, TimeUnit.SECONDS))
+        assertFailsWith<IllegalArgumentException> { service.createClient(request) }
+        releaseFactory.countDown()
+        first.join(5_000)
+
+        assertFalse(first.isAlive)
+        assertEquals(null, firstFailure)
+        assertEquals(1, creations)
+    }
+
+    @Test
+    fun `reserved client id is consumed by prepared client creation`() {
+        val service = ClientSessionService.inMemory(DriverSessionFactory { request -> AttachedTestDriverSession(request.id) })
+        val request =
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            )
+        val reservation = service.reserveClient(request.id)
+
+        val client = service.createClient(request, reservation)
+
+        assertEquals("alice", client.id)
+        assertEquals(ClientState.RUNNING, client.state)
+        assertFailsWith<IllegalArgumentException> { service.reserveClient(request.id) }
+    }
+
     @Test
     fun `session service requires an explicit driver factory`() {
         val service = ClientSessionService.inMemory()
@@ -938,6 +1052,32 @@ private class ChangingActionsBackend(
         clientId: String,
         invocation: DriverActionInvocation,
     ): DriverActionResult = DriverActionResult(invocation.action, DriverActionStatus.ACCEPTED)
+}
+
+private class BlockingLivenessDriverSession(
+    override val clientId: String,
+) : DriverSession by FakeDriverSession(clientId),
+    ClientRuntimeLiveness {
+    val observationStarted = CountDownLatch(1)
+    val releaseObservation = CountDownLatch(1)
+
+    @Volatile var blockNextObservation: Boolean = false
+
+    @Volatile var failed: Boolean = false
+
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, liveState())
+
+    override fun liveState(): ClientState {
+        if (blockNextObservation) {
+            blockNextObservation = false
+            observationStarted.countDown()
+            check(releaseObservation.await(5, TimeUnit.SECONDS)) { "liveness observation was not released" }
+            return ClientState.FAILED
+        }
+        return if (failed) ClientState.FAILED else ClientState.RUNNING
+    }
+
+    override fun failureMessage(): String? = "client $clientId runtime failed"
 }
 
 private class PreparedOnlyTestDriverSession(

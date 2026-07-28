@@ -59,6 +59,7 @@ import kotlinx.serialization.json.put
 import java.net.ServerSocket
 import java.nio.file.Path
 import java.time.Instant
+import java.util.concurrent.CopyOnWriteArrayList
 
 class LocalSessionApiServer private constructor(
     private val service: ClientSessionService,
@@ -76,7 +77,7 @@ class LocalSessionApiServer private constructor(
             encodeDefaults = true
             ignoreUnknownKeys = true
         }
-    private val events = mutableListOf<SessionEvent>()
+    private val events = CopyOnWriteArrayList<SessionEvent>()
     private val eventSubscriptions = linkedMapOf<String, EventSubscription>()
     private var eventSubscriptionSequence = 0
     private val port = if (requestedPort == 0) allocateLoopbackPort() else requestedPort
@@ -84,6 +85,17 @@ class LocalSessionApiServer private constructor(
         embeddedServer(CIO, host = host, port = port) {
             installRoutes()
         }
+
+    init {
+        service.onClientFailed { client ->
+            events +=
+                SessionEvent(
+                    type = "client.failed",
+                    client = client.id,
+                    message = clientRuntimeFailure(client.id),
+                )
+        }
+    }
 
     fun start() {
         server.start()
@@ -104,9 +116,11 @@ class LocalSessionApiServer private constructor(
                 call.respondOpenApi(HttpStatusCode.OK, OpenApiDocument.from(ApiRouteCatalog.sessionDefaults()))
             }
             get("/events") {
-                call.respondJson(HttpStatusCode.OK, events)
+                service.observeAllClients()
+                call.respondJson(HttpStatusCode.OK, events.toList())
             }
             get("/events:stream") {
+                service.observeAllClients()
                 call.respondSse(events.toLiveEvents().filter { event -> call.liveEventFilter().matches(event) })
             }
             get("/versions/runtime-targets") {
@@ -198,12 +212,21 @@ class LocalSessionApiServer private constructor(
             post("/clients") {
                 runCatching {
                     val request = json.decodeFromString<CreateClientRequest>(call.receiveText())
-                    workspaceRuntimeFactory?.prepare(
-                        request = request,
-                        cachePreparationService = cachePreparationService ?: error("cache workspace is not configured"),
-                        attachEnvironment = ClientDriverAttachEnvironment(request.id, url("")),
-                    )
-                    val client = service.createClient(request)
+                    val reservation = service.reserveClient(request)
+                    val client =
+                        try {
+                            workspaceRuntimeFactory?.prepare(
+                                request = request,
+                                cachePreparationService = cachePreparationService ?: error("cache workspace is not configured"),
+                                attachEnvironment = ClientDriverAttachEnvironment(request.id, url("")),
+                            )
+                            service.createClient(request, reservation)
+                        } finally {
+                            service.releaseClientReservation(reservation)
+                        }
+                    if (client.state == ClientState.FAILED) {
+                        throw FailedClientRuntime(clientRuntimeFailure(client.id))
+                    }
                     events +=
                         SessionEvent(
                             type = "client.created",
@@ -213,6 +236,7 @@ class LocalSessionApiServer private constructor(
                     call.respondJson(HttpStatusCode.Created, client)
                 }.getOrElse { error ->
                     when (error) {
+                        is RouteFailure -> call.respondRouteFailure(error)
                         is UnsupportedClientRuntimeTarget ->
                             call.respondJson(
                                 HttpStatusCode.BadRequest,
@@ -237,6 +261,9 @@ class LocalSessionApiServer private constructor(
                             clientId = clientId,
                             driver = HttpDriverSession(clientId = clientId, endpoint = request.endpoint),
                         )
+                    if (client.state == ClientState.FAILED) {
+                        throw FailedClientRuntime(service.runtimeFailure(clientId) ?: "client $clientId runtime failed")
+                    }
                     events +=
                         SessionEvent(
                             type = "client.attached",
@@ -247,6 +274,7 @@ class LocalSessionApiServer private constructor(
                 }.getOrElse { error ->
                     when (error) {
                         is MissingClient -> call.respondMissingClient(error)
+                        is RouteFailure -> call.respondRouteFailure(error)
                         else -> call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
                     }
                 }
@@ -302,6 +330,9 @@ class LocalSessionApiServer private constructor(
                                 port = request.port,
                             ),
                         )
+                    if (client.state == ClientState.FAILED) {
+                        throw FailedClientRuntime(service.runtimeFailure(clientId) ?: "client $clientId runtime failed")
+                    }
                     if (client.state == ClientState.CONNECTED) {
                         events +=
                             SessionEvent(
@@ -611,6 +642,7 @@ class LocalSessionApiServer private constructor(
             cacheMetadataFetcher: CacheMetadataFetcher = KtorCacheMetadataFetcher(),
             clientRuntimeLauncher: ClientRuntimeLauncher = ProcessClientRuntimeLauncher(),
             clientRuntimeDriverModProvider: ClientRuntimeDriverModProvider = ConfiguredClientRuntimeDriverModProvider(),
+            clientStartupProbeMillis: Long = defaultStartupProbeMillis(),
         ): LocalSessionApiServer {
             val workspaceRuntimeFactory =
                 if (driverFactory == null && workspaceRoot != null) {
@@ -618,6 +650,7 @@ class LocalSessionApiServer private constructor(
                         workspaceRoot = workspaceRoot,
                         launcher = clientRuntimeLauncher,
                         driverModProvider = clientRuntimeDriverModProvider,
+                        startupProbeMillis = clientStartupProbeMillis,
                     )
                 } else {
                     null
@@ -703,6 +736,9 @@ class LocalSessionApiServer private constructor(
         return false
     }
 
+    private fun clientRuntimeFailure(clientId: String): String =
+        service.runtimeFailure(clientId) ?: "client $clientId runtime failed before the in-client driver attached"
+
     private suspend fun ApplicationCall.respondRouteFailure(error: RouteFailure) {
         respondJson(error.status, ErrorResponse(error.code, error.message ?: error.code))
     }
@@ -733,6 +769,9 @@ private fun ClientSessionService.requireActiveClient(clientId: String): Client {
         }
     if (client.state == ClientState.STOPPED) {
         throw StoppedClient("client $clientId is stopped")
+    }
+    if (client.state == ClientState.FAILED) {
+        throw FailedClientRuntime(runtimeFailure(clientId) ?: "client $clientId runtime failed")
     }
     return client
 }
@@ -954,6 +993,10 @@ private class DriverResultMismatch(
 private class StoppedClient(
     message: String,
 ) : RouteFailure(HttpStatusCode.Conflict, "STOPPED_CLIENT", message)
+
+private class FailedClientRuntime(
+    message: String,
+) : RouteFailure(HttpStatusCode.BadGateway, "CLIENT_RUNTIME_FAILED", message)
 
 @Serializable
 data class RuntimeVersion(

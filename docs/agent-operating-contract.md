@@ -237,6 +237,13 @@ tests.
 - The earlier bridge evidence path is retired from active build and package
   wiring. Do not reintroduce launch-bridge adapters as public or packaged
   product behavior.
+- Packaged distributions select the lane from the packaged driver manifest.
+  Do not pin a single driver mod in the Docker image, installer, or Action:
+  `CRAFTLESS_FABRIC_DRIVER_MOD` is an explicit operator override that
+  suppresses manifest discovery and pins every client to one lane.
+- Multi-lane packaging is only proven by running the shipped artifact. Prove a
+  packaged lane with `mise run docker-image-latest-lane-probe` or an equivalent
+  probe on the artifact users receive, not on a convenient stand-in.
 
 ## Module Map
 

@@ -48,8 +48,9 @@ Craftless currently has:
   navigation plan/follow/stop, and event streaming;
 - the earlier bridge evidence path retired from active build and packaged
   driver wiring;
-- release workflow, install script, packaged CLI distribution with the Fabric
-  driver mod, Docker runtime image, and reusable GitHub Action;
+- release workflow, install script, packaged CLI distribution with the driver
+  manifest and verified Fabric lanes, Docker runtime image, and reusable
+  GitHub Action;
 - hosted Fumadocs API documentation on Cloudflare Workers at
   `https://craftless.minekube.com`;
 - repo-local agent skill guidance for using generated OpenAPI, actions,
@@ -273,11 +274,11 @@ Goal: make Craftless usable as local and CI infrastructure.
 - Package the CLI, daemon, Fabric driver artifact, and test fixtures with
   consistent Craftless metadata.
 - Keep the normal CLI tar/zip distribution and Docker context on the same
-  packaged Fabric driver mod path so install-script and reusable Action users
-  can create daemon-managed Fabric clients without manual driver-mod
-  configuration.
-- Add Docker or CI runtime documentation only after the real-client smoke is
-  automated.
+  packaged driver manifest and lane artifacts so install-script and reusable
+  Action users can create daemon-managed Fabric clients without manual
+  driver-mod configuration.
+- Maintain the shipped Docker-image lane probe and CI check as real-client
+  packaging evidence.
 - Expand configuration for profiles, client files, logs, auth mode, and runtime
   directories.
 - Keep client file management launcher-neutral. Prism Launcher source findings

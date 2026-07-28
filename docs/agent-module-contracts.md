@@ -64,6 +64,11 @@ The daemon must surface whether a prepared runtime session was replaced by an
 attached in-client driver before generated gameplay OpenAPI/actions/resources
 are claimed as working.
 
+Client state must describe the runtime that exists, not the one that was
+requested. A client whose launched process exited on its own is `FAILED` with
+the failure surfaced, never `RUNNING`; only sessions that own the process may
+answer that liveness question.
+
 Verification: `mise exec -- gradle :daemon:test`.
 
 ## `protocol/`

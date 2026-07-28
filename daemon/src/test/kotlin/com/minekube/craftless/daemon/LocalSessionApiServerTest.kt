@@ -988,6 +988,39 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `invalid create request does not launch a client runtime`() =
+        withHttpClient { http ->
+            val workspace = Files.createTempDirectory("craftless-invalid-create")
+            val launcher = RecordingClientRuntimeLauncher()
+            LocalSessionApiServer
+                .inMemory(
+                    workspaceRoot = workspace,
+                    cacheMetadataFetcher = preparedRuntimeMetadataFetcher(),
+                    clientRuntimeLauncher = launcher,
+                ).use { server ->
+                    server.start()
+
+                    val response =
+                        http.post(server.url("/clients")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "id": "alice",
+                                  "version": "1.21.6",
+                                  "loader": "FABRIC",
+                                  "profile": { "kind": "OFFLINE", "name": "${"A".repeat(17)}" }
+                                }
+                                """.trimIndent(),
+                            )
+                        }
+
+                    assertEquals(HttpStatusCode.BadRequest, response.status)
+                    assertTrue(launcher.launches.isEmpty())
+                }
+        }
+
+    @Test
     fun `prepared runtime launch plan includes configured craftless fabric driver mod`() =
         withHttpClient { http ->
             val workspace = Files.createTempDirectory("craftless-driver-mod-launch")
@@ -1036,6 +1069,147 @@ class LocalSessionApiServerTest {
                             }.handle
                     assertTrue(launch.launch.mods.contains(driverHandle))
                     assertEquals("craftless-driver-mod", Files.readString(workspace.resolve(driverHandle)))
+                }
+        }
+
+    @Test
+    fun `server reports a client whose runtime died at startup instead of running`() =
+        withHttpClient { http ->
+            val workspace = Files.createTempDirectory("craftless-client-runtime-failure")
+            val launcher =
+                DyingClientRuntimeLauncher(
+                    exitCode = 1,
+                    logLine =
+                        "Mod 'Craftless Driver Fabric 1.21.6 compiled lane' (craftless-driver-fabric) requires version " +
+                            "1.21.6 of 'Minecraft' (minecraft), but only the wrong version is present: 26.2!",
+                )
+
+            LocalSessionApiServer
+                .inMemory(
+                    workspaceRoot = workspace,
+                    cacheMetadataFetcher = preparedRuntimeMetadataFetcher(),
+                    clientRuntimeLauncher = launcher,
+                ).use { server ->
+                    server.start()
+
+                    val response =
+                        http.post(server.url("/clients")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "id": "alice",
+                                  "version": "1.21.6",
+                                  "loader": "FABRIC",
+                                  "profile": { "kind": "OFFLINE", "name": "Alice" }
+                                }
+                                """.trimIndent(),
+                            )
+                        }
+
+                    val body = response.bodyAsText()
+                    assertEquals(HttpStatusCode.BadGateway, response.status)
+                    assertTrue(body.contains("CLIENT_RUNTIME_FAILED"), body)
+                    assertTrue(body.contains("exited with code 1"), body)
+                    assertTrue(body.contains("only the wrong version is present: 26.2!"), body)
+
+                    val client = json.decodeFromString<Client>(http.get(server.url("/clients/alice")).bodyAsText())
+                    assertEquals(ClientState.FAILED, client.state)
+
+                    val connect =
+                        http.post(server.url("/clients/alice:connect")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"host":"127.0.0.1","port":25565}""")
+                        }
+                    assertEquals(HttpStatusCode.BadGateway, connect.status)
+
+                    val events = http.get(server.url("/events")).bodyAsText()
+                    assertTrue(events.contains("client.failed"), events)
+                    assertFalse(events.contains("client.created"), events)
+                }
+        }
+
+    @Test
+    fun `runtime failure message keeps a bounded client log tail`() =
+        withHttpClient { http ->
+            val workspace = Files.createTempDirectory("craftless-client-runtime-large-log")
+            val launcher =
+                DyingClientRuntimeLauncher(
+                    exitCode = 1,
+                    logLine = "x".repeat(128 * 1024) + "\nlast meaningful line",
+                )
+
+            LocalSessionApiServer
+                .inMemory(
+                    workspaceRoot = workspace,
+                    cacheMetadataFetcher = preparedRuntimeMetadataFetcher(),
+                    clientRuntimeLauncher = launcher,
+                ).use { server ->
+                    server.start()
+
+                    val response =
+                        http.post(server.url("/clients")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "id": "alice",
+                                  "version": "1.21.6",
+                                  "loader": "FABRIC",
+                                  "profile": { "kind": "OFFLINE", "name": "Alice" }
+                                }
+                                """.trimIndent(),
+                            )
+                        }
+
+                    val body = response.bodyAsText()
+                    assertEquals(HttpStatusCode.BadGateway, response.status)
+                    assertTrue(body.contains("last meaningful line"), body)
+                    assertTrue(body.length < 70_000, "runtime failure response was not bounded: ${body.length}")
+                }
+        }
+
+    @Test
+    fun `events observer receives a client failure discovered after startup`() =
+        withHttpClient { http ->
+            val driver = TransitioningRuntimeDriverSession("alice")
+
+            LocalSessionApiServer
+                .inMemory(
+                    driverFactory = DriverSessionFactory { driver },
+                ).use { server ->
+                    server.start()
+
+                    val create =
+                        http.post(server.url("/clients")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "id": "alice",
+                                  "version": "1.21.6",
+                                  "loader": "FABRIC",
+                                  "profile": { "kind": "OFFLINE", "name": "Alice" }
+                                }
+                                """.trimIndent(),
+                            )
+                        }
+                    assertEquals(HttpStatusCode.Created, create.status)
+
+                    driver.failed = true
+
+                    val events = json.decodeFromString<List<SessionEvent>>(http.get(server.url("/events")).bodyAsText())
+                    assertEquals(1, events.count { event -> event.type == "client.failed" && event.client == "alice" })
+
+                    val connect =
+                        http.post(server.url("/clients/alice:connect")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"host":"127.0.0.1","port":25565}""")
+                        }
+                    assertEquals(HttpStatusCode.BadGateway, connect.status)
+
+                    val repeatedEvents = json.decodeFromString<List<SessionEvent>>(http.get(server.url("/events")).bodyAsText())
+                    assertEquals(1, repeatedEvents.count { event -> event.type == "client.failed" && event.client == "alice" })
                 }
         }
 
@@ -1914,6 +2088,10 @@ class LocalSessionApiServerTest {
         val process = requireNotNull(launch.process)
         assertTrue(process.waitFor(2, TimeUnit.SECONDS))
         assertEquals(windowlessRunner.toString(), launch.command.first())
+        assertTrue(
+            launch.command.contains("-Dfabric.noGui=true"),
+            "a windowless Fabric client must fail instead of waiting on a loader error window: ${launch.command}",
+        )
         assertTrue(waitForRegularFile(windowlessMarker))
         val windowlessInvocation = Files.readString(windowlessMarker)
         assertTrue(windowlessInvocation.contains("-a"))
@@ -2128,6 +2306,10 @@ class LocalSessionApiServerTest {
         assertEquals(ClientRuntimeLaunchStatus.LAUNCHED, launch.status)
         assertTrue(requireNotNull(launch.process).waitFor(2, TimeUnit.SECONDS))
         assertTrue(launch.command.first().endsWith("/java-runtime-gamma/image/bin/java"))
+        assertFalse(
+            launch.command.contains("-Dfabric.noGui=true"),
+            "a visible client keeps its loader windows: ${launch.command}",
+        )
         assertTrue(waitForRegularFile(marker))
         assertFalse(Files.exists(workspace.resolve("windowless.txt")))
         assertFalse(Files.exists(workspace.resolve("instances/alice-1.21.6-fabric/minecraft/options.txt")))
@@ -3310,6 +3492,31 @@ class LocalSessionApiServerTest {
                 }
         }
 
+    @Test
+    fun `server rejects a connect that observes a failed runtime`() =
+        withHttpClient { http ->
+            LocalSessionApiServer
+                .inMemory(
+                    driverFactory = DriverSessionFactory { request -> ConnectFailingRuntimeDriverSession(request.id) },
+                ).use { server ->
+                    server.start()
+                    createAlice(http, server)
+
+                    val response =
+                        http.post(server.url("/clients/alice:connect")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"host":"localhost","port":25565}""")
+                        }
+                    val body = response.bodyAsText()
+                    assertEquals(HttpStatusCode.BadGateway, response.status)
+                    assertTrue(body.contains("CLIENT_RUNTIME_FAILED"), body)
+
+                    val events = http.get(server.url("/clients/alice/events")).bodyAsText()
+                    assertTrue(events.contains("client.failed"), events)
+                    assertFalse(events.contains("client.connect.unobserved"), events)
+                }
+        }
+
     private fun withHttpClient(block: suspend (HttpClient) -> Unit) {
         kotlinx.coroutines.runBlocking {
             HttpClient(CIO).use { client -> block(client) }
@@ -3570,6 +3777,58 @@ private class RecordingClientRuntimeLauncher : ClientRuntimeLauncher {
             )
         return ClientRuntimeLaunch(status = ClientRuntimeLaunchStatus.LAUNCHED, pid = 1234)
     }
+}
+
+/** Launches a real process that exits immediately, the way a loader that rejects the driver mod does. */
+private class DyingClientRuntimeLauncher(
+    private val exitCode: Int,
+    private val logLine: String,
+) : ClientRuntimeLauncher {
+    override fun launch(
+        request: CreateClientRequest,
+        prepared: CachePrepareResult,
+        files: InstanceFiles,
+        workspaceRoot: Path,
+        attachEnvironment: ClientDriverAttachEnvironment?,
+    ): ClientRuntimeLaunch {
+        val logs = workspaceRoot.resolve(files.logs)
+        Files.createDirectories(logs)
+        Files.writeString(logs.resolve("client.log"), "$logLine\n")
+        val process = ProcessBuilder("/bin/sh", "-c", "exit $exitCode").start()
+        process.waitFor()
+        return ClientRuntimeLaunch(
+            status = ClientRuntimeLaunchStatus.LAUNCHED,
+            pid = process.pid(),
+            message = "launched client ${request.id}",
+            process = process,
+        )
+    }
+}
+
+private class TransitioningRuntimeDriverSession(
+    override val clientId: String,
+) : DriverSession by FakeDriverSession(clientId),
+    ClientRuntimeLiveness {
+    var failed: Boolean = false
+
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, liveState())
+
+    override fun liveState(): ClientState = if (failed) ClientState.FAILED else ClientState.RUNNING
+
+    override fun failureMessage(): String? = if (failed) "client $clientId runtime failed" else null
+}
+
+private class ConnectFailingRuntimeDriverSession(
+    override val clientId: String,
+) : DriverSession by FakeDriverSession(clientId),
+    ClientRuntimeLiveness {
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.RUNNING)
+
+    override fun liveState(): ClientState = ClientState.RUNNING
+
+    override fun connect(target: ConnectionTarget): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.FAILED)
+
+    override fun failureMessage(): String = "client $clientId runtime failed while connecting"
 }
 
 private fun preparedRuntimeMetadataFetcher(): CacheMetadataFetcher {

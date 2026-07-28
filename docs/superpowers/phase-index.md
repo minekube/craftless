@@ -73,6 +73,7 @@ not grow with every completed phase.
 - Phase 188: tiny-agent lifecycle defaults.
 - Phase 189: generated route CLI and daemon naming.
 - Phase 210: active release truth cleanup.
+- Phase 211: shipped Docker image newest-lane truth.
 
 ## Current Direction
 
@@ -359,3 +360,13 @@ and the distribution test suite fails if the checklist falls behind
 the larger Fabric matrix proof remains the active open support goal.
 Evidence:
 `docs/superpowers/evidence/2026-07-02-release-truth-cleanup.md`.
+Phase 211 makes the shipped Docker image tell the truth about the newest lane
+it packages. The image no longer pins `CRAFTLESS_FABRIC_DRIVER_MOD`, so
+`driver-mods.json` selects the lane per Minecraft version instead of forcing
+the `1.21.6` jar onto every client. A client runtime that exits on its own is
+now `FAILED` with the failure surfaced, so a loader hard-fail can no longer be
+reported as `RUNNING`. A new probe and workflow run the built image itself
+through create/attach/connect until the Minecraft server reports the player
+joined the game.
+Evidence:
+`docs/superpowers/evidence/2026-07-28-docker-image-newest-lane.md`.

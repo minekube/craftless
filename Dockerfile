@@ -27,7 +27,10 @@ RUN apt-get update \
 
 ENV CRAFTLESS_WORKSPACE=/var/lib/craftless
 ENV CRAFTLESS_PORT=8080
-ENV CRAFTLESS_FABRIC_DRIVER_MOD=/opt/craftless/mods/craftless-driver-fabric.jar
+# No CRAFTLESS_FABRIC_DRIVER_MOD here: the image ships every packaged driver lane
+# and /opt/craftless/driver-mods.json selects the lane per Minecraft version.
+# Setting the single-jar variable pins every client to one lane and suppresses
+# manifest discovery, so operators may still set it explicitly to force a lane.
 
 COPY build/docker/craftless/ /opt/craftless/
 COPY docker/entrypoint.sh /usr/local/bin/craftless-entrypoint

@@ -1732,6 +1732,61 @@
                 }
               }
             }
+          },
+          "502": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -2530,6 +2585,116 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -2826,6 +2991,61 @@
           },
           "409": {
             "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Error",
             "content": {
               "application/json": {
                 "schema": {
@@ -3509,6 +3729,61 @@
                 }
               }
             }
+          },
+          "502": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -3550,7 +3825,227 @@
         "summary": "Send client RPC",
         "description": "Sends a JSON-RPC-style control or query request to an existing client. Use this for generic query, invoke, subscribe, and unsubscribe flows when the generated API advertises the target shape.",
         "responses": {
-          "200": {}
+          "200": {},
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        },
+                        "loader": {
+                          "type": "string"
+                        },
+                        "minecraftVersion": {
+                          "type": "string"
+                        },
+                        "loaderVersion": {
+                          "type": "string"
+                        },
+                        "fabricApiVersion": {
+                          "type": "string"
+                        },
+                        "javaMajorVersion": {
+                          "type": "integer"
+                        },
+                        "mappingsFingerprint": {
+                          "type": "string"
+                        },
+                        "availableLoaderVersions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
         },
         "requestBody": {
           "content": {

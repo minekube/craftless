@@ -248,6 +248,13 @@ run = [
     "CRAFTLESS_PACKAGED_MATRIX_JAVA_25_EXECUTABLE=$HOME/.local/share/mise/installs/java/temurin-25.0.3+9.0.LTS/bin/java bash scripts/packaged-fabric-supported-matrix-probe.sh",
 ]
 
+[tasks.docker-image-latest-lane-probe]
+description = "Run the shipped Docker image through a newest packaged lane create/attach/connect join probe"
+run = [
+    "mise run package-cli",
+    "bash scripts/docker-image-latest-lane-probe.sh",
+]
+
 [tasks.final-public-gameplay-probe]
 description = "Run final honest public gameplay through generated Craftless API/CLI only"
 run = [

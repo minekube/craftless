@@ -1,0 +1,51 @@
+name: docker image lane check
+
+# The packaged CLI probes run the tarball; this one runs the container users
+# actually receive. The image once shipped a driver-mod pin that made the newest
+# supported lane fail at Fabric Loader init while the API still said RUNNING, and
+# no tarball probe could see it.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "47 3 * * *"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "Dockerfile"
+      - "docker/**"
+      - "scripts/docker-image-latest-lane-probe.sh"
+      - ".github/workflows/docker-image-lane-check.yml"
+      - ".mise.toml"
+      - "cli/src/main/kotlin/com/minekube/craftless/cli/Main.kt"
+      - "cli/build.gradle.kts"
+      - "daemon/src/main/kotlin/com/minekube/craftless/daemon/WorkspaceClientRuntimeDriverFactory.kt"
+      - "daemon/src/main/kotlin/com/minekube/craftless/daemon/ClientSessionService.kt"
+      - "daemon/src/main/kotlin/com/minekube/craftless/daemon/LocalSessionApiServer.kt"
+      - "driver-fabric-official/**"
+      # The pull-request trigger deliberately does not cover protocol/** or driver-fabric/**.
+      # Coverage for those paths depends on the nightly scheduled run, whose reliability is
+      # currently being repaired after non-version infrastructure failures.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  newest-packaged-lane:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v4
+        with:
+          install: true
+          cache: true
+      - name: Run shipped Docker image through the newest packaged lane
+        run: mise run docker-image-latest-lane-probe
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: docker-image-lane-check-reports
+          if-no-files-found: warn
+          path: build/craftless-docker-image-lane-probe/artifacts

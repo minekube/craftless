@@ -259,6 +259,35 @@ describe("distribution surface", () => {
     }
   });
 
+  test("Docker runtime leaves lane selection to the packaged driver manifest", () => {
+    const dockerfile = read("Dockerfile");
+
+    for (const line of dockerfile.split("\n")) {
+      expect(line.trim().startsWith("ENV CRAFTLESS_FABRIC_DRIVER_MOD")).toBe(false);
+    }
+  });
+
+  test("CI runs the shipped Docker image through a newest-lane join, not a container start", () => {
+    const mise = read(".mise.toml");
+    const script = read("scripts/docker-image-latest-lane-probe.sh");
+    const workflow = read(".github/workflows/docker-image-lane-check.yml");
+
+    expect(mise).toContain("[tasks.docker-image-latest-lane-probe]");
+    expect(mise).toContain("bash scripts/docker-image-latest-lane-probe.sh");
+    expect(workflow).toContain("mise run docker-image-latest-lane-probe");
+    expect(workflow).toContain("pull_request");
+    expect(workflow).toContain("schedule");
+    expect(workflow).toContain("Dockerfile");
+    // The image itself is the artifact under test, and the join is the proof.
+    expect(script).toContain('docker build "${PLATFORM_ARG[@]}" -t "$IMAGE" "$ROOT"');
+    expect(script).toContain('test -z "${CRAFTLESS_FABRIC_DRIVER_MOD:-}"');
+    expect(script).toContain("$PLAYER_NAME joined the game");
+    expect(script).toContain("client.attached");
+    expect(script).toContain("client-openapi-connected.json");
+    expect(script).toContain("never reached play state");
+    expect(script).toContain("teardown-verification.txt");
+  });
+
   test("release workflow builds artifacts before Docker and publishes GitHub release assets", () => {
     const workflow = read(".github/workflows/release.yml");
 

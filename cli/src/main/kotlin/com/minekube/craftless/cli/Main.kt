@@ -9,6 +9,7 @@ import com.minekube.craftless.daemon.ConfiguredClientRuntimeDriverModProvider
 import com.minekube.craftless.daemon.KtorCacheMetadataFetcher
 import com.minekube.craftless.daemon.LocalSessionApiServer
 import com.minekube.craftless.daemon.ProcessClientRuntimeLauncher
+import com.minekube.craftless.daemon.defaultStartupProbeMillis
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
@@ -165,6 +166,7 @@ object CraftlessCli {
                 cacheMetadataFetcher = cacheMetadataFetcher,
                 clientRuntimeLauncher = ProcessClientRuntimeLauncher(environment = serverEnvironment),
                 clientRuntimeDriverModProvider = ConfiguredClientRuntimeDriverModProvider(environment = serverEnvironment),
+                clientStartupProbeMillis = defaultStartupProbeMillis(serverEnvironment),
             ).use { server ->
                 server.start()
                 val metadata =
