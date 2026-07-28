@@ -724,10 +724,17 @@ private fun clientRuntimeFailureMessage(
 
 private fun Path.tailLines(limit: Int): List<String> =
     runCatching {
-        Files
-            .readAllLines(this, StandardCharsets.UTF_8)
-            .filter { line -> line.isNotBlank() }
-            .takeLast(limit)
+        if (limit <= 0) return@runCatching emptyList()
+        val lines = ArrayDeque<String>(limit)
+        Files.newBufferedReader(this, StandardCharsets.UTF_8).useLines { source ->
+            source
+                .filter { line -> line.isNotBlank() }
+                .forEach { line ->
+                    if (lines.size == limit) lines.removeFirst()
+                    lines.addLast(line)
+                }
+        }
+        lines.toList()
     }.getOrDefault(emptyList())
 
 private fun PreparedClientRuntime.stopProcess() {

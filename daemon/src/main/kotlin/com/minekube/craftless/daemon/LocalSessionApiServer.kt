@@ -59,6 +59,7 @@ import kotlinx.serialization.json.put
 import java.net.ServerSocket
 import java.nio.file.Path
 import java.time.Instant
+import java.util.concurrent.CopyOnWriteArrayList
 
 class LocalSessionApiServer private constructor(
     private val service: ClientSessionService,
@@ -76,7 +77,7 @@ class LocalSessionApiServer private constructor(
             encodeDefaults = true
             ignoreUnknownKeys = true
         }
-    private val events = mutableListOf<SessionEvent>()
+    private val events = CopyOnWriteArrayList<SessionEvent>()
     private val eventSubscriptions = linkedMapOf<String, EventSubscription>()
     private var eventSubscriptionSequence = 0
     private val port = if (requestedPort == 0) allocateLoopbackPort() else requestedPort
@@ -84,6 +85,17 @@ class LocalSessionApiServer private constructor(
         embeddedServer(CIO, host = host, port = port) {
             installRoutes()
         }
+
+    init {
+        service.onClientFailed { client ->
+            events +=
+                SessionEvent(
+                    type = "client.failed",
+                    client = client.id,
+                    message = clientRuntimeFailure(client.id),
+                )
+        }
+    }
 
     fun start() {
         server.start()
@@ -104,9 +116,11 @@ class LocalSessionApiServer private constructor(
                 call.respondOpenApi(HttpStatusCode.OK, OpenApiDocument.from(ApiRouteCatalog.sessionDefaults()))
             }
             get("/events") {
-                call.respondJson(HttpStatusCode.OK, events)
+                service.observeAllClients()
+                call.respondJson(HttpStatusCode.OK, events.toList())
             }
             get("/events:stream") {
+                service.observeAllClients()
                 call.respondSse(events.toLiveEvents().filter { event -> call.liveEventFilter().matches(event) })
             }
             get("/versions/runtime-targets") {
@@ -203,7 +217,7 @@ class LocalSessionApiServer private constructor(
                         cachePreparationService = cachePreparationService ?: error("cache workspace is not configured"),
                         attachEnvironment = ClientDriverAttachEnvironment(request.id, url("")),
                     )
-                    val client = observedClient(service.createClient(request))
+                    val client = service.createClient(request)
                     if (client.state == ClientState.FAILED) {
                         throw FailedClientRuntime(clientRuntimeFailure(client.id))
                     }
@@ -257,12 +271,12 @@ class LocalSessionApiServer private constructor(
                 }
             }
             get("/clients") {
-                call.respondJson(HttpStatusCode.OK, service.listClients().map(::observedClient))
+                call.respondJson(HttpStatusCode.OK, service.listClients())
             }
             get("/clients/{id}") {
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {
-                    call.respondJson(HttpStatusCode.OK, observedClient(service.client(clientId)))
+                    call.respondJson(HttpStatusCode.OK, service.client(clientId))
                 }.getOrElse { error ->
                     call.respondMissingClient(error)
                 }
@@ -712,24 +726,6 @@ class LocalSessionApiServer private constructor(
 
     private fun clientRuntimeFailure(clientId: String): String =
         service.runtimeFailure(clientId) ?: "client $clientId runtime failed before the in-client driver attached"
-
-    /**
-     * Records a client runtime that died on its own, once, so agents watching events
-     * learn about it instead of only seeing a state field change.
-     */
-    private fun observedClient(client: Client): Client {
-        if (client.state == ClientState.FAILED &&
-            events.none { event -> event.type == "client.failed" && event.client == client.id }
-        ) {
-            events +=
-                SessionEvent(
-                    type = "client.failed",
-                    client = client.id,
-                    message = clientRuntimeFailure(client.id),
-                )
-        }
-        return client
-    }
 
     private suspend fun ApplicationCall.respondRouteFailure(error: RouteFailure) {
         respondJson(error.status, ErrorResponse(error.code, error.message ?: error.code))

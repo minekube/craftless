@@ -71,6 +71,7 @@ collect_diagnostics() {
 }
 
 teardown() {
+  local probe_exit=$?
   set +e
   collect_diagnostics
   docker rm -f "$CRAFTLESS_CONTAINER" > /dev/null 2>&1
@@ -88,7 +89,11 @@ teardown() {
     > "$ARTIFACTS_DIR/teardown-verification.txt"
   if [ -n "$leftovers$volumes$networks" ]; then
     echo "docker image lane probe left resources behind: $leftovers $volumes $networks" >&2
+    if [ "$probe_exit" -eq 0 ]; then
+      probe_exit=1
+    fi
   fi
+  exit "$probe_exit"
 }
 trap teardown EXIT
 

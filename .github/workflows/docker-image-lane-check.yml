@@ -18,9 +18,14 @@ on:
       - ".github/workflows/docker-image-lane-check.yml"
       - ".mise.toml"
       - "cli/src/main/kotlin/com/minekube/craftless/cli/Main.kt"
+      - "cli/build.gradle.kts"
       - "daemon/src/main/kotlin/com/minekube/craftless/daemon/WorkspaceClientRuntimeDriverFactory.kt"
       - "daemon/src/main/kotlin/com/minekube/craftless/daemon/ClientSessionService.kt"
       - "daemon/src/main/kotlin/com/minekube/craftless/daemon/LocalSessionApiServer.kt"
+      - "driver-fabric-official/**"
+      # The pull-request trigger deliberately does not cover protocol/** or driver-fabric/**.
+      # Coverage for those paths depends on the nightly scheduled run, whose reliability is
+      # currently being repaired after non-version infrastructure failures.
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

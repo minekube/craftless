@@ -22,6 +22,9 @@ class ClientSessionService private constructor(
 ) {
     private val clients = linkedMapOf<String, Client>()
     private val drivers = linkedMapOf<String, DriverSession>()
+    private val stateLock = Any()
+    private val failedClients = mutableSetOf<String>()
+    private val clientFailureListeners = mutableListOf<(Client) -> Unit>()
 
     fun createClient(request: CreateClientRequest): Client {
         require(request.id.isCraftlessClientId()) { "client id must be a route-safe segment" }
@@ -38,17 +41,18 @@ class ClientSessionService private constructor(
             )
         fileStore?.prepare(instance.files)
         val driver = driverFactory.create(request)
+        val initialState = driver.snapshot().state
         val client =
             Client(
                 id = request.id,
                 instance = instance,
                 profile = profile,
                 presentation = request.presentation,
-                state = driver.snapshot().state,
+                state = ClientState.CREATED,
             )
         clients[request.id] = client
         drivers[request.id] = driver
-        return client
+        return updateState(request.id, initialState)
     }
 
     fun listClients(): List<Client> = clients.keys.toList().map(::client)
@@ -62,6 +66,16 @@ class ClientSessionService private constructor(
 
     /** The reason a client runtime died on its own, when the daemon owns its process. */
     fun runtimeFailure(clientId: String): String? = (drivers[clientId] as? ClientRuntimeLiveness)?.failureMessage()
+
+    fun observeAllClients() {
+        clients.keys.toList().forEach(::client)
+    }
+
+    fun onClientFailed(listener: (Client) -> Unit) {
+        synchronized(stateLock) {
+            clientFailureListeners += listener
+        }
+    }
 
     fun driverFor(clientId: String): DriverSession = drivers[clientId] ?: error("client $clientId not found")
 
@@ -125,10 +139,16 @@ class ClientSessionService private constructor(
         clientId: String,
         state: ClientState,
     ): Client {
-        val current = clients[clientId] ?: error("client $clientId not found")
-        val updated = current.copy(state = state)
-        clients[clientId] = updated
-        return updated
+        return synchronized(stateLock) {
+            val current = clients[clientId] ?: error("client $clientId not found")
+            if (current.state == state) return@synchronized current
+            val updated = current.copy(state = state)
+            clients[clientId] = updated
+            if (state == ClientState.FAILED && failedClients.add(clientId)) {
+                clientFailureListeners.forEach { listener -> listener(updated) }
+            }
+            updated
+        }
     }
 }
 

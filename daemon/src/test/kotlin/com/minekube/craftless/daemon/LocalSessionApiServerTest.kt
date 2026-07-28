@@ -1097,6 +1097,50 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `events observer receives a client failure discovered after startup`() =
+        withHttpClient { http ->
+            val driver = TransitioningRuntimeDriverSession("alice")
+
+            LocalSessionApiServer
+                .inMemory(
+                    driverFactory = DriverSessionFactory { driver },
+                ).use { server ->
+                    server.start()
+
+                    val create =
+                        http.post(server.url("/clients")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "id": "alice",
+                                  "version": "1.21.6",
+                                  "loader": "FABRIC",
+                                  "profile": { "kind": "OFFLINE", "name": "Alice" }
+                                }
+                                """.trimIndent(),
+                            )
+                        }
+                    assertEquals(HttpStatusCode.Created, create.status)
+
+                    driver.failed = true
+
+                    val events = json.decodeFromString<List<SessionEvent>>(http.get(server.url("/events")).bodyAsText())
+                    assertEquals(1, events.count { event -> event.type == "client.failed" && event.client == "alice" })
+
+                    val connect =
+                        http.post(server.url("/clients/alice:connect")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"host":"127.0.0.1","port":25565}""")
+                        }
+                    assertEquals(HttpStatusCode.BadGateway, connect.status)
+
+                    val repeatedEvents = json.decodeFromString<List<SessionEvent>>(http.get(server.url("/events")).bodyAsText())
+                    assertEquals(1, repeatedEvents.count { event -> event.type == "client.failed" && event.client == "alice" })
+                }
+        }
+
+    @Test
     fun `server rejects default windowless client creation when no windowless wrapper is available`() =
         withHttpClient { http ->
             val workspace = Files.createTempDirectory("craftless-windowless-requires-wrapper")
@@ -3661,6 +3705,18 @@ private class DyingClientRuntimeLauncher(
             process = process,
         )
     }
+}
+
+private class TransitioningRuntimeDriverSession(
+    override val clientId: String,
+) : DriverSession by FakeDriverSession(clientId), ClientRuntimeLiveness {
+    var failed: Boolean = false
+
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, liveState())
+
+    override fun liveState(): ClientState = if (failed) ClientState.FAILED else ClientState.RUNNING
+
+    override fun failureMessage(): String? = if (failed) "client $clientId runtime failed" else null
 }
 
 private fun preparedRuntimeMetadataFetcher(): CacheMetadataFetcher {

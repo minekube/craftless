@@ -668,12 +668,12 @@ private fun ApiRoute.responses(actionsById: Map<String, OpenApiAction>): Map<Str
 
 private fun ApiRoute.errorStatuses(): List<String> =
     when {
-        path == "/clients" && method == "POST" -> listOf("400")
+        path == "/clients" && method == "POST" -> listOf("400", "502")
         path == "/cache:prepare" && method == "POST" -> listOf("400")
         path == "/cache:export" && method == "POST" -> listOf("400")
         path == "/cache:cleanup" && method == "POST" -> listOf("400")
-        path.endsWith(":attach") && method == "POST" -> listOf("400", "404")
-        path.endsWith(":connect") && method == "POST" -> listOf("400", "404", "409")
+        path.endsWith(":attach") && method == "POST" -> listOf("400", "404", "502")
+        path.endsWith(":connect") && method == "POST" -> listOf("400", "404", "409", "502")
         source == "action" && method == "POST" -> listOf("400", "404", "409")
         path.endsWith(":run") && method == "POST" -> listOf("400", "404", "409")
         path.endsWith(":stop") && method == "POST" -> listOf("404")
