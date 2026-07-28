@@ -676,7 +676,7 @@ private fun ApiRoute.errorStatuses(): List<String> =
         path.endsWith(":connect") && method == "POST" -> listOf("400", "404", "409", "502")
         source == "action" && method == "POST" -> listOf("400", "404", "409", "502")
         path.endsWith(":run") && method == "POST" -> listOf("400", "404", "409", "502")
-        path.endsWith(":rpc") && method == "POST" -> listOf("400", "502")
+        path.endsWith(":rpc") && method == "POST" -> listOf("400", "404", "409", "502")
         path.endsWith(":stop") && method == "POST" -> listOf("404")
         path == "/clients/{id}" && method == "GET" -> listOf("404")
         path == "/clients/{id}/openapi.json" && method == "GET" -> listOf("404")

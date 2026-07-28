@@ -22,6 +22,7 @@ class ClientSessionService private constructor(
 ) {
     private val clients = linkedMapOf<String, Client>()
     private val drivers = linkedMapOf<String, DriverSession>()
+    private val creatingClientIds = mutableSetOf<String>()
     private val stateLock = Any()
     private val failedClients = mutableSetOf<String>()
     private val clientFailureListeners = mutableListOf<(Client) -> Unit>()
@@ -32,31 +33,42 @@ class ClientSessionService private constructor(
         val profile = request.resolvedProfile()
         require(profile.name.length <= MAX_OFFLINE_PROFILE_NAME_LENGTH) { "offline profile name must be 16 characters or fewer" }
         synchronized(stateLock) {
-            require(!clients.containsKey(request.id)) { "client ${request.id} already exists" }
+            require(!clients.containsKey(request.id) && creatingClientIds.add(request.id)) { "client ${request.id} already exists" }
         }
 
-        val instance =
-            Instance(
-                id = "${request.id}-${request.version}-${request.loader.name.lowercase()}",
-                version = MinecraftVersion(request.version),
-                loader = request.loader,
-            )
-        fileStore?.prepare(instance.files)
-        val driver = driverFactory.create(request)
-        val initialState = driver.snapshot().state
-        val client =
-            Client(
-                id = request.id,
-                instance = instance,
-                profile = profile,
-                presentation = request.presentation,
-                state = ClientState.CREATED,
-            )
-        return synchronized(stateLock) {
-            require(!clients.containsKey(request.id)) { "client ${request.id} already exists" }
-            clients[request.id] = client
-            drivers[request.id] = driver
-            updateStateLocked(request.id, initialState)
+        var registered = false
+        try {
+            val instance =
+                Instance(
+                    id = "${request.id}-${request.version}-${request.loader.name.lowercase()}",
+                    version = MinecraftVersion(request.version),
+                    loader = request.loader,
+                )
+            fileStore?.prepare(instance.files)
+            val driver = driverFactory.create(request)
+            val initialState = driver.snapshot().state
+            val client =
+                Client(
+                    id = request.id,
+                    instance = instance,
+                    profile = profile,
+                    presentation = request.presentation,
+                    state = ClientState.CREATED,
+                )
+            return synchronized(stateLock) {
+                require(!clients.containsKey(request.id)) { "client ${request.id} already exists" }
+                clients[request.id] = client
+                drivers[request.id] = driver
+                creatingClientIds.remove(request.id)
+                registered = true
+                updateStateLocked(request.id, initialState)
+            }
+        } finally {
+            if (!registered) {
+                synchronized(stateLock) {
+                    creatingClientIds.remove(request.id)
+                }
+            }
         }
     }
 
@@ -114,9 +126,13 @@ class ClientSessionService private constructor(
         }
         val state = driver.snapshot().state
         return synchronized(stateLock) {
-            require(clients.containsKey(clientId)) { "client $clientId not found" }
-            drivers[clientId] = driver
-            updateStateLocked(clientId, state)
+            val current = observeCurrentRuntimeLocked(clientId)
+            if (current.state == ClientState.FAILED) {
+                current
+            } else {
+                drivers[clientId] = driver
+                updateStateLocked(clientId, state)
+            }
         }
     }
 
@@ -124,11 +140,19 @@ class ClientSessionService private constructor(
         clientId: String,
         target: ConnectionTarget,
     ): Client {
-        val driver = driverFor(clientId)
+        val (initialClient, currentDriver) = synchronized(stateLock) {
+            val current = observeCurrentRuntimeLocked(clientId)
+            current to drivers[clientId]
+        }
+        if (initialClient.state == ClientState.FAILED) return initialClient
+        val driver = currentDriver ?: error("client $clientId not found")
         val snapshot = driver.connect(target)
         return synchronized(stateLock) {
-            if (drivers[clientId] !== driver) {
-                clients[clientId] ?: error("client $clientId not found")
+            val current = observeCurrentRuntimeLocked(clientId)
+            if (current.state == ClientState.FAILED) {
+                current
+            } else if (drivers[clientId] !== currentDriver) {
+                current
             } else {
                 updateStateLocked(clientId, snapshot.state)
             }
@@ -194,6 +218,14 @@ class ClientSessionService private constructor(
             clientFailureListeners.forEach { listener -> listener(updated) }
         }
         return updated
+    }
+
+    private fun observeCurrentRuntimeLocked(clientId: String): Client {
+        val current = clients[clientId] ?: error("client $clientId not found")
+        if (current.state == ClientState.FAILED) return current
+        val liveness = drivers[clientId] as? ClientRuntimeLiveness ?: return current
+        val liveState = liveness.liveState()
+        return if (liveState == current.state) current else updateStateLocked(clientId, liveState)
     }
 }
 

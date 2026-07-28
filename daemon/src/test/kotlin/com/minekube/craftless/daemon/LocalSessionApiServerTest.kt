@@ -3459,6 +3459,31 @@ class LocalSessionApiServerTest {
                 }
         }
 
+    @Test
+    fun `server rejects a connect that observes a failed runtime`() =
+        withHttpClient { http ->
+            LocalSessionApiServer
+                .inMemory(
+                    driverFactory = DriverSessionFactory { request -> ConnectFailingRuntimeDriverSession(request.id) },
+                ).use { server ->
+                    server.start()
+                    createAlice(http, server)
+
+                    val response =
+                        http.post(server.url("/clients/alice:connect")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"host":"localhost","port":25565}""")
+                        }
+                    val body = response.bodyAsText()
+                    assertEquals(HttpStatusCode.BadGateway, response.status)
+                    assertTrue(body.contains("CLIENT_RUNTIME_FAILED"), body)
+
+                    val events = http.get(server.url("/clients/alice/events")).bodyAsText()
+                    assertTrue(events.contains("client.failed"), events)
+                    assertFalse(events.contains("client.connect.unobserved"), events)
+                }
+        }
+
     private fun withHttpClient(block: suspend (HttpClient) -> Unit) {
         kotlinx.coroutines.runBlocking {
             HttpClient(CIO).use { client -> block(client) }
@@ -3757,6 +3782,19 @@ private class TransitioningRuntimeDriverSession(
     override fun liveState(): ClientState = if (failed) ClientState.FAILED else ClientState.RUNNING
 
     override fun failureMessage(): String? = if (failed) "client $clientId runtime failed" else null
+}
+
+private class ConnectFailingRuntimeDriverSession(
+    override val clientId: String,
+) : DriverSession by FakeDriverSession(clientId), ClientRuntimeLiveness {
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.RUNNING)
+
+    override fun liveState(): ClientState = ClientState.RUNNING
+
+    override fun connect(target: ConnectionTarget): DriverClientSnapshot =
+        DriverClientSnapshot(clientId, ClientState.FAILED)
+
+    override fun failureMessage(): String = "client $clientId runtime failed while connecting"
 }
 
 private fun preparedRuntimeMetadataFetcher(): CacheMetadataFetcher {

@@ -81,6 +81,66 @@ class ClientSessionServiceTest {
     }
 
     @Test
+    fun `attach does not replace a runtime that fails before commit`() {
+        val launched = BlockingLivenessDriverSession("alice")
+        val service = ClientSessionService.inMemory(DriverSessionFactory { launched })
+        service.createClient(
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            ),
+        )
+        launched.failed = true
+
+        val result = service.attachDriver("alice", AttachedTestDriverSession("alice"))
+
+        assertEquals(ClientState.FAILED, result.state)
+        assertTrue(service.driverFor("alice") === launched)
+    }
+
+    @Test
+    fun `duplicate creation is rejected while the first runtime is starting`() {
+        val factoryStarted = CountDownLatch(1)
+        val releaseFactory = CountDownLatch(1)
+        var creations = 0
+        val factory =
+            DriverSessionFactory { request ->
+                creations += 1
+                factoryStarted.countDown()
+                check(releaseFactory.await(5, TimeUnit.SECONDS)) { "driver factory was not released" }
+                AttachedTestDriverSession(request.id)
+            }
+        val service = ClientSessionService.inMemory(factory)
+        val request =
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            )
+        var firstFailure: Throwable? = null
+        val first =
+            Thread {
+                try {
+                    service.createClient(request)
+                } catch (failure: Throwable) {
+                    firstFailure = failure
+                }
+            }.also(Thread::start)
+
+        assertTrue(factoryStarted.await(5, TimeUnit.SECONDS))
+        assertFailsWith<IllegalArgumentException> { service.createClient(request) }
+        releaseFactory.countDown()
+        first.join(5_000)
+
+        assertFalse(first.isAlive)
+        assertEquals(null, firstFailure)
+        assertEquals(1, creations)
+    }
+
+    @Test
     fun `session service requires an explicit driver factory`() {
         val service = ClientSessionService.inMemory()
 
@@ -981,6 +1041,7 @@ private class BlockingLivenessDriverSession(
     val observationStarted = CountDownLatch(1)
     val releaseObservation = CountDownLatch(1)
     @Volatile var blockNextObservation: Boolean = false
+    @Volatile var failed: Boolean = false
 
     override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, liveState())
 
@@ -991,7 +1052,7 @@ private class BlockingLivenessDriverSession(
             check(releaseObservation.await(5, TimeUnit.SECONDS)) { "liveness observation was not released" }
             return ClientState.FAILED
         }
-        return ClientState.RUNNING
+        return if (failed) ClientState.FAILED else ClientState.RUNNING
     }
 
     override fun failureMessage(): String? = "client $clientId runtime failed"

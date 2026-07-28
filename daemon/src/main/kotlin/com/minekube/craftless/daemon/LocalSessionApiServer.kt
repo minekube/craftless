@@ -255,6 +255,9 @@ class LocalSessionApiServer private constructor(
                             clientId = clientId,
                             driver = HttpDriverSession(clientId = clientId, endpoint = request.endpoint),
                         )
+                    if (client.state == ClientState.FAILED) {
+                        throw FailedClientRuntime(service.runtimeFailure(clientId) ?: "client $clientId runtime failed")
+                    }
                     events +=
                         SessionEvent(
                             type = "client.attached",
@@ -321,6 +324,9 @@ class LocalSessionApiServer private constructor(
                                 port = request.port,
                             ),
                         )
+                    if (client.state == ClientState.FAILED) {
+                        throw FailedClientRuntime(service.runtimeFailure(clientId) ?: "client $clientId runtime failed")
+                    }
                     if (client.state == ClientState.CONNECTED) {
                         events +=
                             SessionEvent(
