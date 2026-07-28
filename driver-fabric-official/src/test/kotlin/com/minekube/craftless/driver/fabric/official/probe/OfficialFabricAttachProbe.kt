@@ -59,6 +59,23 @@ private val probeJson =
         prettyPrint = true
     }
 
+private const val OFFICIAL_PROBE_SERVER_CLEANUP_LOG = "server-cleanup.log"
+
+internal fun surfaceOfficialProbeCleanupFailure(
+    artifactsDir: Path,
+    cleanupFailure: String,
+) {
+    val artifactWriteFailure =
+        runCatching {
+            artifactsDir.createDirectories()
+            artifactsDir.resolve(OFFICIAL_PROBE_SERVER_CLEANUP_LOG).writeText(cleanupFailure.trimEnd() + "\n")
+        }.exceptionOrNull()
+    System.err.println("official Fabric probe cleanup failure: $cleanupFailure")
+    artifactWriteFailure?.let { failure ->
+        System.err.println("official Fabric probe cleanup artifact write failed: ${failure.stackTraceToString()}")
+    }
+}
+
 fun main() {
     val config = OfficialFabricAttachProbeConfig.fromEnvironment()
     config.artifactsDir.createDirectories()
@@ -169,8 +186,20 @@ private class OfficialFabricAttachProbe(
                                 },
                         )
                     } finally {
-                        localServer?.stopAndCollect()
-                        command.stopAndWriteLog(config.artifactsDir.resolve("client-command.log"))
+                        val cleanupFailures = mutableListOf<String>()
+                        val serverTeardown = runCatching { localServer?.stopAndCollect() }
+                        serverTeardown.getOrNull()?.cleanupFailure?.let(cleanupFailures::add)
+                        serverTeardown.exceptionOrNull()?.let { failure ->
+                            cleanupFailures += "official Fabric server teardown threw:\n${failure.stackTraceToString()}"
+                        }
+                        runCatching {
+                            command.stopAndWriteLog(config.artifactsDir.resolve("client-command.log"))
+                        }.exceptionOrNull()?.let { failure ->
+                            cleanupFailures += "official Fabric client command teardown threw:\n${failure.stackTraceToString()}"
+                        }
+                        if (cleanupFailures.isNotEmpty()) {
+                            surfaceOfficialProbeCleanupFailure(config.artifactsDir, cleanupFailures.joinToString("\n"))
+                        }
                     }
                 }
             }

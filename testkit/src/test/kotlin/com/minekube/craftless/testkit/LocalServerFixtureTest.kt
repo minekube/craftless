@@ -5,6 +5,7 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class LocalServerFixtureTest {
@@ -239,6 +240,7 @@ class LocalServerFixtureTest {
 
         assertEquals(0, result.exitCode)
         assertEquals(3, result.evidenceCount)
+        assertNull(result.cleanupFailure)
         assertEquals("stop\n", Files.readString(root.resolve("minecraft-server-stdin.txt")))
         assertTrue(Files.readString(layout.serverLog).contains("Done (1.000s)!"))
         assertEquals(
@@ -284,6 +286,7 @@ class LocalServerFixtureTest {
 
         val args = Files.readAllLines(root.resolve("minecraft-server-args.txt"))
         assertEquals(0, result.exitCode)
+        assertNull(result.cleanupFailure)
         assertEquals(
             fakeServerJar.toAbsolutePath().normalize().toString(),
             args[args.indexOf("-jar") + 1],
@@ -331,6 +334,7 @@ class LocalServerFixtureTest {
 
         assertEquals(0, result.exitCode)
         assertEquals(3, result.evidenceCount)
+        assertNull(result.cleanupFailure)
         assertFalse(handle.isRunning())
         assertEquals("stop\n", Files.readString(root.resolve("minecraft-server-stdin.txt")))
         assertTrue(Files.readString(layout.serverLog).contains("hello while server stayed running"))
@@ -394,6 +398,7 @@ class LocalServerFixtureTest {
         val result = handle.stopAndCollect()
 
         assertEquals(0, result.exitCode)
+        assertNull(result.cleanupFailure)
         assertFalse(handle.isRunning())
         assertEquals(
             listOf(LocalServerEvidence(type = LocalServerEvidenceType.CHAT, player = "Robin", message = "goal may be completed")),
