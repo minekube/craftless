@@ -332,34 +332,50 @@ class LocalMinecraftServerHandle internal constructor(
             .firstOrNull(predicate)
     }
 
+    /**
+     * Stops the server, drains its output and collects the run's evidence.
+     *
+     * A shutdown that overruns [shutdownTimeoutMillis] is reported through
+     * [LocalServerProcessResult.cleanupFailure] rather than thrown. Teardown runs
+     * after every product assertion has already been decided, so a slow or stuck
+     * shutdown must not be able to invert a passing result — but it must still be
+     * visible, which is what the returned cleanup failure is for.
+     */
     fun stopAndCollect(): LocalServerProcessResult {
         check(!collected) { "minecraft server output has already been collected" }
 
+        var cleanupFailure: String? = null
         if (process.isAlive) {
             sendCommand("stop")
-            val exited = process.waitFor(shutdownTimeoutMillis, TimeUnit.MILLISECONDS)
-            if (!exited) {
+            if (!process.waitFor(shutdownTimeoutMillis, TimeUnit.MILLISECONDS)) {
+                cleanupFailure =
+                    "minecraft server did not stop after ${shutdownTimeoutMillis}ms; forcibly terminated during teardown"
                 process.destroyForcibly()
-                outputReader.join(1_000)
-                layout.persistProcessOutput(output.snapshot(), importEvidence = false)
-                collected = true
-                error("minecraft server did not stop after ${shutdownTimeoutMillis}ms")
+                process.waitFor(FORCED_TERMINATION_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
             }
         }
 
-        outputReader.join()
+        outputReader.join(OUTPUT_DRAIN_TIMEOUT_MILLIS)
         layout.persistProcessOutput(output.snapshot(), importEvidence = false)
         collected = true
         return LocalServerProcessResult(
-            exitCode = process.exitValue(),
+            exitCode = runCatching { process.exitValue() }.getOrNull(),
             evidenceCount = liveEvidenceCount.get(),
+            cleanupFailure = cleanupFailure,
         )
+    }
+
+    private companion object {
+        const val FORCED_TERMINATION_TIMEOUT_MILLIS = 10_000L
+        const val OUTPUT_DRAIN_TIMEOUT_MILLIS = 10_000L
     }
 }
 
 data class LocalServerProcessResult(
-    val exitCode: Int,
+    val exitCode: Int?,
     val evidenceCount: Int,
+    /** Set when teardown misbehaved. Never implies the product assertions failed. */
+    val cleanupFailure: String? = null,
 )
 
 @Serializable

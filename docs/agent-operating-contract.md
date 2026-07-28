@@ -252,6 +252,39 @@ tests.
 - `playwright/`: Bun-powered helper tests and external fixtures.
 - `docs/`: architecture, roadmap, evidence, and project checklist.
 
+## Canary Signal Integrity
+
+The nightly `latest fabric canary` is the alarm that says a supported Minecraft
+lane broke. An alarm that is red for unrelated reasons stops being read, so its
+result must always say *what kind* of failure it was.
+
+- A canary run reports one of four outcomes: pass, product failure,
+  infrastructure failure, or unclassified failure. Exactly one named verdict job
+  runs, so the class is readable from the run's job list without opening a log.
+- **Product failure** means the probe reached Craftless and Craftless failed.
+  This is the only outcome that says a supported version broke.
+- **Infrastructure failure** means the probe could not reach a verdict: an
+  upstream CDN, DNS, TLS or runner dependency failed. It is not evidence about
+  version support.
+- Classification is by failure *message*, never by error code or by which step
+  failed. An upstream CDN timeout and a genuine unsupported-version break both
+  surface as `BAD_REQUEST`; only the message distinguishes them.
+- `CanaryFailureClassifier` (`testkit/`) owns the transient-infrastructure
+  signature list and is the single place that classifies. Signatures are narrow
+  and **anything unrecognised is a product failure**: a false product alarm
+  costs an investigation, a false infrastructure label hides a version break.
+- Teardown runs after every product assertion has been decided and can never
+  invert a pass. A server that overruns its shutdown budget is recorded as
+  `cleanupFailure` on the outcome document and surfaced as a warning; it is
+  never swallowed and never turns a passing run red.
+- Do not make the canary quieter by loosening assertions, catching-and-
+  continuing around product steps, or retrying product operations. Retry only
+  genuinely transient upstream I/O. The goal is a red that is *specific*, not a
+  red that is *rare*.
+- Every run writes `canary-outcome.json` next to its artifacts. Upload probe
+  `logs/` as well as `artifacts/`, or a teardown failure cannot be diagnosed
+  afterwards.
+
 ## Tooling
 
 - Use `mise` for pinned dependencies and commands.

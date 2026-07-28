@@ -9,26 +9,55 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  CANARY_OUTCOME_PATH: build/craftless-packaged-latest-current-probe/artifacts/canary-outcome.json
+  CANARY_PROBE_LOG_PATH: build/reports/latest-fabric-canary-probe.log
+
 jobs:
   packaged-latest-release:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    outputs:
+      verdict: ${{ steps.outcome.outputs.verdict }}
+      failure-class: ${{ steps.outcome.outputs.failure-class }}
+      reason: ${{ steps.outcome.outputs.reason }}
     steps:
       - uses: actions/checkout@v7
       - uses: jdx/mise-action@v4
         with:
           install: true
           cache: true
+      # Informational only. Upstream metadata is not what this canary asserts, so a
+      # Mojang/Fabric meta hiccup must never decide the run: it retries, then yields.
       - name: Record upstream version metadata
+        continue-on-error: true
         run: |
           set -euo pipefail
           mkdir -p build/reports
           mise exec -- bun --eval '
           const fs = await import("node:fs/promises");
+          async function fetchJson(url, attempts = 4) {
+            let lastError;
+            for (let attempt = 1; attempt <= attempts; attempt += 1) {
+              try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                  throw new Error(`${url} responded ${response.status}`);
+                }
+                return await response.json();
+              } catch (error) {
+                lastError = error;
+                if (attempt < attempts) {
+                  await new Promise((resolve) => setTimeout(resolve, 2 ** attempt * 500));
+                }
+              }
+            }
+            throw lastError;
+          }
           const [minecraft, fabricGames, fabricLoaders] = await Promise.all([
-            fetch("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json").then((r) => r.json()),
-            fetch("https://meta.fabricmc.net/v2/versions/game").then((r) => r.json()),
-            fetch("https://meta.fabricmc.net/v2/versions/loader").then((r) => r.json()),
+            fetchJson("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"),
+            fetchJson("https://meta.fabricmc.net/v2/versions/game"),
+            fetchJson("https://meta.fabricmc.net/v2/versions/loader"),
           ]);
           const stableFabricGame = fabricGames.find((version) => version.stable);
           const loaderOf = (entry) => entry.loader ?? entry;
@@ -53,12 +82,79 @@ jobs:
             "",
           ].join("\n"));
           '
+      # The probe's own exit code is captured rather than failing the step, so the
+      # classified verdict below is what decides the run.
       - name: Run packaged latest-release probe
-        run: mise run packaged-latest-current-probe
+        id: probe
+        run: |
+          set -uo pipefail
+          mkdir -p build/reports
+          # GitHub runs step shells with -e. Disable it here so a failing probe still
+          # reaches the classifier below instead of aborting the step unclassified.
+          set +e
+          mise run packaged-latest-current-probe 2>&1 | tee "$CANARY_PROBE_LOG_PATH"
+          probe_exit="${PIPESTATUS[0]}"
+          set -e
+          echo "exit-code=$probe_exit" >> "$GITHUB_OUTPUT"
+      - name: Report canary outcome
+        id: outcome
+        env:
+          CANARY_PROBE_EXIT_CODE: ${{ steps.probe.outputs.exit-code }}
+        run: bash scripts/report-canary-outcome.sh
       - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: latest-fabric-canary-reports
           path: |
             build/reports/latest-fabric-canary-metadata.json
+            build/reports/latest-fabric-canary-probe.log
             build/craftless-packaged-latest-current-probe/artifacts
+            build/craftless-packaged-latest-current-probe/logs
+
+  # Exactly one verdict job runs. Naming them separately is what makes the failure
+  # class readable from the run's job list, without opening a log.
+  product-failure:
+    name: "verdict: PRODUCT FAILURE (supported Minecraft lane broke)"
+    needs: packaged-latest-release
+    if: ${{ needs.packaged-latest-release.outputs.verdict == 'fail' && needs.packaged-latest-release.outputs.failure-class == 'product' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail with the product verdict
+        env:
+          REASON: ${{ needs.packaged-latest-release.outputs.reason }}
+        run: |
+          echo "The packaged latest-release probe reached Craftless and Craftless failed."
+          echo "Reason: $REASON"
+          exit 1
+
+  infrastructure-failure:
+    name: "verdict: INFRASTRUCTURE FAILURE (no verdict, not a version break)"
+    needs: packaged-latest-release
+    if: ${{ needs.packaged-latest-release.outputs.verdict == 'fail' && needs.packaged-latest-release.outputs.failure-class == 'infrastructure' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail with the infrastructure verdict
+        env:
+          REASON: ${{ needs.packaged-latest-release.outputs.reason }}
+        run: |
+          echo "The probe could not reach a verdict: an upstream or runner dependency failed."
+          echo "This is NOT evidence that the supported Minecraft lane broke."
+          echo "Reason: $REASON"
+          exit 1
+
+  unclassified-failure:
+    name: "verdict: UNCLASSIFIED FAILURE (treated as a product failure)"
+    needs: packaged-latest-release
+    if: ${{ always() && (needs.packaged-latest-release.result == 'failure' || (needs.packaged-latest-release.outputs.verdict == 'fail' && needs.packaged-latest-release.outputs.failure-class != 'product' && needs.packaged-latest-release.outputs.failure-class != 'infrastructure')) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail with the unclassified verdict
+        env:
+          PROBE_RESULT: ${{ needs.packaged-latest-release.result }}
+          REASON: ${{ needs.packaged-latest-release.outputs.reason }}
+        run: |
+          echo "The canary failed without producing a classified outcome, so it is"
+          echo "reported with product severity rather than assumed to be infrastructure noise."
+          echo "Probe job result: $PROBE_RESULT"
+          echo "Reason: $REASON"
+          exit 1

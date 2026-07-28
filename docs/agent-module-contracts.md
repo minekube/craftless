@@ -251,6 +251,12 @@ Test helpers may compose public gameplay scenarios for verification, but they
 must do it as an outside user or agent through OpenAPI/actions/resources,
 JSON-RPC/SSE, and `craftless api` calls.
 
+`testkit/` also owns probe outcome classification (`CanaryOutcome.kt`). Keep the
+setup/product/teardown phase split in `LocalMinecraftServerSmoke`: teardown must
+never decide a run's verdict, and `CanaryFailureClassifier` must stay the single
+place that separates infrastructure faults from product failures. See
+`docs/agent-operating-contract.md#canary-signal-integrity` for the durable rules.
+
 Verification: `mise exec -- gradle :testkit:test`.
 
 ## `playwright/`

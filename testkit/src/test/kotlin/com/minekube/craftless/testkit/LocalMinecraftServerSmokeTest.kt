@@ -7,6 +7,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class LocalMinecraftServerSmokeTest {
@@ -677,6 +678,179 @@ class LocalMinecraftServerSmokeTest {
 
         assertTrue(error.message?.contains("expected chat evidence") == true)
         assertEquals("stop\n", Files.readString(root.resolve("minecraft-server-stdin.txt")))
+    }
+
+    @Test
+    fun `a server that refuses to stop cannot turn a passing product run red`() {
+        // Reproduces the 2026-07-27 canary: every product assertion passed and the run
+        // was still marked red because the Minecraft server outlived its shutdown budget.
+        val root = createTempDirectory("craftless-local-server-smoke-teardown-cannot-invert")
+        val fakeJava = root.resolve("fake-java")
+        val fakeServerJar = root.resolve("server.jar")
+        val actionCommand = root.resolve("smoke-action")
+        Files.writeString(fakeServerJar, "fake")
+        Files.writeString(
+            fakeJava,
+            """
+            #!/bin/sh
+            echo '[12:00:00] [Server thread/INFO]: Done (1.000s)! For help, type "help"'
+            echo '[12:00:01] [Server thread/INFO]: LatestCurrent joined the game'
+            echo '[12:00:02] [Server thread/INFO]: LatestCurrent left the game'
+            exec sleep 30
+            """.trimIndent() + "\n",
+        )
+        Files.writeString(
+            actionCommand,
+            """
+            #!/bin/sh
+            echo 'probe reached PLAYER_JOINED and every generated assertion passed'
+            """.trimIndent() + "\n",
+        )
+        assertTrue(fakeJava.toFile().setExecutable(true))
+        assertTrue(actionCommand.toFile().setExecutable(true))
+        val config =
+            LocalMinecraftServerSmokeConfig(
+                enabled = true,
+                root = root,
+                javaExecutable = fakeJava,
+                actionCommand = listOf(actionCommand.toString()),
+                actionTimeoutMillis = 10_000,
+                expectedPlayer = "LatestCurrent",
+                expectDisconnect = true,
+                readinessTimeoutMillis = 5_000,
+                shutdownTimeoutMillis = 1_000,
+            )
+
+        val result =
+            LocalMinecraftServerSmoke.runWithServer(
+                config = config,
+                provisionServerJar = { _, _ -> fakeServerJar },
+            )
+
+        assertEquals(LocalMinecraftServerSmokeStatus.RAN, result.status)
+        assertTrue(result.evidenceSummary.playerJoined)
+        assertTrue(result.evidenceSummary.playerDisconnected)
+
+        // The cleanup failure is recorded, not swallowed, and not treated as a verdict.
+        val cleanupFailure = requireNotNull(result.cleanupFailure)
+        assertTrue(cleanupFailure.contains("did not stop after 1000ms"), cleanupFailure)
+
+        val outcome = requireNotNull(result.outcome)
+        assertEquals(CanaryVerdict.PASS, outcome.verdict)
+        assertNull(outcome.failureClass)
+        assertEquals(cleanupFailure, outcome.cleanupFailure)
+        assertEquals(outcome, CanaryOutcome.read(root.resolve("artifacts").resolve(CanaryOutcome.FILE_NAME)))
+    }
+
+    @Test
+    fun `a failing product assertion is recorded as a product failure`() {
+        val root = createTempDirectory("craftless-local-server-smoke-product-failure")
+        val fakeJava = root.resolve("fake-java")
+        val fakeServerJar = root.resolve("server.jar")
+        val actionCommand = root.resolve("smoke-action")
+        Files.writeString(fakeServerJar, "fake")
+        writeFakeJava(fakeJava)
+        Files.writeString(
+            actionCommand,
+            """
+            #!/bin/sh
+            echo 'generated action world.time.query did not return ACCEPTED' >&2
+            exit 1
+            """.trimIndent() + "\n",
+        )
+        assertTrue(actionCommand.toFile().setExecutable(true))
+        val config =
+            LocalMinecraftServerSmokeConfig(
+                enabled = true,
+                root = root,
+                javaExecutable = fakeJava,
+                actionCommand = listOf(actionCommand.toString()),
+                actionTimeoutMillis = 10_000,
+                readinessTimeoutMillis = 5_000,
+                shutdownTimeoutMillis = 5_000,
+            )
+
+        assertFailsWith<IllegalStateException> {
+            LocalMinecraftServerSmoke.runWithServer(
+                config = config,
+                provisionServerJar = { _, _ -> fakeServerJar },
+            )
+        }
+
+        val outcome = CanaryOutcome.read(root.resolve("artifacts").resolve(CanaryOutcome.FILE_NAME))
+        assertEquals(CanaryVerdict.FAIL, outcome.verdict)
+        assertEquals(CanaryFailureClass.PRODUCT, outcome.failureClass)
+        assertEquals(CanaryPhase.PRODUCT, outcome.phase)
+        assertNull(outcome.signature)
+    }
+
+    @Test
+    fun `an upstream cdn timeout is recorded as an infrastructure failure`() {
+        // Reproduces the 2026-07-28 canary: the probe failed at create-client because the
+        // Mojang asset CDN did not answer. Same exit path as the product failure above,
+        // and it must not read as "the supported Minecraft lane broke".
+        val root = createTempDirectory("craftless-local-server-smoke-infrastructure-failure")
+        val fakeJava = root.resolve("fake-java")
+        val fakeServerJar = root.resolve("server.jar")
+        val actionCommand = root.resolve("smoke-action")
+        Files.writeString(fakeServerJar, "fake")
+        writeFakeJava(fakeJava)
+        Files.writeString(
+            actionCommand,
+            """
+            #!/bin/sh
+            printf '%s\n' '{"code":"BAD_REQUEST","message":"Connect timeout has expired [url=https://resources.download.minecraft.net/f0/f066613bca60316fdc9ae333e39c1c9fd8a06e4de, connect_timeout=15000 ms]"}' \
+              > "${'$'}CRAFTLESS_SMOKE_ARTIFACTS_DIR/clients-create-latest-release.log"
+            exit 1
+            """.trimIndent() + "\n",
+        )
+        assertTrue(actionCommand.toFile().setExecutable(true))
+        val config =
+            LocalMinecraftServerSmokeConfig(
+                enabled = true,
+                root = root,
+                javaExecutable = fakeJava,
+                actionCommand = listOf(actionCommand.toString()),
+                actionTimeoutMillis = 10_000,
+                readinessTimeoutMillis = 5_000,
+                shutdownTimeoutMillis = 5_000,
+            )
+
+        assertFailsWith<IllegalStateException> {
+            LocalMinecraftServerSmoke.runWithServer(
+                config = config,
+                provisionServerJar = { _, _ -> fakeServerJar },
+            )
+        }
+
+        val outcome = CanaryOutcome.read(root.resolve("artifacts").resolve(CanaryOutcome.FILE_NAME))
+        assertEquals(CanaryVerdict.FAIL, outcome.verdict)
+        assertEquals(CanaryFailureClass.INFRASTRUCTURE, outcome.failureClass)
+        assertEquals("upstream-connect-timeout", outcome.signature)
+    }
+
+    @Test
+    fun `harness setup failure is never reported as a product failure`() {
+        val root = createTempDirectory("craftless-local-server-smoke-setup-failure")
+        val config =
+            LocalMinecraftServerSmokeConfig(
+                enabled = true,
+                root = root,
+                readinessTimeoutMillis = 5_000,
+                shutdownTimeoutMillis = 5_000,
+            )
+
+        assertFailsWith<IllegalStateException> {
+            LocalMinecraftServerSmoke.runWithServer(
+                config = config,
+                provisionServerJar = { _, _ -> error("could not provision the harness server jar") },
+            )
+        }
+
+        val outcome = CanaryOutcome.read(root.resolve("artifacts").resolve(CanaryOutcome.FILE_NAME))
+        assertEquals(CanaryVerdict.FAIL, outcome.verdict)
+        assertEquals(CanaryFailureClass.INFRASTRUCTURE, outcome.failureClass)
+        assertEquals(CanaryPhase.SETUP, outcome.phase)
     }
 }
 

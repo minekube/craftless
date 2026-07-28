@@ -54,18 +54,28 @@ object LocalMinecraftServerSmoke {
                     )
                 }
                 val javaSelectionEvidence = config.writeJavaSelectionEvidence(layout)
-                val serverJar = provisionServerJar(layout, http)
+
+                // Setup phase. Provisioning the harness's own server jar and booting it are
+                // not statements about Craftless, so a failure here can never be a product
+                // failure -- it means the canary could not reach a verdict at all.
+                val serverJar =
+                    runCatching { provisionServerJar(layout, http) }
+                        .getOrElse { failure -> layout.failCanary(config, CanaryPhase.SETUP, failure) }
                 val server =
-                    layout.startMinecraftServer(
-                        serverJar = serverJar,
-                        javaExecutable = config.javaExecutable,
-                        minHeap = config.minHeap,
-                        maxHeap = config.maxHeap,
-                        readinessTimeoutMillis = config.readinessTimeoutMillis,
-                        shutdownTimeoutMillis = config.shutdownTimeoutMillis,
-                    )
+                    runCatching {
+                        layout.startMinecraftServer(
+                            serverJar = serverJar,
+                            javaExecutable = config.javaExecutable,
+                            minHeap = config.minHeap,
+                            maxHeap = config.maxHeap,
+                            readinessTimeoutMillis = config.readinessTimeoutMillis,
+                            shutdownTimeoutMillis = config.shutdownTimeoutMillis,
+                        )
+                    }.getOrElse { failure -> layout.failCanary(config, CanaryPhase.SETUP, failure) }
+
+                // Product phase. Everything the canary actually asserts about Craftless.
                 var commandResult: LocalMinecraftSmokeCommandResult? = null
-                val processResult =
+                val productFailure =
                     runCatching {
                         action(layout, server)
                         commandResult =
@@ -74,26 +84,50 @@ object LocalMinecraftServerSmoke {
                             } else {
                                 runConfiguredActionCommandWithProvisioning(config, layout, server)
                             }
-                        server.stopAndCollect()
-                    }.getOrElse { failure ->
-                        if (server.isRunning()) {
-                            server.stopAndCollect()
-                        }
-                        throw failure
-                    }
+                    }.exceptionOrNull()
+
+                // Teardown phase. Stops the server and drains its output so the evidence is
+                // complete; records cleanup problems without deciding the product verdict.
+                val teardown = runCatching { server.stopAndCollect() }
+                val processResult = teardown.getOrNull()
+                val cleanupFailure =
+                    processResult?.cleanupFailure
+                        ?: teardown.exceptionOrNull()?.let { "server teardown failed: ${it.describe()}" }
+
+                if (productFailure != null) {
+                    teardown.exceptionOrNull()?.let(productFailure::addSuppressed)
+                    layout.failCanary(config, CanaryPhase.PRODUCT, productFailure, cleanupFailure)
+                }
+
+                val evidenceSummary =
+                    runCatching { layout.assertExpectedEvidence(config) }
+                        .getOrElse { failure -> layout.failCanary(config, CanaryPhase.PRODUCT, failure, cleanupFailure) }
+
+                val evidenceCount = processResult?.evidenceCount ?: 0
+                val outcome =
+                    CanaryOutcome(
+                        verdict = CanaryVerdict.PASS,
+                        minecraftVersion = config.minecraftVersion,
+                        evidenceCount = evidenceCount,
+                        cleanupFailure = cleanupFailure,
+                        diagnostics = layout.diagnosticPaths(),
+                    )
+                outcome.write(layout.artifactsDir.resolve(CanaryOutcome.FILE_NAME))
                 LocalMinecraftServerSmokeResult(
                     status = LocalMinecraftServerSmokeStatus.RAN,
-                    message = "local Minecraft server smoke collected ${processResult.evidenceCount} evidence event(s)",
+                    message = "local Minecraft server smoke collected $evidenceCount evidence event(s)",
                     root = config.root,
                     serverLog = layout.serverLog,
                     evidenceLog = layout.evidenceLog,
-                    exitCode = processResult.exitCode,
-                    evidenceCount = processResult.evidenceCount,
+                    exitCode = processResult?.exitCode,
+                    evidenceCount = evidenceCount,
                     actionLog = commandResult?.log,
                     actionExitCode = commandResult?.exitCode,
                     javaSelectionEvidence = javaSelectionEvidence,
                     runtimeLaneEvidence = runtimeLaneEvidence,
-                    evidenceSummary = layout.assertExpectedEvidence(config),
+                    evidenceSummary = evidenceSummary,
+                    cleanupFailure = cleanupFailure,
+                    outcome = outcome,
                 )
             }
         }
@@ -118,6 +152,9 @@ data class LocalMinecraftServerSmokeResult(
     val javaSelectionEvidence: Path? = null,
     val runtimeLaneEvidence: Path? = null,
     val evidenceSummary: LocalMinecraftSmokeEvidenceSummary = LocalMinecraftSmokeEvidenceSummary(),
+    /** A teardown problem that did not change the product verdict. */
+    val cleanupFailure: String? = null,
+    val outcome: CanaryOutcome? = null,
 )
 
 data class LocalMinecraftSmokeEvidenceSummary(
@@ -139,7 +176,116 @@ fun main() {
     result.serverLog?.let { println("serverLog=$it") }
     result.evidenceLog?.let { println("evidenceLog=$it") }
     result.exitCode?.let { println("exitCode=$it") }
+    result.cleanupFailure?.let {
+        // Cleanup ran after every product assertion had already passed, so this does not
+        // change the verdict. It is printed loudly rather than swallowed.
+        System.err.println("cleanupFailure=$it")
+    }
 }
+
+/**
+ * Records a failed canary outcome next to the run's artifacts, then rethrows.
+ *
+ * Setup failures are infrastructure by construction: the harness could not put
+ * Craftless in a position to be judged. Product-phase failures are classified by
+ * message content, because an upstream CDN timeout and a genuine unsupported-version
+ * break both surface as `BAD_REQUEST` and only the message distinguishes them.
+ */
+private fun LocalServerLayout.failCanary(
+    config: LocalMinecraftServerSmokeConfig,
+    phase: CanaryPhase,
+    failure: Throwable,
+    cleanupFailure: String? = null,
+): Nothing {
+    val failureText = failureClassificationText(failure)
+    val signature = CanaryFailureClassifier.infrastructureSignature(failureText)
+    val failureClass =
+        when {
+            signature != null -> CanaryFailureClass.INFRASTRUCTURE
+            phase == CanaryPhase.SETUP -> CanaryFailureClass.INFRASTRUCTURE
+            else -> CanaryFailureClass.PRODUCT
+        }
+    val reason =
+        when {
+            signature != null -> "${signature.description}: ${failure.describe()}"
+            phase == CanaryPhase.SETUP -> "probe harness setup failed before Craftless could be judged: ${failure.describe()}"
+            else -> failure.describe()
+        }
+    runCatching {
+        CanaryOutcome(
+            verdict = CanaryVerdict.FAIL,
+            failureClass = failureClass,
+            phase = phase,
+            reason = reason,
+            signature = signature?.id,
+            minecraftVersion = config.minecraftVersion,
+            cleanupFailure = cleanupFailure,
+            diagnostics = diagnosticPaths(),
+        ).write(artifactsDir.resolve(CanaryOutcome.FILE_NAME))
+    }
+    throw failure
+}
+
+/**
+ * Text the classifier inspects: the failure's own message chain plus the probe's
+ * per-step logs, since the probe redirects each CLI call to its own file and the
+ * decisive upstream error never reaches the exception message.
+ */
+private fun LocalServerLayout.failureClassificationText(failure: Throwable): String {
+    val messages = StringBuilder(failure.describe())
+    var cause = failure.cause
+    var depth = 0
+    while (cause != null && depth < MAX_CAUSE_DEPTH) {
+        messages.append('\n').append(cause.describe())
+        cause = cause.cause
+        depth += 1
+    }
+    failure.suppressed.forEach { messages.append('\n').append(it.describe()) }
+    probeLogExcerpts().forEach { excerpt -> messages.append('\n').append(excerpt) }
+    return messages.toString()
+}
+
+private fun LocalServerLayout.probeLogExcerpts(): List<String> {
+    if (!Files.isDirectory(artifactsDir)) {
+        return emptyList()
+    }
+    return Files
+        .list(artifactsDir)
+        .use { paths -> paths.toList() }
+        .filter { path -> path.isClassifiableProbeLog() }
+        .sortedBy { path -> path.fileName.toString() }
+        .mapNotNull { path -> runCatching { Files.readString(path) }.getOrNull() }
+}
+
+/**
+ * Generated OpenAPI documents are large and describe unrelated vocabulary, so they
+ * are excluded from classification input to keep signature matching honest.
+ */
+private fun Path.isClassifiableProbeLog(): Boolean {
+    val name = fileName.toString()
+    if (!Files.isRegularFile(this)) {
+        return false
+    }
+    if (name == CanaryOutcome.FILE_NAME || "openapi" in name) {
+        return false
+    }
+    if (!name.endsWith(".log") && !name.endsWith(".json")) {
+        return false
+    }
+    return runCatching { Files.size(this) <= MAX_CLASSIFIABLE_LOG_BYTES }.getOrDefault(false)
+}
+
+private fun LocalServerLayout.diagnosticPaths(): List<String> =
+    listOfNotNull(
+        serverLog.takeIf { Files.exists(it) }?.toString(),
+        evidenceLog.takeIf { Files.exists(it) }?.toString(),
+        artifactsDir.resolve("smoke-action.log").takeIf { Files.exists(it) }?.toString(),
+    )
+
+private fun Throwable.describe(): String = "${this::class.simpleName}: ${message ?: "no message"}"
+
+private const val MAX_CAUSE_DEPTH = 8
+private const val MAX_CLASSIFIABLE_LOG_BYTES = 256L * 1024
 
 @Serializable
 data class LocalMinecraftSmokeRuntimeLane(
