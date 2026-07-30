@@ -189,3 +189,5 @@ Required negative proof:
   `docs/superpowers/evidence/2026-07-02-hmc-bridge-retirement.md`.
 - Phase 210:
   `docs/superpowers/evidence/2026-07-02-release-truth-cleanup.md`.
+- Trigger-release bridge closure:
+  `docs/superpowers/evidence/2026-07-30-trigger-release-bridge-r4-already-satisfied.md`.

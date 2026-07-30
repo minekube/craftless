@@ -19,9 +19,11 @@ Step 3 is load-bearing and easy to lose. release-please pushes the tag with
 `GITHUB_TOKEN`, and GitHub's anti-recursion safeguard means a `GITHUB_TOKEN`
 tag push does **not** fire `release.yml`'s `push: tags: ["v*"]` trigger. Without
 `trigger-release`, the tag and the release page exist while `release.yml` never
-runs - a green-looking release with zero assets and no image. Every craftless
-release from `v0.2.0` onward that carries assets got them because a human
-remembered to dispatch `release.yml` by hand.
+runs - a green-looking release with zero assets and no image. Before this bridge
+was added, releases that carried assets needed a human to dispatch `release.yml`
+by hand. Commit `6159f020` added the bridge, and the first subsequent release,
+`v0.3.6`, proved the automated path; see the
+[trigger-release bridge closure evidence](superpowers/evidence/2026-07-30-trigger-release-bridge-r4-already-satisfied.md).
 
 ## The current release workflow protects the live image pointer
 

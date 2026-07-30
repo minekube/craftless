@@ -34,9 +34,9 @@ jobs:
   # anti-recursion safeguard means a GITHUB_TOKEN tag push does NOT fire
   # release.yml's `push: tags: ["v*"]` trigger. Without this job the tag and
   # the GitHub Release exist but release.yml never runs, so the release is
-  # published with zero assets and no container image - which is exactly how
-  # every craftless release from v0.2.0 onward ended up empty unless a human
-  # remembered to dispatch release.yml by hand.
+  # published with zero assets and no container image. That historical failure
+  # mode and the v0.3.6 end-to-end proof are recorded in
+  # docs/release-troubleshooting.md.
   #
   # Dispatching release.yml on the new tag closes the loop without a PAT.
   trigger-release:
