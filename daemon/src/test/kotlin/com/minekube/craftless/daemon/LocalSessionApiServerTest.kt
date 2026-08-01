@@ -1021,6 +1021,39 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `numeric minecraft version is rejected before client launch`() =
+        withHttpClient { http ->
+            var launches = 0
+            LocalSessionApiServer
+                .inMemory(
+                    driverFactory =
+                        DriverSessionFactory { request ->
+                            launches += 1
+                            FakeDriverSession(request.id)
+                        },
+                ).use { server ->
+                    server.start()
+
+                    val response =
+                        http.post(server.url("/clients")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "id": "alice",
+                                  "version": 26.2,
+                                  "loader": "FABRIC"
+                                }
+                                """.trimIndent(),
+                            )
+                        }
+
+                    assertEquals(HttpStatusCode.BadRequest, response.status)
+                    assertEquals(0, launches)
+                }
+        }
+
+    @Test
     fun `prepared runtime launch plan includes configured craftless fabric driver mod`() =
         withHttpClient { http ->
             val workspace = Files.createTempDirectory("craftless-driver-mod-launch")

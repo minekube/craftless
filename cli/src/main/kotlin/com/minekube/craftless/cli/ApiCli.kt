@@ -251,6 +251,7 @@ internal class ApiCli(
     private fun String.toTypedValue(schema: OpenApiSchema?): Any? =
         when {
             equals("null", ignoreCase = true) -> null
+            schema?.type == "string" -> schema.enumValues?.matchEnum(this) ?: this
             equals("true", ignoreCase = true) -> true
             equals("false", ignoreCase = true) -> false
             else -> {

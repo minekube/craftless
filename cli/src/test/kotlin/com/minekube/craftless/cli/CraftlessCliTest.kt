@@ -3,6 +3,9 @@ package com.minekube.craftless.cli
 import com.minekube.craftless.daemon.CRAFTLESS_CLIENT_STARTUP_PROBE_MS
 import com.minekube.craftless.daemon.CacheMetadataFetcher
 import com.minekube.craftless.daemon.DriverSessionFactory
+import com.minekube.craftless.driver.api.DriverActionInvocation
+import com.minekube.craftless.driver.api.DriverActionResult
+import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.ApiRouteCatalog
 import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
 import com.minekube.craftless.protocol.MINECRAFT_JAVA_RUNTIME_INDEX_URL
@@ -305,6 +308,90 @@ class CraftlessCliTest {
                     ?.content,
             )
         }
+    }
+
+    @Test
+    fun `api serializes minecraft version identifiers as strings at request boundary`() {
+        RecordingCreateApiServer().use { server ->
+            listOf("26.2", "1.21.6").forEachIndexed { index, version ->
+                val errors = StringBuilder()
+
+                val exit =
+                    CraftlessCli.run(
+                        listOf(
+                            "api",
+                            "/clients",
+                            "--api",
+                            server.url,
+                            "-F",
+                            "id=bot-$index",
+                            "-F",
+                            "version=$version",
+                            "-F",
+                            "loader=FABRIC",
+                        ),
+                        stdout = {},
+                        stderr = { errors.appendLine(it) },
+                    )
+
+                assertEquals(0, exit, errors.toString())
+            }
+
+            val versions =
+                server.createBodies.map { body ->
+                    Json
+                        .parseToJsonElement(body)
+                        .jsonObject
+                        .getValue("version")
+                        .jsonPrimitive
+                }
+            assertEquals(listOf("26.2", "1.21.6"), versions.map { it.content })
+            assertTrue(versions.all { it.isString })
+        }
+    }
+
+    @Test
+    fun `api preserves schema typed boolean and numeric fields`() {
+        val invocations = mutableListOf<DriverActionInvocation>()
+        val driverFactory =
+            DriverSessionFactory { request ->
+                val delegate = FakeDriverSession(request.id)
+                object : DriverSession by delegate {
+                    override fun invoke(invocation: DriverActionInvocation): DriverActionResult {
+                        invocations += invocation
+                        return delegate.invoke(invocation)
+                    }
+                }
+            }
+
+        LocalTestApiServer(driverFactory = driverFactory).use { server ->
+            server.createAlice()
+
+            val errors = StringBuilder()
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "api",
+                        "/clients/alice/player:move",
+                        "--api",
+                        server.url,
+                        "-F",
+                        "forward=true",
+                        "-F",
+                        "ticks=3",
+                    ),
+                    stdout = {},
+                    stderr = { errors.appendLine(it) },
+                )
+
+            assertEquals(0, exit, errors.toString())
+        }
+
+        val arguments = invocations.single().arguments
+        assertEquals("true", arguments.getValue("forward").jsonPrimitive.content)
+        assertFalse(arguments.getValue("forward").jsonPrimitive.isString)
+        assertEquals("3", arguments.getValue("ticks").jsonPrimitive.content)
+        assertFalse(arguments.getValue("ticks").jsonPrimitive.isString)
     }
 
     @Test
