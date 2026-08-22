@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.7](https://github.com/minekube/craftless/compare/v0.3.6...v0.3.7) (2026-08-17)
+
+
+### Bug Fixes
+
+* **cli:** preserve string request fields ([#20](https://github.com/minekube/craftless/issues/20)) ([b1b1372](https://github.com/minekube/craftless/commit/b1b1372cb05d69e71bf141b399657782c08b44e5))
+* **daemon:** run newest packaged lane in Docker ([#18](https://github.com/minekube/craftless/issues/18)) ([cda7f4d](https://github.com/minekube/craftless/commit/cda7f4dee42e47b21f7677d6ad91243b46e276e5))
+* **testkit:** make latest fabric canary failures actionable ([#16](https://github.com/minekube/craftless/issues/16)) ([4684f07](https://github.com/minekube/craftless/commit/4684f07099e13172f95bdc0089c9b9ce0a5f532a))
+
 ## [0.3.6](https://github.com/minekube/craftless/compare/v0.3.5...v0.3.6) (2026-07-27)
 
 
