@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.8](https://github.com/minekube/craftless/compare/v0.3.7...v0.3.8) (2026-09-05)
+
+
+### Bug Fixes
+
+* **attach:** retry client registration race ([a0ae1e6](https://github.com/minekube/craftless/commit/a0ae1e6244177dfe8ec8abed1ebba81a7280b9e4))
+
 ## [0.3.7](https://github.com/minekube/craftless/compare/v0.3.6...v0.3.7) (2026-08-17)
 
 

@@ -106,7 +106,7 @@ Install a specific release:
 
 <!-- x-release-please-start-version -->
 ```sh
-CRAFTLESS_VERSION=v0.3.7 \
+CRAFTLESS_VERSION=v0.3.8 \
 CRAFTLESS_INSTALL_DIR="$HOME/.local/bin" \
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/minekube/craftless/main/install.sh)"
 ```
@@ -128,7 +128,7 @@ jobs:
   minecraft:
     runs-on: ubuntu-latest
     steps:
-      - uses: minekube/craftless/.github/actions/setup-craftless@v0.3.7
+      - uses: minekube/craftless/.github/actions/setup-craftless@v0.3.8
         id: craftless
         with:
           start: "true"
