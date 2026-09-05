@@ -7,9 +7,12 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.concurrent.CopyOnWriteArrayList
@@ -37,16 +40,29 @@ class FabricDriverSelfAttach(
         val endpoint = endpointFactory(session).start()
         var attached = false
         try {
-            val response =
-                http.post("${environment.daemonUrl}/clients/${environment.clientId}:attach") {
-                    contentType(ContentType.Application.Json)
-                    setBody(json.encodeToString(FabricDriverAttachRequest(endpoint.url)))
+            for (attempt in 1..SELF_ATTACH_MAX_ATTEMPTS) {
+                val response =
+                    http.post("${environment.daemonUrl}/clients/${environment.clientId}:attach") {
+                        contentType(ContentType.Application.Json)
+                        setBody(json.encodeToString(FabricDriverAttachRequest(endpoint.url)))
+                    }
+                if (response.status.value in 200..299) {
+                    attached = true
+                    return FabricDriverAttachment(endpoint)
                 }
-            check(response.status.value in 200..299) {
-                "driver self-attach failed with ${response.status.value}: ${response.bodyAsText()}"
+
+                val body = response.bodyAsText()
+                val registrationRace =
+                    response.status == HttpStatusCode.NotFound &&
+                        runCatching {
+                            json.decodeFromString<FabricDriverAttachErrorResponse>(body).code == MISSING_CLIENT_CODE
+                        }.getOrDefault(false)
+                check(registrationRace && attempt < SELF_ATTACH_MAX_ATTEMPTS) {
+                    "driver self-attach failed with ${response.status.value}: $body"
+                }
+                delay(SELF_ATTACH_RETRY_DELAY_MILLIS)
             }
-            attached = true
-            return FabricDriverAttachment(endpoint)
+            error("driver self-attach exhausted its bounded registration retry budget")
         } finally {
             if (!attached) {
                 endpoint.close()
@@ -109,3 +125,12 @@ class FabricDriverAttachment(
 private data class FabricDriverAttachRequest(
     val endpoint: String,
 )
+
+@Serializable
+private data class FabricDriverAttachErrorResponse(
+    val code: String,
+)
+
+private const val MISSING_CLIENT_CODE = "MISSING_CLIENT"
+private const val SELF_ATTACH_MAX_ATTEMPTS = 50
+private const val SELF_ATTACH_RETRY_DELAY_MILLIS = 100L

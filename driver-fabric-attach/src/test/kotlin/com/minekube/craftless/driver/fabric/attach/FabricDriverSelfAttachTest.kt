@@ -20,6 +20,7 @@ import com.minekube.craftless.protocol.RuntimeOperationNode
 import com.minekube.craftless.protocol.RuntimeResourceNode
 import com.minekube.craftless.protocol.RuntimeSchema
 import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
@@ -117,6 +118,46 @@ class FabricDriverSelfAttachTest {
                     }
             }
         }
+
+    @Test
+    fun `self attach retries the transient client registration race`() =
+        runBlocking {
+            val session = RecordingDriverSession("alice")
+            SupervisorAttachProbe(missingClientResponses = 1).use { supervisor ->
+                supervisor.start()
+
+                FabricDriverSelfAttach()
+                    .start(
+                        session = session,
+                        environment = FabricDriverAttachEnvironment(clientId = "alice", daemonUrl = supervisor.url),
+                    ).use {
+                        assertEquals(
+                            listOf("/clients/alice:attach", "/clients/alice:attach"),
+                            supervisor.paths,
+                        )
+                    }
+            }
+        }
+
+    @Test
+    fun `self attach does not retry unrelated not found responses`() =
+        runBlocking {
+            val session = RecordingDriverSession("alice")
+            SupervisorAttachProbe(permanentNotFoundCode = "UNKNOWN_ROUTE").use { supervisor ->
+                supervisor.start()
+
+                val failure =
+                    runCatching {
+                        FabricDriverSelfAttach().start(
+                            session = session,
+                            environment = FabricDriverAttachEnvironment(clientId = "alice", daemonUrl = supervisor.url),
+                        )
+                    }.exceptionOrNull()
+
+                assertTrue(failure is IllegalStateException)
+                assertEquals(listOf("/clients/alice:attach"), supervisor.paths)
+            }
+        }
 }
 
 private class RecordingDriverSession(
@@ -191,7 +232,10 @@ private class RecordingDriverSession(
     override fun events(): List<DriverEvent> = events.toList()
 }
 
-private class SupervisorAttachProbe : AutoCloseable {
+private class SupervisorAttachProbe(
+    private var missingClientResponses: Int = 0,
+    private val permanentNotFoundCode: String? = null,
+) : AutoCloseable {
     private val port = allocateLoopbackPort()
     private val engine =
         embeddedServer(CIO, host = "127.0.0.1", port = port) {
@@ -199,7 +243,22 @@ private class SupervisorAttachProbe : AutoCloseable {
                 post("/clients/{id}:attach") {
                     paths += call.request.path()
                     attachBodies += call.receiveText()
-                    call.respondText("{}", ContentType.Application.Json)
+                    if (missingClientResponses > 0) {
+                        missingClientResponses -= 1
+                        call.respondText(
+                            """{"code":"MISSING_CLIENT","message":"client alice not found"}""",
+                            ContentType.Application.Json,
+                            HttpStatusCode.NotFound,
+                        )
+                    } else if (permanentNotFoundCode != null) {
+                        call.respondText(
+                            """{"code":"$permanentNotFoundCode","message":"not found"}""",
+                            ContentType.Application.Json,
+                            HttpStatusCode.NotFound,
+                        )
+                    } else {
+                        call.respondText("{}", ContentType.Application.Json)
+                    }
                 }
             }
         }
